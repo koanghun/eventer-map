@@ -1,0 +1,45 @@
+from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
+from database import engine, Base
+from routes import events
+import os
+from dotenv import load_dotenv
+
+load_dotenv()
+
+# Create database tables
+Base.metadata.create_all(bind=engine)
+
+# Initialize FastAPI app
+app = FastAPI(
+    title="Event Map API",
+    description="API for managing events on a map",
+    version="1.0.0"
+)
+
+# Configure CORS
+origins = os.getenv("CORS_ORIGINS", "http://localhost:3000").split(",")
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=origins,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+# Include routers
+app.include_router(events.router)
+
+
+@app.get("/")
+def root():
+    return {
+        "message": "Event Map API",
+        "docs": "/docs",
+        "version": "1.0.0"
+    }
+
+
+@app.get("/health")
+def health_check():
+    return {"status": "healthy"}
