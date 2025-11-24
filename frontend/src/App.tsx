@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
+import { LoadScript } from '@react-google-maps/api';
 import EventMap from './components/EventMap';
 import EventForm from './components/EventForm';
 import EventList from './components/EventList';
@@ -8,6 +9,8 @@ import { eventApi } from './services/api';
 import { format } from 'date-fns';
 import './App.css';
 
+const GOOGLE_MAPS_LIBRARIES: ("places")[] = ['places'];
+
 function App() {
     const [selectedDate, setSelectedDate] = useState<string>(format(new Date(), 'yyyy-MM-dd'));
     const [events, setEvents] = useState<Event[]>([]);
@@ -15,12 +18,7 @@ function App() {
     const [isFormOpen, setIsFormOpen] = useState(false);
     const [loading, setLoading] = useState(false);
 
-    // 선택된 날짜의 이벤트 로드
-    useEffect(() => {
-        loadEvents();
-    }, [selectedDate]);
-
-    const loadEvents = async () => {
+    const loadEvents = useCallback(async () => {
         setLoading(true);
         try {
             const data = await eventApi.getEventsByDate(selectedDate);
@@ -30,7 +28,12 @@ function App() {
         } finally {
             setLoading(false);
         }
-    };
+    }, [selectedDate]);
+
+    // 선택된 날짜의 이벤트 로드
+    useEffect(() => {
+        loadEvents();
+    }, [loadEvents]);
 
     const handleDateChange = (date: string) => {
         setSelectedDate(date);
@@ -38,6 +41,10 @@ function App() {
 
     const handleEventClick = (event: Event) => {
         setSelectedEvent(event);
+    };
+
+    const handleInfoWindowClose = () => {
+        setSelectedEvent(null);
     };
 
     const handleEventSubmit = async (event: Event) => {
@@ -79,51 +86,56 @@ function App() {
         setIsFormOpen(true);
     };
 
+    const apiKey = process.env.REACT_APP_GOOGLE_MAPS_API_KEY || '';
+
     return (
-        <div className="app">
-            <header className="app-header">
-                <h1>🗺️ Event Map</h1>
-                <p>날짜를 선택하여 이벤트를 확인하세요</p>
-            </header>
+        <LoadScript googleMapsApiKey={apiKey} libraries={GOOGLE_MAPS_LIBRARIES}>
+            <div className="app">
+                <header className="app-header">
+                    <h1>🗺️ Event Map</h1>
+                    <p>날짜를 선택하여 이벤트를 확인하세요</p>
+                </header>
 
-            <div className="app-container">
-                <aside className="sidebar">
-                    <DatePicker selectedDate={selectedDate} onDateChange={handleDateChange} />
+                <div className="app-container">
+                    <aside className="sidebar">
+                        <DatePicker selectedDate={selectedDate} onDateChange={handleDateChange} />
 
-                    <button className="btn-new-event" onClick={handleNewEvent}>
-                        ➕ 새 이벤트 등록
-                    </button>
+                        <button className="btn-new-event" onClick={handleNewEvent}>
+                            ➕ 새 이벤트 등록
+                        </button>
 
-                    <EventList
-                        events={events}
-                        loading={loading}
-                        onEventClick={handleEventClick}
-                        onEventEdit={handleEditEvent}
-                        onEventDelete={handleEventDelete}
-                        selectedEventId={selectedEvent?.id}
+                        <EventList
+                            events={events}
+                            loading={loading}
+                            onEventClick={handleEventClick}
+                            onEventEdit={handleEditEvent}
+                            onEventDelete={handleEventDelete}
+                            selectedEventId={selectedEvent?.id}
+                        />
+                    </aside>
+
+                    <main className="main-content">
+                        <EventMap
+                            events={events}
+                            selectedEvent={selectedEvent}
+                            onMarkerClick={handleEventClick}
+                            onInfoWindowClose={handleInfoWindowClose}
+                        />
+                    </main>
+                </div>
+
+                {isFormOpen && (
+                    <EventForm
+                        event={selectedEvent}
+                        onSubmit={handleEventSubmit}
+                        onClose={() => {
+                            setIsFormOpen(false);
+                            setSelectedEvent(null);
+                        }}
                     />
-                </aside>
-
-                <main className="main-content">
-                    <EventMap
-                        events={events}
-                        selectedEvent={selectedEvent}
-                        onMarkerClick={handleEventClick}
-                    />
-                </main>
+                )}
             </div>
-
-            {isFormOpen && (
-                <EventForm
-                    event={selectedEvent}
-                    onSubmit={handleEventSubmit}
-                    onClose={() => {
-                        setIsFormOpen(false);
-                        setSelectedEvent(null);
-                    }}
-                />
-            )}
-        </div>
+        </LoadScript>
     );
 }
 

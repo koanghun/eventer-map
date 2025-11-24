@@ -1,6 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { Event, EventFormData } from '../types/event';
+import { placeApi, Place, performerApi, Performer } from '../services/api';
 import './EventForm.css';
+
+import MultiSelect from './MultiSelect';
+import './MultiSelect.css';
 
 interface EventFormProps {
     event: Event | null;
@@ -9,21 +13,81 @@ interface EventFormProps {
 }
 
 const EventForm: React.FC<EventFormProps> = ({ event, onSubmit, onClose }) => {
-    const [formData, setFormData] = useState<EventFormData>({
-        title: '',
-        description: '',
-        event_date: '',
-        event_time: '',
-        location: '',
-        address: '',
-        latitude: 37.5665,
-        longitude: 126.9780,
-        performers: '',
-        related_link: '',
+    // 임시 저장 키
+    const DRAFT_KEY = 'eventFormDraft';
+
+    const [savedPlaces, setSavedPlaces] = useState<Place[]>([]);
+    const [savedPerformers, setSavedPerformers] = useState<Performer[]>([]);
+    const [selectedPerformers, setSelectedPerformers] = useState<string[]>([]);
+
+    const [formData, setFormData] = useState<EventFormData>(() => {
+        // 수정 모드면 기본값 사용 (useEffect에서 업데이트됨)
+        if (event) {
+            return {
+                title: '',
+                description: '',
+                event_date: '',
+                event_time: '',
+                location: '',
+                address: '',
+                latitude: 35.6762,
+                longitude: 139.6503,
+                performers: '',
+                related_link: '',
+            };
+        }
+
+        // 새 이벤트 모드면 로컬 스토리지 확인
+        const savedDraft = localStorage.getItem(DRAFT_KEY);
+        if (savedDraft) {
+            try {
+                const draft = JSON.parse(savedDraft);
+                // performers 문자열을 배열로 변환
+                if (draft.performers) {
+                    setSelectedPerformers(draft.performers.split(',').filter(Boolean));
+                }
+                return draft;
+            } catch (e) {
+                console.error('Failed to parse draft:', e);
+            }
+        }
+
+        // 없으면 기본값
+        return {
+            title: '',
+            description: '',
+            event_date: '',
+            event_time: '',
+            location: '',
+            address: '',
+            latitude: 35.6762,
+            longitude: 139.6503,
+            performers: '',
+            related_link: '',
+        };
     });
+
+    // 저장된 데이터 불러오기 (장소, 출연자)
+    useEffect(() => {
+        const fetchData = async () => {
+            try {
+                const [places, performers] = await Promise.all([
+                    placeApi.getAllPlaces(),
+                    performerApi.getAllPerformers()
+                ]);
+                setSavedPlaces(places);
+                setSavedPerformers(performers);
+            } catch (error) {
+                console.error('Failed to fetch data:', error);
+            }
+        };
+        fetchData();
+    }, []);
 
     useEffect(() => {
         if (event) {
+            const performersArray = event.performers ? event.performers.split(',').map(p => p.trim()) : [];
+            setSelectedPerformers(performersArray);
             setFormData({
                 title: event.title,
                 description: event.description || '',
@@ -39,31 +103,99 @@ const EventForm: React.FC<EventFormProps> = ({ event, onSubmit, onClose }) => {
         }
     }, [event]);
 
+    // 폼 데이터 변경 시 임시 저장 (새 이벤트일 때만)
+    useEffect(() => {
+        if (!event) {
+            localStorage.setItem(DRAFT_KEY, JSON.stringify(formData));
+        }
+    }, [formData, event]);
+
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
         const { name, value } = e.target;
-        setFormData((prev) => ({ ...prev, [name]: value }));
+
+        setFormData(prev => ({ ...prev, [name]: value }));
+
+        // 장소명이 변경되었을 때, 저장된 장소 목록에서 일치하는 것이 있는지 확인
+        if (name === 'location') {
+            const matchedPlace = savedPlaces.find(p => p.name === value);
+            if (matchedPlace) {
+                setFormData(prev => ({
+                    ...prev,
+                    [name]: value, // location 업데이트
+                    address: matchedPlace.address,
+                    latitude: matchedPlace.latitude,
+                    longitude: matchedPlace.longitude
+                }));
+            }
+        }
     };
 
-    const handleGeocodeAddress = async () => {
-        if (!formData.address) {
-            alert('주소를 입력해주세요.');
+    const handlePerformersChange = (newPerformers: string[]) => {
+        setSelectedPerformers(newPerformers);
+        setFormData(prev => ({ ...prev, performers: newPerformers.join(',') }));
+    };
+
+    const handlePlaceSearch = async () => {
+        if (!formData.location) {
+            alert('장소명을 입력해주세요.');
             return;
         }
 
-        const geocoder = new window.google.maps.Geocoder();
-        geocoder.geocode({ address: formData.address }, (results, status) => {
-            if (status === 'OK' && results && results[0]) {
-                const location = results[0].geometry.location;
-                setFormData((prev) => ({
-                    ...prev,
-                    latitude: location.lat(),
-                    longitude: location.lng(),
-                }));
-                alert('주소가 좌표로 변환되었습니다!');
-            } else {
-                alert('주소를 찾을 수 없습니다. 다시 시도해주세요.');
-            }
-        });
+        try {
+            // 1. 백엔드 DB에서 먼저 검색
+            const place = await placeApi.searchPlace(formData.location);
+
+            setFormData((prev) => ({
+                ...prev,
+                location: place.name,
+                address: place.address,
+                latitude: place.latitude,
+                longitude: place.longitude,
+            }));
+            alert('장소 정보가 자동으로 입력되었습니다! (DB 캐시)');
+
+        } catch (error) {
+            // 2. DB에 없으면 Google Geocoding API 호출 (프론트엔드에서 수행)
+            console.log('DB search failed, trying Google API...');
+
+            const geocoder = new window.google.maps.Geocoder();
+            geocoder.geocode({ address: formData.location }, async (results, status) => {
+                if (status === 'OK' && results && results[0]) {
+                    const result = results[0];
+                    const location = result.geometry.location;
+                    const lat = location.lat();
+                    const lng = location.lng();
+                    const address = result.formatted_address || '';
+
+                    // 폼 업데이트
+                    setFormData((prev) => ({
+                        ...prev,
+                        address: address,
+                        latitude: lat,
+                        longitude: lng,
+                    }));
+
+                    // 3. 검색 결과를 백엔드 DB에 저장 (캐싱)
+                    try {
+                        const newPlace = await placeApi.createPlace({
+                            name: formData.location,
+                            address: address,
+                            latitude: lat,
+                            longitude: lng
+                        });
+                        console.log('Place cached in DB');
+                        // 저장된 장소 목록 갱신
+                        setSavedPlaces(prev => [...prev, newPlace]);
+                    } catch (saveError) {
+                        console.error('Failed to cache place:', saveError);
+                    }
+
+                    alert('장소 정보가 자동으로 입력되었습니다! (Google API)');
+                } else {
+                    alert('장소를 찾을 수 없습니다. 다른 검색어를 시도해주세요.');
+                }
+            });
+        }
     };
 
     const handleSubmit = (e: React.FormEvent) => {
@@ -75,6 +207,11 @@ const EventForm: React.FC<EventFormProps> = ({ event, onSubmit, onClose }) => {
         }
 
         onSubmit(formData as Event);
+
+        // 제출 성공 시 임시 저장 데이터 삭제
+        if (!event) {
+            localStorage.removeItem(DRAFT_KEY);
+        }
     };
 
     return (
@@ -139,73 +276,55 @@ const EventForm: React.FC<EventFormProps> = ({ event, onSubmit, onClose }) => {
                     </div>
 
                     <div className="form-group">
-                        <label htmlFor="location">장소명 *</label>
-                        <input
-                            type="text"
-                            id="location"
-                            name="location"
-                            value={formData.location}
-                            onChange={handleChange}
-                            required
-                            placeholder="예: 올림픽공원"
-                        />
+                        <label htmlFor="location">장소 검색 *</label>
+                        <div className="address-group">
+                            <input
+                                type="text"
+                                id="location"
+                                name="location"
+                                value={formData.location}
+                                onChange={handleChange}
+                                required
+                                placeholder="예: 横浜アリーナ"
+                                list="places-list"
+                                autoComplete="off"
+                            />
+                            <datalist id="places-list">
+                                {savedPlaces.map((place) => (
+                                    <option key={place.id} value={place.name} />
+                                ))}
+                            </datalist>
+                            <button type="button" className="btn-geocode" onClick={handlePlaceSearch}>
+                                🔍 장소 검색
+                            </button>
+                        </div>
+                        <small>장소명을 입력하고 검색하면 주소와 좌표가 자동으로 입력됩니다</small>
                     </div>
 
                     <div className="form-group">
                         <label htmlFor="address">주소</label>
-                        <div className="address-group">
-                            <input
-                                type="text"
-                                id="address"
-                                name="address"
-                                value={formData.address}
-                                onChange={handleChange}
-                                placeholder="서울시 송파구 올림픽로 424"
-                            />
-                            <button type="button" className="btn-geocode" onClick={handleGeocodeAddress}>
-                                좌표 변환
-                            </button>
-                        </div>
-                        <small>주소를 입력하고 '좌표 변환' 버튼을 클릭하세요</small>
+                        <input
+                            type="text"
+                            id="address"
+                            name="address"
+                            value={formData.address}
+                            onChange={handleChange}
+                            placeholder="자동 입력됨"
+                            readOnly
+                        />
                     </div>
 
-                    <div className="form-row">
-                        <div className="form-group">
-                            <label htmlFor="latitude">위도 *</label>
-                            <input
-                                type="number"
-                                id="latitude"
-                                name="latitude"
-                                value={formData.latitude}
-                                onChange={handleChange}
-                                step="0.000001"
-                                required
-                            />
-                        </div>
-
-                        <div className="form-group">
-                            <label htmlFor="longitude">경도 *</label>
-                            <input
-                                type="number"
-                                id="longitude"
-                                name="longitude"
-                                value={formData.longitude}
-                                onChange={handleChange}
-                                step="0.000001"
-                                required
-                            />
-                        </div>
-                    </div>
+                    {/* 위도/경도는 숨김 처리 (자동 입력됨) */}
+                    <input type="hidden" name="latitude" value={formData.latitude} />
+                    <input type="hidden" name="longitude" value={formData.longitude} />
 
                     <div className="form-group">
                         <label htmlFor="performers">출연자</label>
-                        <input
-                            type="text"
-                            id="performers"
-                            name="performers"
-                            value={formData.performers}
-                            onChange={handleChange}
-                            placeholder="출연자 이름 (쉼표로 구분)"
+                        <MultiSelect
+                            options={savedPerformers}
+                            selected={selectedPerformers}
+                            onChange={handlePerformersChange}
+                            placeholder="출연자 선택 또는 직접 입력"
                         />
                     </div>
 

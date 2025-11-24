@@ -47,4 +47,47 @@ export const eventApi = {
     },
 };
 
+export interface Place {
+    id: number;
+    name: string;
+    address: string;
+    latitude: number;
+    longitude: number;
+    created_at: string;
+}
+
+export const placeApi = {
+    // 장소 검색 (DB 캐시)
+    searchPlace: async (query: string): Promise<Place> => {
+        const response = await api.get<Place>(`/places/search?query=${encodeURIComponent(query)}`);
+        return response.data;
+    },
+
+    // 장소 생성 (캐시 저장)
+    createPlace: async (place: Omit<Place, 'id' | 'created_at'>): Promise<Place> => {
+        const response = await api.post<Place>('/places/', place);
+        return response.data;
+    },
+
+    // 모든 장소 조회
+    getAllPlaces: async (): Promise<Place[]> => {
+        const response = await api.get<Place[]>('/places/');
+        return response.data;
+    },
+};
+
+export interface Performer {
+    id: number;
+    name: string;
+    created_at: string;
+}
+
+export const performerApi = {
+    // 모든 출연자 조회
+    getAllPerformers: async (): Promise<Performer[]> => {
+        const response = await api.get<Performer[]>('/performers/');
+        return response.data;
+    },
+};
+
 export default api;

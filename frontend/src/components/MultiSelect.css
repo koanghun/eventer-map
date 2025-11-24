@@ -1,0 +1,89 @@
+.multiselect-container {
+    position: relative;
+    width: 100%;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    padding: 2px;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    background-color: #fff;
+    transition: border-color 0.2s;
+}
+
+.multiselect-container:focus-within {
+    border-color: #8a2be2;
+    box-shadow: 0 0 0 2px rgba(138, 43, 226, 0.2);
+}
+
+.selected-items {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px;
+    flex-grow: 1;
+}
+
+.selected-item {
+    background-color: #e9d5ff; /* 보라색 계열 연한 색 */
+    color: #4a0e6c;
+    border-radius: 12px;
+    padding: 4px 10px;
+    display: flex;
+    align-items: center;
+    font-size: 14px;
+    font-weight: 500;
+}
+
+.remove-item {
+    margin-left: 8px;
+    border: none;
+    background: none;
+    cursor: pointer;
+    font-size: 16px;
+    color: #4a0e6c;
+    padding: 0;
+    line-height: 1;
+}
+
+.multiselect-input {
+    border: none;
+    outline: none;
+    padding: 8px;
+    flex-grow: 1;
+    min-width: 150px;
+    font-size: 16px;
+}
+
+.options-list {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    background-color: white;
+    border: 1px solid #ccc;
+    border-top: none;
+    border-radius: 0 0 4px 4px;
+    list-style: none;
+    padding: 0;
+    margin: 4px 0 0 0;
+    max-height: 200px;
+    overflow-y: auto;
+    z-index: 1000;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+.option-item {
+    padding: 10px 12px;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+.option-item:hover {
+    background-color: #f3e8ff; /* 연한 보라색 */
+}
+
+.option-item-new {
+    font-style: italic;
+    color: #555;
+}

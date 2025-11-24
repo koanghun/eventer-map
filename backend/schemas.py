@@ -1,6 +1,17 @@
 from pydantic import BaseModel, Field
-from typing import Optional
+from typing import Optional, List
 from datetime import datetime
+
+
+class PerformerBase(BaseModel):
+    name: str
+
+class PerformerResponse(PerformerBase):
+    id: int
+    created_at: datetime
+
+    class Config:
+        from_attributes = True
 
 
 class EventBase(BaseModel):
@@ -12,7 +23,7 @@ class EventBase(BaseModel):
     address: Optional[str] = Field(None, max_length=500)
     latitude: float = Field(..., ge=-90, le=90)
     longitude: float = Field(..., ge=-180, le=180)
-    performers: Optional[str] = None
+    performers: Optional[str] = None  # 기존 문자열 필드 유지
     related_link: Optional[str] = Field(None, max_length=500)
 
 
@@ -36,7 +47,27 @@ class EventUpdate(BaseModel):
 class EventResponse(EventBase):
     id: int
     created_at: datetime
-    updated_at: datetime
+    updated_at: Optional[datetime] = None
+    performers_list: List[PerformerResponse] = []  # 관계형 데이터
+
+    class Config:
+        from_attributes = True
+
+
+class PlaceBase(BaseModel):
+    name: str = Field(..., min_length=1, max_length=200)
+    address: str = Field(..., min_length=1, max_length=500)
+    latitude: float = Field(..., ge=-90, le=90)
+    longitude: float = Field(..., ge=-180, le=180)
+
+
+class PlaceCreate(PlaceBase):
+    pass
+
+
+class PlaceResponse(PlaceBase):
+    id: int
+    created_at: datetime
 
     class Config:
         from_attributes = True

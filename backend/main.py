@@ -1,14 +1,15 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from database import engine, Base
-from routes import events
+from database import engine
+import models
+from routes import events, places, performers
 import os
 from dotenv import load_dotenv
 
 load_dotenv()
 
 # Create database tables
-Base.metadata.create_all(bind=engine)
+models.Base.metadata.create_all(bind=engine)
 
 # Initialize FastAPI app
 app = FastAPI(
@@ -29,6 +30,8 @@ app.add_middleware(
 
 # Include routers
 app.include_router(events.router)
+app.include_router(places.router)
+app.include_router(performers.router)
 
 
 @app.get("/")
