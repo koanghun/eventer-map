@@ -27,7 +27,9 @@ const EventForm: React.FC<EventFormProps> = ({ event, onSubmit, onClose }) => {
                 title: '',
                 description: '',
                 event_date: '',
-                event_time: '',
+                door_time: '',
+                start_time: '',
+                end_time: '',
                 location: '',
                 address: '',
                 latitude: 35.6762,
@@ -57,7 +59,9 @@ const EventForm: React.FC<EventFormProps> = ({ event, onSubmit, onClose }) => {
             title: '',
             description: '',
             event_date: '',
-            event_time: '',
+            door_time: '',
+            start_time: '',
+            end_time: '',
             location: '',
             address: '',
             latitude: 35.6762,
@@ -92,7 +96,9 @@ const EventForm: React.FC<EventFormProps> = ({ event, onSubmit, onClose }) => {
                 title: event.title,
                 description: event.description || '',
                 event_date: event.event_date,
-                event_time: event.event_time || '',
+                door_time: event.door_time || '',
+                start_time: event.start_time || '',
+                end_time: event.end_time || '',
                 location: event.location,
                 address: event.address || '',
                 latitude: event.latitude,
@@ -250,27 +256,52 @@ const EventForm: React.FC<EventFormProps> = ({ event, onSubmit, onClose }) => {
                         />
                     </div>
 
+                    <div className="form-group">
+                        <label htmlFor="event_date">날짜 *</label>
+                        <input
+                            type="date"
+                            id="event_date"
+                            name="event_date"
+                            value={formData.event_date}
+                            onChange={handleChange}
+                            required
+                        />
+                    </div>
+
                     <div className="form-row">
                         <div className="form-group">
-                            <label htmlFor="event_date">날짜 *</label>
+                            <label htmlFor="door_time">개장 시간</label>
                             <input
-                                type="date"
-                                id="event_date"
-                                name="event_date"
-                                value={formData.event_date}
+                                type="time"
+                                id="door_time"
+                                name="door_time"
+                                value={formData.door_time}
                                 onChange={handleChange}
-                                required
+                                placeholder="18:00"
                             />
                         </div>
 
                         <div className="form-group">
-                            <label htmlFor="event_time">시간</label>
+                            <label htmlFor="start_time">개연 시간</label>
                             <input
                                 type="time"
-                                id="event_time"
-                                name="event_time"
-                                value={formData.event_time}
+                                id="start_time"
+                                name="start_time"
+                                value={formData.start_time}
                                 onChange={handleChange}
+                                placeholder="19:00"
+                            />
+                        </div>
+
+                        <div className="form-group">
+                            <label htmlFor="end_time">종연 시간</label>
+                            <input
+                                type="time"
+                                id="end_time"
+                                name="end_time"
+                                value={formData.end_time}
+                                onChange={handleChange}
+                                placeholder="21:00"
                             />
                         </div>
                     </div>

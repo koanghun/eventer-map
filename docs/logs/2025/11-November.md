@@ -155,3 +155,72 @@
 - 전체 기능에 대한 Docker Compose 통합 테스트
 - 데이터 모델 변경에 따른 프론트엔드 `EventList` 및 `EventMap` 컴포넌트의 정보 표시 방식 업데이트
 - 배포 환경에서의 최종 테스트
+
+---
+
+## 2025-11-25
+
+### ✅ 이벤트 시간 필드 세분화 및 UI 가시성 개선
+
+**작업 내용**:
+
+#### 1. 백엔드: 시간 필드를 3개로 분리
+- **목적**: 이벤트 시간을 개장(door_time), 개연(start_time), 종연(end_time) 3가지로 세분화하여 더 상세한 정보 제공
+- `models.py`: `event_time` 필드를 `door_time`, `start_time`, `end_time` 3개의 컬럼으로 분리
+- `schemas.py`: `EventBase` 및 `EventUpdate` 스키마에 3개의 시간 필드 추가 (모두 Optional, HH:MM 형식)
+- `migrate_time_fields.py`: 데이터베이스 마이그레이션 스크립트 작성
+  - 기존 `event_time` 컬럼은 유지하면서 새로운 3개 컬럼 추가
+  - 기존 데이터의 `event_time` 값을 `start_time`(개연 시간)으로 자동 복사
+  - 3개 이벤트 성공적으로 마이그레이션 완료
+
+#### 2. 프론트엔드: 시간 입력 및 표시 UI 개선
+- `types/event.ts`: TypeScript 타입 정의를 3개의 시간 필드로 업데이트
+- `components/EventForm.tsx`:
+  - 날짜 입력 필드를 별도 섹션으로 분리
+  - 시간 입력을 3개 필드(개장/개연/종연)로 확장하여 한 행에 표시
+  - 각 필드에 직관적인 레이블과 placeholder 추가
+- `components/EventMap.tsx`: InfoWindow에서 3개 시간을 구분하여 표시
+- `components/EventList.tsx`: 이벤트 목록에서도 3개 시간을 모두 표시
+
+#### 3. InfoWindow 표 형식 UI 개선
+- **목적**: 지도에서 이벤트 선택 시 표시되는 상세 정보의 가시성을 크게 향상
+- `components/EventMap.tsx`:
+  - 정보를 `<table>` 형식으로 재구성하여 라벨과 값을 명확히 구분
+  - 헤더에 보라색 그라데이션 배경과 흰색 텍스트 적용
+  - 각 정보 항목(장소, 주소, 날짜, 시간, 출연자)을 테이블 행으로 표시
+  - 설명 섹션을 별도 박스로 분리하여 그라데이션 배경과 좌측 보더 적용
+  - "자세히 보기" 링크를 풀 위드 버튼 스타일로 변경
+- `components/EventMap.css`:
+  - 테이블 스타일링: 행 구분선, 패딩, 라벨/값 색상 차별화
+  - 설명 텍스트에 `white-space: pre-wrap` 적용하여 입력한 줄바꿈과 띄어쓰기 유지
+  - 링크 버튼에 호버/클릭 효과 추가 (transform, box-shadow)
+
+#### 4. Google Maps 딥링크 기능 추가
+- **목적**: 장소와 주소를 클릭하면 Google Maps에서 바로 열어 경로 안내 등을 받을 수 있도록 개선
+- `components/EventMap.tsx`:
+  - 장소 클릭 → 좌표 기반 Google Maps 검색 (`query={위도},{경도}`)
+  - 주소 클릭 → 주소 텍스트 기반 Google Maps 검색 (`query={주소}`)
+  - 새 탭(`target="_blank"`)에서 열리도록 설정
+  - 모바일에서는 Google Maps 앱이 자동으로 실행됨
+- `components/EventMap.css`:
+  - 지도 링크에 hover 효과 추가 (보라색 텍스트 + 밑줄)
+
+**주요 개선 사항**:
+- ✅ 이벤트 시간 정보가 개장/개연/종연으로 세분화되어 사용자에게 더 명확한 정보 제공
+- ✅ InfoWindow가 표 형식으로 재디자인되어 정보를 한눈에 파악 가능
+- ✅ 설명 필드에서 사용자가 입력한 줄바꿈과 띄어쓰기가 그대로 유지됨
+- ✅ 장소/주소 클릭 한 번으로 Google Maps 경로 안내를 받을 수 있어 사용자 경험 크게 향상
+
+**기술적 의사결정**:
+- **시간 필드 분리**: 기존 `event_time` 컬럼을 삭제하지 않고 유지하여 하위 호환성 확보
+- **Google Maps URL Scheme**: Google의 공식 URL API(`/maps/search/?api=1`)를 사용하여 정책 준수
+- **CSS white-space 처리**: `pre-wrap`을 사용하여 줄바꿈은 유지하되 긴 텍스트는 자동으로 줄바꿈되도록 처리
+
+**이슈 및 해결**:
+- CSS 파일 수정 중 일부 구문 오류 발생 → 파일 전체를 재작성하여 해결
+- TypeScript 타입 불일치로 컴파일 에러 → 모든 관련 컴포넌트의 타입 일괄 수정
+
+**다음 단계**:
+- 실제 이벤트 데이터를 추가하여 전체 워크플로우 테스트
+- Docker Compose로 프로덕션 빌드 테스트
+- Synology NAS 배포 준비

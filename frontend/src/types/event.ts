@@ -3,7 +3,9 @@ export interface Event {
     title: string;
     description?: string;
     event_date: string; // YYYY-MM-DD
-    event_time?: string; // HH:MM
+    door_time?: string; // 개장 HH:MM
+    start_time?: string; // 개연 HH:MM
+    end_time?: string; // 종연 HH:MM
     location: string;
     address?: string;
     latitude: number;
@@ -18,7 +20,9 @@ export interface EventFormData {
     title: string;
     description: string;
     event_date: string;
-    event_time: string;
+    door_time: string;
+    start_time: string;
+    end_time: string;
     location: string;
     address: string;
     latitude: number;

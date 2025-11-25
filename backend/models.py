@@ -38,7 +38,9 @@ class Event(Base):
     title = Column(String, index=True)
     description = Column(String)
     event_date = Column(String)  # YYYY-MM-DD
-    event_time = Column(String)  # HH:MM
+    door_time = Column(String)  # 개장 HH:MM
+    start_time = Column(String)  # 개연 HH:MM
+    end_time = Column(String)  # 종연 HH:MM
     location = Column(String)
     address = Column(String)
     latitude = Column(Float)

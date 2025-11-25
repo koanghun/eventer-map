@@ -77,18 +77,80 @@ const EventMap: React.FC<EventMapProps> = ({ events, selectedEvent, onMarkerClic
                         onCloseClick={onInfoWindowClose}
                     >
                         <div className="info-window">
-                            <h3>{selectedEvent.title}</h3>
-                            <p className="info-location">📍 {selectedEvent.location}</p>
-                            <p className="info-date">
-                                📅 {selectedEvent.event_date}
-                                {selectedEvent.event_time && ` ${selectedEvent.event_time}`}
-                            </p>
+                            <div className="info-header">
+                                <h3>{selectedEvent.title}</h3>
+                            </div>
+
+                            <table className="info-table">
+                                <tbody>
+                                    <tr>
+                                        <td className="info-label">📍 장소</td>
+                                        <td className="info-value">
+                                            <a
+                                                href={`https://www.google.com/maps/search/?api=1&query=${selectedEvent.latitude},${selectedEvent.longitude}`}
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                                className="info-map-link"
+                                                title="Google Maps에서 보기"
+                                            >
+                                                {selectedEvent.location}
+                                            </a>
+                                        </td>
+                                    </tr>
+                                    {selectedEvent.address && (
+                                        <tr>
+                                            <td className="info-label">📮 주소</td>
+                                            <td className="info-value info-address">
+                                                <a
+                                                    href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(selectedEvent.address)}`}
+                                                    target="_blank"
+                                                    rel="noopener noreferrer"
+                                                    className="info-map-link"
+                                                    title="Google Maps에서 보기"
+                                                >
+                                                    {selectedEvent.address}
+                                                </a>
+                                            </td>
+                                        </tr>
+                                    )}
+                                    <tr>
+                                        <td className="info-label">📅 날짜</td>
+                                        <td className="info-value">{selectedEvent.event_date}</td>
+                                    </tr>
+                                    {selectedEvent.door_time && (
+                                        <tr>
+                                            <td className="info-label">🚪 개장</td>
+                                            <td className="info-value">{selectedEvent.door_time}</td>
+                                        </tr>
+                                    )}
+                                    {selectedEvent.start_time && (
+                                        <tr>
+                                            <td className="info-label">🎬 개연</td>
+                                            <td className="info-value">{selectedEvent.start_time}</td>
+                                        </tr>
+                                    )}
+                                    {selectedEvent.end_time && (
+                                        <tr>
+                                            <td className="info-label">🏁 종연</td>
+                                            <td className="info-value">{selectedEvent.end_time}</td>
+                                        </tr>
+                                    )}
+                                    {selectedEvent.performers && (
+                                        <tr>
+                                            <td className="info-label">🎤 출연자</td>
+                                            <td className="info-value">{selectedEvent.performers}</td>
+                                        </tr>
+                                    )}
+                                </tbody>
+                            </table>
+
                             {selectedEvent.description && (
-                                <p className="info-description">{selectedEvent.description}</p>
+                                <div className="info-description">
+                                    <div className="info-description-label">📝 설명</div>
+                                    <div className="info-description-text">{selectedEvent.description}</div>
+                                </div>
                             )}
-                            {selectedEvent.performers && (
-                                <p className="info-performers">🎤 {selectedEvent.performers}</p>
-                            )}
+
                             {selectedEvent.related_link && (
                                 <a
                                     href={selectedEvent.related_link}
@@ -96,7 +158,7 @@ const EventMap: React.FC<EventMapProps> = ({ events, selectedEvent, onMarkerClic
                                     rel="noopener noreferrer"
                                     className="info-link"
                                 >
-                                    자세히 보기 →
+                                    🔗 자세히 보기 →
                                 </a>
                             )}
                         </div>

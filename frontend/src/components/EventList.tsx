@@ -70,7 +70,13 @@ const EventList: React.FC<EventListProps> = ({
 
                         <p className="event-item-location">📍 {event.location}</p>
                         <p className="event-item-time">
-                            🕐 {event.event_time || '시간 미정'}
+                            🕐{' '}
+                            {event.door_time && `개장 ${event.door_time}`}
+                            {event.door_time && event.start_time && ' / '}
+                            {event.start_time && `개연 ${event.start_time}`}
+                            {(event.door_time || event.start_time) && event.end_time && ' / '}
+                            {event.end_time && `종연 ${event.end_time}`}
+                            {!event.door_time && !event.start_time && !event.end_time && '시간 미정'}
                         </p>
                         {event.performers && (
                             <p className="event-item-performers">🎤 {event.performers}</p>

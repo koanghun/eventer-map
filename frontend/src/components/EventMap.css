@@ -4,41 +4,129 @@
     min-height: 600px;
 }
 
+/* InfoWindow Container */
 .info-window {
-    max-width: 300px;
-    padding: 0.5rem;
+    min-width: 320px;
+    max-width: 400px;
+    padding: 0;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', sans-serif;
 }
 
-.info-window h3 {
+/* Header Section */
+.info-header {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    padding: 1rem;
+    margin: -0.5rem -0.5rem 0 -0.5rem;
+    border-radius: 4px 4px 0 0;
+}
+
+.info-header h3 {
+    color: white;
+    margin: 0;
+    font-size: 1.2rem;
+    font-weight: 600;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+}
+
+/* Table Styles */
+.info-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 0.75rem 0;
+    background: white;
+}
+
+.info-table tr {
+    border-bottom: 1px solid #f0f0f0;
+}
+
+.info-table tr:last-child {
+    border-bottom: none;
+}
+
+.info-table td {
+    padding: 0.6rem 0.75rem;
+    vertical-align: top;
+}
+
+.info-label {
+    font-weight: 600;
     color: #667eea;
-    margin-bottom: 0.5rem;
-    font-size: 1.1rem;
-}
-
-.info-location,
-.info-date,
-.info-performers {
-    margin: 0.3rem 0;
-    color: #555;
+    white-space: nowrap;
+    width: 85px;
     font-size: 0.9rem;
 }
 
-.info-description {
-    margin: 0.5rem 0;
-    color: #666;
-    font-size: 0.85rem;
+.info-value {
+    color: #333;
+    font-size: 0.9rem;
     line-height: 1.4;
 }
 
-.info-link {
-    display: inline-block;
-    margin-top: 0.5rem;
+.info-address {
+    font-size: 0.85rem;
+    color: #666;
+}
+
+/* Map Links in Table */
+.info-map-link {
+    color: #333;
+    text-decoration: none;
+    transition: color 0.2s ease;
+    cursor: pointer;
+}
+
+.info-map-link:hover {
     color: #667eea;
+    text-decoration: underline;
+}
+
+/* Description Section */
+.info-description {
+    margin: 0.75rem 0.75rem 1rem 0.75rem;
+    padding: 0.75rem;
+    background: linear-gradient(135deg, #f5f7ff 0%, #faf5ff 100%);
+    border-left: 3px solid #667eea;
+    border-radius: 4px;
+}
+
+.info-description-label {
+    font-weight: 600;
+    color: #667eea;
+    font-size: 0.85rem;
+    margin-bottom: 0.4rem;
+}
+
+.info-description-text {
+    color: #555;
+    font-size: 0.85rem;
+    line-height: 1.5;
+    white-space: pre-wrap;
+    word-wrap: break-word;
+}
+
+/* Link Button */
+.info-link {
+    display: block;
+    margin: 0.75rem;
+    padding: 0.65rem 1rem;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
     text-decoration: none;
     font-weight: 600;
     font-size: 0.9rem;
+    text-align: center;
+    border-radius: 6px;
+    transition: all 0.3s ease;
+    box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
 }
 
 .info-link:hover {
-    text-decoration: underline;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+    text-decoration: none;
+}
+
+.info-link:active {
+    transform: translateY(0);
 }
