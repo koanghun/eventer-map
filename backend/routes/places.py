@@ -6,6 +6,7 @@ from typing import List
 from database import get_db
 from models import Place
 from schemas import PlaceResponse, PlaceCreate
+from utils.normalization import normalize_text
 
 router = APIRouter(prefix="/places", tags=["places"])
 
@@ -19,13 +20,21 @@ def search_place(
     장소를 검색합니다.
     DB에서만 검색합니다. 없으면 404를 반환합니다.
     """
-    # DB에서 검색 (정확한 이름 또는 유사한 이름)
-    place = db.query(Place).filter(Place.name.ilike(f"%{query}%")).first()
+    normalized_query = normalize_text(query)
+    
+    # DB에서검색 (정규화된이름으로)
+    place = db.query(Place).filter(
+        Place.normalized_name.contains(normalized_query)
+    ).first()
+    
+    # canonical_name으로도 검색
+    if not place:
+        place = db.query(Place).filter(Place.canonical_name.ilike(f"%{query}%")).first()
     
     if place:
         return place
     
-    raise HTTPException(status_code=404, detail="장소를 찾을 수 없습니다")
+    raise HTTPException(status_code=404, detail="장소를찾을수없습니다")
 
 
 @router.post("/", response_model=PlaceResponse)
@@ -36,13 +45,17 @@ def create_place(
     """
     새로운 장소를 저장합니다.
     """
-    # 이미 존재하는지 확인
-    existing_place = db.query(Place).filter(Place.name == place.name).first()
+    normalized = normalize_text(place.canonical_name)
+    
+    # 이미존재하는지 확인 (정규화된이름으로)
+    existing_place = db.query(Place).filter(Place.normalized_name == normalized).first()
     if existing_place:
         return existing_place
         
     new_place = Place(
-        name=place.name,
+        canonical_name=place.canonical_name,
+        normalized_name=normalized,
+        name=place.canonical_name,  # 호환성을위해 name도 설정
         address=place.address,
         latitude=place.latitude,
         longitude=place.longitude
@@ -56,5 +69,5 @@ def create_place(
 
 @router.get("/", response_model=List[PlaceResponse])
 def get_all_places(db: Session = Depends(get_db)):
-    """모든 저장된 장소 목록을 반환합니다."""
+    """모든저장된 장소 목록을 반환합니다."""
     return db.query(Place).all()

@@ -1,5 +1,5 @@
 import axios from 'axios';
-import { Event } from '../types/event';
+import { Event, Performer, Place } from '../types/event';
 
 const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:8000';
 
@@ -47,15 +47,6 @@ export const eventApi = {
     },
 };
 
-export interface Place {
-    id: number;
-    name: string;
-    address: string;
-    latitude: number;
-    longitude: number;
-    created_at: string;
-}
-
 export const placeApi = {
     // 장소 검색 (DB 캐시)
     searchPlace: async (query: string): Promise<Place> => {
@@ -64,7 +55,7 @@ export const placeApi = {
     },
 
     // 장소 생성 (캐시 저장)
-    createPlace: async (place: Omit<Place, 'id' | 'created_at'>): Promise<Place> => {
+    createPlace: async (place: { canonical_name: string; address: string; latitude: number; longitude: number; aliases?: string[] }): Promise<Place> => {
         const response = await api.post<Place>('/places/', place);
         return response.data;
     },
@@ -76,10 +67,10 @@ export const placeApi = {
     },
 };
 
-export interface Performer {
-    id: number;
-    name: string;
-    created_at: string;
+interface DuplicateCheckResponse {
+    status: 'duplicate' | 'similar_found' | 'no_duplicate';
+    exact_match?: Performer | null;
+    similar_matches?: Performer[];
 }
 
 export const performerApi = {
@@ -88,6 +79,25 @@ export const performerApi = {
         const response = await api.get<Performer[]>('/performers/');
         return response.data;
     },
+
+    // 출연자 검색
+    searchPerformers: async (query: string): Promise<Performer[]> => {
+        const response = await api.get<Performer[]>(`/performers/search?query=${encodeURIComponent(query)}`);
+        return response.data;
+    },
+
+    // 중복 체크
+    checkDuplicate: async (name: string): Promise<DuplicateCheckResponse> => {
+        const response = await api.get<DuplicateCheckResponse>(`/performers/check-duplicate?name=${encodeURIComponent(name)}`);
+        return response.data;
+    },
+
+    // 출연자 생성
+    createPerformer: async (performer: { canonical_name: string; aliases?: string[] }): Promise<Performer> => {
+        const response = await api.post<Performer>('/performers/', performer);
+        return response.data;
+    },
 };
 
 export default api;
+export type { DuplicateCheckResponse };

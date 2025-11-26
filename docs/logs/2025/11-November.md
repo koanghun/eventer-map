@@ -224,3 +224,124 @@
 - 실제 이벤트 데이터를 추가하여 전체 워크플로우 테스트
 - Docker Compose로 프로덕션 빌드 테스트
 - Synology NAS 배포 준비
+
+---
+
+## 2025-11-26
+
+### ✅ 출연자/장소 중복 방지 시스템 구축 완료
+
+**작업 내용**:
+
+#### 1. Phase 1: 정규화 시스템 (Normalization System)
+- **목적**: 일본어 다중 표기(히라가나, 가타카나, 영어 등)로 인한 중복 등록 방지
+- `backend/utils/normalization.py`: 텍스트 정규화 함수 구현
+  - NFKC 유니코드 정규화 (전각 → 반각 통일)
+  - 소문자 변환, 공백/특수문자 제거
+  - "Perfume" == "PERFUME" == "perfume" == "Ｐｅｒｆｕｍｅ" 모두 동일하게 인식
+- `backend/models.py`: Performer, Place 모델에 필드 추가
+  - `canonical_name`: 사용자가 입력한 원본 표기 (표시용)
+  - `normalized_name`: 중복 체크용 정규화된 이름 (UNIQUE 제약)
+- `backend/schemas.py`: Pydantic 스키마 업데이트
+- `backend/routes/performers.py`, `backend/routes/places.py`: 정규화 로직 적용
+- `backend/migrate_deduplication.py`: Phase 1 마이그레이션 스크립트
+  - 기존 데이터에 `canonical_name`, `normalized_name` 자동 생성
+  - UNIQUE 인덱스 추가
+  - 마이그레이션 성공적으로 실행 완료
+
+#### 2. Phase 2: 별칭 시스템 (Alias System)
+- **목적**: 히라가나, 가타카나, 영어명, 검색 키워드 등 다양한 별칭 지원
+- `backend/models.py`: `aliases` 필드 추가 (JSON 배열)
+- `backend/schemas.py`: `name_ja`, `name_en` 필드 제거 → `aliases`로 통합
+- `backend/routes/performers.py`: 별칭 검색 API 구현
+  - 별칭을 포함한 검색 기능
+  - 별칭 JSON 직렬화/역직렬화 자동 처리
+- `backend/migrate_aliases.py`: Phase 2 마이그레이션 스크립트
+  - `aliases` 컬럼 추가 및 빈 배열로 초기화
+  - 마이그레이션 성공적으로 실행 완료
+- `frontend/src/types/event.ts`: Performer, Place 타입 업데이트
+
+#### 3. Phase 3: UI 확인 기능 (User Confirmation UI)
+- **실시간 중복 체크**:
+  - `frontend/src/components/MultiSelect.tsx`: 출연자 입력 시 API 중복 체크
+  - Enter 키 입력 시 `performerApi.checkDuplicate` 호출
+  
+- **중복 체크 모달** (`DuplicateCheckModal.tsx`):
+  - 정확 일치: 기존 항목 사용 제안
+  - 유사 일치: 여러 유사 항목 중 선택 또는 새로 등록
+  - React Portal 사용하여 form 중첩 문제 해결
+  
+- **출연자 등록 모달** (`PerformerCreateModal.tsx` - 신규):
+  - 공식 표기명 + 별칭 다중 입력 UI
+  - 별칭은 Enter 또는 "추가" 버튼으로 추가/제거
+  - API 자동 연동하여 DB에 저장
+  - React Portal로 독립적 렌더링 (EventForm과 분리)
+  
+- **별칭으로 자동완성**:
+  - MultiSelect 필터링 로직 개선
+  - `canonical_name` + `aliases` 모두 검색 가능
+  - 예: "パフューム" 입력 → "Perfume" 자동완성
+  
+- **메인 화면 출연자 검색** (`PerformerFilter.tsx` - 신규):
+  - 날짜 선택 박스 밑에 배치
+  - 검색창 클릭 시 전체 출연자 드롭다운 표시
+  - 공식명/별칭으로 실시간 필터링
+  - 출연자 선택 시 이벤트 목록 및 지도 자동 필터링
+  - App.tsx에 통합 및 이벤트 필터링 로직 구현
+
+#### 4. 기타 개선사항
+- `frontend/src/services/api.ts`: API 타입 및 함수 업데이트
+  - `DuplicateCheckResponse` 인터페이스 추가
+  - `performerApi.checkDuplicate`, `createPerformer` 함수 추가
+- `frontend/src/components/EventForm.tsx`: `canonical_name` 사용
+- CSS 파일 최적화 (DuplicateCheckModal, PerformerCreateModal, PerformerFilter)
+
+**주요 개선 사항**:
+- ✅ 일본어 다중 표기로 인한 중복 등록 완전히 방지
+- ✅ 정규화: "Perfume" == "PERFUME" 자동 인식
+- ✅ 별칭: 히라가나, 가타카나, 키워드 무제한 추가 가능
+- ✅ UX: 실시간 중복 체크 및 사용자 선택권 제공
+- ✅ 검색: 메인 화면에서 출연자별 이벤트 필터링
+
+**기술적 의사결정**:
+- **React Portal 사용**: form 중첩 문제 해결
+  - 문제: EventForm 내부에 PerformerCreateModal 렌더링 시 `<form>` 중첩 경고
+  - 해결: `ReactDOM.createPortal(modalContent, document.body)`로 독립적 렌더링
+  - 결과: 모달이 상위 form 영향 없이 동작
+  
+- **이벤트 버블링 방지**: 모달 오버레이 클릭 시 `stopPropagation()` 추가
+  
+- **별칭 시스템 설계**: 고정 컬럼(name_ja, name_en) 대신 JSON 배열(aliases) 사용
+  - 장점: 무제한 별칭 추가, 확장성 확보
+  - 단점: None (SQLite JSON 함수 지원)
+  
+- **정규화 전략**: NFKC + 소문자 + 특수문자 제거
+  - 일본어 전각/반각 통일
+  - 대소문자 통일
+  - 공백 및 특수문자 무시
+
+**이슈 및 해결**:
+1. **form 중첩 경고**:
+   - 증상: `<form>` 안에 `<form>` 경고 메시지
+   - 원인: PerformerCreateModal이 EventForm 내부에서 렌더링
+   - 해결: React Portal 사용
+
+2. **모달 클릭 시 배경까지 닫힘**:
+   - 증상: 출연자 등록 모달 클릭 시 EventForm까지 닫힘
+   - 원인: 이벤트 버블링
+   - 해결: `e.stopPropagation()` 추가
+
+3. **CSS 파일 손상**:
+   - 증상: PerformerCreateModal.css 구문 오류
+   - 원인: 파일 수정 중 일부 누락
+   - 해결: 파일 전체 재작성
+
+4. **드롭다운 표시 안 됨**:
+   - 증상: PerformerFilter 드롭다운이 나타나지 않음
+   - 원인: `position: relative` 누락, 조건 너무 엄격
+   - 해결: CSS 수정, 입력값 없어도 드롭다운 표시
+
+**다음 단계**:
+- 실제 출연자 데이터 등록 및 별칭 설정
+- 전체 워크플로우 테스트
+- 프로덕션 배포 준비

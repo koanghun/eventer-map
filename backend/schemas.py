@@ -4,11 +4,18 @@ from datetime import datetime
 
 
 class PerformerBase(BaseModel):
-    name: str
+    canonical_name: str
+    aliases: Optional[List[str]] = []
+
+class PerformerCreate(PerformerBase):
+    pass
 
 class PerformerResponse(PerformerBase):
     id: int
+    normalized_name: str
+    name: Optional[str] = None  # 호환성을 위한 필드
     created_at: datetime
+    updated_at: Optional[datetime] = None
 
     class Config:
         from_attributes = True
@@ -59,10 +66,11 @@ class EventResponse(EventBase):
 
 
 class PlaceBase(BaseModel):
-    name: str = Field(..., min_length=1, max_length=200)
+    canonical_name: str = Field(..., min_length=1, max_length=200)
     address: str = Field(..., min_length=1, max_length=500)
     latitude: float = Field(..., ge=-90, le=90)
     longitude: float = Field(..., ge=-180, le=180)
+    aliases: Optional[List[str]] = []
 
 
 class PlaceCreate(PlaceBase):
@@ -71,6 +79,8 @@ class PlaceCreate(PlaceBase):
 
 class PlaceResponse(PlaceBase):
     id: int
+    normalized_name: str
+    name: Optional[str] = None  # 호환성을 위한 필드
     created_at: datetime
 
     class Config:

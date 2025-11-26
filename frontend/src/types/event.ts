@@ -1,3 +1,25 @@
+export interface Performer {
+    id: number;
+    canonical_name: string;
+    normalized_name: string;
+    aliases?: string[];
+    name?: string; // deprecated, 호환성용
+    created_at: string;
+    updated_at?: string;
+}
+
+export interface Place {
+    id: number;
+    canonical_name: string;
+    normalized_name: string;
+    aliases?: string[];
+    name?: string; // deprecated, 호환성용
+    address: string;
+    latitude: number;
+    longitude: number;
+    created_at: string;
+}
+
 export interface Event {
     id?: number;
     title: string;

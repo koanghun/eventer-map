@@ -4,6 +4,7 @@ import EventMap from './components/EventMap';
 import EventForm from './components/EventForm';
 import EventList from './components/EventList';
 import DatePicker from './components/DatePicker';
+import PerformerFilter from './components/PerformerFilter';
 import { Event } from './types/event';
 import { eventApi } from './services/api';
 import { format } from 'date-fns';
@@ -17,6 +18,7 @@ function App() {
     const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
     const [isFormOpen, setIsFormOpen] = useState(false);
     const [loading, setLoading] = useState(false);
+    const [selectedPerformer, setSelectedPerformer] = useState<string | null>(null);
 
     const loadEvents = useCallback(async () => {
         setLoading(true);
@@ -86,6 +88,15 @@ function App() {
         setIsFormOpen(true);
     };
 
+    const handlePerformerSelect = (performerName: string | null) => {
+        setSelectedPerformer(performerName);
+    };
+
+    // 출연자로 필터링
+    const filteredEvents = selectedPerformer
+        ? events.filter(event => event.performers?.includes(selectedPerformer))
+        : events;
+
     const apiKey = process.env.REACT_APP_GOOGLE_MAPS_API_KEY || '';
 
     return (
@@ -100,12 +111,14 @@ function App() {
                     <aside className="sidebar">
                         <DatePicker selectedDate={selectedDate} onDateChange={handleDateChange} />
 
+                        <PerformerFilter onPerformerSelect={handlePerformerSelect} />
+
                         <button className="btn-new-event" onClick={handleNewEvent}>
                             ➕ 새 이벤트 등록
                         </button>
 
                         <EventList
-                            events={events}
+                            events={filteredEvents}
                             loading={loading}
                             onEventClick={handleEventClick}
                             onEventEdit={handleEditEvent}
@@ -116,7 +129,7 @@ function App() {
 
                     <main className="main-content">
                         <EventMap
-                            events={events}
+                            events={filteredEvents}
                             selectedEvent={selectedEvent}
                             onMarkerClick={handleEventClick}
                             onInfoWindowClose={handleInfoWindowClose}

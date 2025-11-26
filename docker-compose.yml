@@ -7,10 +7,10 @@ services:
       dockerfile: Dockerfile
     container_name: eventer-map-backend
     ports:
-      - "8000:8000"
+      - "${BACKEND_PORT:-8000}:8000"
     environment:
-      - DATABASE_URL=sqlite:///./eventer.db
-      - CORS_ORIGINS=http://localhost:3000,http://localhost
+      - DATABASE_URL=${DATABASE_URL:-sqlite:///./data/eventer.db}
+      - CORS_ORIGINS=${CORS_ORIGINS:-http://localhost:3000,http://localhost}
     volumes:
       - ./backend:/app
       - backend-data:/app/data
@@ -23,10 +23,11 @@ services:
       context: ./frontend
       dockerfile: Dockerfile
       args:
-        - REACT_APP_API_URL=http://localhost:8000
+        - REACT_APP_API_URL=${REACT_APP_API_URL:-http://localhost:8000}
+        - REACT_APP_GOOGLE_MAPS_API_KEY=${REACT_APP_GOOGLE_MAPS_API_KEY}
     container_name: eventer-map-frontend
     ports:
-      - "3000:80"
+      - "${FRONTEND_PORT:-3000}:80"
     depends_on:
       - backend
     restart: unless-stopped
