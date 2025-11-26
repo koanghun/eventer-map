@@ -1,58 +1,53 @@
 .multiselect-container {
     position: relative;
     width: 100%;
-    border: 1px solid #ccc;
-    border-radius: 4px;
-    padding: 2px;
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    background-color: #fff;
-    transition: border-color 0.2s;
-}
-
-.multiselect-container:focus-within {
-    border-color: #8a2be2;
-    box-shadow: 0 0 0 2px rgba(138, 43, 226, 0.2);
 }
 
 .selected-items {
+    border: 1px solid #d1d5db;
+    border-radius: 6px;
+    padding: 8px;
+    min-height: 42px;
     display: flex;
     flex-wrap: wrap;
-    align-items: center;
     gap: 6px;
-    flex-grow: 1;
+    align-items: center;
+    transition: border-color 0.2s;
+}
+
+.selected-items:focus-within {
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
 }
 
 .selected-item {
-    background-color: #e9d5ff; /* 보라색 계열 연한 색 */
-    color: #4a0e6c;
-    border-radius: 12px;
-    padding: 4px 10px;
+    background: #3b82f6;
+    color: white;
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 0.9rem;
     display: flex;
     align-items: center;
-    font-size: 14px;
-    font-weight: 500;
+    gap: 6px;
 }
 
 .remove-item {
-    margin-left: 8px;
-    border: none;
     background: none;
-    cursor: pointer;
-    font-size: 16px;
-    color: #4a0e6c;
-    padding: 0;
+    border: none;
+    color: white;
+    font-size: 1.2rem;
     line-height: 1;
+    cursor: pointer;
+    padding: 0;
+    margin: 0;
 }
 
 .multiselect-input {
     border: none;
     outline: none;
-    padding: 8px;
-    flex-grow: 1;
-    min-width: 150px;
-    font-size: 16px;
+    flex: 1;
+    min-width: 120px;
+    font-size: 1rem;
 }
 
 .options-list {
@@ -60,30 +55,41 @@
     top: 100%;
     left: 0;
     right: 0;
-    background-color: white;
-    border: 1px solid #ccc;
-    border-top: none;
-    border-radius: 0 0 4px 4px;
-    list-style: none;
-    padding: 0;
-    margin: 4px 0 0 0;
+    background: white;
+    border: 1px solid #d1d5db;
+    border-radius: 6px;
+    margin-top: 4px;
     max-height: 200px;
     overflow-y: auto;
+    list-style: none;
+    padding: 0;
     z-index: 1000;
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
 }
 
 .option-item {
     padding: 10px 12px;
     cursor: pointer;
-    transition: background-color 0.2s;
+    transition: background 0.15s;
 }
 
 .option-item:hover {
-    background-color: #f3e8ff; /* 연한 보라색 */
+    background: #f3f4f6;
 }
 
 .option-item-new {
+    color: #10b981;
+    font-weight: 500;
+}
+
+.option-name {
+    font-weight: 500;
+    color: #1f2937;
+    margin-bottom: 2px;
+}
+
+.option-aliases {
+    font-size: 0.85rem;
+    color: #6b7280;
     font-style: italic;
-    color: #555;
 }

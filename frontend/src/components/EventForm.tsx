@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { Event, EventFormData } from '../types/event';
-import { placeApi, Place, performerApi, Performer } from '../services/api';
+import { Event, EventFormData, Performer, Place } from '../types/event';
+import { placeApi, performerApi } from '../services/api';
 import './EventForm.css';
 
 import MultiSelect from './MultiSelect';
@@ -123,7 +123,9 @@ const EventForm: React.FC<EventFormProps> = ({ event, onSubmit, onClose }) => {
 
         // 장소명이 변경되었을 때, 저장된 장소 목록에서 일치하는 것이 있는지 확인
         if (name === 'location') {
-            const matchedPlace = savedPlaces.find(p => p.name === value);
+            const matchedPlace = savedPlaces.find(p =>
+                p.canonical_name === value || p.name === value
+            );
             if (matchedPlace) {
                 setFormData(prev => ({
                     ...prev,
@@ -153,7 +155,7 @@ const EventForm: React.FC<EventFormProps> = ({ event, onSubmit, onClose }) => {
 
             setFormData((prev) => ({
                 ...prev,
-                location: place.name,
+                location: place.canonical_name || place.name || formData.location,
                 address: place.address,
                 latitude: place.latitude,
                 longitude: place.longitude,
@@ -184,7 +186,7 @@ const EventForm: React.FC<EventFormProps> = ({ event, onSubmit, onClose }) => {
                     // 3. 검색 결과를 백엔드 DB에 저장 (캐싱)
                     try {
                         const newPlace = await placeApi.createPlace({
-                            name: formData.location,
+                            canonical_name: formData.location,
                             address: address,
                             latitude: lat,
                             longitude: lng

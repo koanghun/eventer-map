@@ -4,6 +4,7 @@ from typing import List
 from database import get_db
 import models
 import schemas
+from utils.normalization import normalize_text
 
 router = APIRouter(prefix="/events", tags=["events"])
 
@@ -18,11 +19,18 @@ def create_event(event: schemas.EventCreate, db: Session = Depends(get_db)):
     if event.performers:
         performer_names = [p.strip() for p in event.performers.split(',') if p.strip()]
         for name in performer_names:
-            # 출연자가 이미 존재하는지 확인
-            performer = db.query(models.Performer).filter(models.Performer.name == name).first()
+            normalized = normalize_text(name)
+            # 출연자가 이미 존재하는지 확인 (정규화된 이름으로)
+            performer = db.query(models.Performer).filter(
+                models.Performer.normalized_name == normalized
+            ).first()
             if not performer:
                 # 없으면 새로 생성
-                performer = models.Performer(name=name)
+                performer = models.Performer(
+                    canonical_name=name,
+                    normalized_name=normalized,
+                    name=name  # 호환성
+                )
                 db.add(performer)
                 db.flush()  # ID 생성을 위해 flush
             
@@ -83,9 +91,16 @@ def update_event(event_id: int, event_update: schemas.EventUpdate, db: Session =
         if performers_str:
             performer_names = [p.strip() for p in performers_str.split(',') if p.strip()]
             for name in performer_names:
-                performer = db.query(models.Performer).filter(models.Performer.name == name).first()
+                normalized = normalize_text(name)
+                performer = db.query(models.Performer).filter(
+                    models.Performer.normalized_name == normalized
+                ).first()
                 if not performer:
-                    performer = models.Performer(name=name)
+                    performer = models.Performer(
+                        canonical_name=name,
+                        normalized_name=normalized,
+                        name=name  # 호환성
+                    )
                     db.add(performer)
                     db.flush()
                 db_event.performers_rel.append(performer)

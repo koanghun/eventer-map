@@ -1,0 +1,118 @@
+.performer-filter {
+    margin-bottom: 20px;
+    position: relative;
+}
+
+.performer-filter label {
+    display: block;
+    margin-bottom: 8px;
+    font-weight: 600;
+    color: #1f2937;
+    font-size: 0.95rem;
+}
+
+.performer-filter-input-group {
+    position: relative;
+}
+
+.performer-filter-input {
+    width: 100%;
+    padding: 10px 36px 10px 12px;
+    border: 2px solid #d1d5db;
+    border-radius: 8px;
+    font-size: 0.95rem;
+    transition: all 0.2s;
+}
+
+.performer-filter-input:focus {
+    outline: none;
+    border-color: #8b5cf6;
+    box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.1);
+}
+
+.btn-clear-filter {
+    position: absolute;
+    right: 8px;
+    top: 50%;
+    transform: translateY(-50%);
+    background: #e5e7eb;
+    border: none;
+    border-radius: 50%;
+    width: 24px;
+    height: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    font-size: 0.9rem;
+    color: #6b7280;
+    transition: all 0.2s;
+}
+
+.btn-clear-filter:hover {
+    background: #d1d5db;
+    color: #374151;
+}
+
+.performer-filter-dropdown {
+    position: absolute;
+    top: calc(100% + 4px);
+    left: 0;
+    right: 0;
+    background: white;
+    border: 2px solid #d1d5db;
+    border-radius: 8px;
+    max-height: 300px;
+    overflow-y: auto;
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    z-index: 100;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.performer-filter-item {
+    padding: 12px;
+    cursor: pointer;
+    transition: background 0.15s;
+    border-bottom: 1px solid #f3f4f6;
+}
+
+.performer-filter-item:last-child {
+    border-bottom: none;
+}
+
+.performer-filter-item:hover {
+    background: #f9fafb;
+}
+
+.performer-filter-name {
+    font-weight: 500;
+    color: #1f2937;
+    margin-bottom: 4px;
+}
+
+.performer-filter-aliases {
+    font-size: 0.85rem;
+    color: #6b7280;
+    font-style: italic;
+}
+
+/* 스크롤바 스타일링 */
+.performer-filter-dropdown::-webkit-scrollbar {
+    width: 8px;
+}
+
+.performer-filter-dropdown::-webkit-scrollbar-track {
+    background: #f3f4f6;
+    border-radius: 4px;
+}
+
+.performer-filter-dropdown::-webkit-scrollbar-thumb {
+    background: #d1d5db;
+    border-radius: 4px;
+}
+
+.performer-filter-dropdown::-webkit-scrollbar-thumb:hover {
+    background: #9ca3af;
+}
