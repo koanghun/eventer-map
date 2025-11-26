@@ -1,5 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
+from sqlalchemy.exc import IntegrityError
 from typing import List
 from database import get_db
 import models
@@ -67,13 +69,15 @@ def check_duplicate_performer(name: str = Query(..., min_length=1), db: Session 
 @router.post("/", response_model=schemas.PerformerResponse)
 def create_performer(performer: schemas.PerformerCreate, db: Session = Depends(get_db)):
     """
-    새출연자 생성
+    새 출연자 생성
     
     중복 체크를 수행하고, 중복이면 409 Conflict 반환
+    Race condition 대비: DB UNIQUE 제약으로 최종 보호
     """
     normalized = normalize_text(performer.canonical_name)
     
-    # 중복 체크
+    # 중복 체크 (DB 인덱스 사용, LIMIT 1로 첫 발견 시 즉시 반환)
+    # normalized_name은 UNIQUE 제약이 있어 최대 1개만 존재
     existing = db.query(models.Performer).filter(
         models.Performer.normalized_name == normalized
     ).first()
@@ -82,7 +86,7 @@ def create_performer(performer: schemas.PerformerCreate, db: Session = Depends(g
         raise HTTPException(
             status_code=409,
             detail={
-                "message": "이미존재하는출연자입니다",
+                "message": "이미 존재하는 출연자입니다",
                 "existing_performer": {
                     "id": existing.id,
                     "canonical_name": existing.canonical_name
@@ -90,7 +94,7 @@ def create_performer(performer: schemas.PerformerCreate, db: Session = Depends(g
             }
         )
     
-    # 새출연자 생성
+    # 새 출연자 생성
     new_performer = models.Performer(
         canonical_name=performer.canonical_name,
         normalized_name=normalized,
@@ -98,9 +102,68 @@ def create_performer(performer: schemas.PerformerCreate, db: Session = Depends(g
         aliases=aliases_to_json(performer.aliases)
     )
     
-    db.add(new_performer)
-    db.commit()
-    db.refresh(new_performer)
+    try:
+        db.add(new_performer)
+        db.commit()
+        db.refresh(new_performer)
+    except IntegrityError:
+        # Race condition: 동시 요청으로 인한 중복 생성 시도
+        # 에러 대신 기존 출연자에 별칭 병합
+        db.rollback()
+        
+        # 기존 출연자 조회
+        existing = db.query(models.Performer).filter(
+            models.Performer.normalized_name == normalized
+        ).first()
+        
+        # 별칭 병합 (중복 제거)
+        existing_aliases = set(json_to_aliases(existing.aliases))
+        new_aliases = set(performer.aliases or [])
+        added_aliases = new_aliases - existing_aliases
+        
+        if added_aliases:
+            # 새로운 별칭이 있으면 병합 후 저장
+            merged_aliases = list(existing_aliases | new_aliases)
+            existing.aliases = aliases_to_json(merged_aliases)
+            db.commit()
+            db.refresh(existing)
+            
+            # 응답용으로 aliases를 리스트로 변환
+            existing.aliases = merged_aliases
+            
+            return JSONResponse(
+                status_code=200,
+                content={
+                    "status": "merged",
+                    "message": "기존 출연자에 별칭이 추가되었습니다",
+                    "added_aliases": list(added_aliases),
+                    "performer": {
+                        "id": existing.id,
+                        "canonical_name": existing.canonical_name,
+                        "normalized_name": existing.normalized_name,
+                        "aliases": merged_aliases,
+                        "name": existing.name
+                    }
+                }
+            )
+        else:
+            # 새로운 별칭이 없으면 기존 항목 그대로 반환
+            existing.aliases = list(existing_aliases)
+            
+            return JSONResponse(
+                status_code=200,
+                content={
+                    "status": "already_exists",
+                    "message": "이미 동일한 출연자가 존재합니다",
+                    "performer": {
+                        "id": existing.id,
+                        "canonical_name": existing.canonical_name,
+                        "normalized_name": existing.normalized_name,
+                        "aliases": existing.aliases,
+                        "name": existing.name
+                    }
+                }
+            )
     
     # 응답 시 aliases를 리스트로 변환
     new_performer.aliases = json_to_aliases(new_performer.aliases)
