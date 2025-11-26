@@ -289,12 +289,24 @@
   - 출연자 선택 시 이벤트 목록 및 지도 자동 필터링
   - App.tsx에 통합 및 이벤트 필터링 로직 구현
 
-#### 4. 기타 개선사항
-- `frontend/src/services/api.ts`: API 타입 및 함수 업데이트
-  - `DuplicateCheckResponse` 인터페이스 추가
-  - `performerApi.checkDuplicate`, `createPerformer` 함수 추가
-- `frontend/src/components/EventForm.tsx`: `canonical_name` 사용
-- CSS 파일 최적화 (DuplicateCheckModal, PerformerCreateModal, PerformerFilter)
+#### 5. Race Condition 해결 및 별칭 병합 (추가 개선)
+- **문제**: 동시에 같은 출연자를 등록할 때 Race Condition 발생 가능성
+  - 사용자 A: "Perfume" + ["퍼퓸"] 등록 시도
+  - 사용자 B: "PERFUME" + ["파퓨무"] 등록 시도 (동시)
+  - DB UNIQUE 제약으로 인해 한 명은 500 에러 발생 및 데이터 손실
+  
+- **해결**: `IntegrityError` 처리 및 자동 별칭 병합 로직 구현
+  - `backend/routes/performers.py`:
+    - `try-except IntegrityError` 블록으로 DB 에러 포착
+    - 에러 발생 시(중복) 기존 출연자 정보를 다시 조회
+    - 파이썬 `set` 자료형을 사용하여 기존 별칭과 새 별칭의 합집합(Union) 생성
+    - 새로운 별칭이 있다면 기존 레코드에 병합(UPDATE)
+    - 성공 응답(200 OK)과 함께 "별칭이 추가되었습니다" 메시지 반환
+    
+- **결과**:
+  - 에러 대신 데이터가 풍부해지는 긍정적 결과 유도
+  - "Perfume"이라는 하나의 레코드에 ["퍼퓸", "파퓨무"] 모두 저장됨
+  - 사용자 경험(UX) 향상 및 데이터 손실 방지
 
 **주요 개선 사항**:
 - ✅ 일본어 다중 표기로 인한 중복 등록 완전히 방지
@@ -302,6 +314,7 @@
 - ✅ 별칭: 히라가나, 가타카나, 키워드 무제한 추가 가능
 - ✅ UX: 실시간 중복 체크 및 사용자 선택권 제공
 - ✅ 검색: 메인 화면에서 출연자별 이벤트 필터링
+- ✅ 안정성: 동시 요청 시에도 에러 없이 별칭 자동 병합
 
 **기술적 의사결정**:
 - **React Portal 사용**: form 중첩 문제 해결
@@ -319,6 +332,10 @@
   - 일본어 전각/반각 통일
   - 대소문자 통일
   - 공백 및 특수문자 무시
+  
+- **Race Condition 전략**: 낙관적 수행 후 보상 트랜잭션 (Optimistic with Compensation)
+  - 일단 등록 시도(`db.add`) → 실패 시(`IntegrityError`) → 별칭 병합 로직 수행
+  - 별도의 Lock 없이 DB 제약조건을 활용하여 성능과 데이터 무결성 모두 확보
 
 **이슈 및 해결**:
 1. **form 중첩 경고**:
