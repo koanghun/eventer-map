@@ -1,0 +1,128 @@
+.performer-filter {
+    margin-bottom: 20px;
+    position: relative;
+}
+
+.performer-filter label {
+    display: block;
+    margin-bottom: 8px;
+    font-weight: 600;
+    color: var(--primary-orange);
+    font-size: 0.95rem;
+}
+
+.performer-filter-input-group {
+    position: relative;
+}
+
+.performer-filter-input {
+    width: 100%;
+    padding: 10px 36px 10px 12px;
+    background: rgba(255, 255, 255, 0.05);
+    border: 2px solid rgba(255, 107, 53, 0.3);
+    border-radius: 8px;
+    font-size: 0.95rem;
+    transition: all 0.3s;
+    color: white;
+}
+
+.performer-filter-input::placeholder {
+    color: rgba(255, 255, 255, 0.4);
+}
+
+.performer-filter-input:focus {
+    outline: none;
+    border-color: var(--primary-orange);
+    box-shadow: var(--glow-medium);
+    background: rgba(255, 255, 255, 0.08);
+}
+
+.btn-clear-filter {
+    position: absolute;
+    right: 8px;
+    top: 50%;
+    transform: translateY(-50%);
+    background: rgba(255, 107, 53, 0.2);
+    border: none;
+    border-radius: 50%;
+    width: 24px;
+    height: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    font-size: 0.9rem;
+    color: var(--primary-orange);
+    transition: all 0.2s;
+}
+
+.btn-clear-filter:hover {
+    background: rgba(255, 107, 53, 0.4);
+    transform: translateY(-50%) scale(1.1);
+}
+
+.performer-filter-dropdown {
+    position: absolute;
+    top: calc(100% + 4px);
+    left: 0;
+    right: 0;
+    background: rgba(26, 26, 46, 0.98);
+    backdrop-filter: blur(10px);
+    border: 2px solid rgba(255, 107, 53, 0.3);
+    border-radius: 8px;
+    max-height: 300px;
+    overflow-y: auto;
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    z-index: 100;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5),
+        0 0 20px rgba(255, 107, 53, 0.2);
+}
+
+.performer-filter-item {
+    padding: 12px;
+    cursor: pointer;
+    transition: all 0.2s;
+    border-bottom: 1px solid rgba(255, 107, 53, 0.1);
+}
+
+.performer-filter-item:last-child {
+    border-bottom: none;
+}
+
+.performer-filter-item:hover {
+    background: rgba(255, 107, 53, 0.2);
+    border-left: 3px solid var(--primary-orange);
+}
+
+.performer-filter-name {
+    font-weight: 500;
+    color: white;
+    margin-bottom: 4px;
+}
+
+.performer-filter-aliases {
+    font-size: 0.85rem;
+    color: var(--muted-text);
+    font-style: italic;
+}
+
+/* 스크롤바 스타일링 */
+.performer-filter-dropdown::-webkit-scrollbar {
+    width: 8px;
+}
+
+.performer-filter-dropdown::-webkit-scrollbar-track {
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 4px;
+}
+
+.performer-filter-dropdown::-webkit-scrollbar-thumb {
+    background: rgba(255, 107, 53, 0.5);
+    border-radius: 4px;
+}
+
+.performer-filter-dropdown::-webkit-scrollbar-thumb:hover {
+    background: var(--primary-orange);
+}

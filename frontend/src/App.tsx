@@ -10,15 +10,18 @@ import { eventApi } from './services/api';
 import { format } from 'date-fns';
 import './App.css';
 
+import { ThemeProvider, useTheme } from './context/ThemeContext';
+
 const GOOGLE_MAPS_LIBRARIES: ("places")[] = ['places'];
 
-function App() {
+function AppContent() {
     const [selectedDate, setSelectedDate] = useState<string>(format(new Date(), 'yyyy-MM-dd'));
     const [events, setEvents] = useState<Event[]>([]);
     const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
     const [isFormOpen, setIsFormOpen] = useState(false);
     const [loading, setLoading] = useState(false);
     const [selectedPerformer, setSelectedPerformer] = useState<string | null>(null);
+    const { theme, toggleTheme } = useTheme();
 
     const loadEvents = useCallback(async () => {
         setLoading(true);
@@ -88,6 +91,17 @@ function App() {
         setIsFormOpen(true);
     };
 
+    const handleSwitchToEdit = (eventId: number) => {
+        const eventToEdit = events.find(e => e.id === eventId);
+        if (eventToEdit) {
+            setSelectedEvent(eventToEdit);
+            setIsFormOpen(true); // 폼이 이미 열려있지만, 명시적으로 유지
+        } else {
+            console.error(`Event with id ${eventId} not found.`);
+            // 필요하다면 사용자에게 알림
+        }
+    };
+
     const handlePerformerSelect = (performerName: string | null) => {
         setSelectedPerformer(performerName);
     };
@@ -103,8 +117,13 @@ function App() {
         <LoadScript googleMapsApiKey={apiKey} libraries={GOOGLE_MAPS_LIBRARIES}>
             <div className="app">
                 <header className="app-header">
-                    <h1>🗺️ Event Map</h1>
-                    <p>날짜를 선택하여 이벤트를 확인하세요</p>
+                    <div className="header-content">
+                        <h1>🗺️ Event Map</h1>
+                        <p>날짜를 선택하여 이벤트를 확인하세요</p>
+                    </div>
+                    <button className="theme-toggle" onClick={toggleTheme} title="테마 변경">
+                        {theme === 'dark' ? '☀️' : '🌙'}
+                    </button>
                 </header>
 
                 <div className="app-container">
@@ -145,10 +164,19 @@ function App() {
                             setIsFormOpen(false);
                             setSelectedEvent(null);
                         }}
+                        onSwitchToEdit={handleSwitchToEdit}
                     />
                 )}
             </div>
         </LoadScript>
+    );
+}
+
+function App() {
+    return (
+        <ThemeProvider>
+            <AppContent />
+        </ThemeProvider>
     );
 }
 

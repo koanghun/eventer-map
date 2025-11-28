@@ -13,7 +13,7 @@
 }
 
 .duplicate-modal-content {
-    background: white;
+    background: rgba(26, 26, 46, 0.95);
     border-radius: 12px;
     width: 90%;
     max-width: 500px;
@@ -34,7 +34,7 @@
 .duplicate-modal-header h3 {
     margin: 0;
     font-size: 1.25rem;
-    color: #1f2937;
+    color: white;
 }
 
 .duplicate-modal-body {
@@ -43,7 +43,7 @@
 
 .duplicate-message {
     margin-bottom: 16px;
-    color: #374151;
+    color: var(--muted-text);
     line-height: 1.5;
 }
 
@@ -62,7 +62,7 @@
 }
 
 .existing-item:hover {
-    border-color: #3b82f6;
+    border-color: var(--primary-orange);
     box-shadow: 0 2px 8px rgba(59, 130, 246, 0.1);
 }
 
@@ -78,7 +78,7 @@
 .existing-item .item-name {
     font-size: 1.1rem;
     font-weight: 600;
-    color: #1f2937;
+    color: white;
     margin-bottom: 6px;
 }
 
@@ -93,7 +93,7 @@
 }
 
 .btn-use-existing {
-    background: #3b82f6;
+    background: var(--primary-orange);
     color: white;
     border: none;
     padding: 8px 16px;
@@ -105,7 +105,7 @@
 }
 
 .btn-use-existing:hover {
-    background: #2563eb;
+    background: var(--accent-orange);
 }
 
 .modal-divider {
@@ -142,7 +142,7 @@
 }
 
 .btn-create-new {
-    background: #10b981;
+    background: var(--secondary-orange);
     color: white;
     border: none;
     padding: 10px 20px;
@@ -159,7 +159,7 @@
 
 .btn-cancel-modal {
     background: #e5e7eb;
-    color: #374151;
+    color: var(--muted-text);
     border: none;
     padding: 10px 20px;
     border-radius: 6px;

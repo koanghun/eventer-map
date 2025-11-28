@@ -13,7 +13,7 @@
 }
 
 .performer-modal-content {
-    background: white;
+    background: rgba(26, 26, 46, 0.95);
     border-radius: 12px;
     width: 90%;
     max-width: 500px;
@@ -34,7 +34,7 @@
 .performer-modal-header h3 {
     margin: 0;
     font-size: 1.25rem;
-    color: #1f2937;
+    color: white;
 }
 
 .performer-modal-body {
@@ -67,7 +67,7 @@
 
 .form-group input:focus {
     outline: none;
-    border-color: #3b82f6;
+    border-color: var(--primary-orange);
     box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
 }
 
@@ -88,7 +88,7 @@
 }
 
 .btn-add-alias {
-    background: #3b82f6;
+    background: var(--primary-orange);
     color: white;
     border: none;
     padding: 10px 16px;
@@ -100,7 +100,7 @@
 }
 
 .btn-add-alias:hover {
-    background: #2563eb;
+    background: var(--accent-orange);
 }
 
 .aliases-list {
@@ -125,7 +125,7 @@
 }
 
 .alias-tag {
-    background: #3b82f6;
+    background: var(--primary-orange);
     color: white;
     padding: 6px 10px;
     border-radius: 6px;
