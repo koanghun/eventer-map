@@ -45,6 +45,12 @@ export const eventApi = {
     deleteEvent: async (id: number): Promise<void> => {
         await api.delete(`/events/${id}`);
     },
+
+    // 이벤트 중복 체크
+    checkDuplicate: async (eventData: Partial<Event>): Promise<any> => {
+        const response = await api.post('/events/check-duplicate', eventData);
+        return response.data;
+    },
 };
 
 export const placeApi = {

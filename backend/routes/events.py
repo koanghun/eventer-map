@@ -5,6 +5,7 @@ from database import get_db
 import models
 import schemas
 from utils.normalization import normalize_text
+from utils.event_duplicate import calculate_event_similarity, find_duplicate_events
 
 router = APIRouter(prefix="/events", tags=["events"])
 
@@ -126,3 +127,73 @@ def delete_event(event_id: int, db: Session = Depends(get_db)):
     db.delete(db_event)
     db.commit()
     return None
+
+
+@router.post("/check-duplicate")
+def check_duplicate_event(event_data: schemas.EventBase, db: Session = Depends(get_db)):
+    """
+    이벤트 중복 여부 확인
+    
+    같은 날짜의 이벤트를 조회하여 다음 기준으로 유사도를 계산합니다:
+    - 날짜 일치 (25%)
+    - 거리 50m 이내 (20%)
+    - 시간대 30분 이내 (15%)
+    - 출연자 유사도 (25%)
+    - 제목 유사도 (15%)
+    
+    Returns:
+        list: 중복 가능성이 있는 이벤트 목록 (유사도 높은 순)
+    """
+    if not event_data.event_date or not event_data.latitude or not event_data.longitude:
+        return {"duplicates": []}
+    
+    # 같은 날짜의 이벤트 조회
+    existing_events = db.query(models.Event).filter(
+        models.Event.event_date == event_data.event_date
+    ).all()
+    
+    if not existing_events:
+        return {"duplicates": []}
+    
+    # 임시 이벤트 객체 생성 (출연자 포함)
+    temp_event = models.Event(
+        title=event_data.title or "",
+        event_date=event_data.event_date,
+        latitude= event_data.latitude,
+        longitude=event_data.longitude,
+        start_time=event_data.start_time,
+        performers_rel=[]
+    )
+    
+    # 출연자 정보 처리 (임시 객체에 추가)
+    if event_data.performers:
+        performer_names = [p.strip() for p in event_data.performers.split(',') if p.strip()]
+        for name in performer_names:
+            normalized = normalize_text(name)
+            performer = db.query(models.Performer).filter(
+                models.Performer.normalized_name == normalized
+            ).first()
+            if performer:
+                temp_event.performers_rel.append(performer)
+    
+    # 각 기존 이벤트와의 유사도 계산
+    duplicates = []
+    for existing in existing_events:
+        similarity = calculate_event_similarity(temp_event, existing)
+        
+        # 유사도가 일정 이상인 경우만 포함
+        if similarity["similarity_score"] >= 0.4:
+            duplicates.append({
+                "event_id": existing.id,
+                "event_title": existing.title,
+                "event_date": existing.event_date,
+                "location": existing.location,
+                "start_time": existing.start_time,
+                "performers": [p.canonical_name for p in existing.performers_rel],
+                **similarity
+            })
+    
+    # 유사도 높은 순으로 정렬
+    duplicates.sort(key=lambda x: x["similarity_score"], reverse=True)
+    
+    return {"duplicates": duplicates}

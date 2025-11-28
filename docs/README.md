@@ -40,6 +40,10 @@
 - [인프라/배포](./decisions/infrastructure.md)
 - [최적화](./decisions/optimization.md)
 
+### 📐 [설계 문서](./designs/)
+주요 기능의 상세 설계
+- [이벤트 중복 검사 시스템](./designs/event-duplicate-detection.md)
+
 ---
 
 ## 🤖 AI 어시스턴트 가이드
@@ -129,11 +133,14 @@ docs/
 │   ├── README.md               # 일지 인덱스
 │   └── 2025/
 │       └── 11-November.md      # 2025년 11월
-└── decisions/                   # 기술 결정
-    ├── README.md               # 결정 인덱스
-    ├── architecture.md         # 아키텍처
-    ├── database.md             # 데이터베이스
-    ├── frontend.md             # 프론트엔드
-    ├── infrastructure.md       # 인프라
-    └── optimization.md         # 최적화
+├── decisions/                   # 기술 결정
+│   ├── README.md               # 결정 인덱스
+│   ├── architecture.md         # 아키텍처
+│   ├── database.md             # 데이터베이스
+│   ├── frontend.md             # 프론트엔드
+│   ├── infrastructure.md       # 인프라
+│   └── optimization.md         # 최적화
+└── designs/                     # 설계 문서
+    ├── README.md               # 설계 인덱스
+    └── event-duplicate-detection.md  # 이벤트 중복 검사
 ```
