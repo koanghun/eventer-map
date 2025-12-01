@@ -1,4 +1,3 @@
-import React from 'react';
 import { Event } from '../types/event';
 import './EventList.css';
 
@@ -11,14 +10,14 @@ interface EventListProps {
     selectedEventId?: number;
 }
 
-const EventList: React.FC<EventListProps> = ({
+function EventList({
     events,
     loading,
     onEventClick,
     onEventEdit,
     onEventDelete,
     selectedEventId,
-}) => {
+}: EventListProps) {
     if (loading) {
         return <div className="event-list-loading">로딩 중...</div>;
     }
@@ -86,6 +85,6 @@ const EventList: React.FC<EventListProps> = ({
             </div>
         </div>
     );
-};
+}
 
 export default EventList;

@@ -1,4 +1,3 @@
-import React from 'react';
 import { GoogleMap, Marker, InfoWindow } from '@react-google-maps/api';
 import { Event } from '../types/event';
 import './EventMap.css';
@@ -105,7 +104,7 @@ const mapStyles = [
 
 
 
-const EventMap: React.FC<EventMapProps> = ({ events, selectedEvent, onMarkerClick, onInfoWindowClose }) => {
+function EventMap({ events, selectedEvent, onMarkerClick, onInfoWindowClose }: EventMapProps) {
     const { theme } = useTheme();
 
     // 이벤트들의 중심 계산
@@ -254,6 +253,6 @@ const EventMap: React.FC<EventMapProps> = ({ events, selectedEvent, onMarkerClic
             </GoogleMap>
         </div>
     );
-};
+}
 
 export default EventMap;

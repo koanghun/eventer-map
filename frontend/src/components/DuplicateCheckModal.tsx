@@ -1,4 +1,4 @@
-import React from 'react';
+import { type MouseEvent } from 'react';
 import ReactDOM from 'react-dom';
 import { Performer } from '../types/event';
 import './DuplicateCheckModal.css';
@@ -13,7 +13,7 @@ interface DuplicateCheckModalProps {
     onCancel: () => void;
 }
 
-const DuplicateCheckModal: React.FC<DuplicateCheckModalProps> = ({
+function DuplicateCheckModal({
     type,
     inputName,
     exactMatch,
@@ -21,8 +21,8 @@ const DuplicateCheckModal: React.FC<DuplicateCheckModalProps> = ({
     onUseExisting,
     onCreateNew,
     onCancel,
-}) => {
-    const handleOverlayClick = (e: React.MouseEvent) => {
+}: DuplicateCheckModalProps) {
+    const handleOverlayClick = (e: MouseEvent) => {
         e.stopPropagation(); // 이벤트 버블링 방지
         onCancel();
     };
@@ -112,6 +112,6 @@ const DuplicateCheckModal: React.FC<DuplicateCheckModalProps> = ({
     );
 
     return ReactDOM.createPortal(modalContent, document.body);
-};
+}
 
 export default DuplicateCheckModal;

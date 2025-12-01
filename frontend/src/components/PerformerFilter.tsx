@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, type ChangeEvent } from 'react';
 import { performerApi } from '../services/api';
 import { Performer } from '../types/event';
 import './PerformerFilter.css';
@@ -7,7 +7,7 @@ interface PerformerFilterProps {
     onPerformerSelect: (performerName: string | null) => void;
 }
 
-const PerformerFilter: React.FC<PerformerFilterProps> = ({ onPerformerSelect }) => {
+function PerformerFilter({ onPerformerSelect }: PerformerFilterProps) {
     const [performers, setPerformers] = useState<Performer[]>([]);
     const [inputValue, setInputValue] = useState('');
     const [isOpen, setIsOpen] = useState(false);
@@ -26,7 +26,7 @@ const PerformerFilter: React.FC<PerformerFilterProps> = ({ onPerformerSelect }) 
         fetchPerformers();
     }, []);
 
-    const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const handleInputChange = (e: ChangeEvent<HTMLInputElement>) => {
         setInputValue(e.target.value);
         if (!isOpen) {
             setIsOpen(true);
@@ -125,6 +125,6 @@ const PerformerFilter: React.FC<PerformerFilterProps> = ({ onPerformerSelect }) 
             )}
         </div>
     );
-};
+}
 
 export default PerformerFilter;

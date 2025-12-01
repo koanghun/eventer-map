@@ -19,7 +19,7 @@
 #### 빠른 프롬프트
 
 ```
-이 프로젝트는 Event Map으로, 이벤트 정보를 지도에 표시하는 웹 애플리케이션입니다.
+이 프로젝트는 Eventer Map으로, 이벤트 정보를 지도에 표시하는 웹 애플리케이션입니다.
 - 백엔드: FastAPI + SQLAlchemy + SQLite
 - 프론트엔드: React 18 + TypeScript + Google Maps API
 - 개발 환경: WSL, 배포: Synology NAS + Docker

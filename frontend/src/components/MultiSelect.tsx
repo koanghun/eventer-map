@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import { useState, useRef, type ChangeEvent, type KeyboardEvent } from 'react';
 import { performerApi, DuplicateCheckResponse } from '../services/api';
 import { Performer } from '../types/event';
 import DuplicateCheckModal from './DuplicateCheckModal';
@@ -12,7 +12,7 @@ interface MultiSelectProps {
     placeholder: string;
 }
 
-const MultiSelect: React.FC<MultiSelectProps> = ({ options, selected, onChange, placeholder }) => {
+function MultiSelect({ options, selected, onChange, placeholder }: MultiSelectProps) {
     const [inputValue, setInputValue] = useState('');
     const [isOpen, setIsOpen] = useState(false);
     const [duplicateCheck, setDuplicateCheck] = useState<DuplicateCheckResponse | null>(null);
@@ -20,7 +20,7 @@ const MultiSelect: React.FC<MultiSelectProps> = ({ options, selected, onChange, 
     const [pendingName, setPendingName] = useState('');
     const inputRef = useRef<HTMLInputElement>(null);
 
-    const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const handleInputChange = (e: ChangeEvent<HTMLInputElement>) => {
         setInputValue(e.target.value);
         if (!isOpen) {
             setIsOpen(true);
@@ -70,7 +70,7 @@ const MultiSelect: React.FC<MultiSelectProps> = ({ options, selected, onChange, 
         }
     };
 
-    const handleKeyDown = async (e: React.KeyboardEvent<HTMLInputElement>) => {
+    const handleKeyDown = async (e: KeyboardEvent<HTMLInputElement>) => {
         if (e.key === 'Enter' && inputValue.trim()) {
             e.preventDefault();
             await handleAddNewPerformer(inputValue.trim());
@@ -232,6 +232,6 @@ const MultiSelect: React.FC<MultiSelectProps> = ({ options, selected, onChange, 
             )}
         </>
     );
-};
+}
 
 export default MultiSelect;

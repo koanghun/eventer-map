@@ -1,4 +1,3 @@
-import React from 'react';
 import ReactDOM from 'react-dom';
 import './EventDuplicateModal.css';
 
@@ -29,12 +28,12 @@ interface EventDuplicateModalProps {
     onEdit: (eventId: number) => void;
 }
 
-const EventDuplicateModal: React.FC<EventDuplicateModalProps> = ({
+function EventDuplicateModal({
     duplicates,
     onClose,
     onProceed,
     onEdit
-}) => {
+}: EventDuplicateModalProps) {
     const renderSimilarityBadge = (score: number, recommendation: string) => {
         let className = 'similarity-badge';
         if (recommendation === 'duplicate') className += ' duplicate';
@@ -147,6 +146,6 @@ const EventDuplicateModal: React.FC<EventDuplicateModalProps> = ({
     );
 
     return ReactDOM.createPortal(modalContent, document.body);
-};
+}
 
 export default EventDuplicateModal;

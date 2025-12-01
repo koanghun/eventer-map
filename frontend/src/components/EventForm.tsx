@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect, type ChangeEvent, type FormEvent } from 'react';
 import { Event, EventFormData, Performer, Place } from '../types/event';
 import { placeApi, performerApi, eventApi } from '../services/api';
 import './EventForm.css';
@@ -15,7 +15,7 @@ interface EventFormProps {
     onSwitchToEdit: (eventId: number) => void;
 }
 
-const EventForm: React.FC<EventFormProps> = ({ event, onSubmit, onClose, onSwitchToEdit }) => {
+function EventForm({ event, onSubmit, onClose, onSwitchToEdit }: EventFormProps) {
     // 임시 저장 키
     const DRAFT_KEY = 'eventFormDraft';
 
@@ -121,7 +121,7 @@ const EventForm: React.FC<EventFormProps> = ({ event, onSubmit, onClose, onSwitc
         }
     }, [formData, event]);
 
-    const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    const handleChange = (e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
         const { name, value } = e.target;
 
         setFormData(prev => ({ ...prev, [name]: value }));
@@ -211,7 +211,7 @@ const EventForm: React.FC<EventFormProps> = ({ event, onSubmit, onClose, onSwitc
         }
     };
 
-    const handleSubmit = async (e: React.FormEvent) => {
+    const handleSubmit = async (e: FormEvent) => {
         e.preventDefault();
         if (isSubmitting) return; // 중복 제출 방지
 
@@ -445,6 +445,6 @@ const EventForm: React.FC<EventFormProps> = ({ event, onSubmit, onClose, onSwitc
             )}
         </>
     );
-};
+}
 
 export default EventForm;

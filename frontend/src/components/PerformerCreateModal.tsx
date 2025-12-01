@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState, type KeyboardEvent, type FormEvent, type MouseEvent } from 'react';
 import ReactDOM from 'react-dom';
 import './PerformerCreateModal.css';
 
@@ -8,11 +8,11 @@ interface PerformerCreateModalProps {
     onCancel: () => void;
 }
 
-const PerformerCreateModal: React.FC<PerformerCreateModalProps> = ({
+function PerformerCreateModal({
     initialName,
     onConfirm,
     onCancel,
-}) => {
+}: PerformerCreateModalProps) {
     const [canonicalName, setCanonicalName] = useState(initialName);
     const [aliasInput, setAliasInput] = useState('');
     const [aliases, setAliases] = useState<string[]>([]);
@@ -29,21 +29,21 @@ const PerformerCreateModal: React.FC<PerformerCreateModalProps> = ({
         setAliases(aliases.filter(a => a !== alias));
     };
 
-    const handleAliasKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    const handleAliasKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
         if (e.key === 'Enter') {
             e.preventDefault();
             handleAddAlias();
         }
     };
 
-    const handleSubmit = (e: React.FormEvent) => {
+    const handleSubmit = (e: FormEvent) => {
         e.preventDefault();
         if (canonicalName.trim()) {
             onConfirm(canonicalName.trim(), aliases);
         }
     };
 
-    const handleOverlayClick = (e: React.MouseEvent) => {
+    const handleOverlayClick = (e: MouseEvent) => {
         e.stopPropagation(); // 이벤트 버블링 방지
         onCancel();
     };
@@ -130,6 +130,6 @@ const PerformerCreateModal: React.FC<PerformerCreateModalProps> = ({
     );
 
     return ReactDOM.createPortal(modalContent, document.body);
-};
+}
 
 export default PerformerCreateModal;

@@ -1,4 +1,3 @@
-import React from 'react';
 import './DatePicker.css';
 
 interface DatePickerProps {
@@ -6,7 +5,7 @@ interface DatePickerProps {
     onDateChange: (date: string) => void;
 }
 
-const DatePicker: React.FC<DatePickerProps> = ({ selectedDate, onDateChange }) => {
+function DatePicker({ selectedDate, onDateChange }: DatePickerProps) {
     return (
         <div className="date-picker">
             <label htmlFor="date">📅 날짜 선택</label>
@@ -19,6 +18,6 @@ const DatePicker: React.FC<DatePickerProps> = ({ selectedDate, onDateChange }) =
             />
         </div>
     );
-};
+}
 
 export default DatePicker;
