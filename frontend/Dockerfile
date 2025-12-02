@@ -44,17 +44,6 @@ COPY --from=builder /app/build /usr/share/nginx/html
 # SPA 라우팅, API 프록시, 보안 헤더 등 설정 포함
 COPY nginx.conf /etc/nginx/conf.d/default.conf
 
-# nginx를 non-root 사용자로 실행하기 위한 권한 설정
-# nginx 사용자가 필요한 디렉토리들에 접근 가능하도록 소유권 변경
-RUN chown -R nginx:nginx /usr/share/nginx/html && \
-    chown -R nginx:nginx /var/cache/nginx && \
-    chown -R nginx:nginx /var/log/nginx && \
-    touch /var/run/nginx.pid && \
-    chown -R nginx:nginx /var/run/nginx.pid
-
-# nginx 사용자로 전환 (보안)
-USER nginx
-
 # 포트 노출 (nginx 기본 HTTP 포트)
 EXPOSE 80
 
