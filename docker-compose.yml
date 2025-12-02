@@ -12,30 +12,55 @@ services:
       - DATABASE_URL=${DATABASE_URL:-sqlite:///./data/eventer.db}
       - CORS_ORIGINS=${CORS_ORIGINS:-http://localhost:3000,http://localhost}
     volumes:
-      - ./backend:/app
+      # 데이터 영속성을 위한 볼륨만 유지 (개발용 코드 마운트 제거)
       - backend-data:/app/data
     restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
     networks:
       - eventer-network
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
 
   frontend:
     build:
       context: ./frontend
       dockerfile: Dockerfile
       args:
+        # 프론트엔드는 nginx에서 /api를 backend:8000으로 프록시
         - REACT_APP_API_URL=${REACT_APP_API_URL:-http://localhost:8000}
         - REACT_APP_GOOGLE_MAPS_API_KEY=${REACT_APP_GOOGLE_MAPS_API_KEY}
     container_name: eventer-map-frontend
     ports:
       - "${FRONTEND_PORT:-3000}:80"
     depends_on:
-      - backend
+      backend:
+        condition: service_healthy
     restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
     networks:
       - eventer-network
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
 
 volumes:
   backend-data:
+    driver: local
 
 networks:
   eventer-network:
