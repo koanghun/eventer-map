@@ -17,18 +17,18 @@
 graph TB
     subgraph "Host Machine"
         HC[호스트 코드<br/>./backend, ./frontend]
-        HP1[":20048"]
-        HP2[":15952"]
+        HP1[":7774"]
+        HP2[":7773"]
         HP3[":7772"]
     end
     
     subgraph "Docker Network: eventer-network"
         subgraph "openssh-server"
-            SSH["OpenSSH Server<br/>포트: 2222→20048<br/>사용자: developer"]
+            SSH["OpenSSH Server<br/>포트: 2222→7774<br/>사용자: developer"]
         end
         
         subgraph "backend-dev"
-            BE["FastAPI + Uvicorn<br/>--reload<br/>포트: 8000→15952"]
+            BE["FastAPI + Uvicorn<br/>--reload<br/>포트: 8000→7773"]
             BV1["/app<br/>(소스: rw)"]
             BV2["/app/data<br/>(backend-data)"]
         end
@@ -66,19 +66,19 @@ graph TB
 graph TB
     subgraph "Host Machine"
         HC[호스트 코드<br/>./backend, ./frontend]
-        HP1[":15952"]
-        HP2[":7772"]
+        HP1[":65105"]
+        HP2[":65104"]
     end
     
     subgraph "Docker Network: eventer-map-prod"
         subgraph "backend"
-            BE["FastAPI + Uvicorn<br/>프로덕션 모드<br/>포트: 8000→15952"]
+            BE["FastAPI + Uvicorn<br/>프로덕션 모드<br/>포트: 8000→65105"]
             BV1["/app<br/>(소스: ro)"]
             BV2["/app/data<br/>(backend-data)"]
         end
         
         subgraph "frontend"
-            FE["Nginx<br/>React 빌드 파일<br/>포트: 80→7772"]
+            FE["Nginx<br/>React 빌드 파일<br/>포트: 80→65104"]
             FV1["/usr/share/nginx/html<br/>(빌드 결과)"]
         end
     end
@@ -173,15 +173,15 @@ docker-compose logs -f backend-dev
 docker-compose logs -f frontend-dev
 
 # 4. SSH 접속 (선택사항)
-ssh developer@localhost -p 20048
+ssh developer@localhost -p 7774
 
 # 5. 중지
 docker-compose down
 ```
 
 **개발 환경 서비스:**
-- `openssh-server`: SSH 접속 (포트 20048)
-- `backend-dev`: FastAPI 개발 서버 (포트 15952, hot-reload)
+- `openssh-server`: SSH 접속 (포트 7774)
+- `backend-dev`: FastAPI 개발 서버 (포트 7773, hot-reload)
 - `frontend-dev`: React 개발 서버 (포트 7772, hot-reload)
 
 **특징:**
@@ -210,8 +210,8 @@ docker-compose -f docker-compose.yml -f docker-compose.prod.yml down
 ```
 
 **배포 환경 서비스:**
-- `backend`: FastAPI 프로덕션 서버 (포트 15952)
-- `frontend`: nginx + React 빌드 (포트 7772)
+- `backend`: FastAPI 프로덕션 서버 (포트 65105)
+- `frontend`: nginx + React 빌드 (포트 65104)
 
 **특징:**
 - ✅ 읽기 전용 볼륨 (보안 강화)
@@ -246,10 +246,10 @@ docker-compose up -d
 | 항목 | 개발 환경 | 배포 환경 |
 |------|----------|----------|
 | **서비스 이름** | `backend-dev`, `frontend-dev` | `backend`, `frontend` |
-| **포트** | Backend: 15952, Frontend: 7772 | Backend: 15952, Frontend: 7772 |
+| **포트** | Backend: 7773, Frontend: 7772 | Backend: 65105, Frontend: 65104 |
 | **볼륨 마운트** | 읽기/쓰기 (`:rw`) | 읽기 전용 (`:ro`) |
 | **Hot-reload** | ✅ 활성화 | ❌ 비활성화 |
-| **SSH 접속** | ✅ 가능 (포트 20048) | ❌ 불가 |
+| **SSH 접속** | ✅ 가능 (포트 7774) | ❌ 불가 |
 | **네트워크** | `eventer-network` | `eventer-map-prod` |
 | **Frontend 서버** | npm start (개발 서버) | nginx (프로덕션) |
 | **Backend 실행** | `uvicorn --reload` | `uvicorn` (일반) |

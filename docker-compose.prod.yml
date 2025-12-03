@@ -13,7 +13,7 @@ services:
       dockerfile: Dockerfile
     container_name: eventer-map-backend
     ports:
-      - "${BACKEND_PORT:-15952}:8000"
+      - "${BACKEND_PORT:-65105}:8000"
     environment:
       - DATABASE_URL=${DATABASE_URL:-sqlite:///./data/eventer.db}
       - CORS_ORIGINS=${CORS_ORIGINS:-http://localhost:3000,http://localhost}
@@ -51,8 +51,8 @@ services:
         - REACT_APP_GOOGLE_MAPS_API_KEY=${REACT_APP_GOOGLE_MAPS_API_KEY}
     container_name: eventer-map-frontend
     ports:
-      # 배포 환경: 7772 포트 사용
-      - "7772:80"
+      # 배포 환경: 65104 포트 사용
+      - "65104:80"
     environment:
       - NODE_ENV=production
     depends_on:
