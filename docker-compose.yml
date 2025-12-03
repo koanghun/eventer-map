@@ -2,13 +2,15 @@ version: '3.8'
 
 services:
   # ============================================
-  # OpenSSH Server - WSL/원격 개발 환경 지원
+  # OpenSSH Server - 원격 개발 환경 (선택사항)
+  # 사용: docker-compose --profile ssh up -d
   # ============================================
   openssh-server:
     image: linuxserver/openssh-server:latest
     container_name: eventer-map-ssh
+    profiles: ["ssh"]  # 선택적으로만 실행
     ports:
-      - "7774:2222"
+      - "${SSH_PORT:-7774}:2222"
     environment:
       - PUID=1000
       - PGID=1000
@@ -23,29 +25,25 @@ services:
       - eventer-network
 
   # ============================================
-  # Backend - 개발 환경 (Python/FastAPI)
+  # Backend - FastAPI
   # ============================================
-  backend-dev:
+  backend:
     build:
       context: ./backend
       dockerfile: Dockerfile
-    container_name: eventer-map-backend-dev
+    container_name: eventer-map-backend
     ports:
       - "${BACKEND_PORT:-7773}:8000"
     environment:
       - DATABASE_URL=${DATABASE_URL:-sqlite:///./data/eventer.db}
       - CORS_ORIGINS=${CORS_ORIGINS:-http://localhost:7772,http://localhost}
     volumes:
-      # 개발 모드: 소스 코드 실시간 반영
-      - ./backend:/app:rw
       # 데이터 영속성
       - backend-data:/app/data
-    # 개발 모드: uvicorn --reload 사용
-    command: uvicorn main:app --host 0.0.0.0 --port 8000 --reload
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
-      interval: 60s      # 개발 환경: 체크 간격 완화
+      interval: 30s
       timeout: 10s
       retries: 3
       start_period: 40s
@@ -58,31 +56,28 @@ services:
         max-file: "3"
 
   # ============================================
-  # Frontend - 개발 환경 (React)
+  # Frontend - React + Nginx
   # ============================================
-  frontend-dev:
+  frontend:
     build:
       context: ./frontend
-      dockerfile: Dockerfile.dev
+      dockerfile: Dockerfile
       args:
-        - REACT_APP_API_URL=${REACT_APP_API_URL:-http://localhost:8000}
+        - REACT_APP_API_URL=${REACT_APP_API_URL:-http://localhost:7773}
         - REACT_APP_GOOGLE_MAPS_API_KEY=${REACT_APP_GOOGLE_MAPS_API_KEY}
-    container_name: eventer-map-frontend-dev
+    container_name: eventer-map-frontend
     ports:
-      - "${FRONTEND_PORT:-7772}:3000"
-    environment:
-      - NODE_ENV=development
-      - REACT_APP_API_URL=${REACT_APP_API_URL:-http://localhost:7773}
-      - REACT_APP_GOOGLE_MAPS_API_KEY=${REACT_APP_GOOGLE_MAPS_API_KEY}
-    volumes:
-      # 개발 모드: 소스 코드 실시간 반영
-      - ./frontend/src:/app/src:rw
-      - ./frontend/public:/app/public:rw
-      # node_modules는 컨테이너 내부 것 사용 (성능 최적화)
+      - "${FRONTEND_PORT:-7772}:80"
     depends_on:
-      backend-dev:
+      backend:
         condition: service_healthy
     restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
     networks:
       - eventer-network
     logging:
