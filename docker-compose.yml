@@ -17,6 +17,9 @@ services:
       - TZ=Asia/Seoul
       - USER_NAME=developer
       - SUDO_ACCESS=true
+      - PASSWORD_ACCESS=true     # 비밀번호 인증 활성화
+      - USER_PASSWORD=${USER_PASSWORD:-changeme}  # 기본 비밀번호: changeme
+      - PUBLIC_KEY=${PUBLIC_KEY:-}  # .env에서 공개키 설정 가능
     volumes:
       # 프로젝트 전체를 개발자 홈 디렉토리에 마운트
       - ./:/home/developer/eventer-map:rw
