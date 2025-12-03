@@ -46,8 +46,8 @@ Thumbs.db
 
 # Logs (exclude application logs, but keep docs/logs for documentation)
 *.log
-logs/
+**/*.log
 !docs/logs/
 
 # Docker
-.dockerignore
+docker-compose.override.yml

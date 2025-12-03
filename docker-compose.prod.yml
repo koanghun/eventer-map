@@ -1,0 +1,79 @@
+version: '3.8'
+
+# 배포 환경용 오버라이드
+# 사용법: docker-compose -f docker-compose.yml -f docker-compose.prod.yml up -d
+
+services:
+  # ============================================
+  # Backend - 배포 환경
+  # ============================================
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: eventer-map-backend
+    ports:
+      - "${BACKEND_PORT:-15952}:8000"
+    environment:
+      - DATABASE_URL=${DATABASE_URL:-sqlite:///./data/eventer.db}
+      - CORS_ORIGINS=${CORS_ORIGINS:-http://localhost:3000,http://localhost}
+    volumes:
+      # 배포 모드: 읽기 전용
+      - ./backend:/app:ro
+      # 데이터는 쓰기 가능
+      - backend-data:/app/data
+    # 배포 모드: --reload 없이 실행
+    command: uvicorn main:app --host 0.0.0.0 --port 8000
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    networks:
+      - eventer-map-prod
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # ============================================
+  # Frontend - 배포 환경
+  # ============================================
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        - REACT_APP_API_URL=${REACT_APP_API_URL:-http://localhost:8000}
+        - REACT_APP_GOOGLE_MAPS_API_KEY=${REACT_APP_GOOGLE_MAPS_API_KEY}
+    container_name: eventer-map-frontend
+    ports:
+      # 배포 환경: 7772 포트 사용
+      - "7772:80"
+    environment:
+      - NODE_ENV=production
+    depends_on:
+      backend:
+        condition: service_healthy
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    networks:
+      - eventer-map-prod
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+# 배포용 전용 네트워크
+networks:
+  eventer-map-prod:
+    driver: bridge

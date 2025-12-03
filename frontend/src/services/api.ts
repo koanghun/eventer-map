@@ -1,7 +1,9 @@
 import axios from 'axios';
 import { Event, Performer, Place } from '../types/event';
 
-const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:8000';
+// 프로덕션: nginx 프록시를 통해 /api -> http://backend:8000
+// 개발: 환경 변수로 백엔드 URL 지정 가능
+const API_URL = process.env.REACT_APP_API_URL || '/api';
 
 const api = axios.create({
     baseURL: API_URL,

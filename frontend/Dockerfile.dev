@@ -1,0 +1,27 @@
+# ============================================
+# 개발 환경용 Dockerfile
+# ============================================
+FROM node:18-alpine
+
+WORKDIR /app
+
+# package.json과 package-lock.json 복사
+COPY package*.json ./
+
+# 의존성 설치
+# --legacy-peer-deps: TypeScript 5.x와 react-scripts 5.0.1 호환성 문제 해결
+RUN npm ci --legacy-peer-deps
+
+# 소스 코드는 볼륨 마운트로 처리되므로 여기서는 복사하지 않음
+# (개발 시 호스트의 ./frontend/src가 /app/src로 마운트됨)
+
+# 빌드 인자 (환경 변수)
+ARG REACT_APP_API_URL
+ARG REACT_APP_GOOGLE_MAPS_API_KEY
+
+# 포트 노출 (React 개발 서버 기본 포트)
+EXPOSE 3000
+
+# React 개발 서버 실행
+# --host 0.0.0.0: 컨테이너 외부 접속 허용
+CMD ["npm", "start"]
