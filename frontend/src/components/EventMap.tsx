@@ -130,14 +130,6 @@ function EventMap({ events, selectedEvent, onMarkerClick, onInfoWindowClose }: E
         return groups;
     }, [events]);
 
-    React.useEffect(() => {
-        if (selectedEvent) {
-            setInfoWindowStack({ type: 'single', event: selectedEvent });
-        } else if (!infoWindowStack || infoWindowStack.type === 'single') {
-            setInfoWindowStack(null);
-        }
-    }, [selectedEvent]);
-
     const getMapCenter = () => {
         if (events.length === 0) return defaultCenter;
         const avgLat = events.reduce((sum, e) => sum + e.latitude, 0) / events.length;
