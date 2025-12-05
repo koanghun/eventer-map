@@ -7,7 +7,9 @@ services:
   # 사용: docker-compose --profile ssh up -d
   # ============================================
   openssh-server:
-    image: ubuntu:22.04
+    build:
+      context: ./openssh
+      dockerfile: Dockerfile
     container_name: eventer-map-ssh
     profiles: ["ssh"]  # 선택적으로만 실행
     ports:
@@ -15,51 +17,13 @@ services:
     environment:
       - USER_PASSWORD=${USER_PASSWORD:-changeme}
       - PUBLIC_KEY=${PUBLIC_KEY:-}
+      - SSH_PORT=${SSH_PORT:-7774}  # 로그 출력용
     volumes:
       # 프로젝트 전체를 developer 홈 디렉토리에 마운트
       - ./:/home/developer/eventer-map:rw
     restart: unless-stopped
     networks:
       - eventer-network
-    command: |
-      bash -c "
-      # 1. 패키지 업데이트 및 필수 도구 설치
-      apt-get update && 
-      apt-get install -y openssh-server sudo curl wget git vim nano && 
-      
-      # 2. SSH 서비스 디렉토리 생성 (Ubuntu 22.04 필수)
-      mkdir -p /run/sshd && 
-      
-      # 3. developer 사용자 생성
-      #    -m: 홈 디렉토리 생성
-      #    -s /bin/bash: 기본 쉘을 bash로 설정
-      useradd -m -s /bin/bash developer && 
-      
-      # 4. 비밀번호 설정 (환경 변수에서 가져옴, 기본값: changeme)
-      echo \"developer:\$$USER_PASSWORD\" | chpasswd && 
-      
-      # 5. sudo 권한 부여 (비밀번호 없이 sudo 사용 가능)
-      echo 'developer ALL=(ALL) NOPASSWD:ALL' >> /etc/sudoers && 
-      
-      # 6. SSH 공개키 설정 (.ssh 디렉토리 생성)
-      mkdir -p /home/developer/.ssh && 
-      
-      # 7. 공개키가 있으면 authorized_keys에 추가 (비밀번호 없이 접속 가능)
-      if [ -n \"\$$PUBLIC_KEY\" ]; then 
-        echo \"\$$PUBLIC_KEY\" > /home/developer/.ssh/authorized_keys && 
-        chmod 600 /home/developer/.ssh/authorized_keys; 
-      fi && 
-      
-      # 8. .ssh 디렉토리 권한 설정 (보안상 중요)
-      chown -R developer:developer /home/developer/.ssh && 
-      chmod 700 /home/developer/.ssh && 
-      
-      # 9. 프로젝트 디렉토리 권한 설정
-      chown -R developer:developer /home/developer/eventer-map && 
-      
-      # 10. SSH 서비스 시작
-      /usr/sbin/sshd -D
-      "
 
   # ============================================
   # Backend - FastAPI
