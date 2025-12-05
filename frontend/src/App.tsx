@@ -1,6 +1,6 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { LoadScript } from '@react-google-maps/api';
-import EventMap from './components/EventMap';
+import EventMap, { EventMapHandle } from './components/EventMap';
 import EventForm from './components/EventForm';
 import EventList from './components/EventList';
 import DatePicker from './components/DatePicker';
@@ -32,6 +32,8 @@ function AppContent() {
         handleCloseForm,
     } = useEventManagement(selectedDate);
 
+    const mapRef = useRef<EventMapHandle>(null);
+
     const apiKey = process.env.REACT_APP_GOOGLE_MAPS_API_KEY || '';
 
     return (
@@ -60,7 +62,10 @@ function AppContent() {
                         <EventList
                             events={filteredEvents}
                             loading={loading}
-                            onEventClick={setSelectedEvent}
+                            onEventClick={(event) => {
+                                setSelectedEvent(event);
+                                mapRef.current?.selectEvent(event);
+                            }}
                             onEventEdit={handleEditEvent}
                             onEventDelete={handleEventDelete}
                             selectedEventId={selectedEvent?.id}
@@ -69,8 +74,8 @@ function AppContent() {
 
                     <main className="main-content">
                         <EventMap
+                            ref={mapRef}
                             events={filteredEvents}
-                            selectedEvent={selectedEvent}
                             onMarkerClick={setSelectedEvent}
                             onInfoWindowClose={() => setSelectedEvent(null)}
                         />
