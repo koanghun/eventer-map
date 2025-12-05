@@ -95,10 +95,12 @@ React 18 + TypeScript
 Docker Compose
 ├── Backend Container (Python 3.11-slim)
 ├── Frontend Container (Nginx-alpine)
+├── OpenSSH Container (Ubuntu 22.04 + Node.js 20.x, 개발 전용)
+│   └── VSCode Remote-SSH 지원
 └── Volumes (데이터 영속성)
 
 배포: Synology NAS
-개발: WSL 환경
+개발: WSL 환경 + VSCode Remote-SSH
 ```
 
 ---

@@ -175,6 +175,9 @@ cd eventer-map-dev
 git pull origin develop
 docker-compose down
 docker-compose up -d --build
+# ssh 접속도 필요한 경우
+docker-compose --profile ssh build
+docker-compose --profile ssh up -d
 ```
 
 **배포 환경:**
@@ -257,6 +260,21 @@ docker-compose --profile ssh up -d
 # SSH 접속
 ssh developer@nas-ip -p 7774
 ```
+# 1. 처음 시작 (이미지 빌드 + 컨테이너 시작)
+docker-compose -f docker-compose.dev.yml up -d
+
+# 2. Dockerfile 수정 시 (재빌드 필요)
+docker-compose -f docker-compose.dev.yml up -d --build
+
+# 3. 코드만 수정 (개발 모드에서는 자동 반영, 재시작 불필요!)
+# 아무것도 안 해도 됨
+
+# 4. .env 수정 시 (재시작만)
+docker-compose -f docker-compose.dev.yml restart
+
+# 5. 완전히 새로 시작
+docker-compose -f docker-compose.dev.yml down
+docker-compose -f docker-compose.dev.yml up -d --build
 
 ### Q: 한 디렉토리에서 할 수 없나요?
 

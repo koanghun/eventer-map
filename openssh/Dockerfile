@@ -16,6 +16,8 @@ RUN apt-get update && \
     vim \
     nano \
     ca-certificates \
+    && curl -fsSL https://deb.nodesource.com/setup_20.x | bash - \
+    && apt-get install -y nodejs \
     && rm -rf /var/lib/apt/lists/*
 
 # 2. SSH 서비스 디렉토리 생성

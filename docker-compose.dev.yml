@@ -1,0 +1,73 @@
+version: '3.8'
+
+services:
+  # ============================================
+  # Backend - FastAPI (개발 모드)
+  # ============================================
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: eventer-map-backend-dev
+    ports:
+      - "${BACKEND_PORT:-7773}:8000"
+    environment:
+      - DATABASE_URL=${DATABASE_URL:-sqlite:///./data/eventer.db}
+      # CORS: .env에서 NAS IP 설정 필요 (예: http://192.168.1.100:7772)
+      - CORS_ORIGINS=${CORS_ORIGINS}
+    volumes:
+      # 코드 Hot Reload를 위한 볼륨 마운트
+      - ./backend:/app:rw
+      # 데이터 영속성
+      - backend-data:/app/data
+    command: uvicorn main:app --reload --host 0.0.0.0 --port 8000
+    restart: unless-stopped
+    networks:
+      - eventer-network
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # ============================================
+  # Frontend - React 개발 서버 (Hot Reload)
+  # ============================================
+  frontend:
+    image: node:20-alpine
+    container_name: eventer-map-frontend-dev
+    working_dir: /app
+    ports:
+      - "${FRONTEND_PORT:-7772}:3000"
+    environment:
+      # API URL: .env에서 설정 (예: http://192.168.1.100:7773 또는 /api)
+      - REACT_APP_API_URL=${REACT_APP_API_URL}
+      - REACT_APP_GOOGLE_MAPS_API_KEY=${REACT_APP_GOOGLE_MAPS_API_KEY}
+      - CHOKIDAR_USEPOLLING=true  # Hot reload를 위한 설정
+      - WDS_SOCKET_PORT=0  # WebSocket 포트 자동 설정
+    volumes:
+      # 코드 Hot Reload를 위한 볼륨 마운트
+      - ./frontend:/app:rw
+      # node_modules는 컨테이너 내부 것 사용 (성능 향상)
+      - /app/node_modules
+    command: sh -c "npm install --legacy-peer-deps && npm start"
+    depends_on:
+      - backend
+    restart: unless-stopped
+    networks:
+      - eventer-network
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    stdin_open: true  # React 개발 서버를 위해 필요
+    tty: true
+
+volumes:
+  backend-data:
+    driver: local
+
+networks:
+  eventer-network:
+    driver: bridge
