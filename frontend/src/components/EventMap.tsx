@@ -1,17 +1,12 @@
-import { useMemo, useState, useRef, useCallback, forwardRef, useImperativeHandle } from 'react';
+import { useMemo, useState, useRef, useCallback, useEffect } from 'react';
 import { GoogleMap, Marker, InfoWindow } from '@react-google-maps/api';
 import { Event } from '../types/event';
 import './EventMap.css';
 import { useTheme } from '../context/ThemeContext';
 
-// EventMap의 외부 제어 인터페이스
-export interface EventMapHandle {
-    selectEvent: (event: Event) => void;
-    clearSelection: () => void;
-}
-
 interface EventMapProps {
     events: Event[];
+    selectedEvent: Event | null;
     onMarkerClick: (event: Event) => void;
     onInfoWindowClose: () => void;
 }
@@ -111,286 +106,272 @@ const mapStyles = [
     },
 ];
 
-const EventMap = forwardRef<EventMapHandle, EventMapProps>(
-    ({ events, onMarkerClick, onInfoWindowClose }, ref) => {
-        const { theme } = useTheme();
+function EventMap({ events, selectedEvent, onMarkerClick, onInfoWindowClose }: EventMapProps) {
+    const { theme } = useTheme();
 
-        const mapRef = useRef<google.maps.Map | null>(null);
-        const [infoWindowStack, setInfoWindowStack] = useState<InfoWindowState | null>(null);
+    const mapRef = useRef<google.maps.Map | null>(null);
+    const [infoWindowStack, setInfoWindowStack] = useState<InfoWindowState | null>(null);
 
-        const onMapLoad = useCallback((map: google.maps.Map) => {
-            mapRef.current = map;
-        }, []);
+    const onMapLoad = useCallback((map: google.maps.Map) => {
+        mapRef.current = map;
+    }, []);
 
-        // 외부에서 이벤트 선택 요청을 받을 수 있는 인터페이스 제공
-        useImperativeHandle(ref, () => ({
-            selectEvent: (event: Event) => {
-                setInfoWindowStack({ type: 'single', event });
-                onMarkerClick(event);
+    // 외부에서 selectedEvent prop 변경 시 지도 이동만 처리
+    useEffect(() => {
+        if (selectedEvent && mapRef.current) {
+            mapRef.current.panTo({ lat: selectedEvent.latitude, lng: selectedEvent.longitude });
+        }
+    }, [selectedEvent]);
 
-                if (mapRef.current) {
-                    mapRef.current.panTo({ lat: event.latitude, lng: event.longitude });
-                }
-            },
-            clearSelection: () => {
-                setInfoWindowStack(null);
-                onInfoWindowClose();
+    const eventGroups = useMemo(() => {
+        const groups = new Map<string, Event[]>();
+
+        events.forEach(event => {
+            const key = `${event.latitude},${event.longitude}`;
+            if (!groups.has(key)) {
+                groups.set(key, []);
             }
-        }));
+            groups.get(key)!.push(event);
+        });
 
-        const eventGroups = useMemo(() => {
-            const groups = new Map<string, Event[]>();
+        return groups;
+    }, [events]);
 
-            events.forEach(event => {
-                const key = `${event.latitude},${event.longitude}`;
-                if (!groups.has(key)) {
-                    groups.set(key, []);
-                }
-                groups.get(key)!.push(event);
-            });
+    const getMapCenter = () => {
+        if (events.length === 0) return defaultCenter;
+        const avgLat = events.reduce((sum, e) => sum + e.latitude, 0) / events.length;
+        const avgLng = events.reduce((sum, e) => sum + e.longitude, 0) / events.length;
+        return { lat: avgLat, lng: avgLng };
+    };
 
-            return groups;
-        }, [events]);
-
-        const getMapCenter = () => {
-            if (events.length === 0) return defaultCenter;
-            const avgLat = events.reduce((sum, e) => sum + e.latitude, 0) / events.length;
-            const avgLng = events.reduce((sum, e) => sum + e.longitude, 0) / events.length;
-            return { lat: avgLat, lng: avgLng };
-        };
-
-        const handleMarkerClick = (eventsAtLocation: Event[]) => {
-            if (eventsAtLocation.length === 1) {
-                const event = eventsAtLocation[0];
-                setInfoWindowStack({ type: 'single', event });
-                onMarkerClick(event);
-
-                if (mapRef.current) {
-                    mapRef.current.panTo({ lat: event.latitude, lng: event.longitude });
-                }
-            } else {
-                const location = {
-                    lat: eventsAtLocation[0].latitude,
-                    lng: eventsAtLocation[0].longitude
-                };
-                setInfoWindowStack({ type: 'group', events: eventsAtLocation, location });
-                onInfoWindowClose();
-
-                if (mapRef.current) {
-                    mapRef.current.panTo(location);
-                }
-            }
-        };
-
-        const handleEventSelectFromGroup = (event: Event) => {
-            setInfoWindowStack({ type: 'single', event });
-            onMarkerClick(event);
+    const handleMarkerClick = (eventsAtLocation: Event[]) => {
+        if (eventsAtLocation.length === 1) {
+            // 단일 이벤트: 외부 useEventSelection에 위임
+            onMarkerClick(eventsAtLocation[0]);
+        } else {
+            // 그룹: EventMap이 리스트 모달 관리
+            const location = {
+                lat: eventsAtLocation[0].latitude,
+                lng: eventsAtLocation[0].longitude
+            };
+            setInfoWindowStack({ type: 'group', events: eventsAtLocation, location });
+            onInfoWindowClose(); // 기존 단일 선택 해제
 
             if (mapRef.current) {
-                mapRef.current.panTo({ lat: event.latitude, lng: event.longitude });
+                mapRef.current.panTo(location);
             }
-        };
+        }
+    };
 
-        const handleInfoWindowClose = () => {
+    const handleEventSelectFromGroup = (event: Event) => {
+        // 그룹 모달 닫고 외부에 선택 위임
+        setInfoWindowStack(null);
+        onMarkerClick(event);
+    };
+
+    const handleInfoWindowClose = () => {
+        if (infoWindowStack?.type === 'group') {
+            // 그룹 모달만 닫기
             setInfoWindowStack(null);
-            onInfoWindowClose();
-        };
+        } else {
+        }
+        // 단일 이벤트 모달: 외부에 위임
+        onInfoWindowClose();
+    };
 
-        const renderInfoWindow = () => {
-            if (!infoWindowStack) return null;
-
-            if (infoWindowStack.type === 'group') {
-                const { events: groupEvents, location } = infoWindowStack;
-                return (
-                    <InfoWindow
-                        position={location}
-                        onCloseClick={handleInfoWindowClose}
-                    >
-                        <div className="info-window-multi">
-                            <div className="info-header-multi">
-                                <h3>이 위치에 {groupEvents.length}개의 이벤트</h3>
-                                <p className="info-location-name">{groupEvents[0].location}</p>
-                            </div>
-
-                            <div className="info-event-list">
-                                {groupEvents.map(event => (
-                                    <div
-                                        key={event.id}
-                                        className="info-event-item"
-                                        onClick={() => handleEventSelectFromGroup(event)}
-                                    >
-                                        <div className="info-event-header">
-                                            <div className="info-event-title">
-                                                <span className="event-title-text">{event.title}</span>
-                                                <span className="event-date-badge">{event.event_date}</span>
-                                            </div>
-                                            <span className="expand-icon">▶</span>
-                                        </div>
-                                    </div>
-                                ))}
-                            </div>
-                        </div>
-                    </InfoWindow>
-                );
-            }
-
-            const { event } = infoWindowStack;
+    const renderInfoWindow = () => {
+        // 그룹 모달 (EventMap이 관리)
+        if (infoWindowStack?.type === 'group') {
+            const { events: groupEvents, location } = infoWindowStack;
             return (
                 <InfoWindow
-                    position={{ lat: event.latitude, lng: event.longitude }}
+                    position={location}
                     onCloseClick={handleInfoWindowClose}
                 >
-                    <div className="info-window">
-                        <div className="info-header">
-                            <h3>{event.title}</h3>
+                    <div className="info-window-multi">
+                        <div className="info-header-multi">
+                            <h3>이 위치에 {groupEvents.length}개의 이벤트</h3>
+                            <p className="info-location-name">{groupEvents[0].location}</p>
                         </div>
 
-                        <table className="info-table">
-                            <tbody>
+                        <div className="info-event-list">
+                            {groupEvents.map(event => (
+                                <div
+                                    key={event.id}
+                                    className="info-event-item"
+                                    onClick={() => handleEventSelectFromGroup(event)}
+                                >
+                                    <div className="info-event-header">
+                                        <div className="info-event-title">
+                                            <span className="event-title-text">{event.title}</span>
+                                            <span className="event-date-badge">{event.event_date}</span>
+                                        </div>
+                                        <span className="expand-icon">▶</span>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                </InfoWindow>
+            );
+        }
+
+        // 단일 이벤트 모달 (외부 selectedEvent prop 사용)
+        if (!selectedEvent) return null;
+
+        return (
+            <InfoWindow
+                position={{ lat: selectedEvent.latitude, lng: selectedEvent.longitude }}
+                onCloseClick={handleInfoWindowClose}
+            >
+                <div className="info-window">
+                    <div className="info-header">
+                        <h3>{selectedEvent.title}</h3>
+                    </div>
+
+                    <table className="info-table">
+                        <tbody>
+                            <tr>
+                                <td className="info-label">📍 장소</td>
+                                <td className="info-value">
+                                    <a
+                                        href={`https://www.google.com/maps/search/?api=1&query=${selectedEvent.latitude},${selectedEvent.longitude}`}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="info-map-link"
+                                        title="Google Maps에서 보기"
+                                    >
+                                        {selectedEvent.location}
+                                    </a>
+                                </td>
+                            </tr>
+                            {selectedEvent.address && (
                                 <tr>
-                                    <td className="info-label">📍 장소</td>
-                                    <td className="info-value">
+                                    <td className="info-label">📮 주소</td>
+                                    <td className="info-value info-address">
                                         <a
-                                            href={`https://www.google.com/maps/search/?api=1&query=${event.latitude},${event.longitude}`}
+                                            href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(selectedEvent.address)}`}
                                             target="_blank"
                                             rel="noopener noreferrer"
                                             className="info-map-link"
                                             title="Google Maps에서 보기"
                                         >
-                                            {event.location}
+                                            {selectedEvent.address}
                                         </a>
                                     </td>
                                 </tr>
-                                {event.address && (
-                                    <tr>
-                                        <td className="info-label">📮 주소</td>
-                                        <td className="info-value info-address">
-                                            <a
-                                                href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(event.address)}`}
-                                                target="_blank"
-                                                rel="noopener noreferrer"
-                                                className="info-map-link"
-                                                title="Google Maps에서 보기"
-                                            >
-                                                {event.address}
-                                            </a>
-                                        </td>
-                                    </tr>
-                                )}
+                            )}
+                            <tr>
+                                <td className="info-label">📅 날짜</td>
+                                <td className="info-value">{selectedEvent.event_date}</td>
+                            </tr>
+                            {selectedEvent.door_time && (
                                 <tr>
-                                    <td className="info-label">📅 날짜</td>
-                                    <td className="info-value">{event.event_date}</td>
+                                    <td className="info-label">🚪 개장</td>
+                                    <td className="info-value">{selectedEvent.door_time}</td>
                                 </tr>
-                                {event.door_time && (
-                                    <tr>
-                                        <td className="info-label">🚪 개장</td>
-                                        <td className="info-value">{event.door_time}</td>
-                                    </tr>
-                                )}
-                                {event.start_time && (
-                                    <tr>
-                                        <td className="info-label">🎬 개연</td>
-                                        <td className="info-value">{event.start_time}</td>
-                                    </tr>
-                                )}
-                                {event.end_time && (
-                                    <tr>
-                                        <td className="info-label">🏁 종연</td>
-                                        <td className="info-value">{event.end_time}</td>
-                                    </tr>
-                                )}
-                                {event.performers && (
-                                    <tr>
-                                        <td className="info-label">🎤 출연자</td>
-                                        <td className="info-value">{event.performers}</td>
-                                    </tr>
-                                )}
-                            </tbody>
-                        </table>
+                            )}
+                            {selectedEvent.start_time && (
+                                <tr>
+                                    <td className="info-label">🎬 개연</td>
+                                    <td className="info-value">{selectedEvent.start_time}</td>
+                                </tr>
+                            )}
+                            {selectedEvent.end_time && (
+                                <tr>
+                                    <td className="info-label">🏁 종연</td>
+                                    <td className="info-value">{selectedEvent.end_time}</td>
+                                </tr>
+                            )}
+                            {selectedEvent.performers && (
+                                <tr>
+                                    <td className="info-label">🎤 출연자</td>
+                                    <td className="info-value">{selectedEvent.performers}</td>
+                                </tr>
+                            )}
+                        </tbody>
+                    </table>
 
-                        {event.description && (
-                            <div className="info-description">
-                                <div className="info-description-label">📝 설명</div>
-                                <div className="info-description-text">{event.description}</div>
-                            </div>
-                        )}
+                    {selectedEvent.description && (
+                        <div className="info-description">
+                            <div className="info-description-label">📝 설명</div>
+                            <div className="info-description-text">{selectedEvent.description}</div>
+                        </div>
+                    )}
 
-                        {event.related_link && (
-                            <a
-                                href={event.related_link}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="info-link"
-                            >
-                                🔗 자세히 보기 →
-                            </a>
-                        )}
-                    </div>
-                </InfoWindow>
-            );
-        };
+                    {selectedEvent.related_link && (
+                        <a
+                            href={selectedEvent.related_link}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="info-link"
+                        >
+                            🔗 자세히 보기 →
+                        </a>
+                    )}
+                </div>
+            </InfoWindow>
+        );
+    };
 
-        return (
-            <div className="event-map">
-                <GoogleMap
-                    mapContainerStyle={mapContainerStyle}
-                    center={getMapCenter()}
-                    zoom={events.length > 0 ? 12 : 11}
-                    onLoad={onMapLoad}
-                    options={{
-                        zoomControl: true,
-                        streetViewControl: false,
-                        mapTypeControl: false,
-                        fullscreenControl: true,
-                        styles: theme === 'dark' ? mapStyles : undefined,
-                    }}
-                >
-                    {Array.from(eventGroups.entries()).map(([coordKey, eventsAtLocation]) => {
-                        const firstEvent = eventsAtLocation[0];
-                        const isGrouped = eventsAtLocation.length > 1;
+    return (
+        <div className="event-map">
+            <GoogleMap
+                mapContainerStyle={mapContainerStyle}
+                center={getMapCenter()}
+                zoom={events.length > 0 ? 12 : 11}
+                onLoad={onMapLoad}
+                options={{
+                    zoomControl: true,
+                    streetViewControl: false,
+                    mapTypeControl: false,
+                    fullscreenControl: true,
+                    styles: theme === 'dark' ? mapStyles : undefined,
+                }}
+            >
+                {Array.from(eventGroups.entries()).map(([coordKey, eventsAtLocation]) => {
+                    const firstEvent = eventsAtLocation[0];
+                    const isGrouped = eventsAtLocation.length > 1;
 
-                        const isSelected = infoWindowStack && (
-                            (infoWindowStack.type === 'single' && eventsAtLocation.some(e => e.id === infoWindowStack.event.id)) ||
-                            (infoWindowStack.type === 'group' && infoWindowStack.location.lat === firstEvent.latitude && infoWindowStack.location.lng === firstEvent.longitude)
-                        );
+                    const isSelected = infoWindowStack && (
+                        (infoWindowStack.type === 'single' && eventsAtLocation.some(e => e.id === infoWindowStack.event.id)) ||
+                        (infoWindowStack.type === 'group' && infoWindowStack.location.lat === firstEvent.latitude && infoWindowStack.location.lng === firstEvent.longitude)
+                    );
 
-                        return (
-                            <Marker
-                                key={coordKey}
-                                position={{ lat: firstEvent.latitude, lng: firstEvent.longitude }}
-                                onClick={() => handleMarkerClick(eventsAtLocation)}
-                                label={isGrouped ? {
-                                    text: String(eventsAtLocation.length),
-                                    color: '#ffffff',
-                                    fontSize: '14px',
-                                    fontWeight: 'bold',
-                                } : undefined}
-                                icon={
-                                    isSelected
-                                        ? undefined
-                                        : {
-                                            url: 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(`
+                    return (
+                        <Marker
+                            key={coordKey}
+                            position={{ lat: firstEvent.latitude, lng: firstEvent.longitude }}
+                            onClick={() => handleMarkerClick(eventsAtLocation)}
+                            label={isGrouped ? {
+                                text: String(eventsAtLocation.length),
+                                color: '#ffffff',
+                                fontSize: '14px',
+                                fontWeight: 'bold',
+                            } : undefined}
+                            icon={
+                                isSelected
+                                    ? undefined
+                                    : {
+                                        url: 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(`
                                             <svg xmlns="http://www.w3.org/2000/svg" width="36" height="48" viewBox="0 0 36 48">
                                                 <path fill="${isGrouped ? '#9B59B6' : '#FF6B35'}" stroke="#ffffff" stroke-width="2" d="M18 2C11.373 2 6 7.373 6 14c0 10.5 12 32 12 32s12-21.5 12-32c0-6.627-5.373-12-12-12z"/>
                                                 <circle cx="18" cy="14" r="8" fill="#ffffff"/>
                                                 <path fill="${isGrouped ? '#9B59B6' : '#FF6B35'}" d="M18 8c-1.1 0-2 .9-2 2v4c0 1.1.9 2 2 2s2-.9 2-2v-4c0-1.1-.9-2-2-2zm-4 8c0 2.2 1.8 4 4 4s4-1.8 4-4h-1.5c0 1.4-1.1 2.5-2.5 2.5s-2.5-1.1-2.5-2.5H14z"/>
                                             </svg>
                                         `),
-                                            scaledSize: new window.google.maps.Size(36, 48),
-                                            anchor: new window.google.maps.Point(18, 48),
-                                        }
-                                }
-                            />
-                        );
-                    })}
+                                        scaledSize: new window.google.maps.Size(36, 48),
+                                        anchor: new window.google.maps.Point(18, 48),
+                                    }
+                            }
+                        />
+                    );
+                })}
 
-                    {renderInfoWindow()}
-                </GoogleMap>
-            </div>
-        );
-    }
-);
-
-EventMap.displayName = 'EventMap';
+                {renderInfoWindow()}
+            </GoogleMap>
+        </div>
+    );
+}
 
 export default EventMap;

@@ -1,6 +1,6 @@
-import { useState, useRef } from 'react';
+import { useState } from 'react';
 import { LoadScript } from '@react-google-maps/api';
-import EventMap, { EventMapHandle } from './components/EventMap';
+import EventMap from './components/EventMap';
 import EventForm from './components/EventForm';
 import EventList from './components/EventList';
 import DatePicker from './components/DatePicker';
@@ -9,7 +9,9 @@ import { format } from 'date-fns';
 import './App.css';
 
 import { ThemeProvider, useTheme } from './context/ThemeContext';
-import { useEventManagement } from './hooks/useEventManagement';
+import { useEventData } from './hooks/useEventData';
+import { useEventSelection } from './hooks/useEventSelection';
+import { useEventForm } from './hooks/useEventForm';
 
 const GOOGLE_MAPS_LIBRARIES: ("places")[] = ['places'];
 
@@ -17,22 +19,10 @@ function AppContent() {
     const [selectedDate, setSelectedDate] = useState<string>(format(new Date(), 'yyyy-MM-dd'));
     const { theme, toggleTheme } = useTheme();
 
-    const {
-        selectedEvent,
-        isFormOpen,
-        loading,
-        filteredEvents,
-        setSelectedEvent,
-        setSelectedPerformer,
-        handleEventSubmit,
-        handleEventDelete,
-        handleNewEvent,
-        handleEditEvent,
-        handleSwitchToEdit,
-        handleCloseForm,
-    } = useEventManagement(selectedDate);
-
-    const mapRef = useRef<EventMapHandle>(null);
+    // 3개 훅으로 분리된 책임
+    const eventData = useEventData(selectedDate);
+    const eventSelection = useEventSelection();
+    const eventForm = useEventForm(eventData.loadEvents);
 
     const apiKey = process.env.REACT_APP_GOOGLE_MAPS_API_KEY || '';
 
@@ -53,41 +43,38 @@ function AppContent() {
                     <aside className="sidebar">
                         <DatePicker selectedDate={selectedDate} onDateChange={setSelectedDate} />
 
-                        <PerformerFilter onPerformerSelect={setSelectedPerformer} />
+                        <PerformerFilter onPerformerSelect={eventData.setSelectedPerformer} />
 
-                        <button className="btn-new-event" onClick={handleNewEvent}>
+                        <button className="btn-new-event" onClick={eventForm.openNew}>
                             ➕ 새 이벤트 등록
                         </button>
 
                         <EventList
-                            events={filteredEvents}
-                            loading={loading}
-                            onEventClick={(event) => {
-                                setSelectedEvent(event);
-                                mapRef.current?.selectEvent(event);
-                            }}
-                            onEventEdit={handleEditEvent}
-                            onEventDelete={handleEventDelete}
-                            selectedEventId={selectedEvent?.id}
+                            events={eventData.filteredEvents}
+                            loading={eventData.loading}
+                            onEventClick={eventSelection.selectEvent}
+                            onEventEdit={eventForm.openEdit}
+                            onEventDelete={eventForm.deleteEvent}
+                            selectedEventId={eventSelection.selectedEvent?.id}
                         />
                     </aside>
 
                     <main className="main-content">
                         <EventMap
-                            ref={mapRef}
-                            events={filteredEvents}
-                            onMarkerClick={setSelectedEvent}
-                            onInfoWindowClose={() => setSelectedEvent(null)}
+                            events={eventData.filteredEvents}
+                            selectedEvent={eventSelection.selectedEvent}
+                            onMarkerClick={eventSelection.selectEvent}
+                            onInfoWindowClose={eventSelection.clearSelection}
                         />
                     </main>
                 </div>
 
-                {isFormOpen && (
+                {eventForm.isFormOpen && (
                     <EventForm
-                        event={selectedEvent}
-                        onSubmit={handleEventSubmit}
-                        onClose={handleCloseForm}
-                        onSwitchToEdit={handleSwitchToEdit}
+                        event={eventForm.formEvent}
+                        onSubmit={eventForm.submit}
+                        onClose={eventForm.close}
+                        onSwitchToEdit={(id) => eventForm.switchToEdit(id, eventData.events)}
                     />
                 )}
             </div>
