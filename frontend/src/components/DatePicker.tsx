@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import './DatePicker.css';
 
 interface DatePickerProps {
@@ -6,9 +7,11 @@ interface DatePickerProps {
 }
 
 function DatePicker({ selectedDate, onDateChange }: DatePickerProps) {
+    const { t } = useTranslation();
+
     return (
         <div className="date-picker">
-            <label htmlFor="date">📅 날짜 선택</label>
+            <label htmlFor="date">📅 {t('datePicker.label')}</label>
             <input
                 type="date"
                 id="date"

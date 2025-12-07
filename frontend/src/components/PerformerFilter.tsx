@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, type ChangeEvent } from 'react';
+import { useTranslation } from 'react-i18next';
 import { performerApi } from '../services/api';
 import { Performer } from '../types/event';
 import './PerformerFilter.css';
@@ -8,6 +9,7 @@ interface PerformerFilterProps {
 }
 
 function PerformerFilter({ onPerformerSelect }: PerformerFilterProps) {
+    const { t } = useTranslation();
     const [performers, setPerformers] = useState<Performer[]>([]);
     const [inputValue, setInputValue] = useState('');
     const [isOpen, setIsOpen] = useState(false);
@@ -78,7 +80,7 @@ function PerformerFilter({ onPerformerSelect }: PerformerFilterProps) {
 
     return (
         <div className="performer-filter">
-            <label htmlFor="performer-search">🎤 출연자 검색</label>
+            <label htmlFor="performer-search">🎤 {t('performerFilter.label')}</label>
             <div className="performer-filter-input-group">
                 <input
                     ref={inputRef}
@@ -88,7 +90,7 @@ function PerformerFilter({ onPerformerSelect }: PerformerFilterProps) {
                     onChange={handleInputChange}
                     onFocus={() => setIsOpen(true)}
                     onBlur={() => setTimeout(() => setIsOpen(false), 200)}
-                    placeholder="출연자명 또는 별칭 입력"
+                    placeholder={t('performerFilter.placeholder')}
                     className="performer-filter-input"
                 />
                 {selectedPerformer && (
@@ -96,7 +98,7 @@ function PerformerFilter({ onPerformerSelect }: PerformerFilterProps) {
                         type="button"
                         className="btn-clear-filter"
                         onClick={handleClear}
-                        title="필터 해제"
+                        title={t('performerFilter.clearFilter')}
                     >
                         ✕
                     </button>

@@ -1,5 +1,6 @@
 import { useMemo, useState, useRef, useCallback, useEffect } from 'react';
 import { GoogleMap, Marker, InfoWindow } from '@react-google-maps/api';
+import { useTranslation } from 'react-i18next';
 import { Event } from '../types/event';
 import './EventMap.css';
 import { useTheme } from '../context/ThemeContext';
@@ -108,6 +109,7 @@ const mapStyles = [
 
 function EventMap({ events, selectedEvent, onMarkerClick, onInfoWindowClose }: EventMapProps) {
     const { theme } = useTheme();
+    const { t } = useTranslation();
 
     const mapRef = useRef<google.maps.Map | null>(null);
     const [infoWindowStack, setInfoWindowStack] = useState<InfoWindowState | null>(null);
@@ -190,7 +192,7 @@ function EventMap({ events, selectedEvent, onMarkerClick, onInfoWindowClose }: E
                 >
                     <div className="info-window-multi">
                         <div className="info-header-multi">
-                            <h3>이 위치에 {groupEvents.length}개의 이벤트</h3>
+                            <h3>{t('eventMap.groupModal.title', { count: groupEvents.length })}</h3>
                             <p className="info-location-name">{groupEvents[0].location}</p>
                         </div>
 
@@ -306,7 +308,7 @@ function EventMap({ events, selectedEvent, onMarkerClick, onInfoWindowClose }: E
                             rel="noopener noreferrer"
                             className="info-link"
                         >
-                            🔗 자세히 보기 →
+                            🔗 {t('eventMap.infoWindow.link')} →
                         </a>
                     )}
                 </div>

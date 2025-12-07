@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { Event } from '../types/event';
 import './EventList.css';
 
@@ -18,22 +19,24 @@ function EventList({
     onEventDelete,
     selectedEventId,
 }: EventListProps) {
+    const { t } = useTranslation();
+
     if (loading) {
-        return <div className="event-list-loading">로딩 중...</div>;
+        return <div className="event-list-loading">{t('eventList.loading')}</div>;
     }
 
     if (events.length === 0) {
         return (
             <div className="event-list-empty">
-                <p>선택한 날짜에 등록된 이벤트가 없습니다.</p>
-                <p>새 이벤트를 등록해보세요! 🎉</p>
+                <p>{t('eventList.empty.line1')}</p>
+                <p>{t('eventList.empty.line2')}</p>
             </div>
         );
     }
 
     return (
         <div className="event-list">
-            <h3>이벤트 목록 ({events.length})</h3>
+            <h3>{t('eventList.title')} ({events.length})</h3>
             <div className="event-items">
                 {events.map((event) => (
                     <div
@@ -50,7 +53,7 @@ function EventList({
                                         e.stopPropagation();
                                         onEventEdit(event);
                                     }}
-                                    title="수정"
+                                    title={t('buttons.edit')}
                                 >
                                     ✏️
                                 </button>
@@ -60,7 +63,7 @@ function EventList({
                                         e.stopPropagation();
                                         if (event.id) onEventDelete(event.id);
                                     }}
-                                    title="삭제"
+                                    title={t('buttons.delete')}
                                 >
                                     🗑️
                                 </button>
@@ -70,12 +73,12 @@ function EventList({
                         <p className="event-item-location">📍 {event.location}</p>
                         <p className="event-item-time">
                             🕐{' '}
-                            {event.door_time && `개장 ${event.door_time}`}
+                            {event.door_time && `${t('eventList.timePrefix.door')} ${event.door_time}`}
                             {event.door_time && event.start_time && ' / '}
-                            {event.start_time && `개연 ${event.start_time}`}
+                            {event.start_time && `${t('eventList.timePrefix.start')} ${event.start_time}`}
                             {(event.door_time || event.start_time) && event.end_time && ' / '}
-                            {event.end_time && `종연 ${event.end_time}`}
-                            {!event.door_time && !event.start_time && !event.end_time && '시간 미정'}
+                            {event.end_time && `${t('eventList.timePrefix.end')} ${event.end_time}`}
+                            {!event.door_time && !event.start_time && !event.end_time && t('eventList.timePrefix.tbd')}
                         </p>
                         {event.performers && (
                             <p className="event-item-performers">🎤 {event.performers}</p>

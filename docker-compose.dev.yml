@@ -2,6 +2,30 @@ version: '3.8'
 
 services:
   # ============================================
+  # OpenSSH Server - VSCode Remote 개발 환경 (선택사항)
+  # Ubuntu 22.04 기반 (glibc 지원, VSCode Remote SSH 호환)
+  # 사용: docker-compose --profile ssh up -d
+  # ============================================
+  openssh-server:
+    build:
+      context: ./openssh
+      dockerfile: Dockerfile
+    container_name: eventer-map-ssh
+    profiles: ["ssh"]  # 선택적으로만 실행
+    ports:
+      - "${SSH_PORT:-7774}:22"
+    environment:
+      - USER_PASSWORD=${USER_PASSWORD:-changeme}
+      - PUBLIC_KEY=${PUBLIC_KEY:-}
+      - SSH_PORT=${SSH_PORT:-7774}  # 로그 출력용
+    volumes:
+      # 프로젝트 전체를 developer 홈 디렉토리에 마운트
+      - ./:/home/developer/eventer-map:rw
+    restart: unless-stopped
+    networks:
+      - eventer-network
+
+  # ============================================
   # Backend - FastAPI (개발 모드)
   # ============================================
   backend:

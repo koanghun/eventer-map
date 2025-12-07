@@ -1,4 +1,5 @@
 import { useState, useRef, type ChangeEvent, type KeyboardEvent } from 'react';
+import { useTranslation } from 'react-i18next';
 import { performerApi, DuplicateCheckResponse } from '../services/api';
 import { Performer } from '../types/event';
 import DuplicateCheckModal from './DuplicateCheckModal';
@@ -13,6 +14,7 @@ interface MultiSelectProps {
 }
 
 function MultiSelect({ options, selected, onChange, placeholder }: MultiSelectProps) {
+    const { t } = useTranslation();
     const [inputValue, setInputValue] = useState('');
     const [isOpen, setIsOpen] = useState(false);
     const [duplicateCheck, setDuplicateCheck] = useState<DuplicateCheckResponse | null>(null);
@@ -120,7 +122,7 @@ function MultiSelect({ options, selected, onChange, placeholder }: MultiSelectPr
             inputRef.current?.focus();
         } catch (error) {
             console.error('Failed to create performer:', error);
-            alert('출연자 등록에 실패했습니다.');
+            alert(t('multiSelect.alerts.performerCreateFailed'));
         }
     };
 

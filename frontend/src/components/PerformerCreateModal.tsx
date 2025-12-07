@@ -1,4 +1,5 @@
 import { useState, type KeyboardEvent, type FormEvent, type MouseEvent } from 'react';
+import { useTranslation } from 'react-i18next';
 import ReactDOM from 'react-dom';
 import './PerformerCreateModal.css';
 
@@ -13,6 +14,7 @@ function PerformerCreateModal({
     onConfirm,
     onCancel,
 }: PerformerCreateModalProps) {
+    const { t } = useTranslation();
     const [canonicalName, setCanonicalName] = useState(initialName);
     const [aliasInput, setAliasInput] = useState('');
     const [aliases, setAliases] = useState<string[]>([]);
@@ -52,7 +54,7 @@ function PerformerCreateModal({
         <div className="performer-modal-overlay" onClick={handleOverlayClick}>
             <div className="performer-modal-content" onClick={(e) => e.stopPropagation()}>
                 <div className="performer-modal-header">
-                    <h3>✨ 새 출연자 등록</h3>
+                    <h3>✨ {t('performerModal.title')}</h3>
                     <button className="btn-close" onClick={onCancel}>✕</button>
                 </div>
 
@@ -60,22 +62,22 @@ function PerformerCreateModal({
                     <div className="performer-modal-body">
                         <div className="form-group">
                             <label htmlFor="canonical-name">
-                                공식 표기 이름 <span className="required">*</span>
+                                {t('performerModal.labels.name')} <span className="required">*</span>
                             </label>
                             <input
                                 id="canonical-name"
                                 type="text"
                                 value={canonicalName}
                                 onChange={(e) => setCanonicalName(e.target.value)}
-                                placeholder="예: Perfume"
+                                placeholder={t('performerModal.placeholders.name')}
                                 required
                                 autoFocus
                             />
-                            <small>출연자의 공식 표기명을 입력하세요</small>
+                            <small>{t('performerModal.hints.name')}</small>
                         </div>
 
                         <div className="form-group">
-                            <label htmlFor="aliases">별칭 (선택)</label>
+                            <label htmlFor="aliases">{t('performerModal.labels.aliases')}</label>
                             <div className="alias-input-group">
                                 <input
                                     id="aliases"
@@ -83,22 +85,22 @@ function PerformerCreateModal({
                                     value={aliasInput}
                                     onChange={(e) => setAliasInput(e.target.value)}
                                     onKeyDown={handleAliasKeyDown}
-                                    placeholder="예: パフューム, ぱふゅーむ, 전자음악"
+                                    placeholder={t('performerModal.placeholders.aliases')}
                                 />
                                 <button
                                     type="button"
                                     className="btn-add-alias"
                                     onClick={handleAddAlias}
                                 >
-                                    추가
+                                    {t('performerModal.buttons.add')}
                                 </button>
                             </div>
-                            <small>다른 표기, 검색 키워드 등을 추가하세요 (엔터로 추가 가능)</small>
+                            <small>{t('performerModal.hints.aliases')}</small>
                         </div>
 
                         {aliases.length > 0 && (
                             <div className="aliases-list">
-                                <label>등록된 별칭:</label>
+                                <label>{t('performerModal.labels.aliasesRegistered')}</label>
                                 <div className="alias-tags">
                                     {aliases.map((alias, index) => (
                                         <div key={index} className="alias-tag">
@@ -118,10 +120,10 @@ function PerformerCreateModal({
 
                     <div className="performer-modal-footer">
                         <button type="button" className="btn-cancel" onClick={onCancel}>
-                            취소
+                            {t('performerModal.buttons.cancel')}
                         </button>
                         <button type="submit" className="btn-confirm">
-                            등록
+                            {t('performerModal.buttons.register')}
                         </button>
                     </div>
                 </form>

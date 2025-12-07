@@ -1,0 +1,139 @@
+{
+    "header": {
+        "title": "Event Map",
+        "subtitle": "日付を選択してイベントを確認してください",
+        "themeToggle": "テーマ変更"
+    },
+    "language": {
+        "ko": "韓国語",
+        "ja": "日本語"
+    },
+    "datePicker": {
+        "label": "日付選択"
+    },
+    "performerFilter": {
+        "label": "出演者検索",
+        "placeholder": "出演者名または別名を入力",
+        "clearFilter": "フィルター解除"
+    },
+    "buttons": {
+        "newEvent": "新規イベント登録",
+        "edit": "編集",
+        "delete": "削除",
+        "cancel": "キャンセル",
+        "submit": "登録",
+        "update": "更新",
+        "search": "検索",
+        "close": "閉じる",
+        "proceed": "このまま登録する"
+    },
+    "eventList": {
+        "title": "イベント一覧",
+        "loading": "読み込み中...",
+        "empty": {
+            "line1": "選択した日付に登録されたイベントがありません。",
+            "line2": "新しいイベントを登録してみましょう！ 🎉"
+        },
+        "timePrefix": {
+            "door": "開場",
+            "start": "開演",
+            "end": "終演",
+            "tbd": "時間未定"
+        }
+    },
+    "eventForm": {
+        "titleNew": "新規イベント登録",
+        "titleEdit": "イベント編集",
+        "labels": {
+            "title": "タイトル",
+            "description": "説明",
+            "date": "日付",
+            "doorTime": "開場時間",
+            "startTime": "開演時間",
+            "endTime": "終演時間",
+            "location": "会場検索",
+            "address": "住所",
+            "performers": "出演者",
+            "relatedLink": "関連リンク"
+        },
+        "placeholders": {
+            "title": "イベントタイトル",
+            "description": "イベント説明",
+            "location": "例：横浜アリーナ",
+            "address": "自動入力されます",
+            "performers": "出演者を選択または直接入力",
+            "relatedLink": "https://example.com"
+        },
+        "hints": {
+            "location": "会場名を入力して検索すると、住所と座標が自動的に入力されます"
+        },
+        "buttons": {
+            "searchPlace": "会場検索",
+            "submitting": "処理中..."
+        },
+        "alerts": {
+            "placeNameRequired": "会場名を入力してください。",
+            "placeFoundDb": "会場情報が自動的に入力されました！（DBキャッシュ）",
+            "placeFoundGoogle": "会場情報が自動的に入力されました！（Google API）",
+            "placeNotFound": "会場が見つかりませんでした。別の検索語をお試しください。",
+            "requiredFields": "必須項目をすべて入力してください。",
+            "duplicateCheckError": "重複確認中にエラーが発生しました。しばらくしてから再度お試しください。"
+        }
+    },
+    "eventMap": {
+        "groupModal": {
+            "title": "この場所に{{count}}個のイベント"
+        },
+        "infoWindow": {
+            "date": "日付",
+            "time": "時間",
+            "performers": "出演者",
+            "link": "詳細情報"
+        }
+    },
+    "duplicateModal": {
+        "title": "重複イベント発見",
+        "message": "<strong>{{count}}個</strong>の類似イベントが見つかりました。",
+        "labels": {
+            "date": "日付",
+            "location": "会場",
+            "performers": "出演者"
+        },
+        "buttons": {
+            "editExisting": "このイベントを編集する"
+        }
+    },
+    "performerModal": {
+        "title": "新規出演者登録",
+        "labels": {
+            "name": "公式表記名",
+            "aliases": "別名（オプション）",
+            "aliasesRegistered": "登録された別名"
+        },
+        "placeholders": {
+            "name": "例：Perfume",
+            "aliases": "例：パフューム、ぱふゅーむ、電子音楽"
+        },
+        "hints": {
+            "name": "出演者の公式表記名を入力してください",
+            "aliases": "他の表記、検索キーワードなどを追加してください（Enterで追加可能）"
+        },
+        "buttons": {
+            "add": "追加",
+            "cancel": "キャンセル",
+            "register": "登録"
+        }
+    },
+    "multiSelect": {
+        "alerts": {
+            "performerCreateFailed": "出演者の登録に失敗しました。"
+        }
+    },
+    "hooks": {
+        "eventForm": {
+            "saveFailed": "イベントの保存に失敗しました。",
+            "deleteConfirm": "イベントを削除しますか？",
+            "deleteFailed": "イベントの削除に失敗しました。"
+        }
+    }
+}

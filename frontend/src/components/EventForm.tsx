@@ -1,4 +1,5 @@
 import { useState, useEffect, type ChangeEvent, type FormEvent } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Event, EventFormData, Performer, Place } from '../types/event';
 import { placeApi, performerApi, eventApi } from '../services/api';
 import './EventForm.css';
@@ -16,6 +17,7 @@ interface EventFormProps {
 }
 
 function EventForm({ event, onSubmit, onClose, onSwitchToEdit }: EventFormProps) {
+    const { t } = useTranslation();
     // 임시 저장 키
     const DRAFT_KEY = 'eventFormDraft';
 
@@ -150,7 +152,7 @@ function EventForm({ event, onSubmit, onClose, onSwitchToEdit }: EventFormProps)
 
     const handlePlaceSearch = async () => {
         if (!formData.location) {
-            alert('장소명을 입력해주세요.');
+            alert(t('eventForm.alerts.placeNameRequired'));
             return;
         }
 
@@ -165,7 +167,7 @@ function EventForm({ event, onSubmit, onClose, onSwitchToEdit }: EventFormProps)
                 latitude: place.latitude,
                 longitude: place.longitude,
             }));
-            alert('장소 정보가 자동으로 입력되었습니다! (DB 캐시)');
+            alert(t('eventForm.alerts.placeFoundDb'));
 
         } catch (error) {
             // 2. DB에 없으면 Google Geocoding API 호출 (프론트엔드에서 수행)
@@ -203,9 +205,9 @@ function EventForm({ event, onSubmit, onClose, onSwitchToEdit }: EventFormProps)
                         console.error('Failed to cache place:', saveError);
                     }
 
-                    alert('장소 정보가 자동으로 입력되었습니다! (Google API)');
+                    alert(t('eventForm.alerts.placeFoundGoogle'));
                 } else {
-                    alert('장소를 찾을 수 없습니다. 다른 검색어를 시도해주세요.');
+                    alert(t('eventForm.alerts.placeNotFound'));
                 }
             });
         }
@@ -216,7 +218,7 @@ function EventForm({ event, onSubmit, onClose, onSwitchToEdit }: EventFormProps)
         if (isSubmitting) return; // 중복 제출 방지
 
         if (!formData.title || !formData.event_date || !formData.location) {
-            alert('필수 항목을 모두 입력해주세요.');
+            alert(t('eventForm.alerts.requiredFields'));
             return;
         }
 
@@ -239,7 +241,7 @@ function EventForm({ event, onSubmit, onClose, onSwitchToEdit }: EventFormProps)
             }
         } catch (error) {
             console.error('Duplicate check failed:', error);
-            alert('중복 확인 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.');
+            alert(t('eventForm.alerts.duplicateCheckError'));
             setIsSubmitting(false);
             return; // 중복 체크 실패 시 제출 중단
         }
@@ -276,7 +278,7 @@ function EventForm({ event, onSubmit, onClose, onSwitchToEdit }: EventFormProps)
             <div className="modal-overlay" onClick={onClose}>
                 <div className="modal-content" onClick={(e) => e.stopPropagation()}>
                     <div className="modal-header">
-                        <h2>{event ? '이벤트 수정' : '새 이벤트 등록'}</h2>
+                        <h2>{event ? t('eventForm.titleEdit') : t('eventForm.titleNew')}</h2>
                         <button className="btn-close" onClick={onClose}>
                             ✕
                         </button>
@@ -284,7 +286,7 @@ function EventForm({ event, onSubmit, onClose, onSwitchToEdit }: EventFormProps)
 
                     <form onSubmit={handleSubmit} className="event-form">
                         <div className="form-group">
-                            <label htmlFor="title">제목 *</label>
+                            <label htmlFor="title">{t('eventForm.labels.title')} *</label>
                             <input
                                 type="text"
                                 id="title"
@@ -292,26 +294,26 @@ function EventForm({ event, onSubmit, onClose, onSwitchToEdit }: EventFormProps)
                                 value={formData.title}
                                 onChange={handleChange}
                                 required
-                                placeholder="이벤트 제목"
+                                placeholder={t('eventForm.placeholders.title')}
                             />
                         </div>
 
                         <div className="form-group">
-                            <label htmlFor="description">설명</label>
+                            <label htmlFor="description">{t('eventForm.labels.description')}</label>
                             <textarea
                                 id="description"
                                 name="description"
                                 value={formData.description}
                                 onChange={handleChange}
                                 rows={3}
-                                placeholder="이벤트 설명"
+                                placeholder={t('eventForm.placeholders.description')}
                             />
                         </div>
 
                         <div className="form-group">
-                            <label htmlFor="event_date">날짜 *</label>
+                            <label htmlFor="event_date">{t('eventForm.labels.date')} *</label>
                             <input
-                                type="date"
+                                type="date" // 필드의 표시 언어는 브라우저의 언어 설정
                                 id="event_date"
                                 name="event_date"
                                 value={formData.event_date}
@@ -322,7 +324,7 @@ function EventForm({ event, onSubmit, onClose, onSwitchToEdit }: EventFormProps)
 
                         <div className="form-row">
                             <div className="form-group">
-                                <label htmlFor="door_time">개장 시간</label>
+                                <label htmlFor="door_time">{t('eventForm.labels.doorTime')}</label>
                                 <input
                                     type="time"
                                     id="door_time"
@@ -334,7 +336,7 @@ function EventForm({ event, onSubmit, onClose, onSwitchToEdit }: EventFormProps)
                             </div>
 
                             <div className="form-group">
-                                <label htmlFor="start_time">개연 시간</label>
+                                <label htmlFor="start_time">{t('eventForm.labels.startTime')}</label>
                                 <input
                                     type="time"
                                     id="start_time"
@@ -346,7 +348,7 @@ function EventForm({ event, onSubmit, onClose, onSwitchToEdit }: EventFormProps)
                             </div>
 
                             <div className="form-group">
-                                <label htmlFor="end_time">종연 시간</label>
+                                <label htmlFor="end_time">{t('eventForm.labels.endTime')}</label>
                                 <input
                                     type="time"
                                     id="end_time"
@@ -359,7 +361,7 @@ function EventForm({ event, onSubmit, onClose, onSwitchToEdit }: EventFormProps)
                         </div>
 
                         <div className="form-group">
-                            <label htmlFor="location">장소 검색 *</label>
+                            <label htmlFor="location">{t('eventForm.labels.location')} *</label>
                             <div className="address-group">
                                 <input
                                     type="text"
@@ -368,7 +370,7 @@ function EventForm({ event, onSubmit, onClose, onSwitchToEdit }: EventFormProps)
                                     value={formData.location}
                                     onChange={handleChange}
                                     required
-                                    placeholder="예: 横浜アリーナ"
+                                    placeholder={t('eventForm.placeholders.location')}
                                     list="places-list"
                                     autoComplete="off"
                                 />
@@ -378,21 +380,21 @@ function EventForm({ event, onSubmit, onClose, onSwitchToEdit }: EventFormProps)
                                     ))}
                                 </datalist>
                                 <button type="button" className="btn-geocode" onClick={handlePlaceSearch}>
-                                    🔍 장소 검색
+                                    🔍 {t('eventForm.buttons.searchPlace')}
                                 </button>
                             </div>
-                            <small>장소명을 입력하고 검색하면 주소와 좌표가 자동으로 입력됩니다</small>
+                            <small>{t('eventForm.hints.location')}</small>
                         </div>
 
                         <div className="form-group">
-                            <label htmlFor="address">주소</label>
+                            <label htmlFor="address">{t('eventForm.labels.address')}</label>
                             <input
                                 type="text"
                                 id="address"
                                 name="address"
                                 value={formData.address}
                                 onChange={handleChange}
-                                placeholder="자동 입력됨"
+                                placeholder={t('eventForm.placeholders.address')}
                                 readOnly
                             />
                         </div>
@@ -402,17 +404,17 @@ function EventForm({ event, onSubmit, onClose, onSwitchToEdit }: EventFormProps)
                         <input type="hidden" name="longitude" value={formData.longitude} />
 
                         <div className="form-group">
-                            <label htmlFor="performers">출연자</label>
+                            <label htmlFor="performers">{t('eventForm.labels.performers')}</label>
                             <MultiSelect
                                 options={savedPerformers}
                                 selected={selectedPerformers}
                                 onChange={handlePerformersChange}
-                                placeholder="출연자 선택 또는 직접 입력"
+                                placeholder={t('eventForm.placeholders.performers')}
                             />
                         </div>
 
                         <div className="form-group">
-                            <label htmlFor="related_link">관련 링크</label>
+                            <label htmlFor="related_link">{t('eventForm.labels.relatedLink')}</label>
                             <input
                                 type="url"
                                 id="related_link"
@@ -425,10 +427,10 @@ function EventForm({ event, onSubmit, onClose, onSwitchToEdit }: EventFormProps)
 
                         <div className="form-actions">
                             <button type="button" className="btn-cancel" onClick={onClose}>
-                                취소
+                                {t('buttons.cancel')}
                             </button>
                             <button type="submit" className="btn-submit" disabled={isSubmitting}>
-                                {isSubmitting ? '처리 중...' : (event ? '수정' : '등록')}
+                                {isSubmitting ? t('eventForm.buttons.submitting') : (event ? t('buttons.update') : t('buttons.submit'))}
                             </button>
                         </div>
                     </form>

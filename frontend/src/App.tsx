@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { LoadScript } from '@react-google-maps/api';
+import { useTranslation } from 'react-i18next';
 import EventMap from './components/EventMap';
 import EventForm from './components/EventForm';
 import EventList from './components/EventList';
@@ -9,6 +10,7 @@ import { format } from 'date-fns';
 import './App.css';
 
 import { ThemeProvider, useTheme } from './context/ThemeContext';
+import { LanguageProvider, useLanguage } from './context/LanguageContext';
 import { useEventData } from './hooks/useEventData';
 import { useEventSelection } from './hooks/useEventSelection';
 import { useEventForm } from './hooks/useEventForm';
@@ -16,8 +18,10 @@ import { useEventForm } from './hooks/useEventForm';
 const GOOGLE_MAPS_LIBRARIES: ("places")[] = ['places'];
 
 function AppContent() {
+    const { t } = useTranslation();
     const [selectedDate, setSelectedDate] = useState<string>(format(new Date(), 'yyyy-MM-dd'));
     const { theme, toggleTheme } = useTheme();
+    const { language, changeLanguage } = useLanguage();
 
     // 3개 훅으로 분리된 책임
     const eventData = useEventData(selectedDate);
@@ -31,12 +35,22 @@ function AppContent() {
             <div className="app">
                 <header className="app-header">
                     <div className="header-content">
-                        <h1>🗺️ Event Map</h1>
-                        <p>날짜를 선택하여 이벤트를 확인하세요</p>
+                        <h1>🗺️ {t('header.title')}</h1>
+                        <p>{t('header.subtitle')}</p>
                     </div>
-                    <button className="theme-toggle" onClick={toggleTheme} title="테마 변경">
-                        {theme === 'dark' ? '☀️' : '🌙'}
-                    </button>
+                    <div className="header-controls">
+                        <select
+                            value={language}
+                            onChange={(e) => changeLanguage(e.target.value as 'ko' | 'ja')}
+                            className="language-selector"
+                        >
+                            <option value="ja">{t('language.ja')}</option>
+                            <option value="ko">{t('language.ko')}</option>
+                        </select>
+                        <button className="theme-toggle" onClick={toggleTheme} title={t('header.themeToggle')}>
+                            {theme === 'dark' ? '☀️' : '🌙'}
+                        </button>
+                    </div>
                 </header>
 
                 <div className="app-container">
@@ -46,7 +60,7 @@ function AppContent() {
                         <PerformerFilter onPerformerSelect={eventData.setSelectedPerformer} />
 
                         <button className="btn-new-event" onClick={eventForm.openNew}>
-                            ➕ 새 이벤트 등록
+                            ➕ {t('buttons.newEvent')}
                         </button>
 
                         <EventList
@@ -85,7 +99,9 @@ function AppContent() {
 function App() {
     return (
         <ThemeProvider>
-            <AppContent />
+            <LanguageProvider>
+                <AppContent />
+            </LanguageProvider>
         </ThemeProvider>
     );
 }

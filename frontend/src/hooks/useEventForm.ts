@@ -1,4 +1,5 @@
 import { useState, useCallback } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Event } from '../types/event';
 import { eventApi } from '../services/api';
 
@@ -6,6 +7,7 @@ import { eventApi } from '../services/api';
  * 폼 상태 관리 및 CRUD 작업 (등록 책임)
  */
 export function useEventForm(loadEvents: () => Promise<void>) {
+    const { t } = useTranslation();
     const [isFormOpen, setIsFormOpen] = useState(false);
     const [formEvent, setFormEvent] = useState<Event | null>(null);
 
@@ -35,21 +37,21 @@ export function useEventForm(loadEvents: () => Promise<void>) {
             await loadEvents();
         } catch (error) {
             console.error('Failed to save event:', error);
-            alert('이벤트 저장에 실패했습니다.');
+            alert(t('hooks.eventForm.saveFailed'));
         }
-    }, [formEvent, loadEvents, close]);
+    }, [formEvent, loadEvents, close, t]);
 
     const deleteEvent = useCallback(async (id: number) => {
-        if (!window.confirm('이벤트를 삭제하시겠습니까?')) return;
+        if (!window.confirm(t('hooks.eventForm.deleteConfirm'))) return;
 
         try {
             await eventApi.deleteEvent(id);
             await loadEvents();
         } catch (error) {
             console.error('Failed to delete event:', error);
-            alert('이벤트 삭제에 실패했습니다.');
+            alert(t('hooks.eventForm.deleteFailed'));
         }
-    }, [loadEvents]);
+    }, [loadEvents, t]);
 
     const switchToEdit = useCallback((eventId: number, events: Event[]) => {
         const eventToEdit = events.find(e => e.id === eventId);
