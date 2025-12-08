@@ -73,3 +73,15 @@ class Event(Base):
 
     # 관계 설정
     performers_rel = relationship("Performer", secondary=event_performers, back_populates="events")
+
+
+class User(Base):
+    __tablename__ = "users"
+
+    id = Column(Integer, primary_key=True, index=True)
+    email = Column(String, unique=True, index=True, nullable=False)
+    name = Column(String)
+    profile_image = Column(String)
+    google_id = Column(String, unique=True, index=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    last_login = Column(DateTime(timezone=True), onupdate=func.now())

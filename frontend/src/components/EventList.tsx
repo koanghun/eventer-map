@@ -6,8 +6,8 @@ interface EventListProps {
     events: Event[];
     loading: boolean;
     onEventClick: (event: Event) => void;
-    onEventEdit: (event: Event) => void;
-    onEventDelete: (id: number) => void;
+    onEventEdit?: (event: Event) => void;  // Optional for non-authenticated users
+    onEventDelete?: (id: number) => void;  // Optional for non-authenticated users
     selectedEventId?: number;
 }
 
@@ -46,28 +46,34 @@ function EventList({
                     >
                         <div className="event-item-header">
                             <h4>{event.title}</h4>
-                            <div className="event-item-actions">
-                                <button
-                                    className="btn-edit"
-                                    onClick={(e) => {
-                                        e.stopPropagation();
-                                        onEventEdit(event);
-                                    }}
-                                    title={t('buttons.edit')}
-                                >
-                                    ✏️
-                                </button>
-                                <button
-                                    className="btn-delete"
-                                    onClick={(e) => {
-                                        e.stopPropagation();
-                                        if (event.id) onEventDelete(event.id);
-                                    }}
-                                    title={t('buttons.delete')}
-                                >
-                                    🗑️
-                                </button>
-                            </div>
+                            {(onEventEdit || onEventDelete) && (
+                                <div className="event-item-actions">
+                                    {onEventEdit && (
+                                        <button
+                                            className="btn-edit"
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                onEventEdit(event);
+                                            }}
+                                            title={t('buttons.edit')}
+                                        >
+                                            ✏️
+                                        </button>
+                                    )}
+                                    {onEventDelete && (
+                                        <button
+                                            className="btn-delete"
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                if (event.id) onEventDelete(event.id);
+                                            }}
+                                            title={t('buttons.delete')}
+                                        >
+                                            🗑️
+                                        </button>
+                                    )}
+                                </div>
+                            )}
                         </div>
 
                         <p className="event-item-location">📍 {event.location}</p>

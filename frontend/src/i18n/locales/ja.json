@@ -16,6 +16,14 @@
         "placeholder": "出演者名または別名を入力",
         "clearFilter": "フィルター解除"
     },
+    "auth": {
+        "loginWithGoogle": "Googleでログイン",
+        "logout": "ログアウト",
+        "loginRequired": "ログインが必要です",
+        "loginToCreate": "イベントを登録するにはログインしてください",
+        "processingLogin": "ログイン処理中",
+        "loginFailed": "ログインに失敗しました"
+    },
     "buttons": {
         "newEvent": "新規イベント登録",
         "edit": "編集",

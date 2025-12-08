@@ -6,12 +6,17 @@ import models
 import schemas
 from utils.normalization import normalize_text
 from utils.event_duplicate import calculate_event_similarity, find_duplicate_events
+from utils.auth import require_auth
 
 router = APIRouter(prefix="/events", tags=["events"])
 
 
 @router.post("/", response_model=schemas.EventResponse, status_code=status.HTTP_201_CREATED)
-def create_event(event: schemas.EventCreate, db: Session = Depends(get_db)):
+def create_event(
+    event: schemas.EventCreate,
+    db: Session = Depends(get_db),
+    current_user: models.User = require_auth
+):
     """이벤트 생성"""
     # 1. 이벤트 생성
     db_event = models.Event(**event.model_dump())
@@ -71,7 +76,12 @@ def get_event(event_id: int, db: Session = Depends(get_db)):
 
 
 @router.put("/{event_id}", response_model=schemas.EventResponse)
-def update_event(event_id: int, event_update: schemas.EventUpdate, db: Session = Depends(get_db)):
+def update_event(
+    event_id: int,
+    event_update: schemas.EventUpdate,
+    db: Session = Depends(get_db),
+    current_user: models.User = require_auth
+):
     """이벤트 수정"""
     db_event = db.query(models.Event).filter(models.Event.id == event_id).first()
     if not db_event:
@@ -115,7 +125,11 @@ def update_event(event_id: int, event_update: schemas.EventUpdate, db: Session =
 
 
 @router.delete("/{event_id}", status_code=status.HTTP_204_NO_CONTENT)
-def delete_event(event_id: int, db: Session = Depends(get_db)):
+def delete_event(
+    event_id: int,
+    db: Session = Depends(get_db),
+    current_user: models.User = require_auth
+):
     """이벤트 삭제"""
     db_event = db.query(models.Event).filter(models.Event.id == event_id).first()
     if not db_event:

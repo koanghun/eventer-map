@@ -85,3 +85,28 @@ class PlaceResponse(PlaceBase):
 
     class Config:
         from_attributes = True
+
+
+# Authentication schemas
+class UserBase(BaseModel):
+    email: str
+    name: Optional[str] = None
+    profile_image: Optional[str] = None
+
+
+class UserCreate(UserBase):
+    google_id: str
+
+
+class UserResponse(UserBase):
+    id: int
+    created_at: datetime
+    
+    class Config:
+        from_attributes = True
+
+
+class Token(BaseModel):
+    access_token: str
+    token_type: str = "bearer"
+    user: UserResponse

@@ -11,6 +11,10 @@ import './App.css';
 
 import { ThemeProvider, useTheme } from './context/ThemeContext';
 import { LanguageProvider, useLanguage } from './context/LanguageContext';
+import { AuthProvider, useAuth } from './context/AuthContext';
+import LoginButton from './components/LoginButton';
+import UserProfile from './components/UserProfile';
+import AuthCallback from './components/AuthCallback';
 import { useEventData } from './hooks/useEventData';
 import { useEventSelection } from './hooks/useEventSelection';
 import { useEventForm } from './hooks/useEventForm';
@@ -22,6 +26,7 @@ function AppContent() {
     const [selectedDate, setSelectedDate] = useState<string>(format(new Date(), 'yyyy-MM-dd'));
     const { theme, toggleTheme } = useTheme();
     const { language, changeLanguage } = useLanguage();
+    const { isAuthenticated } = useAuth();
 
     // 3개 훅으로 분리된 책임
     const eventData = useEventData(selectedDate);
@@ -29,6 +34,18 @@ function AppContent() {
     const eventForm = useEventForm(eventData.loadEvents);
 
     const apiKey = process.env.REACT_APP_GOOGLE_MAPS_API_KEY || '';
+    const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:8000';
+
+    const handleLogin = () => {
+        window.location.href = `${API_BASE_URL}/api/auth/google/login`;
+    };
+
+    // Check if we're on the auth callback path
+    const isAuthCallback = window.location.pathname === '/auth/callback';
+
+    if (isAuthCallback) {
+        return <AuthCallback />;
+    }
 
     return (
         <LoadScript googleMapsApiKey={apiKey} libraries={GOOGLE_MAPS_LIBRARIES}>
@@ -50,6 +67,11 @@ function AppContent() {
                         <button className="theme-toggle" onClick={toggleTheme} title={t('header.themeToggle')}>
                             {theme === 'dark' ? '☀️' : '🌙'}
                         </button>
+                        {isAuthenticated ? (
+                            <UserProfile />
+                        ) : (
+                            <LoginButton onClick={handleLogin} />
+                        )}
                     </div>
                 </header>
 
@@ -59,16 +81,18 @@ function AppContent() {
 
                         <PerformerFilter onPerformerSelect={eventData.setSelectedPerformer} />
 
-                        <button className="btn-new-event" onClick={eventForm.openNew}>
-                            ➕ {t('buttons.newEvent')}
-                        </button>
+                        {isAuthenticated && (
+                            <button className="btn-new-event" onClick={eventForm.openNew}>
+                                ➕ {t('buttons.newEvent')}
+                            </button>
+                        )}
 
                         <EventList
                             events={eventData.filteredEvents}
                             loading={eventData.loading}
                             onEventClick={eventSelection.selectEvent}
-                            onEventEdit={eventForm.openEdit}
-                            onEventDelete={eventForm.deleteEvent}
+                            onEventEdit={isAuthenticated ? eventForm.openEdit : undefined}
+                            onEventDelete={isAuthenticated ? eventForm.deleteEvent : undefined}
                             selectedEventId={eventSelection.selectedEvent?.id}
                         />
                     </aside>
@@ -100,7 +124,9 @@ function App() {
     return (
         <ThemeProvider>
             <LanguageProvider>
-                <AppContent />
+                <AuthProvider>
+                    <AppContent />
+                </AuthProvider>
             </LanguageProvider>
         </ThemeProvider>
     );

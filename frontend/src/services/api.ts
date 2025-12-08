@@ -12,6 +12,27 @@ const api = axios.create({
     },
 });
 
+// Axios interceptors - 토큰 자동 추가
+api.interceptors.request.use((config) => {
+    const token = localStorage.getItem('auth_token');
+    if (token) {
+        config.headers.Authorization = `Bearer ${token}`;
+    }
+    return config;
+});
+
+// 401 에러 시 자동 로그아웃
+api.interceptors.response.use(
+    (response) => response,
+    (error) => {
+        if (error.response?.status === 401) {
+            localStorage.removeItem('auth_token');
+            window.location.href = '/';
+        }
+        return Promise.reject(error);
+    }
+);
+
 export const eventApi = {
     // 모든 이벤트 조회
     getAllEvents: async (): Promise<Event[]> => {

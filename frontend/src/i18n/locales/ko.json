@@ -16,6 +16,14 @@
         "placeholder": "출연자명 또는 별칭 입력",
         "clearFilter": "필터 해제"
     },
+    "auth": {
+        "loginWithGoogle": "Google로 로그인",
+        "logout": "로그아웃",
+        "loginRequired": "로그인이 필요합니다",
+        "loginToCreate": "이벤트를 등록하려면 로그인하세요",
+        "processingLogin": "로그인 처리 중",
+        "loginFailed": "로그인에 실패했습니다"
+    },
     "buttons": {
         "newEvent": "새 이벤트 등록",
         "edit": "수정",
