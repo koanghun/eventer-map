@@ -34,10 +34,11 @@ function AppContent() {
     const eventForm = useEventForm(eventData.loadEvents);
 
     const apiKey = process.env.REACT_APP_GOOGLE_MAPS_API_KEY || '';
-    const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:8000';
+    // const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:8000';
 
     const handleLogin = () => {
-        window.location.href = `${API_BASE_URL}/api/auth/google/login`;
+        // 프록시 사용을 위해 상대 경로 사용
+        window.location.href = `/api/auth/google/login`;
     };
 
     // Check if we're on the auth callback path

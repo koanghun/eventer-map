@@ -2,7 +2,7 @@ import { createContext, useContext, useState, useEffect, ReactNode } from 'react
 import { User } from '../types/auth';
 import axios from 'axios';
 
-const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:8000';
+// const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:8000';
 
 interface AuthContextType {
     user: User | null;
@@ -32,7 +32,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     const fetchUser = async () => {
         try {
-            const response = await axios.get(`${API_BASE_URL}/api/auth/me`, {
+            // 프록시 사용을 위해 상대 경로 사용
+            const response = await axios.get(`/api/auth/me`, {
                 headers: { Authorization: `Bearer ${token}` }
             });
             setUser(response.data);

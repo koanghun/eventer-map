@@ -1,7 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, status, Request
 from fastapi.responses import RedirectResponse
 from sqlalchemy.orm import Session
-import httpx
 import models
 import schemas
 from database import get_db
@@ -11,105 +10,154 @@ import os
 router = APIRouter(prefix="/api/auth", tags=["auth"])
 
 # OAuth 설정
+from google_auth_oauthlib.flow import Flow
+from google.oauth2 import id_token
+from google.auth.transport import requests as google_requests
+import json
+
+# OAuth 설정
 GOOGLE_CLIENT_ID = os.getenv('GOOGLE_CLIENT_ID')
 GOOGLE_CLIENT_SECRET = os.getenv('GOOGLE_CLIENT_SECRET')
 GOOGLE_REDIRECT_URI = os.getenv('GOOGLE_REDIRECT_URI', 'http://localhost:8000/api/auth/google/callback')
 FRONTEND_URL = os.getenv('FRONTEND_URL', 'http://localhost:3000')
 
-GOOGLE_AUTH_URL = "https://accounts.google.com/o/oauth2/v2/auth"
-GOOGLE_TOKEN_URL = "https://oauth2.googleapis.com/token"
-GOOGLE_USERINFO_URL = "https://www.googleapis.com/oauth2/v2/userinfo"
+# Google OAuth 설정 딕셔너리 생성 (client_secrets.json 파일 대체)
+client_config = {
+    "web": {
+        "client_id": GOOGLE_CLIENT_ID,
+        "client_secret": GOOGLE_CLIENT_SECRET,
+        "auth_uri": "https://accounts.google.com/o/oauth2/auth",
+        "token_uri": "https://oauth2.googleapis.com/token",
+        "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
+        "redirect_uris": [GOOGLE_REDIRECT_URI]
+    }
+}
 
+# 개발 환경에서 HTTPS 요구사항 비활성화 (프로덕션에서는 제거해야 함)
+os.environ['OAUTHLIB_INSECURE_TRANSPORT'] = '1'
 
 @router.get("/google/login")
 async def google_login():
     """구글 로그인 페이지로 리다이렉트"""
-    params = {
-        "client_id": GOOGLE_CLIENT_ID,
-        "redirect_uri": GOOGLE_REDIRECT_URI,
-        "response_type": "code",
-        "scope": "openid email profile",
-        "access_type": "offline",
-        "prompt": "consent"
-    }
+    flow = Flow.from_client_config(
+        client_config=client_config,
+        scopes=[
+            "https://www.googleapis.com/auth/userinfo.email",
+            "https://www.googleapis.com/auth/userinfo.profile",
+            "openid"
+        ],
+        redirect_uri=GOOGLE_REDIRECT_URI
+    )
     
-    auth_url = f"{GOOGLE_AUTH_URL}?{'&'.join([f'{k}={v}' for k, v in params.items()])}"
-    return RedirectResponse(url=auth_url)
+    authorization_url, state = flow.authorization_url(
+        access_type='offline',
+        include_granted_scopes='true'
+    )
+    
+    # state 값을 쿠키에 저장 (CSRF 방지)
+    response = RedirectResponse(url=authorization_url)
+    # 개발 환경 호환성을 위해 samesite='lax', secure=False 명시
+    # path="/"를 설정하여 모든 경로에서 쿠키 접근 가능하도록 함
+    response.set_cookie(
+        key="oauth_state", 
+        value=state, 
+        httponly=True, 
+        samesite="lax", 
+        secure=False, 
+        path="/"
+    )
+    return response
 
 
 @router.get("/google/callback")
-async def google_callback(code: str, db: Session = Depends(get_db)):
+async def google_callback(request: Request, code: str, state: str, db: Session = Depends(get_db)):
     """구글 OAuth 콜백 처리"""
     try:
-        # 1. 인증 코드로 액세스 토큰 교환
-        async with httpx.AsyncClient() as client:
-            token_response = await client.post(
-                GOOGLE_TOKEN_URL,
-                data={
-                    "code": code,
-                    "client_id": GOOGLE_CLIENT_ID,
-                    "client_secret": GOOGLE_CLIENT_SECRET,
-                    "redirect_uri": GOOGLE_REDIRECT_URI,
-                    "grant_type": "authorization_code"
-                }
-            )
-            
-            if token_response.status_code != 200:
-                raise HTTPException(
-                    status_code=status.HTTP_400_BAD_REQUEST,
-                    detail="Failed to get access token from Google"
-                )
-            
-            token_data = token_response.json()
-            access_token = token_data.get("access_token")
-            
-            # 2. 액세스 토큰으로 사용자 정보 가져오기
-            userinfo_response = await client.get(
-                GOOGLE_USERINFO_URL,
-                headers={"Authorization": f"Bearer {access_token}"}
-            )
-            
-            if userinfo_response.status_code != 200:
-                raise HTTPException(
-                    status_code=status.HTTP_400_BAD_REQUEST,
-                    detail="Failed to get user info from Google"
-                )
-            
-            user_info = userinfo_response.json()
+        # 1. State 검증 (CSRF 방지)
+        stored_state = request.cookies.get("oauth_state")
         
-        # 3. 사용자 찾기 또는 생성
+        # 디버깅을 위한 로그
+        print(f"Received State from Google: {state}")
+        print(f"Stored State in Cookie: {stored_state}")
+        print(f"All Cookies: {request.cookies}")
+
+        if not stored_state or stored_state != state:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Invalid state parameter"
+            )
+
+        # 2. Flow 객체 생성
+        flow = Flow.from_client_config(
+            client_config=client_config,
+            scopes=[
+                "https://www.googleapis.com/auth/userinfo.email",
+                "https://www.googleapis.com/auth/userinfo.profile",
+                "openid"
+            ],
+            redirect_uri=GOOGLE_REDIRECT_URI,
+            state=state
+        )
+        
+        # 3. 인증 코드로 토큰 교환
+        # fetch_token 내부에서 state 검증도 수행할 수 있으나, 
+        # 위에서 수동으로 검증했으므로 안전함
+        flow.fetch_token(code=code)
+        credentials = flow.credentials
+        
+        # 4. ID 토큰 검증 및 사용자 정보 추출
+        id_info = id_token.verify_oauth2_token(
+            credentials.id_token,
+            google_requests.Request(),
+            GOOGLE_CLIENT_ID
+        )
+        
+        # 5. 사용자 찾기 또는 생성
         user = db.query(models.User).filter(
-            models.User.google_id == user_info['id']
+            models.User.google_id == id_info['sub']
         ).first()
         
         if not user:
             user = models.User(
-                email=user_info['email'],
-                name=user_info.get('name'),
-                profile_image=user_info.get('picture'),
-                google_id=user_info['id']
+                email=id_info['email'],
+                name=id_info.get('name'),
+                profile_image=id_info.get('picture'),
+                google_id=id_info['sub']
             )
             db.add(user)
             db.commit()
             db.refresh(user)
         else:
             # 기존 사용자 정보 업데이트
-            user.name = user_info.get('name')
-            user.profile_image = user_info.get('picture')
+            user.name = id_info.get('name')
+            user.profile_image = id_info.get('picture')
             db.commit()
         
-        # 4. JWT 토큰 생성
+        # 6. 자체 JWT 토큰 생성
         jwt_token = create_access_token({"sub": str(user.id)})
         
-        # 5. 프론트엔드로 리다이렉트 (토큰 전달)
-        return RedirectResponse(
+        # 7. 프론트엔드로 리다이렉트 (state 쿠키 삭제)
+        response = RedirectResponse(
             url=f"{FRONTEND_URL}/auth/callback?token={jwt_token}"
         )
+        response.delete_cookie(key="oauth_state")
+        return response
     
+    except ValueError as e:
+        # 토큰 검증 실패 (Invalid token)
+        print(f"Token verification failed: {str(e)}")
+        return RedirectResponse(
+            url=f"{FRONTEND_URL}/auth/callback?error=invalid_token"
+        )
+    except HTTPException as e:
+        print(f"OAuth callback error: {e.detail}")
+        return RedirectResponse(
+            url=f"{FRONTEND_URL}/auth/callback?error=auth_failed"
+        )
     except Exception as e:
         print(f"OAuth callback error: {str(e)}")
         return RedirectResponse(
-            url=f"{FRONTEND_URL}?error=auth_failed"
+            url=f"{FRONTEND_URL}/auth/callback?error=unknown_error"
         )
 
 
