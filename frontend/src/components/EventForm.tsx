@@ -1,4 +1,4 @@
-import { useState, useEffect, type ChangeEvent, type FormEvent } from 'react';
+import React, { useState, useEffect, type ChangeEvent, type FormEvent } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Event, EventFormData, Performer, Place } from '../types/event';
 import { placeApi, performerApi, eventApi } from '../services/api';
@@ -162,7 +162,7 @@ function EventForm({ event, onSubmit, onClose, onSwitchToEdit }: EventFormProps)
 
             setFormData((prev) => ({
                 ...prev,
-                location: place.canonical_name || place.name || formData.location,
+                location: place.canonical_name || formData.location,
                 address: place.address,
                 latitude: place.latitude,
                 longitude: place.longitude,
@@ -170,46 +170,62 @@ function EventForm({ event, onSubmit, onClose, onSwitchToEdit }: EventFormProps)
             alert(t('eventForm.alerts.placeFoundDb'));
 
         } catch (error) {
-            // 2. DB에 없으면 Google Geocoding API 호출 (프론트엔드에서 수행)
+            // 2. DB에 없으면 Google Geocoding API 호출 (일본어로)
             console.log('DB search failed, trying Google API...');
 
             const geocoder = new window.google.maps.Geocoder();
-            geocoder.geocode({ address: formData.location }, async (results, status) => {
-                if (status === 'OK' && results && results[0]) {
-                    const result = results[0];
-                    const location = result.geometry.location;
-                    const lat = location.lat();
-                    const lng = location.lng();
-                    const address = result.formatted_address || '';
+            geocoder.geocode(
+                {
+                    address: formData.location,
+                    language: 'ja',  // 일본어로 결과 반환
+                    region: 'jp'     // 일본 지역 우선
+                },
+                async (results, status) => {
+                    if (status === 'OK' && results && results[0]) {
+                        const result = results[0];
+                        const location = result.geometry.location;
+                        const lat = location.lat();
+                        const lng = location.lng();
+                        const address = result.formatted_address || '';
 
-                    // 폼 업데이트
-                    setFormData((prev) => ({
-                        ...prev,
-                        address: address,
-                        latitude: lat,
-                        longitude: lng,
-                    }));
+                        // 장소명 추출 (일본어)
+                        const placeName = result.formatted_address || formData.location;
 
-                    // 3. 검색 결과를 백엔드 DB에 저장 (캐싱)
-                    try {
-                        const newPlace = await placeApi.createPlace({
-                            canonical_name: formData.location,
+                        // 폼 업데이트
+                        setFormData((prev) => ({
+                            ...prev,
+                            location: placeName,  // 일본어 장소명
                             address: address,
                             latitude: lat,
-                            longitude: lng
-                        });
-                        console.log('Place cached in DB');
-                        // 저장된 장소 목록 갱신
-                        setSavedPlaces(prev => [...prev, newPlace]);
-                    } catch (saveError) {
-                        console.error('Failed to cache place:', saveError);
-                    }
+                            longitude: lng,
+                        }));
 
-                    alert(t('eventForm.alerts.placeFoundGoogle'));
-                } else {
-                    alert(t('eventForm.alerts.placeNotFound'));
+                        // 3. 검색 결과를 백엔드 DB에 저장 (캐싱)
+                        // canonical_name은 일본어, 사용자 입력을 별칭으로 추가
+                        try {
+                            const userInput = formData.location.trim();
+                            const aliasesToAdd = placeName !== userInput ? [userInput] : [];
+
+                            const newPlace = await placeApi.createPlace({
+                                canonical_name: placeName,  // 일본어 공식명
+                                address: address,
+                                latitude: lat,
+                                longitude: lng,
+                                aliases: aliasesToAdd  // 사용자 입력을 별칭으로
+                            });
+                            console.log('Place cached in DB with user input as alias');
+                            // 저장된 장소 목록 갱신
+                            setSavedPlaces(prev => [...prev, newPlace]);
+                        } catch (saveError) {
+                            console.error('Failed to cache place:', saveError);
+                        }
+
+                        alert(t('eventForm.alerts.placeFoundGoogle'));
+                    } else {
+                        alert(t('eventForm.alerts.placeNotFound'));
+                    }
                 }
-            });
+            );
         }
     };
 
@@ -375,9 +391,25 @@ function EventForm({ event, onSubmit, onClose, onSwitchToEdit }: EventFormProps)
                                     autoComplete="off"
                                 />
                                 <datalist id="places-list">
-                                    {savedPlaces.map((place) => (
-                                        <option key={place.id} value={place.name} />
-                                    ))}
+                                    {savedPlaces.map((place) => {
+                                        // 별칭 파싱
+                                        let aliases: string[] = [];
+                                        try {
+                                            aliases = JSON.parse(place.aliases || '[]');
+                                        } catch (e) {
+                                            aliases = [];
+                                        }
+
+                                        // canonical_name + 모든 별칭 표시
+                                        return (
+                                            <React.Fragment key={place.id}>
+                                                <option value={place.canonical_name} />
+                                                {aliases.map((alias, idx) => (
+                                                    <option key={`${place.id}-${idx}`} value={alias} />
+                                                ))}
+                                            </React.Fragment>
+                                        );
+                                    })}
                                 </datalist>
                                 <button type="button" className="btn-geocode" onClick={handlePlaceSearch}>
                                     🔍 {t('eventForm.buttons.searchPlace')}

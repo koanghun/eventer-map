@@ -13,7 +13,7 @@ class PerformerCreate(PerformerBase):
 class PerformerResponse(PerformerBase):
     id: int
     normalized_name: str
-    name: Optional[str] = None  # 호환성을 위한 필드
+    name: Optional[str] = None  # DEPRECATED: 제거 예정, canonical_name 사용
     created_at: datetime
     updated_at: Optional[datetime] = None
 
@@ -95,7 +95,7 @@ class PlaceCreate(PlaceBase):
 class PlaceResponse(PlaceBase):
     id: int
     normalized_name: str
-    name: Optional[str] = None  # 호환성을 위한 필드
+    name: Optional[str] = None  # DEPRECATED: 제거 예정, canonical_name 사용
     created_at: datetime
 
     class Config:

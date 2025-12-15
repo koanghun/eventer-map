@@ -98,8 +98,7 @@ def create_performer(performer: schemas.PerformerCreate, db: Session = Depends(g
     new_performer = models.Performer(
         canonical_name=performer.canonical_name,
         normalized_name=normalized,
-        name=performer.canonical_name,  # 호환성
-        aliases=aliases_to_json(performer.aliases)
+        aliases=aliases_to_json(performer.aliases) if performer.aliases else "[]"
     )
     
     try:

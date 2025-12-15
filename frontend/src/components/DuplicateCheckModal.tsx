@@ -45,11 +45,14 @@ function DuplicateCheckModal({
                             </p>
                             <div className="existing-item exact-match">
                                 <div className="item-name">{exactMatch.canonical_name}</div>
-                                {exactMatch.aliases && exactMatch.aliases.length > 0 && (
-                                    <div className="item-aliases">
-                                        별칭: {exactMatch.aliases.join(', ')}
-                                    </div>
-                                )}
+                                {(() => {
+                                    const aliases = exactMatch.aliases ? JSON.parse(exactMatch.aliases) : [];
+                                    return aliases.length > 0 && (
+                                        <div className="item-aliases">
+                                            별칭: {aliases.join(', ')}
+                                        </div>
+                                    );
+                                })()}
                                 <button
                                     className="btn-use-existing"
                                     onClick={() => onUseExisting(exactMatch)}
@@ -70,11 +73,14 @@ function DuplicateCheckModal({
                                     <div key={performer.id} className="existing-item">
                                         <div className="item-info">
                                             <div className="item-name">{performer.canonical_name}</div>
-                                            {performer.aliases && performer.aliases.length > 0 && (
-                                                <div className="item-aliases">
-                                                    별칭: {performer.aliases.join(', ')}
-                                                </div>
-                                            )}
+                                            {(() => {
+                                                const aliases = performer.aliases ? JSON.parse(performer.aliases) : [];
+                                                return aliases.length > 0 && (
+                                                    <div className="item-aliases">
+                                                        별칭: {aliases.join(', ')}
+                                                    </div>
+                                                );
+                                            })()}
                                         </div>
                                         <button
                                             className="btn-use-existing"

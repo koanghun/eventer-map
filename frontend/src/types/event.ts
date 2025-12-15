@@ -2,8 +2,8 @@ export interface Performer {
     id: number;
     canonical_name: string;
     normalized_name: string;
-    aliases?: string[];
-    name?: string; // deprecated, 호환성용
+    aliases?: string;  // JSON 문자열 (SQLite 호환)
+    name?: string; // DEPRECATED: 제거 예정, canonical_name 사용
     created_at: string;
     updated_at?: string;
 }
@@ -12,8 +12,8 @@ export interface Place {
     id: number;
     canonical_name: string;
     normalized_name: string;
-    aliases?: string[];
-    name?: string; // deprecated, 호환성용
+    aliases?: string;  // JSON 문자열 (SQLite 호환)
+    name?: string; // DEPRECATED: 제거 예정, canonical_name 사용
     address: string;
     latitude: number;
     longitude: number;
