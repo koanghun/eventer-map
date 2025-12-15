@@ -11,6 +11,20 @@
   - ✅ 로컬 개발 환경 (2025-11-25)
   - ⬜ Synology NAS 프로덕션 환경
 
+### 2025_11_26_normalization_system.py
+- **날짜**: 2025-11-26
+- **설명**: Performer 및 Place 테이블에 정규화 시스템 추가 (`canonical_name`, `normalized_name` 컬럼 및 UNIQUE 인덱스)
+- **실행 여부**: 
+  - ✅ 로컬 개발 환경 (2025-11-26)
+  - ⬜ Synology NAS 프로덕션 환경
+
+### 2025_12_05_alias_system.py
+- **날짜**: 2025-12-05
+- **설명**: Performer 및 Place 테이블에 별칭 시스템 추가 (`aliases` 컬럼)
+- **실행 여부**: 
+  - ✅ 로컬 개발 환경 (2025-12-05)
+  - ⬜ Synology NAS 프로덕션 환경
+
 ## 🚀 마이그레이션 실행 방법
 
 ### 로컬 환경
@@ -18,11 +32,19 @@
 cd backend
 source venv/bin/activate
 python migrations/2025_11_25_time_fields.py
+# 또는
+python migrations/2025_11_26_normalization_system.py
+# 또는
+python migrations/2025_12_05_alias_system.py
 ```
 
 ### Docker 환경
 ```bash
 docker-compose exec backend python migrations/2025_11_25_time_fields.py
+# 또는
+docker-compose exec backend python migrations/2025_11_26_normalization_system.py
+# 또는
+docker-compose exec backend python migrations/2025_12_05_alias_system.py
 ```
 
 ## 📝 새 마이그레이션 추가 가이드

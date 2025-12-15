@@ -1,7 +1,7 @@
 # ============================================
-# 개발용 프론트엔드 Dockerfile (SSH 지원)
+# 개발용 백엔드 Dockerfile (SSH + 디버거 지원)
 # ============================================
-FROM node:20
+FROM python:3.11-slim
 
 WORKDIR /app
 
@@ -9,15 +9,20 @@ WORKDIR /app
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
         openssh-server \
+        curl \
         sudo \
         git \
     && apt-get clean && \
     rm -rf /var/lib/apt/lists/*
 
-# 기존 node 사용자(UID 1000)를 developer로 변경
-RUN usermod -l developer -d /home/developer -m node && \
-    groupmod -n developer node && \
+# Python 의존성 설치
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+
+# developer 사용자 생성 (SSH 컨테이너와 동일한 구조)
+RUN useradd -m -u 1000 -s /bin/bash developer && \
     echo "developer ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers && \
+    mkdir -p /app/data && \
     chown -R developer:developer /app
 
 # SSH 설정
@@ -37,6 +42,10 @@ COPY entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh
 
 # 포트 노출
-EXPOSE 3000 22
+EXPOSE 8000 22
+
+# 헬스체크
+HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
+    CMD curl -f http://localhost:8000/health || exit 1
 
 ENTRYPOINT ["/entrypoint.sh"]

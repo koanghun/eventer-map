@@ -38,6 +38,14 @@ RUN mkdir -p /home/developer/.ssh && \
     chown -R developer:developer /home/developer/.ssh && \
     chmod 700 /home/developer/.ssh
 
+# 6. npm 글로벌 경로 설정 (developer 사용자 기준)
+ENV NPM_CONFIG_PREFIX=/home/developer/.npm-global
+ENV PATH=$PATH:/home/developer/.npm-global/bin
+
+# 7. root로 npm 글로벌 패키지 설치 (하지만 developer 디렉토리에 저장)
+RUN npm install -g @google/gemini-cli && \
+    chown -R developer:developer /home/developer/.npm-global
+
 # entrypoint 스크립트 복사
 COPY entrypoint.sh /usr/local/bin/entrypoint.sh
 RUN chmod +x /usr/local/bin/entrypoint.sh

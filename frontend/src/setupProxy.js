@@ -16,6 +16,12 @@ module.exports = function (app) {
 
             changeOrigin: true,
 
+            // /api 제거하여 백엔드로 전달
+            // 예: /api/events → /events
+            pathRewrite: {
+                '^/api': ''
+            },
+
             // 2. 디버깅 로그 레벨
             logLevel: 'debug',
         })

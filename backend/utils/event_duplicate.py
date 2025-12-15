@@ -9,7 +9,7 @@ from difflib import SequenceMatcher
 from typing import Dict, List, Optional
 from geopy.distance import geodesic
 from sqlalchemy.orm import Session
-import models
+import models, schemas
 
 
 def calculate_distance(lat1: float, lon1: float, lat2: float, lon2: float) -> float:
@@ -26,14 +26,11 @@ def calculate_distance(lat1: float, lon1: float, lat2: float, lon2: float) -> fl
     if not all([lat1, lon1, lat2, lon2]):
         return float('inf')
     
-    try:
-        distance = geodesic((lat1, lon1), (lat2, lon2)).meters
-        return distance
-    except Exception:
-        return float('inf')
+    distance = geodesic((lat1, lon1), (lat2, lon2)).meters
+    return distance
 
 
-def calculate_time_difference(time1: Optional[str], time2: Optional[str]) -> int:
+def calculate_time_difference(time1: Optional[str], time2: Optional[str]) -> Optional[int]:
     """
     두 시간의 차이를 분 단위로 계산
     
@@ -44,15 +41,12 @@ def calculate_time_difference(time1: Optional[str], time2: Optional[str]) -> int
         int: 시간 차이 (분)
     """
     if not time1 or not time2:
-        return 999  # 시간 정보 없으면 큰 값 반환
+        return None  # 시간 정보 없으면 None
     
-    try:
-        t1 = datetime.strptime(time1, "%H:%M")
-        t2 = datetime.strptime(time2, "%H:%M")
-        diff = abs((t2 - t1).total_seconds() / 60)
-        return int(diff)
-    except ValueError:
-        return 999
+    t1 = datetime.strptime(time1, "%H:%M")
+    t2 = datetime.strptime(time2, "%H:%M")
+    diff = abs((t2 - t1).total_seconds() / 60)
+    return diff
 
 
 def calculate_text_similarity(text1: Optional[str], text2: Optional[str]) -> float:
@@ -130,55 +124,72 @@ def calculate_event_similarity(event1: models.Event, event2: models.Event) -> Di
         event2.latitude, event2.longitude
     )
     # 0m = 1.0, 50m = 0.5, 100m+ = 0.0
-    location_score = max(0, 1 - (distance / 100)) if distance <= 100 else 0.0
-    
-    # 3. 시간 겹침 (15%)
-    time_diff = calculate_time_difference(event1.start_time, event2.start_time)
-    # 0분 = 1.0, 30분 = 0.5, 60분+ = 0.0
-    time_score = max(0, 1 - (abs(time_diff) / 60)) if abs(time_diff) <= 60 else 0.0
-    
+    if distance == float('inf'):
+        location_score = 0.0
+    else:
+        location_score = max(0, 1 - (distance / 100)) if distance <= 100 else 0.0
+
     # 4. 출연자 유사도 (25%)
     performer_score = calculate_performer_similarity(event1, event2)
     
     # 5. 제목 유사도 (15%)
     title_score = calculate_text_similarity(event1.title, event2.title)
-    
-    # 가중 합계
-    total_score = (
+
+    # 시간 제외 기본 점수 및 가중치
+    base_score = (
         date_score * 0.25 +
         location_score * 0.20 +
-        time_score * 0.15 +
         performer_score * 0.25 +
         title_score * 0.15
     )
+    base_weight = 0.85 # 1.0 - 0.15 (시간 가중치)
+
+    # 3. 시간 겹침 (15%) - 정보가 있을 때만 계산에 포함
+    event1_time = event1.start_time or event1.door_time
+    event2_time = event2.start_time or event2.door_time
+    time_diff = calculate_time_difference(event1_time, event2_time)
     
+    final_score = 0.0
+    if time_diff is not None:
+        # 시간 정보가 있으면 시간 점수 포함하여 계산
+        time_score = max(0, 1 - (abs(time_diff) / 60)) if abs(time_diff) <= 60 else 0.0
+        total_score = base_score + (time_score * 0.15)
+        final_score = total_score # 전체 가중치 합은 1.0
+    else:
+        # 시간 정보 없으면, 다른 항목들의 점수를 1.0 만점으로 환산
+        final_score = base_score / base_weight if base_weight > 0 else 0.0
+
     # 중복 판정 (엄격한 기준)
+    # 필수: 날짜 일치
+    # 위치: 좌표가 있을 때만 거리 체크 (없으면 통과)
+    # 시간: 시간 정보가 있을 때만 시간 체크 (없으면 통과)
+    # 출연자/제목: 둘 중 하나는 높은 유사도여야 함
     is_duplicate = (
         same_date and 
-        distance <= 50 and 
-        abs(time_diff) <= 30 and
+        (distance != float('inf') and distance <= 50) and 
+        (time_diff is None or abs(time_diff) <= 30) and
         (performer_score >= 0.8 or title_score >= 0.8)
     )
     
     # 추천 분류
     if is_duplicate:
         recommendation = "duplicate"      # 중복 가능성 매우 높음
-    elif total_score >= 0.7:
+    elif final_score >= 0.7:
         recommendation = "similar"        # 유사함, 주의 필요
-    elif total_score >= 0.4:
+    elif final_score >= 0.4:
         recommendation = "maybe"          # 애매함, 사용자 확인
     else:
         recommendation = "different"      # 다른 이벤트
     
     return {
         "is_duplicate": is_duplicate,
-        "similarity_score": round(total_score, 2),
+        "similarity_score": round(final_score, 2),
         "matched_criteria": {
             "same_date": same_date,
-            "same_location": distance <= 50,
-            "same_time": abs(time_diff) <= 30,
+            "same_location": distance != float('inf') and distance <= 50,
+            "same_time": time_diff is not None and abs(time_diff) <= 30,
             "distance_meters": round(distance, 1) if distance != float('inf') else None,
-            "time_diff_minutes": time_diff if time_diff != 999 else None,
+            "time_diff_minutes": time_diff if time_diff is not None else None,
             "performer_similarity": round(performer_score, 2),
             "title_similarity": round(title_score, 2)
         },
@@ -188,10 +199,7 @@ def calculate_event_similarity(event1: models.Event, event2: models.Event) -> Di
 
 def find_duplicate_events(
     db: Session,
-    event_date: str,
-    latitude: float,
-    longitude: float,
-    start_time: Optional[str] = None,
+    event_data: models.Event,
     exclude_id: Optional[int] = None
 ) -> List[Dict]:
     """
@@ -199,16 +207,14 @@ def find_duplicate_events(
     
     Args:
         db: 데이터베이스 세션
-        event_date: 이벤트 날짜 (YYYY-MM-DD)
-        latitude, longitude: 이벤트 위치 좌표
-        start_time: 개연 시간 (HH:MM)
+        event_data: 중복 검사할 이벤트 데이터
         exclude_id: 제외할 이벤트 ID (수정 시 자기 자신 제외)
         
     Returns:
         list: 중복 가능성 있는 이벤트 목록 (유사도 높은 순)
     """
     # 같은 날짜의 이벤트만 조회
-    query = db.query(models.Event).filter(models.Event.event_date == event_date)
+    query = db.query(models.Event).filter(models.Event.event_date == event_data.event_date)
     
     if exclude_id:
         query = query.filter(models.Event.id != exclude_id)
@@ -218,20 +224,10 @@ def find_duplicate_events(
     if not existing_events:
         return []
     
-    # 임시 이벤트 객체 생성
-    temp_event = models.Event(
-        event_date=event_date,
-        latitude=latitude,
-        longitude=longitude,
-        start_time=start_time,
-        title="",  # 타이틀은 API에서 별도로 전달
-        performers_rel=[]  # 출연자도 별도 처리
-    )
-    
     # 각 이벤트와의 유사도 계산
     duplicates = []
     for existing in existing_events:
-        similarity = calculate_event_similarity(temp_event, existing)
+        similarity = calculate_event_similarity(event_data, existing)
         
         # 유사도가 일정 이상인 경우만 포함
         if similarity["similarity_score"] >= 0.4:
@@ -248,3 +244,40 @@ def find_duplicate_events(
     duplicates.sort(key=lambda x: x["similarity_score"], reverse=True)
     
     return duplicates
+
+
+def is_duplicate(
+    event_data: models.Event,
+    db: Session,
+    threshold: float = 0.85
+) -> str:
+    """
+    입력된 이벤트 데이터가 기존 DB의 이벤트와 중복되는지 확인
+    
+    Args:
+        event_data: 확인할 이벤트 데이터 (models.Event)
+        db: DB 세션
+        threshold: 중복으로 판단할 유사도 점수 임계값
+        
+    Returns:
+        "definite": 확실한 중복
+        "high": 중복 가능성 높음
+        "low": 중복 가능성 낮음
+    """
+    duplicates = find_duplicate_events(db, event_data)
+    
+    if not duplicates:
+        return "low"
+    
+    # 가장 유사도가 높은 이벤트
+    most_similar_event_info = duplicates[0]
+    
+    # calculate_event_similarity에서 반환된 is_duplicate 플래그와 similarity_score 사용
+    is_definite_duplicate = most_similar_event_info["is_duplicate"]
+    similarity_score = most_similar_event_info["similarity_score"]
+
+    if is_definite_duplicate:
+        return "definite"
+    elif similarity_score >= threshold: # threshold를 활용하여 "high"를 판단
+        return "high"
+    return "low"

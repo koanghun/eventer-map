@@ -144,22 +144,21 @@ def delete_event(
 
 
 @router.post("/check-duplicate")
-def check_duplicate_event(event_data: schemas.EventBase, db: Session = Depends(get_db)):
+def check_duplicate_event(event_data: schemas.EventCheckDuplicate, db: Session = Depends(get_db)):
     """
     이벤트 중복 여부 확인
     
     같은 날짜의 이벤트를 조회하여 다음 기준으로 유사도를 계산합니다:
     - 날짜 일치 (25%)
-    - 거리 50m 이내 (20%)
-    - 시간대 30분 이내 (15%)
+    - 거리 50m 이내 (20%) - 위치 정보 있는 경우
+    - 시간대 30분 이내 (15%) - 시간 정보 있는 경우
     - 출연자 유사도 (25%)
     - 제목 유사도 (15%)
     
     Returns:
         list: 중복 가능성이 있는 이벤트 목록 (유사도 높은 순)
     """
-    if not event_data.event_date or not event_data.latitude or not event_data.longitude:
-        return {"duplicates": []}
+    # 날짜는 필수이므로 스키마 검증에서 걸러짐
     
     # 같은 날짜의 이벤트 조회
     existing_events = db.query(models.Event).filter(
@@ -173,9 +172,13 @@ def check_duplicate_event(event_data: schemas.EventBase, db: Session = Depends(g
     temp_event = models.Event(
         title=event_data.title or "",
         event_date=event_data.event_date,
-        latitude= event_data.latitude,
+        location=event_data.location,
+        address=event_data.address,
+        latitude=event_data.latitude,
         longitude=event_data.longitude,
+        door_time=event_data.door_time,
         start_time=event_data.start_time,
+        end_time=event_data.end_time,
         performers_rel=[]
     )
     

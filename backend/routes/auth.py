@@ -7,7 +7,7 @@ from database import get_db
 from utils.auth import create_access_token, get_current_user
 import os
 
-router = APIRouter(prefix="/api/auth", tags=["auth"])
+router = APIRouter(prefix="/auth", tags=["auth"])
 
 # OAuth 설정
 from google_auth_oauthlib.flow import Flow
@@ -49,10 +49,15 @@ async def google_login():
         redirect_uri=GOOGLE_REDIRECT_URI
     )
     
+    # 디버깅: 실제 사용되는 redirect_uri 확인
+    print(f"=== DEBUG: GOOGLE_REDIRECT_URI = {GOOGLE_REDIRECT_URI}")
+    
     authorization_url, state = flow.authorization_url(
         access_type='offline',
         include_granted_scopes='true'
     )
+    
+    print(f"=== DEBUG: Authorization URL = {authorization_url}")
     
     # state 값을 쿠키에 저장 (CSRF 방지)
     response = RedirectResponse(url=authorization_url)

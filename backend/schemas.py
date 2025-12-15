@@ -36,6 +36,21 @@ class EventBase(BaseModel):
     related_link: Optional[str] = Field(None, max_length=500)
 
 
+class EventCheckDuplicate(BaseModel):
+    """중복 확인을 위한 완화된 스키마"""
+    title: str = Field(..., min_length=1, max_length=200)
+    event_date: str = Field(..., pattern=r'^\d{4}-\d{2}-\d{2}$')
+    location: str = Field(..., min_length=1, max_length=200)
+    address: str = Field(..., max_length=500)  # 사용자 요청: address 필수
+    # 아래 필드들은 중복 체크 시 선택사항
+    latitude: Optional[float] = Field(None, ge=-90, le=90)
+    longitude: Optional[float] = Field(None, ge=-180, le=180)
+    door_time: Optional[str] = Field(None, pattern=r'^\d{2}:\d{2}$')
+    start_time: Optional[str] = Field(None, pattern=r'^\d{2}:\d{2}$')
+    end_time: Optional[str] = Field(None, pattern=r'^\d{2}:\d{2}$')
+    performers: Optional[str] = None
+
+
 class EventCreate(EventBase):
     pass
 
