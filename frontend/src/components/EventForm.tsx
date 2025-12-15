@@ -42,6 +42,7 @@ function EventForm({ event, onSubmit, onClose, onSwitchToEdit }: EventFormProps)
                 latitude: 35.6762,
                 longitude: 139.6503,
                 performers: '',
+                performer_ids: [],
                 related_link: '',
             };
         }
@@ -74,6 +75,7 @@ function EventForm({ event, onSubmit, onClose, onSwitchToEdit }: EventFormProps)
             latitude: 35.6762,
             longitude: 139.6503,
             performers: '',
+            performer_ids: [],
             related_link: '',
         };
     });
@@ -111,6 +113,7 @@ function EventForm({ event, onSubmit, onClose, onSwitchToEdit }: EventFormProps)
                 latitude: event.latitude,
                 longitude: event.longitude,
                 performers: event.performers || '',
+                performer_ids: event.performer_ids || [],
                 related_link: event.related_link || '',
             });
         }
@@ -147,7 +150,17 @@ function EventForm({ event, onSubmit, onClose, onSwitchToEdit }: EventFormProps)
 
     const handlePerformersChange = (newPerformers: string[]) => {
         setSelectedPerformers(newPerformers);
-        setFormData(prev => ({ ...prev, performers: newPerformers.join(',') }));
+
+        // ID 추출 (savedPerformers에서 찾기)
+        const performerIds = newPerformers
+            .map(name => savedPerformers.find(p => p.canonical_name === name)?.id)
+            .filter((id): id is number => id !== undefined);
+
+        setFormData(prev => ({
+            ...prev,
+            performers: newPerformers.join(','),
+            performer_ids: performerIds
+        }));
     };
 
     const handlePlaceSearch = async () => {
@@ -392,15 +405,8 @@ function EventForm({ event, onSubmit, onClose, onSwitchToEdit }: EventFormProps)
                                 />
                                 <datalist id="places-list">
                                     {savedPlaces.map((place) => {
-                                        // 별칭 파싱
-                                        let aliases: string[] = [];
-                                        try {
-                                            aliases = JSON.parse(place.aliases || '[]');
-                                        } catch (e) {
-                                            aliases = [];
-                                        }
+                                        const aliases = place.aliases || [];
 
-                                        // canonical_name + 모든 별칭 표시
                                         return (
                                             <React.Fragment key={place.id}>
                                                 <option value={place.canonical_name} />

@@ -1,22 +1,36 @@
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 from typing import Optional, List
 from datetime import datetime
+import json
 
 
 class PerformerBase(BaseModel):
     canonical_name: str
-    aliases: Optional[List[str]] = []
+    aliases: Optional[List[str]] = []  # 배열로 받아서 JSON으로 변환
 
 class PerformerCreate(PerformerBase):
     pass
 
-class PerformerResponse(PerformerBase):
+class PerformerResponse(BaseModel):
     id: int
+    canonical_name: str
     normalized_name: str
+    aliases: List[str] = []  # API는 배열로 반환
     name: Optional[str] = None  # DEPRECATED: 제거 예정, canonical_name 사용
     created_at: datetime
     updated_at: Optional[datetime] = None
-
+    
+    @field_validator('aliases', mode='before')
+    @classmethod
+    def deserialize_aliases(cls, value):
+        """DB의 JSON 문자열을 배열로 변환"""
+        if isinstance(value, str):
+            try:
+                return json.loads(value)
+            except:
+                return []
+        return value if value else []
+    
     class Config:
         from_attributes = True
 
@@ -32,23 +46,9 @@ class EventBase(BaseModel):
     address: Optional[str] = Field(None, max_length=500)
     latitude: float = Field(..., ge=-90, le=90)
     longitude: float = Field(..., ge=-180, le=180)
-    performers: Optional[str] = None  # 기존 문자열 필드 유지
+    performers: Optional[str] = None  # 기존 문자열 필드 (하위호환)
+    performer_ids: Optional[List[int]] = []  # 출연자 ID 배열 (권장)
     related_link: Optional[str] = Field(None, max_length=500)
-
-
-class EventCheckDuplicate(BaseModel):
-    """중복 확인을 위한 완화된 스키마"""
-    title: str = Field(..., min_length=1, max_length=200)
-    event_date: str = Field(..., pattern=r'^\d{4}-\d{2}-\d{2}$')
-    location: str = Field(..., min_length=1, max_length=200)
-    address: str = Field(..., max_length=500)  # 사용자 요청: address 필수
-    # 아래 필드들은 중복 체크 시 선택사항
-    latitude: Optional[float] = Field(None, ge=-90, le=90)
-    longitude: Optional[float] = Field(None, ge=-180, le=180)
-    door_time: Optional[str] = Field(None, pattern=r'^\d{2}:\d{2}$')
-    start_time: Optional[str] = Field(None, pattern=r'^\d{2}:\d{2}$')
-    end_time: Optional[str] = Field(None, pattern=r'^\d{2}:\d{2}$')
-    performers: Optional[str] = None
 
 
 class EventCreate(EventBase):
@@ -92,11 +92,27 @@ class PlaceCreate(PlaceBase):
     pass
 
 
-class PlaceResponse(PlaceBase):
+class PlaceResponse(BaseModel):
     id: int
+    canonical_name: str = Field(..., min_length=1, max_length=200)
     normalized_name: str
+    address: str = Field(..., min_length=1, max_length=500)
+    latitude: float = Field(..., ge=-90, le=90)
+    longitude: float = Field(..., ge=-180, le=180)
+    aliases: List[str] = []  # API는 배열로 반환
     name: Optional[str] = None  # DEPRECATED: 제거 예정, canonical_name 사용
     created_at: datetime
+    
+    @field_validator('aliases', mode='before')
+    @classmethod
+    def deserialize_aliases(cls, value):
+        """DB의 JSON 문자열을 배열로 변환"""
+        if isinstance(value, str):
+            try:
+                return json.loads(value)
+            except:
+                return []
+        return value if value else []
 
     class Config:
         from_attributes = True

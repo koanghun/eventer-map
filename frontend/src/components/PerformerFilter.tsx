@@ -69,15 +69,10 @@ function PerformerFilter({ onPerformerSelect }: PerformerFilterProps) {
         }
 
         // aliases로 검색
-        if (performer.aliases) {
-            try {
-                const aliases: string[] = JSON.parse(performer.aliases);
-                return aliases.some(alias =>
-                    alias.toLowerCase().includes(searchLower)
-                );
-            } catch (e) {
-                // JSON 파싱 실패 시 무시
-            }
+        if (performer.aliases && performer.aliases.length > 0) {
+            return performer.aliases.some(alias =>
+                alias.toLowerCase().includes(searchLower)
+            );
         }
 
         return false;
@@ -115,20 +110,17 @@ function PerformerFilter({ onPerformerSelect }: PerformerFilterProps) {
                     {filteredPerformers.slice(0, 50).map(performer => (
                         <li
                             key={performer.id}
-                            onMouseDown={() => handleSelectPerformer(performer)}
+                            onClick={() => handleSelectPerformer(performer)}
                             className="performer-filter-item"
                         >
                             <div className="performer-filter-name">
-                                {performer.canonical_name}
-                            </div>
-                            {(() => {
-                                const aliases = performer.aliases ? JSON.parse(performer.aliases) : [];
-                                return aliases.length > 0 && (
-                                    <div className="performer-filter-aliases">
-                                        {aliases.join(', ')}
+                                <div className="performer-canonical">{performer.canonical_name}</div>
+                                {performer.aliases && performer.aliases.length > 0 && (
+                                    <div className="performer-aliases">
+                                        {performer.aliases.join(', ')}
                                     </div>
-                                );
-                            })()}
+                                )}
+                            </div>
                         </li>
                     ))}
                 </ul>

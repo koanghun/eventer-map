@@ -145,15 +145,10 @@ function MultiSelect({ options, selected, onChange, placeholder }: MultiSelectPr
         }
 
         // aliases로 검색
-        if (option.aliases) {
-            try {
-                const aliases: string[] = JSON.parse(option.aliases);
-                return aliases.some(alias =>
-                    alias.toLowerCase().includes(searchLower)
-                );
-            } catch (e) {
-                // JSON 파싱 실패 시 무시
-            }
+        if (option.aliases && option.aliases.length > 0) {
+            return option.aliases.some(alias =>
+                alias.toLowerCase().includes(searchLower)
+            );
         }
 
         return false;
@@ -197,14 +192,11 @@ function MultiSelect({ options, selected, onChange, placeholder }: MultiSelectPr
                                     className="option-item"
                                 >
                                     <div className="option-name">{option.canonical_name}</div>
-                                    {(() => {
-                                        const aliases = option.aliases ? JSON.parse(option.aliases) : [];
-                                        return aliases.length > 0 && (
-                                            <div className="option-aliases">
-                                                {aliases.join(', ')}
-                                            </div>
-                                        );
-                                    })()}
+                                    {option.aliases && option.aliases.length > 0 && (
+                                        <div className="option-aliases">
+                                            {option.aliases.join(', ')}
+                                        </div>
+                                    )}
                                 </li>
                             ))
                         ) : (

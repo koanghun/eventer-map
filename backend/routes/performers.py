@@ -15,9 +15,7 @@ router = APIRouter(prefix="/performers", tags=["performers"])
 def get_performers(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
     """모든출연자 조회"""
     performers = db.query(models.Performer).offset(skip).limit(limit).all()
-    # aliases JSON 문자열을 리스트로 변환
-    for p in performers:
-        p.aliases = json_to_aliases(p.aliases)
+    # aliases는 JSON 문자열 그대로 반환 (프론트엔드에서 파싱)
     return performers
 
 
@@ -38,7 +36,6 @@ def check_duplicate_performer(name: str = Query(..., min_length=1), db: Session 
     ).first()
     
     if exact:
-        exact.aliases = json_to_aliases(exact.aliases)
         return {
             "status": "duplicate",
             "exact_match": exact,
@@ -51,8 +48,6 @@ def check_duplicate_performer(name: str = Query(..., min_length=1), db: Session 
     ).limit(5).all()
     
     if similar:
-        for p in similar:
-            p.aliases = json_to_aliases(p.aliases)
         return {
             "status": "similar_found",
             "exact_match": None,
@@ -164,9 +159,7 @@ def create_performer(performer: schemas.PerformerCreate, db: Session = Depends(g
                 }
             )
     
-    # 응답 시 aliases를 리스트로 변환
-    new_performer.aliases = json_to_aliases(new_performer.aliases)
-    
+    # aliases는 JSON 문자열 그대로 반환
     return new_performer
 
 
@@ -196,8 +189,5 @@ def search_performers(query: str = Query(..., min_length=1), db: Session = Depen
     performers_dict = {p.id: p for p in (by_normalized + by_alias + by_canonical)}
     performers = list(performers_dict.values())
     
-    # aliases JSON 문자열을 리스트로 변환
-    for p in performers:
-        p.aliases = json_to_aliases(p.aliases)
-    
+    # aliases는 JSON 문자열 그대로 반환
     return performers

@@ -21,26 +21,27 @@ def create_event(
     # 1. 이벤트 생성
     db_event = models.Event(**event.model_dump())
     
-    # 2. 출연자 처리 (문자열 파싱 및 관계 설정)
-    if event.performers:
+    # 2. 출연자 처리 (ID 기반 - 권장)
+    if event.performer_ids:
+        performers = db.query(models.Performer).filter(
+            models.Performer.id.in_(event.performer_ids)
+        ).all()
+        db_event.performers_rel = performers
+    # 하위호환: 문자열 방식도 지원
+    elif event.performers:
         performer_names = [p.strip() for p in event.performers.split(',') if p.strip()]
         for name in performer_names:
             normalized = normalize_text(name)
-            # 출연자가 이미 존재하는지 확인 (정규화된 이름으로)
             performer = db.query(models.Performer).filter(
                 models.Performer.normalized_name == normalized
             ).first()
             if not performer:
-                # 없으면 새로 생성
                 performer = models.Performer(
                     canonical_name=name,
-                    normalized_name=normalized,
-                    name=name  # 호환성
+                    normalized_name=normalized
                 )
                 db.add(performer)
-                db.flush()  # ID 생성을 위해 flush
-            
-            # 관계 설정
+                db.flush()
             db_event.performers_rel.append(performer)
     
     db.add(db_event)
@@ -94,11 +95,18 @@ def update_event(
     update_data = event_update.model_dump(exclude_unset=True)
     
     # 출연자 정보가 업데이트된 경우 관계도 업데이트
-    if "performers" in update_data:
-        performers_str = update_data["performers"]
-        # 기존 관계 초기화
+    if "performer_ids" in update_data:
+        # ID 기반 업데이트 (권장)
         db_event.performers_rel = []
-        
+        if update_data["performer_ids"]:
+            performers = db.query(models.Performer).filter(
+                models.Performer.id.in_(update_data["performer_ids"])
+            ).all()
+            db_event.performers_rel = performers
+    elif "performers" in update_data:
+        # 하위호환: 문자열 기반 업데이트
+        performers_str = update_data["performers"]
+        db_event.performers_rel = []
         if performers_str:
             performer_names = [p.strip() for p in performers_str.split(',') if p.strip()]
             for name in performer_names:
@@ -109,8 +117,7 @@ def update_event(
                 if not performer:
                     performer = models.Performer(
                         canonical_name=name,
-                        normalized_name=normalized,
-                        name=name  # 호환성
+                        normalized_name=normalized
                     )
                     db.add(performer)
                     db.flush()
@@ -144,7 +151,7 @@ def delete_event(
 
 
 @router.post("/check-duplicate")
-def check_duplicate_event(event_data: schemas.EventCheckDuplicate, db: Session = Depends(get_db)):
+def check_duplicate_event(event_data: schemas.EventCreate, db: Session = Depends(get_db)):
     """
     이벤트 중복 여부 확인
     
@@ -168,30 +175,21 @@ def check_duplicate_event(event_data: schemas.EventCheckDuplicate, db: Session =
     if not existing_events:
         return {"duplicates": []}
     
-    # 임시 이벤트 객체 생성 (출연자 포함)
-    temp_event = models.Event(
-        title=event_data.title or "",
-        event_date=event_data.event_date,
-        location=event_data.location,
-        address=event_data.address,
-        latitude=event_data.latitude,
-        longitude=event_data.longitude,
-        door_time=event_data.door_time,
-        start_time=event_data.start_time,
-        end_time=event_data.end_time,
-        performers_rel=[]
-    )
+    # 임시 이벤트 객체 생성 (출연자는 별도 처리)    
+    # model_dump()는 Pydantic 모델을 딕셔너리로 변환
+    # python 연산자
+    # * 연산자 - 리스트/튜플 언패킹
+    # ** 연산자 - 딕셔너리 언패킹
+    temp_event = models.Event(**event_data.model_dump())
+    temp_event.performers_rel = []
     
-    # 출연자 정보 처리 (임시 객체에 추가)
-    if event_data.performers:
-        performer_names = [p.strip() for p in event_data.performers.split(',') if p.strip()]
-        for name in performer_names:
-            normalized = normalize_text(name)
-            performer = db.query(models.Performer).filter(
-                models.Performer.normalized_name == normalized
-            ).first()
-            if performer:
-                temp_event.performers_rel.append(performer)
+    # 출연자 정보 처리 (ID로 조회)
+    if event_data.performer_ids:
+        # 한 번의 쿼리로 모든 출연자 조회
+        performers = db.query(models.Performer).filter(
+            models.Performer.id.in_(event_data.performer_ids)
+        ).all()
+        temp_event.performers_rel = performers
     
     # 각 기존 이벤트와의 유사도 계산
     duplicates = []
