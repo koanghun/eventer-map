@@ -18,8 +18,9 @@ def create_event(
     current_user: models.User = require_auth
 ):
     """이벤트 생성"""
-    # 1. 이벤트 생성
-    db_event = models.Event(**event.model_dump())
+    # 1. 이벤트 생성 (performer_ids 제외)
+    event_dict = event.model_dump(exclude={'performer_ids'})
+    db_event = models.Event(**event_dict)
     
     # 2. 출연자 처리 (ID 기반 - 권장)
     if event.performer_ids:
@@ -91,16 +92,16 @@ def update_event(
             detail=f"Event with id {event_id} not found"
         )
     
-    # Update only provided fields
-    update_data = event_update.model_dump(exclude_unset=True)
+    # 기본 필드 업데이트 (performer_ids 제외)
+    update_data = event_update.model_dump(exclude_unset=True, exclude={'performer_ids'})
     
     # 출연자 정보가 업데이트된 경우 관계도 업데이트
-    if "performer_ids" in update_data:
+    if "performer_ids" in event_update.model_fields_set:
         # ID 기반 업데이트 (권장)
         db_event.performers_rel = []
-        if update_data["performer_ids"]:
+        if event_update.performer_ids:
             performers = db.query(models.Performer).filter(
-                models.Performer.id.in_(update_data["performer_ids"])
+                models.Performer.id.in_(event_update.performer_ids)
             ).all()
             db_event.performers_rel = performers
     elif "performers" in update_data:
@@ -180,7 +181,8 @@ def check_duplicate_event(event_data: schemas.EventCreate, db: Session = Depends
     # python 연산자
     # * 연산자 - 리스트/튜플 언패킹
     # ** 연산자 - 딕셔너리 언패킹
-    temp_event = models.Event(**event_data.model_dump())
+    event_dict = event_data.model_dump(exclude={'performer_ids'})
+    temp_event = models.Event(**event_dict)
     temp_event.performers_rel = []
     
     # 출연자 정보 처리 (ID로 조회)

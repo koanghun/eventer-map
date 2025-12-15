@@ -49,6 +49,14 @@ class EventBase(BaseModel):
     performers: Optional[str] = None  # 기존 문자열 필드 (하위호환)
     performer_ids: Optional[List[int]] = []  # 출연자 ID 배열 (권장)
     related_link: Optional[str] = Field(None, max_length=500)
+    
+    @field_validator('door_time', 'start_time', 'end_time', mode='before')
+    @classmethod
+    def empty_str_to_none(cls, value):
+        """빈 문자열을 None으로 변환"""
+        if value == '' or value is None:
+            return None
+        return value
 
 
 class EventCreate(EventBase):

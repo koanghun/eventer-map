@@ -144,19 +144,41 @@ def calculate_event_similarity(event1: models.Event, event2: models.Event) -> Di
     )
     base_weight = 0.85 # 1.0 - 0.15 (시간 가중치)
 
-    # 3. 시간 겹침 (15%) - 정보가 있을 때만 계산에 포함
-    event1_time = event1.start_time or event1.door_time
-    event2_time = event2.start_time or event2.door_time
-    time_diff = calculate_time_difference(event1_time, event2_time)
+    # 3. 시간 겹침 (15%) - 각 시간을 독립적으로 비교
+    time_score_raw = 0.0
+    time_comparisons = 0
     
-    final_score = 0.0
-    if time_diff is not None:
-        # 시간 정보가 있으면 시간 점수 포함하여 계산
-        time_score = max(0, 1 - (abs(time_diff) / 60)) if abs(time_diff) <= 60 else 0.0
-        total_score = base_score + (time_score * 0.15)
-        final_score = total_score # 전체 가중치 합은 1.0
+    # door_time 비교
+    door_diff = None
+    if event1.door_time and event2.door_time:
+        door_diff = calculate_time_difference(event1.door_time, event2.door_time)
+        if door_diff is not None and door_diff <= 30:
+            time_score_raw += 1.0
+        time_comparisons += 1
+    
+    # start_time 비교
+    start_diff = None
+    if event1.start_time and event2.start_time:
+        start_diff = calculate_time_difference(event1.start_time, event2.start_time)
+        if start_diff is not None and start_diff <= 30:
+            time_score_raw += 1.0
+        time_comparisons += 1
+    
+    # end_time 비교
+    end_diff = None
+    if event1.end_time and event2.end_time:
+        end_diff = calculate_time_difference(event1.end_time, event2.end_time)
+        if end_diff is not None and end_diff <= 30:
+            time_score_raw += 1.0
+        time_comparisons += 1
+    
+    # 평균 점수 계산 (비교한 시간이 있을 경우에만)
+    time_weighted_score = 0.0
+    if time_comparisons > 0:
+        time_weighted_score = (time_score_raw / time_comparisons) * 0.15
+        final_score = base_score + time_weighted_score
     else:
-        # 시간 정보 없으면, 다른 항목들의 점수를 1.0 만점으로 환산
+        # 시간 정보가 없으면, 다른 항목들의 점수를 1.0 만점으로 환산
         final_score = base_score / base_weight if base_weight > 0 else 0.0
 
     # 중복 판정 (엄격한 기준)
@@ -164,10 +186,24 @@ def calculate_event_similarity(event1: models.Event, event2: models.Event) -> Di
     # 위치: 좌표가 있을 때만 거리 체크 (없으면 통과)
     # 시간: 시간 정보가 있을 때만 시간 체크 (없으면 통과)
     # 출연자/제목: 둘 중 하나는 높은 유사도여야 함
+    
+    # 시간 일치 판정: 비교한 시간 중 하나라도 30분 이내면 일치로 간주
+    time_match = False
+    if time_comparisons > 0:
+        # 비교한 시간들 중에서 일치하는 게 있는지 확인
+        time_match = (
+            (door_diff is not None and door_diff <= 30) or
+            (start_diff is not None and start_diff <= 30) or
+            (end_diff is not None and end_diff <= 30)
+        )
+    else:
+        # 시간 정보가 없으면 통과
+        time_match = True
+    
     is_duplicate = (
         same_date and 
         (distance != float('inf') and distance <= 50) and 
-        (time_diff is None or abs(time_diff) <= 30) and
+        time_match and
         (performer_score >= 0.8 or title_score >= 0.8)
     )
     
@@ -187,9 +223,11 @@ def calculate_event_similarity(event1: models.Event, event2: models.Event) -> Di
         "matched_criteria": {
             "same_date": same_date,
             "same_location": distance != float('inf') and distance <= 50,
-            "same_time": time_diff is not None and abs(time_diff) <= 30,
+            "same_time": time_match,
             "distance_meters": round(distance, 1) if distance != float('inf') else None,
-            "time_diff_minutes": time_diff if time_diff is not None else None,
+            "door_time_diff_minutes": door_diff,
+            "start_time_diff_minutes": start_diff,
+            "end_time_diff_minutes": end_diff,
             "performer_similarity": round(performer_score, 2),
             "title_similarity": round(title_score, 2)
         },
