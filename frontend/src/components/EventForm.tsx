@@ -1,4 +1,4 @@
-import React, { useState, useEffect, type ChangeEvent, type FormEvent } from 'react';
+import { useState, useEffect, type ChangeEvent, type FormEvent } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Event, EventFormData, Performer, Place } from '../types/event';
 import { placeApi, performerApi, eventApi } from '../services/api';
@@ -400,23 +400,8 @@ function EventForm({ event, onSubmit, onClose, onSwitchToEdit }: EventFormProps)
                                     onChange={handleChange}
                                     required
                                     placeholder={t('eventForm.placeholders.location')}
-                                    list="places-list"
                                     autoComplete="off"
                                 />
-                                <datalist id="places-list">
-                                    {savedPlaces.map((place) => {
-                                        const aliases = place.aliases || [];
-
-                                        return (
-                                            <React.Fragment key={place.id}>
-                                                <option value={place.canonical_name} />
-                                                {aliases.map((alias, idx) => (
-                                                    <option key={`${place.id}-${idx}`} value={alias} />
-                                                ))}
-                                            </React.Fragment>
-                                        );
-                                    })}
-                                </datalist>
                                 <button type="button" className="btn-geocode" onClick={handlePlaceSearch}>
                                     🔍 {t('eventForm.buttons.searchPlace')}
                                 </button>
