@@ -28,6 +28,9 @@ frontend/dist/
 .env.local
 .env.*.local
 
+# Google OAuth secrets
+client_secret_*.json
+
 # IDEs
 .vscode/
 .idea/
