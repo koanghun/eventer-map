@@ -39,7 +39,8 @@ function PerformerCreateModal({
     };
 
     const handleSubmit = (e: FormEvent) => {
-        e.preventDefault();
+        e.preventDefault(); // 폼 제출 방지
+        e.stopPropagation(); // 이벤트 버블링 방지
         if (canonicalName.trim()) {
             onConfirm(canonicalName.trim(), aliases);
         }
