@@ -126,3 +126,31 @@
 .performer-filter-dropdown::-webkit-scrollbar-thumb:hover {
     background: var(--primary-orange);
 }
+
+/* Responsive Design */
+@media (max-width: 480px) {
+    .performer-filter label {
+        font-size: 0.9rem;
+    }
+
+    .performer-filter-input {
+        font-size: 0.9rem;
+        padding: 8px 32px 8px 10px;
+    }
+
+    .performer-filter-dropdown {
+        max-height: 250px;
+    }
+
+    .performer-filter-item {
+        padding: 10px;
+    }
+
+    .performer-filter-name {
+        font-size: 0.9rem;
+    }
+
+    .performer-filter-aliases {
+        font-size: 0.75rem;
+    }
+}

@@ -50,9 +50,21 @@ body {
     background: var(--bg-primary);
     color: var(--text-primary);
     transition: background 0.3s, color 0.3s;
+    overflow-x: hidden;
+}
+
+html {
+    overflow-x: hidden;
 }
 
 code {
     font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
         monospace;
+}
+
+/* Mobile Font Size Adjustments */
+@media (max-width: 480px) {
+    body {
+        font-size: 14px;
+    }
 }

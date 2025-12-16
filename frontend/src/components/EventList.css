@@ -130,3 +130,43 @@
     color: var(--primary-orange);
     font-weight: 600;
 }
+
+/* Responsive Design */
+/* Small Mobile: 320px - 480px */
+@media (max-width: 480px) {
+    .event-list h3 {
+        font-size: 1rem;
+    }
+
+    .event-item {
+        padding: 0.75rem;
+    }
+
+    .event-item-header h4 {
+        font-size: 0.9rem;
+    }
+
+    .btn-edit,
+    .btn-delete {
+        padding: 0.5rem;
+        min-width: 44px;
+        min-height: 44px;
+        font-size: 1.1rem;
+    }
+
+    .event-item-location,
+    .event-item-time,
+    .event-item-performers {
+        font-size: 0.8rem;
+    }
+}
+
+/* Mobile: 481px - 767px */
+@media (min-width: 481px) and (max-width: 767px) {
+
+    .btn-edit,
+    .btn-delete {
+        min-width: 40px;
+        min-height: 40px;
+    }
+}

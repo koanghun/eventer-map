@@ -47,7 +47,7 @@
     box-shadow: 0 4px 20px var(--shadow-color);
     padding: 12px;
     min-width: 200px;
-    z-index: 1000;
+    z-index: 1200;
 }
 
 .profile-info {
@@ -83,4 +83,24 @@
     background: var(--primary-orange);
     color: white;
     border-color: var(--primary-orange);
+}
+
+/* Responsive Design */
+@media (max-width: 480px) {
+    .profile-dropdown {
+        min-width: min(180px, 90vw);
+        right: -10px;
+    }
+
+    .profile-name {
+        font-size: 14px;
+    }
+
+    .profile-email {
+        font-size: 11px;
+    }
+
+    .logout-button {
+        font-size: 13px;
+    }
 }

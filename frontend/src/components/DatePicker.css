@@ -33,3 +33,15 @@
     border-color: var(--primary-orange);
     background: rgba(255, 107, 53, 0.05);
 }
+
+/* Responsive Design */
+@media (max-width: 480px) {
+    .date-picker label {
+        font-size: 0.9rem;
+    }
+
+    .date-input {
+        font-size: 0.9rem;
+        padding: 8px 10px;
+    }
+}
