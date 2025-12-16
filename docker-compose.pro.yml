@@ -2,31 +2,7 @@ version: '3.8'
 
 services:
   # ============================================
-  # OpenSSH Server - VSCode Remote 개발 환경 (선택사항)
-  # Ubuntu 22.04 기반 (glibc 지원, VSCode Remote SSH 호환)
-  # 사용: docker-compose --profile ssh up -d
-  # ============================================
-  openssh-server:
-    build:
-      context: ./openssh
-      dockerfile: Dockerfile
-    container_name: eventer-map-ssh
-    profiles: ["ssh"]  # 선택적으로만 실행
-    ports:
-      - "${SSH_PORT:-7774}:22"
-    environment:
-      - USER_PASSWORD=${USER_PASSWORD:-changeme}
-      - PUBLIC_KEY=${PUBLIC_KEY:-}
-      - SSH_PORT=${SSH_PORT:-7774}  # 로그 출력용
-    volumes:
-      # 프로젝트 전체를 developer 홈 디렉토리에 마운트
-      - ./:/home/developer/eventer-map:rw
-    restart: unless-stopped
-    networks:
-      - eventer-network
-
-  # ============================================
-  # Backend - FastAPI
+  # Backend - FastAPI (프로덕션)
   # ============================================
   backend:
     build:
@@ -37,7 +13,17 @@ services:
       - "${BACKEND_PORT:-7773}:8000"
     environment:
       - DATABASE_URL=${DATABASE_URL:-sqlite:///./data/eventer.db}
-      - CORS_ORIGINS=${CORS_ORIGINS:-http://localhost:7772,http://localhost}
+      # CORS: .env.production에서 설정 필요
+      - CORS_ORIGINS=${CORS_ORIGINS}
+      # Google OAuth
+      - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID}
+      - GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET}
+      - GOOGLE_REDIRECT_URI=${GOOGLE_REDIRECT_URI}
+      - FRONTEND_URL=${FRONTEND_URL}
+      # JWT 인증
+      - JWT_SECRET_KEY=${JWT_SECRET_KEY}
+      - JWT_ALGORITHM=${JWT_ALGORITHM:-HS256}
+      - JWT_ACCESS_TOKEN_EXPIRE_MINUTES=${JWT_ACCESS_TOKEN_EXPIRE_MINUTES:-1440}
     volumes:
       # 데이터 영속성
       - backend-data:/app/data
@@ -57,7 +43,7 @@ services:
         max-file: "3"
 
   # ============================================
-  # Frontend - React + Nginx
+  # Frontend - React + Nginx (프로덕션)
   # ============================================
   frontend:
     build:
