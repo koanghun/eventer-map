@@ -38,7 +38,7 @@ def check_duplicate_performer(name: str = Query(..., min_length=1), db: Session 
     if exact:
         return {
             "status": "duplicate",
-            "exact_match": exact,
+            "exact_match": schemas.PerformerResponse.model_validate(exact),
             "similar_matches": []
         }
     
@@ -51,7 +51,7 @@ def check_duplicate_performer(name: str = Query(..., min_length=1), db: Session 
         return {
             "status": "similar_found",
             "exact_match": None,
-            "similar_matches": similar
+            "similar_matches": [schemas.PerformerResponse.model_validate(p) for p in similar]
         }
     
     return {

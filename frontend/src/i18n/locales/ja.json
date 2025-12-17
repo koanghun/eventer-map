@@ -111,6 +111,22 @@
             "editExisting": "このイベントを編集する"
         }
     },
+    "performerDuplicateModal": {
+        "exactTitle": "⚠️ 重複した出演者",
+        "similarTitle": "🔍 類似の出演者を発見",
+        "exactMessage": "\"{{name}}\"は既に登録されている出演者です。",
+        "similarMessage": "\"{{name}}\"と似ている出演者があります。",
+        "labels": {
+            "aliases": "別名"
+        },
+        "divider": "または",
+        "buttons": {
+            "useExisting": "この出演者を使用",
+            "select": "選択",
+            "createNew": "\"{{name}}\"を新規登録",
+            "cancel": "キャンセル"
+        }
+    },
     "performerModal": {
         "title": "新規出演者登録",
         "labels": {

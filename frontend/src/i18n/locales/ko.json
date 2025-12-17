@@ -111,6 +111,22 @@
             "editExisting": "이 이벤트 수정하기"
         }
     },
+    "performerDuplicateModal": {
+        "exactTitle": "⚠️ 중복된 출연자",
+        "similarTitle": "🔍 유사한 출연자 발견",
+        "exactMessage": "\"{{name}}\"은(는) 이미 등록된 출연자입니다.",
+        "similarMessage": "\"{{name}}\"과(와) 유사한 출연자가 있습니다.",
+        "labels": {
+            "aliases": "별칭"
+        },
+        "divider": "또는",
+        "buttons": {
+            "useExisting": "이 출연자 사용",
+            "select": "선택",
+            "createNew": "\"{{name}}\" 새로 등록",
+            "cancel": "취소"
+        }
+    },
     "performerModal": {
         "title": "새 출연자 등록",
         "labels": {

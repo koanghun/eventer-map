@@ -1,4 +1,5 @@
 import { type MouseEvent } from 'react';
+import { useTranslation } from 'react-i18next';
 import ReactDOM from 'react-dom';
 import { Performer } from '../types/event';
 import './DuplicateCheckModal.css';
@@ -22,6 +23,8 @@ function DuplicateCheckModal({
     onCreateNew,
     onCancel,
 }: DuplicateCheckModalProps) {
+    const { t } = useTranslation();
+
     const handleOverlayClick = (e: MouseEvent) => {
         e.stopPropagation(); // 이벤트 버블링 방지
         onCancel();
@@ -32,7 +35,7 @@ function DuplicateCheckModal({
             <div className="duplicate-modal-content" onClick={(e) => e.stopPropagation()}>
                 <div className="duplicate-modal-header">
                     <h3>
-                        {type === 'exact' ? '⚠️ 중복된 출연자' : '🔍 유사한 출연자 발견'}
+                        {type === 'exact' ? t('performerDuplicateModal.exactTitle') : t('performerDuplicateModal.similarTitle')}
                     </h3>
                     <button className="btn-close" onClick={onCancel}>✕</button>
                 </div>
@@ -41,20 +44,20 @@ function DuplicateCheckModal({
                     {type === 'exact' && exactMatch && (
                         <>
                             <p className="duplicate-message">
-                                <strong>"{inputName}"</strong>은(는) 이미 등록된 출연자입니다.
+                                {t('performerDuplicateModal.exactMessage', { name: inputName })}
                             </p>
                             <div className="existing-item exact-match">
                                 <div className="item-name">{exactMatch.canonical_name}</div>
                                 {exactMatch.aliases && exactMatch.aliases.length > 0 && (
                                     <div className="item-aliases">
-                                        별칭: {exactMatch.aliases.join(', ')}
+                                        {t('performerDuplicateModal.labels.aliases')}: {exactMatch.aliases.join(', ')}
                                     </div>
                                 )}
                                 <button
                                     className="btn-use-existing"
                                     onClick={() => onUseExisting(exactMatch)}
                                 >
-                                    이 출연자 사용
+                                    {t('performerDuplicateModal.buttons.useExisting')}
                                 </button>
                             </div>
                         </>
@@ -63,7 +66,7 @@ function DuplicateCheckModal({
                     {type === 'similar' && similarMatches.length > 0 && (
                         <>
                             <p className="duplicate-message">
-                                <strong>"{inputName}"</strong>과(와) 유사한 출연자가 있습니다.
+                                {t('performerDuplicateModal.similarMessage', { name: inputName })}
                             </p>
                             <div className="similar-matches-list">
                                 {similarMatches.map((performer) => (
@@ -74,7 +77,7 @@ function DuplicateCheckModal({
                                                 const aliases = performer.aliases || [];
                                                 return aliases.length > 0 && (
                                                     <div className="item-aliases">
-                                                        별칭: {aliases.join(', ')}
+                                                        {t('performerDuplicateModal.labels.aliases')}: {aliases.join(', ')}
                                                     </div>
                                                 );
                                             })()}
@@ -83,12 +86,12 @@ function DuplicateCheckModal({
                                             className="btn-use-existing"
                                             onClick={() => onUseExisting(performer)}
                                         >
-                                            선택
+                                            {t('performerDuplicateModal.buttons.select')}
                                         </button>
                                     </div>
                                 ))}
                             </div>
-                            <div className="modal-divider">또는</div>
+                            <div className="modal-divider">{t('performerDuplicateModal.divider')}</div>
                         </>
                     )}
                 </div>
@@ -97,16 +100,16 @@ function DuplicateCheckModal({
                     {type === 'similar' && (
                         <>
                             <button className="btn-create-new" onClick={onCreateNew}>
-                                "{inputName}" 새로 등록
+                                {t('performerDuplicateModal.buttons.createNew', { name: inputName })}
                             </button>
                             <button className="btn-cancel-modal" onClick={onCancel}>
-                                취소
+                                {t('performerDuplicateModal.buttons.cancel')}
                             </button>
                         </>
                     )}
                     {type === 'exact' && (
                         <button className="btn-cancel-modal" onClick={onCancel}>
-                            취소
+                            {t('performerDuplicateModal.buttons.cancel')}
                         </button>
                     )}
                 </div>
