@@ -53,7 +53,10 @@ function AppContent() {
             <div className="app">
                 <header className="app-header">
                     <div className="header-content">
-                        <h1>🗺️ {t('header.title')}</h1>
+                        <div className="header-title">
+                            <h1>🗺️ {t('header.title')}</h1>
+                            <span className="preview-badge">Preview</span>
+                        </div>
                         <p>{t('header.subtitle')}</p>
                     </div>
                     <div className="header-controls">

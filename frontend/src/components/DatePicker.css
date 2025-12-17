@@ -34,6 +34,18 @@
     background: rgba(255, 107, 53, 0.05);
 }
 
+/* 달력 아이콘 색상을 주황색으로 변경 */
+.date-input::-webkit-calendar-picker-indicator {
+    cursor: pointer;
+    filter: invert(56%) sepia(74%) saturate(2476%) hue-rotate(343deg) brightness(102%) contrast(101%);
+    transition: all 0.3s;
+}
+
+.date-input::-webkit-calendar-picker-indicator:hover {
+    filter: invert(56%) sepia(74%) saturate(2476%) hue-rotate(343deg) brightness(110%) contrast(101%);
+    transform: scale(1.1);
+}
+
 /* Responsive Design */
 @media (max-width: 480px) {
     .date-picker label {
