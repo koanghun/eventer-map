@@ -52,7 +52,8 @@ services:
       context: ./frontend
       dockerfile: Dockerfile
       args:
-        - REACT_APP_API_URL=${REACT_APP_API_URL:-http://localhost:7773}
+        # REACT_APP_API_URL은 설정하지 않음 (기본값 '/api' 사용)
+        # 프로덕션에서는 nginx 프록시를 통해 /api -> http://backend:8000
         - REACT_APP_GOOGLE_MAPS_API_KEY=${REACT_APP_GOOGLE_MAPS_API_KEY}
     container_name: eventer-map-frontend
     ports:
