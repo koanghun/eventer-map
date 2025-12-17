@@ -47,6 +47,9 @@ Thumbs.db
 *.sqlite
 *.sqlite3
 
+# Backups
+backups/
+
 # Logs (exclude application logs, but keep docs/logs for documentation)
 *.log
 **/*.log
