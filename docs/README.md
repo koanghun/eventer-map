@@ -32,17 +32,39 @@
 시간순 개발 활동 기록 (연도/월별 구조)
 - [2025년 11월](./logs/2025/11-November.md)
 
-### 🔧 [기술 결정](./decisions/)
+### ⚙️ [설정 가이드](./setup/)
+개발 및 프로덕션 환경 설정
+- [개발 환경 설정](./setup/DEVELOPMENT.md) - Docker + SSH 통합
+- [환경 변수](./setup/ENVIRONMENT_VARIABLES.md)
+- [Google OAuth 설정](./setup/GOOGLE_OAUTH_SETUP.md)
+- [트러블슈팅](./setup/TROUBLESHOOTING.md)
+
+### 🚀 [배포 가이드](./deployment/)
+프로덕션 환경 배포
+- [배포 가이드](./deployment/DEPLOYMENT_GUIDE.md) - Docker Compose + Synology NAS
+
+### 🔧 [운영 가이드](./operations/)
+백업 및 유지보수
+- [백업 가이드](./operations/backup-guide.md) - 자동 백업 및 복원
+- [세션 종료](./operations/SESSION_CLOSING.md)
+
+### 🔍 [기술 결정](./decisions/)
 주제별 기술적 의사결정
 - [아키텍처](./decisions/architecture.md)
 - [데이터베이스](./decisions/database.md)
 - [프론트엔드](./decisions/frontend.md)
 - [인프라/배포](./decisions/infrastructure.md)
 - [최적화](./decisions/optimization.md)
+- [중복 검사](./decisions/deduplication.md)
 
 ### 📐 [설계 문서](./designs/)
 주요 기능의 상세 설계
 - [이벤트 중복 검사 시스템](./designs/event-duplicate-detection.md)
+- [OAuth 시퀀스](./designs/OAUTH_SEQUENCE.md)
+
+### 🔬 [분석 문서](./analysis/)
+코드 분석 및 리팩토링
+- [handleEmployeeSelectionToggle 분석](./analysis/handleEmployeeSelectionToggle.md)
 
 ---
 
@@ -63,6 +85,17 @@
 1. [PROJECT_OVERVIEW.md](./PROJECT_OVERVIEW.md) 읽기
 2. [메인 README.md](../README.md) 읽기
 3. [CURRENT_STATUS.md](./CURRENT_STATUS.md)에서 현재 상태 확인
+
+### 개발 환경 설정
+1. [개발 환경 설정](./setup/DEVELOPMENT.md) 따라하기
+2. [환경 변수](./setup/ENVIRONMENT_VARIABLES.md) 설정
+3. 문제 발생 시 [트러블슈팅](./setup/TROUBLESHOOTING.md) 참고
+
+### 프로덕션 배포
+1. [배포 가이드](./deployment/DEPLOYMENT_GUIDE.md) 읽기
+2. 환경 변수 및 API 키 설정
+3. Docker Compose 또는 Container Manager로 배포
+4. [백업 시스템](./operations/backup-guide.md) 설정
 
 ### 개발을 재개하는 경우
 1. [CURRENT_STATUS.md](./CURRENT_STATUS.md)에서 다음 단계 확인
@@ -129,18 +162,42 @@ docs/
 ├── README.md                    # 이 문서
 ├── PROJECT_OVERVIEW.md          # 프로젝트 개요
 ├── CURRENT_STATUS.md            # 현재 상태
-├── logs/                        # 개발 일지
-│   ├── README.md               # 일지 인덱스
-│   └── 2025/
-│       └── 11-November.md      # 2025년 11월
+│
+├── setup/                       # 설정 가이드
+│   ├── README.md
+│   ├── DEVELOPMENT.md           # 개발 환경 설정
+│   ├── ENVIRONMENT_VARIABLES.md
+│   ├── GOOGLE_OAUTH_SETUP.md
+│   └── TROUBLESHOOTING.md
+│
+├── deployment/                  # 배포 가이드
+│   ├── README.md
+│   └── DEPLOYMENT_GUIDE.md      # 프로덕션 배포
+│
+├── operations/                  # 운영 가이드
+│   ├── README.md
+│   ├── backup-guide.md
+│   └── SESSION_CLOSING.md
+│
 ├── decisions/                   # 기술 결정
-│   ├── README.md               # 결정 인덱스
-│   ├── architecture.md         # 아키텍처
-│   ├── database.md             # 데이터베이스
-│   ├── frontend.md             # 프론트엔드
-│   ├── infrastructure.md       # 인프라
-│   └── optimization.md         # 최적화
-└── designs/                     # 설계 문서
-    ├── README.md               # 설계 인덱스
-    └── event-duplicate-detection.md  # 이벤트 중복 검사
+│   ├── README.md
+│   ├── architecture.md
+│   ├── database.md
+│   ├── frontend.md
+│   ├── infrastructure.md
+│   ├── optimization.md
+│   └── deduplication.md
+│
+├── designs/                     # 설계 문서
+│   ├── README.md
+│   ├── event-duplicate-detection.md
+│   └── OAUTH_SEQUENCE.md
+│
+├── analysis/                    # 분석 문서
+│   └── handleEmployeeSelectionToggle.md
+│
+└── logs/                        # 개발 일지
+    ├── README.md
+    └── 2025/
+        └── 11-November.md
 ```
