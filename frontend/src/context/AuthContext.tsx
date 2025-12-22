@@ -62,11 +62,34 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             }
 
             if (token) {
-                // 토큰 저장 (페이지 이동 없음!)
+                // 토큰 저장
                 localStorage.setItem('auth_token', token);
                 setToken(token);
 
-                console.log('OAuth 로그인 성공 (SPA 모드)');
+                // URL에서 사용자 정보 추출 (즉시 로그인 상태 표시)
+                const userId = params.get('user_id');
+                const userEmail = params.get('user_email');
+                const userName = params.get('user_name');
+                const userPicture = params.get('user_picture');
+
+                if (userId && userEmail) {
+                    // 사용자 정보가 있으면 즉시 설정 (API 호출 불필요!)
+                    const userInfo: User = {
+                        id: parseInt(userId, 10),
+                        email: userEmail,
+                        name: userName || null,
+                        profile_image: userPicture || null,
+                        created_at: new Date().toISOString() // 임시값 (실제로는 사용 안 함)
+                    };
+
+                    setUser(userInfo);
+                    setIsLoading(false);
+
+                    console.log('OAuth 로그인 성공 (즉시 모드 - API 호출 없음)', userEmail);
+                } else {
+                    // 사용자 정보가 없으면 기존 방식대로 fetchUser 호출
+                    console.log('OAuth 로그인 성공 (기존 모드 - API 호출 필요)');
+                }
 
                 // URL 정리 (페이지는 그대로, URL만 변경)
                 window.history.replaceState({}, document.title, window.location.pathname);

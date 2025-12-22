@@ -141,9 +141,19 @@ async def google_callback(request: Request, code: str, state: str, db: Session =
         # 6. 자체 JWT 토큰 생성
         jwt_token = create_access_token({"sub": str(user.id)})
         
-        # 7. 프론트엔드로 리다이렉트 (state 쿠키 삭제)
+        # 7. 프론트엔드로 리다이렉트 (사용자 정보 포함으로 즉시 로그인 상태 표시 가능)
+        from urllib.parse import urlencode
+        
+        user_params = {
+            'token': jwt_token,
+            'user_id': user.id,
+            'user_email': user.email,
+            'user_name': user.name or '',
+            'user_picture': user.profile_image or ''
+        }
+        
         response = RedirectResponse(
-            url=f"{FRONTEND_URL}/auth/callback?token={jwt_token}"
+            url=f"{FRONTEND_URL}/auth/callback?{urlencode(user_params)}"
         )
         response.delete_cookie(key="oauth_state")
         return response

@@ -26,7 +26,7 @@ function AppContent() {
     const [selectedDate, setSelectedDate] = useState<string>(format(new Date(), 'yyyy-MM-dd'));
     const { theme, toggleTheme } = useTheme();
     const { language, changeLanguage } = useLanguage();
-    const { isAuthenticated } = useAuth();
+    const { isAuthenticated, isLoading } = useAuth();
 
     // 3개 훅으로 분리된 책임
     const eventData = useEventData(selectedDate);
@@ -40,7 +40,6 @@ function AppContent() {
         // 프록시 사용을 위해 상대 경로 사용
         window.location.href = `/api/auth/google/login`;
     };
-
 
 
     return (
@@ -66,7 +65,24 @@ function AppContent() {
                         <button className="theme-toggle" onClick={toggleTheme} title={t('header.themeToggle')}>
                             {theme === 'dark' ? '☀️' : '🌙'}
                         </button>
-                        {isAuthenticated ? (
+                        {isLoading ? (
+                            <div style={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '8px',
+                                color: 'var(--text-primary)'
+                            }}>
+                                <div style={{
+                                    width: '16px',
+                                    height: '16px',
+                                    border: '2px solid var(--primary-color)',
+                                    borderTopColor: 'transparent',
+                                    borderRadius: '50%',
+                                    animation: 'spin 0.8s linear infinite'
+                                }} />
+                                <span style={{ fontSize: '14px' }}>로그인 중...</span>
+                            </div>
+                        ) : isAuthenticated ? (
                             <UserProfile />
                         ) : (
                             <LoginButton onClick={handleLogin} />
