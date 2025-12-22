@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
 import { User } from '../types/auth';
 import axios from 'axios';
 
@@ -22,15 +22,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     );
     const [isLoading, setIsLoading] = useState(true);
 
-    useEffect(() => {
-        if (token) {
-            fetchUser();
-        } else {
-            setIsLoading(false);
-        }
-    }, [token]);
+    const logout = useCallback(() => {
+        localStorage.removeItem('auth_token');
+        setToken(null);
+        setUser(null);
+    }, []);
 
-    const fetchUser = async () => {
+    const fetchUser = useCallback(async () => {
         try {
             // 프록시 사용을 위해 상대 경로 사용
             const response = await axios.get(`/api/auth/me`, {
@@ -43,18 +41,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         } finally {
             setIsLoading(false);
         }
-    };
+    }, [token, logout]);
 
-    const login = async (newToken: string) => {
+    useEffect(() => {
+        if (token) {
+            fetchUser();
+        } else {
+            setIsLoading(false);
+        }
+    }, [token, fetchUser]);
+
+    const login = useCallback(async (newToken: string) => {
         localStorage.setItem('auth_token', newToken);
         setToken(newToken);
-    };
-
-    const logout = () => {
-        localStorage.removeItem('auth_token');
-        setToken(null);
-        setUser(null);
-    };
+    }, []);
 
     return (
         <AuthContext.Provider value={{

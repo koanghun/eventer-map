@@ -12,15 +12,20 @@ export default function AuthCallback() {
         const error = params.get('error');
 
         if (token) {
-            login(token);
-            window.location.href = '/';
+            login(token).then(() => {
+                // 토큰 설정이 완료된 후 약간의 지연을 주어 모바일 기기에서의 저장소 반영 보장
+                setTimeout(() => {
+                    window.location.replace('/');
+                }, 500);
+            });
         } else if (error) {
             alert(t('auth.loginFailed'));
-            window.location.href = '/';
+            window.location.replace('/');
         } else {
-            window.location.href = '/';
+            window.location.replace('/');
         }
-    }, [login, t]);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
 
     return (
         <div style={{
