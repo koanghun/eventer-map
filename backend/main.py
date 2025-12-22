@@ -2,7 +2,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from database import engine
 import models
-from routes import events, places, performers, auth
+from routes import events, places, performers, auth, favorites
 import os
 from dotenv import load_dotenv
 
@@ -33,6 +33,7 @@ app.include_router(auth.router)
 app.include_router(events.router)
 app.include_router(places.router)
 app.include_router(performers.router)
+app.include_router(favorites.router)
 
 
 @app.get("/")

@@ -1,41 +1,47 @@
-/* ========== Multi-Event InfoWindow ========== */
+/* Google InfoWindow 최적화 스타일 - Multi-Event (그룹) */
+
+/* Multi-Event InfoWindow Container */
 .info-window-multi {
-    min-width: 350px;
-    max-width: 450px;
+    min-width: 300px;
+    max-width: 400px;
     padding: 0;
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', sans-serif;
 }
 
+/* Header Section - Google InfoWindow 스타일 + EventForm 테마 (보라색) */
 .info-header-multi {
     background: linear-gradient(135deg, #9B59B6 0%, #8E44AD 100%);
-    padding: 1rem;
-    margin: -0.5rem -0.5rem 0 -0.5rem;
-    border-radius: 4px 4px 0 0;
-    box-shadow: 0 2px 10px rgba(155, 89, 182, 0.3);
+    padding: 16px;
+    margin: -8px -8px 0 -8px;
+    border-radius: 8px 8px 0 0;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
 .info-header-multi h3 {
     color: white;
-    margin: 0 0 0.5rem 0;
-    font-size: 1.1rem;
-    font-weight: 600;
-    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+    margin: 0 0 4px 0;
+    font-size: 16px;
+    font-weight: 500;
+    text-shadow: none;
 }
 
 .info-location-name {
     color: rgba(255, 255, 255, 0.9);
-    font-size: 0.85rem;
+    font-size: 13px;
     margin: 0;
+    font-weight: 400;
 }
 
+/* Event List Container */
 .info-event-list {
-    max-height: 400px;
+    max-height: 320px;
     overflow-y: auto;
-    margin: 0.75rem 0;
+    margin: 8px 0;
 }
 
+/* Event Item - Google 리스트 스타일 */
 .info-event-item {
-    border-bottom: 1px solid #f0f0f0;
+    border-bottom: 1px solid #e8e8e8;
     transition: all 0.2s ease;
 }
 
@@ -44,55 +50,62 @@
 }
 
 .info-event-item.expanded {
-    background: linear-gradient(135deg, rgba(155, 89, 182, 0.05) 0%, rgba(142, 68, 173, 0.05) 100%);
+    background: #f8f9fa;
 }
 
+/* Event Header - 클릭 가능한 영역 */
 .info-event-header {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 0.75rem;
+    padding: 12px;
     cursor: pointer;
     transition: background 0.2s ease;
 }
 
 .info-event-header:hover {
-    background: rgba(155, 89, 182, 0.08);
+    background: #f8f9fa;
 }
 
+/* Event Title Container */
 .info-event-title {
     display: flex;
     flex-direction: column;
-    gap: 0.3rem;
+    gap: 6px;
     flex: 1;
 }
 
 .event-title-text {
-    font-weight: 600;
-    font-size: 0.95rem;
-    color: #333;
+    font-weight: 500;
+    font-size: 14px;
+    color: #202124;
+    line-height: 1.3;
 }
 
+/* Event Date Badge - Google Chip 스타일 */
 .event-date-badge {
     display: inline-block;
-    font-size: 0.75rem;
-    color: #9B59B6;
-    background: rgba(155, 89, 182, 0.1);
-    padding: 0.2rem 0.5rem;
+    font-size: 12px;
+    color: #5f6368;
+    background: #f1f3f4;
+    padding: 4px 8px;
     border-radius: 12px;
-    font-weight: 500;
+    font-weight: 400;
     width: fit-content;
 }
 
+/* Expand Icon - Google Material 스타일 */
 .expand-icon {
     color: #9B59B6;
-    font-size: 0.8rem;
-    margin-left: 0.5rem;
+    font-size: 14px;
+    margin-left: 8px;
     transition: transform 0.2s ease;
+    font-weight: 500;
 }
 
+/* Event Details Section */
 .info-event-details {
-    padding: 0 0.75rem 0.75rem 0.75rem;
+    padding: 0 12px 12px 12px;
     animation: slideDown 0.2s ease;
 }
 
@@ -108,41 +121,70 @@
     }
 }
 
+/* Scrollbar - Google 스타일 */
 .info-event-list::-webkit-scrollbar {
-    width: 6px;
+    width: 8px;
 }
 
 .info-event-list::-webkit-scrollbar-track {
-    background: #f1f1f1;
-    border-radius: 10px;
+    background: transparent;
 }
 
 .info-event-list::-webkit-scrollbar-thumb {
-    background: #9B59B6;
-    border-radius: 10px;
+    background: #dadce0;
+    border-radius: 4px;
 }
 
 .info-event-list::-webkit-scrollbar-thumb:hover {
-    background: #8E44AD;
+    background: #9B59B6;
 }
 
 /* Responsive Design */
 /* Small Mobile: 320px - 480px */
 @media (max-width: 480px) {
     .info-window-multi {
-        min-width: min(300px, 92vw);
-        max-width: min(350px, 95vw);
+        min-width: min(260px, 92vw);
+        max-width: min(320px, 95vw);
+    }
+
+    .info-header-multi {
+        padding: 12px;
+    }
+
+    .info-header-multi h3 {
+        font-size: 15px;
+    }
+
+    .info-location-name {
+        font-size: 12px;
     }
 
     .info-event-list {
-        max-height: 300px;
+        max-height: 260px;
+    }
+
+    .info-event-header {
+        padding: 10px;
+    }
+
+    .event-title-text {
+        font-size: 13px;
+    }
+
+    .event-date-badge {
+        font-size: 11px;
+        padding: 3px 6px;
     }
 }
 
 /* Mobile: 481px - 767px */
 @media (min-width: 481px) and (max-width: 767px) {
     .info-window-multi {
-        min-width: min(320px, 90vw);
-        max-width: min(420px, 95vw);
+        min-width: min(280px, 90vw);
+        max-width: min(380px, 95vw);
+    }
+
+    .info-event-list {
+        max-height: 280px;
     }
 }

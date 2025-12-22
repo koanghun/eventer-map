@@ -7,12 +7,18 @@ interface SingleEventInfoWindowProps {
     event: Event;
     position: { lat: number; lng: number };
     onClose: () => void;
+    isAuthenticated?: boolean;
+    isFavorited?: boolean;
+    onToggleFavorite?: (eventId: number) => void;
 }
 
 export default function SingleEventInfoWindow({
     event,
     position,
-    onClose
+    onClose,
+    isAuthenticated,
+    isFavorited,
+    onToggleFavorite
 }: SingleEventInfoWindowProps) {
     const { t } = useTranslation();
 
@@ -20,7 +26,21 @@ export default function SingleEventInfoWindow({
         <InfoWindow position={position} onCloseClick={onClose}>
             <div className="info-window">
                 <div className="info-header">
+
                     <h3>{event.title}</h3>
+                    {isAuthenticated && onToggleFavorite && (
+                        <div className="attendance-control">
+                            <span className="attendance-label">{t('eventMap.infoWindow.attendance')}</span>
+                            <div
+                                className={`toggle-switch ${isFavorited ? 'active' : ''}`}
+                                onClick={() => event.id && onToggleFavorite(event.id)}
+                                title={isFavorited ? '참가 취소' : '참가 등록'}
+                            >
+                                <div className="toggle-knob"></div>
+                            </div>
+                        </div>
+                    )}
+
                 </div>
 
                 <table className="info-table">

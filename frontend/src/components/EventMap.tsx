@@ -11,6 +11,9 @@ interface EventMapProps {
     selectedEvent: Event | null;
     onMarkerClick: (event: Event) => void;
     onInfoWindowClose: () => void;
+    isAuthenticated?: boolean;
+    favoriteEventIds?: number[];
+    onToggleFavorite?: (eventId: number) => void;
 }
 
 type InfoWindowState =
@@ -108,7 +111,7 @@ const mapStyles = [
     },
 ];
 
-function EventMap({ events, selectedEvent, onMarkerClick, onInfoWindowClose }: EventMapProps) {
+function EventMap({ events, selectedEvent, onMarkerClick, onInfoWindowClose, isAuthenticated, favoriteEventIds, onToggleFavorite }: EventMapProps) {
     const { theme } = useTheme();
 
     const mapRef = useRef<google.maps.Map | null>(null);
@@ -144,12 +147,13 @@ function EventMap({ events, selectedEvent, onMarkerClick, onInfoWindowClose }: E
         return groups;
     }, [events]);
 
-    const getMapCenter = () => {
+    // 지도 중심 계산 (메모이제이션으로 안정화)
+    const mapCenter = useMemo(() => {
         if (events.length === 0) return defaultCenter;
         const avgLat = events.reduce((sum, e) => sum + e.latitude, 0) / events.length;
         const avgLng = events.reduce((sum, e) => sum + e.longitude, 0) / events.length;
         return { lat: avgLat, lng: avgLng };
-    };
+    }, [events]);  // events가 변경될 때만 재계산
 
     const handleMarkerClick = (eventsAtLocation: Event[]) => {
         if (eventsAtLocation.length === 1) {
@@ -212,6 +216,9 @@ function EventMap({ events, selectedEvent, onMarkerClick, onInfoWindowClose }: E
                     lng: selectedEvent.longitude
                 }}
                 onClose={handleInfoWindowClose}
+                isAuthenticated={isAuthenticated}
+                isFavorited={favoriteEventIds?.includes(selectedEvent.id || 0)}
+                onToggleFavorite={onToggleFavorite}
             />
         );
     };
@@ -220,7 +227,7 @@ function EventMap({ events, selectedEvent, onMarkerClick, onInfoWindowClose }: E
         <div className="event-map">
             <GoogleMap
                 mapContainerStyle={mapContainerStyle}
-                center={getMapCenter()}
+                center={mapCenter}
                 zoom={events.length > 0 ? 12 : 11}
                 onLoad={onMapLoad}
                 options={{

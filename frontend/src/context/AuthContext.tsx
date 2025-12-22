@@ -9,8 +9,10 @@ interface AuthContextType {
     token: string | null;
     isAuthenticated: boolean;
     isLoading: boolean;
+    favoriteEventIds: number[];
     login: (token: string) => Promise<void>;
     logout: () => void;
+    toggleFavorite: (eventId: number) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -21,6 +23,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         localStorage.getItem('auth_token')
     );
     const [isLoading, setIsLoading] = useState(true);
+    const [favoriteEventIds, setFavoriteEventIds] = useState<number[]>([]);
 
     const logout = useCallback(() => {
         localStorage.removeItem('auth_token');
@@ -30,11 +33,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     const fetchUser = useCallback(async () => {
         try {
-            // 프록시 사용을 위해 상대 경로 사용
             const response = await axios.get(`/api/auth/me`, {
                 headers: { Authorization: `Bearer ${token}` }
             });
             setUser(response.data);
+            setFavoriteEventIds(response.data.favorite_event_ids || []); // 즐겨찾기 초기화
         } catch (error) {
             console.error('Failed to fetch user:', error);
             logout();
@@ -79,7 +82,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                         email: userEmail,
                         name: userName || null,
                         profile_image: userPicture || null,
-                        created_at: new Date().toISOString() // 임시값 (실제로는 사용 안 함)
+                        created_at: new Date().toISOString(), // 임시값 (실제로는 사용 안 함)
+                        favorite_event_ids: []  // 초기값 (fetchUser에서 갱신됨)
                     };
 
                     setUser(userInfo);
@@ -129,14 +133,49 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setToken(newToken);
     }, []);
 
+    const toggleFavorite = useCallback(async (eventId: number) => {
+        if (!token || !user) return;
+
+        // 함수형 업데이트로 최신 상태 참조
+        setFavoriteEventIds(prevIds => {
+            const isFavorited = prevIds.includes(eventId);
+            const method = isFavorited ? 'DELETE' : 'POST';
+
+            // 비동기 API 호출 (상태 업데이트와 분리)
+            axios({
+                method,
+                url: `/api/favorites/events/${eventId}`,
+                headers: { Authorization: `Bearer ${token}` },
+            })
+                .then(response => {
+                    if (response.status === 200) {
+                        // API 응답으로 상태 동기화
+                        setFavoriteEventIds(response.data.favorite_event_ids);
+                    }
+                })
+                .catch(error => {
+                    console.error('Failed to toggle favorite:', error);
+                    // 에러 시 이전 상태로 롤백
+                    return prevIds;
+                });
+
+            // 낙관적 업데이트 (즉시 UI 반영)
+            return isFavorited
+                ? prevIds.filter(id => id !== eventId)
+                : [...prevIds, eventId];
+        });
+    }, [token, user]); // favoriteEventIds 제거!
+
     return (
         <AuthContext.Provider value={{
             user,
             token,
             isAuthenticated: !!user,
             isLoading,
+            favoriteEventIds,
             login,
-            logout
+            logout,
+            toggleFavorite
         }}>
             {children}
         </AuthContext.Provider>

@@ -96,7 +96,8 @@
             "date": "날짜",
             "time": "시간",
             "performers": "출연자",
-            "link": "상세 정보"
+            "link": "상세 정보",
+            "attendance": "참가"
         }
     },
     "duplicateModal": {

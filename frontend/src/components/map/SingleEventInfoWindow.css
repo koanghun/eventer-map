@@ -1,38 +1,104 @@
+/* Google InfoWindow 최적화 스타일 - EventForm 테마 적용 */
+
 /* InfoWindow Container */
 .info-window {
-    min-width: 320px;
-    max-width: 400px;
+    min-width: 280px;
+    max-width: 360px;
     padding: 0;
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', sans-serif;
 }
 
-/* Header Section */
+/* Header Section - Google InfoWindow 스타일 + EventForm 테마 */
 .info-header {
     background: linear-gradient(135deg, var(--primary-orange) 0%, var(--accent-orange) 100%);
-    padding: 1rem;
-    margin: -0.5rem -0.5rem 0 -0.5rem;
-    border-radius: 4px 4px 0 0;
-    box-shadow: 0 2px 10px rgba(255, 107, 53, 0.3);
+    padding: 16px;
+    margin: -8px -8px 0 -8px;
+    border-radius: 8px 8px 0 0;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
 }
 
 .info-header h3 {
     color: white;
     margin: 0;
-    font-size: 1.2rem;
-    font-weight: 600;
-    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+    padding: 0;
+    font-size: 16px;
+    font-weight: 500;
+    text-shadow: none;
+    flex: 1;
+    line-height: 1.3;
 }
 
-/* Table Styles */
+/* Attendance Control Container */
+.attendance-control {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.attendance-label {
+    color: white;
+    font-size: 13px;
+    font-weight: 500;
+    white-space: nowrap;
+    line-height: 1;
+}
+
+/* iOS-style Toggle Switch */
+.toggle-switch {
+    position: relative;
+    width: 44px;
+    height: 26px;
+    background: rgba(255, 255, 255, 0.3);
+    border-radius: 13px;
+    cursor: pointer;
+    transition: background 0.3s ease;
+    flex-shrink: 0;
+}
+
+.toggle-switch:hover {
+    background: rgba(255, 255, 255, 0.4);
+}
+
+/* Toggle Knob */
+.toggle-knob {
+    position: absolute;
+    top: 2px;
+    left: 2px;
+    width: 22px;
+    height: 22px;
+    background: white;
+    border-radius: 50%;
+    transition: transform 0.3s ease;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+}
+
+/* Active State */
+.toggle-switch.active {
+    background: rgba(52, 199, 89, 0.9);
+}
+
+.toggle-switch.active:hover {
+    background: rgba(48, 179, 80, 0.9);
+}
+
+.toggle-switch.active .toggle-knob {
+    transform: translateX(18px);
+}
+
+/* Table Styles - Google InfoWindow 최적화 */
 .info-table {
     width: 100%;
     border-collapse: collapse;
-    margin: 0.75rem 0;
+    margin: 12px 0;
     background: white;
 }
 
 .info-table tr {
-    border-bottom: 1px solid #f0f0f0;
+    border-bottom: 1px solid #e8e8e8;
 }
 
 .info-table tr:last-child {
@@ -40,129 +106,146 @@
 }
 
 .info-table td {
-    padding: 0.6rem 0.75rem;
+    padding: 8px 12px;
     vertical-align: top;
 }
 
 .info-label {
-    font-weight: 600;
-    color: var(--primary-orange);
+    font-weight: 500;
+    color: #5f6368;
     white-space: nowrap;
-    width: 85px;
-    font-size: 0.9rem;
+    width: 70px;
+    font-size: 13px;
 }
 
 .info-value {
-    color: #333;
-    font-size: 0.9rem;
-    line-height: 1.4;
+    color: #202124;
+    font-size: 13px;
+    line-height: 1.5;
 }
 
 .info-address {
-    font-size: 0.85rem;
-    color: #666;
+    font-size: 13px;
+    color: #5f6368;
 }
 
-/* Map Links in Table */
+/* Map Links in Table - Google 링크 스타일 */
 .info-map-link {
-    color: #333;
+    color: #1a73e8;
     text-decoration: none;
     transition: all 0.2s ease;
     cursor: pointer;
-    position: relative;
 }
 
 .info-map-link:hover {
-    color: var(--primary-orange);
+    color: #174ea6;
     text-decoration: underline;
 }
 
-/* Description Section */
+/* Description Section - Google 스타일 */
 .info-description {
-    margin: 0.75rem 0.75rem 1rem 0.75rem;
-    padding: 0.75rem;
-    background: linear-gradient(135deg, rgba(255, 107, 53, 0.1) 0%, rgba(255, 140, 66, 0.1) 100%);
+    margin: 12px;
+    padding: 12px;
+    background: #f8f9fa;
     border-left: 3px solid var(--primary-orange);
     border-radius: 4px;
 }
 
 .info-description-label {
-    font-weight: 600;
-    color: var(--primary-orange);
-    font-size: 0.85rem;
-    margin-bottom: 0.4rem;
+    font-weight: 500;
+    color: #5f6368;
+    font-size: 13px;
+    margin-bottom: 6px;
 }
 
 .info-description-text {
-    color: #555;
-    font-size: 0.85rem;
+    color: #202124;
+    font-size: 13px;
     line-height: 1.5;
     white-space: pre-wrap;
     word-wrap: break-word;
 }
 
-/* Link Button */
+/* Link Button - Google 액션 버튼 스타일 + EventForm 테마 */
 .info-link {
     display: block;
-    margin: 0.75rem;
-    padding: 0.65rem 1rem;
+    margin: 12px;
+    padding: 10px 16px;
     background: linear-gradient(135deg, var(--primary-orange) 0%, var(--accent-orange) 100%);
     color: white;
     text-decoration: none;
-    font-weight: 600;
-    font-size: 0.9rem;
+    font-weight: 500;
+    font-size: 14px;
     text-align: center;
-    border-radius: 6px;
-    transition: all 0.3s ease;
-    box-shadow: 0 2px 8px rgba(255, 107, 53, 0.4);
+    border-radius: 4px;
+    transition: all 0.2s ease;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12), 0 1px 2px rgba(0, 0, 0, 0.24);
 }
 
 .info-link:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 4px 15px rgba(255, 107, 53, 0.6),
-        0 0 20px rgba(255, 107, 53, 0.4);
+    transform: translateY(-1px);
+    box-shadow: 0 3px 6px rgba(0, 0, 0, 0.16), 0 3px 6px rgba(0, 0, 0, 0.23);
     text-decoration: none;
 }
 
 .info-link:active {
     transform: translateY(0);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12), 0 1px 2px rgba(0, 0, 0, 0.24);
 }
 
 /* Responsive Design */
 /* Small Mobile: 320px - 480px */
 @media (max-width: 480px) {
     .info-window {
-        min-width: min(280px, 92vw);
-        max-width: min(320px, 95vw);
+        min-width: min(260px, 92vw);
+        max-width: min(300px, 95vw);
     }
 
     .info-header {
-        padding: 0.75rem;
+        padding: 12px;
     }
 
     .info-header h3 {
-        font-size: 1rem;
+        font-size: 15px;
+    }
+
+    .attendance-label {
+        font-size: 12px;
+    }
+
+    .toggle-switch {
+        width: 40px;
+        height: 24px;
+    }
+
+    .toggle-knob {
+        width: 20px;
+        height: 20px;
+    }
+
+    .toggle-switch.active .toggle-knob {
+        transform: translateX(16px);
     }
 
     .info-label {
-        width: 70px;
-        font-size: 0.85rem;
+        width: 60px;
+        font-size: 12px;
     }
 
     .info-value {
-        font-size: 0.85rem;
+        font-size: 12px;
     }
 
     .info-link {
-        padding: 0.5rem 0.75rem;
-        font-size: 0.85rem;
+        padding: 8px 12px;
+        font-size: 13px;
     }
 }
 
 /* Mobile: 481px - 767px */
 @media (min-width: 481px) and (max-width: 767px) {
     .info-window {
-        min-width: min(300px, 90vw);
-        max-width: min(380px, 95vw);
+        min-width: min(270px, 90vw);
+        max-width: min(340px, 95vw);
     }
 }
