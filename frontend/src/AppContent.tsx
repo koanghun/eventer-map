@@ -26,7 +26,7 @@ export default function AppContent() {
     const [selectedDate, setSelectedDate] = useState<string>(format(new Date(), 'yyyy-MM-dd'));
     const { theme, toggleTheme } = useTheme();
     const { language, changeLanguage } = useLanguage();
-    const { isAuthenticated, isLoading, favoriteEventIds, toggleFavorite } = useAuth();
+    const { isAuthenticated, isLoading } = useAuth();
 
     // 3개 훅으로 분리된 책임
     const eventData = useEventData(selectedDate);
@@ -121,9 +121,6 @@ export default function AppContent() {
                             selectedEvent={eventSelection.selectedEvent}
                             onMarkerClick={eventSelection.selectEvent}
                             onInfoWindowClose={eventSelection.clearSelection}
-                            isAuthenticated={isAuthenticated}
-                            favoriteEventIds={favoriteEventIds}
-                            onToggleFavorite={toggleFavorite}
                         />
                     </main>
                 </div>

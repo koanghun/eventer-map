@@ -1,26 +1,23 @@
 import { InfoWindow } from '@react-google-maps/api';
 import { Event } from '../../types/event';
 import { useTranslation } from 'react-i18next';
+import { useAuth } from '../../context/AuthContext';
 import './SingleEventInfoWindow.css';
 
 interface SingleEventInfoWindowProps {
     event: Event;
     position: { lat: number; lng: number };
     onClose: () => void;
-    isAuthenticated?: boolean;
-    isFavorited?: boolean;
-    onToggleFavorite?: (eventId: number) => void;
 }
 
 export default function SingleEventInfoWindow({
     event,
     position,
-    onClose,
-    isAuthenticated,
-    isFavorited,
-    onToggleFavorite
+    onClose
 }: SingleEventInfoWindowProps) {
     const { t } = useTranslation();
+    const { isAuthenticated, favoriteEventIds, toggleFavorite } = useAuth();
+    const isFavorited = favoriteEventIds.includes(event.id || 0);
 
     return (
         <InfoWindow position={position} onCloseClick={onClose}>
@@ -28,12 +25,12 @@ export default function SingleEventInfoWindow({
                 <div className="info-header">
 
                     <h3>{event.title}</h3>
-                    {isAuthenticated && onToggleFavorite && (
+                    {isAuthenticated && (
                         <div className="attendance-control">
                             <span className="attendance-label">{t('eventMap.infoWindow.attendance')}</span>
                             <div
                                 className={`toggle-switch ${isFavorited ? 'active' : ''}`}
-                                onClick={() => event.id && onToggleFavorite(event.id)}
+                                onClick={() => event.id && toggleFavorite(event.id)}
                                 title={isFavorited ? '참가 취소' : '참가 등록'}
                             >
                                 <div className="toggle-knob"></div>

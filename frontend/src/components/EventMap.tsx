@@ -11,9 +11,6 @@ interface EventMapProps {
     selectedEvent: Event | null;
     onMarkerClick: (event: Event) => void;
     onInfoWindowClose: () => void;
-    isAuthenticated?: boolean;
-    favoriteEventIds?: number[];
-    onToggleFavorite?: (eventId: number) => void;
 }
 
 type InfoWindowState =
@@ -111,7 +108,7 @@ const mapStyles = [
     },
 ];
 
-function EventMap({ events, selectedEvent, onMarkerClick, onInfoWindowClose, isAuthenticated, favoriteEventIds, onToggleFavorite }: EventMapProps) {
+function EventMap({ events, selectedEvent, onMarkerClick, onInfoWindowClose }: EventMapProps) {
     const { theme } = useTheme();
 
     const mapRef = useRef<google.maps.Map | null>(null);
@@ -216,9 +213,6 @@ function EventMap({ events, selectedEvent, onMarkerClick, onInfoWindowClose, isA
                     lng: selectedEvent.longitude
                 }}
                 onClose={handleInfoWindowClose}
-                isAuthenticated={isAuthenticated}
-                isFavorited={favoriteEventIds?.includes(selectedEvent.id || 0)}
-                onToggleFavorite={onToggleFavorite}
             />
         );
     };
