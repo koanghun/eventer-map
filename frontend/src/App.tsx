@@ -14,7 +14,7 @@ import { LanguageProvider, useLanguage } from './context/LanguageContext';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import LoginButton from './components/LoginButton';
 import UserProfile from './components/UserProfile';
-import AuthCallback from './components/AuthCallback';
+
 import { useEventData } from './hooks/useEventData';
 import { useEventSelection } from './hooks/useEventSelection';
 import { useEventForm } from './hooks/useEventForm';
@@ -41,12 +41,7 @@ function AppContent() {
         window.location.href = `/api/auth/google/login`;
     };
 
-    // Check if we're on the auth callback path
-    const isAuthCallback = window.location.pathname === '/auth/callback';
 
-    if (isAuthCallback) {
-        return <AuthCallback />;
-    }
 
     return (
         <LoadScript googleMapsApiKey={apiKey} libraries={GOOGLE_MAPS_LIBRARIES}>
