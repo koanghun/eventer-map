@@ -1,0 +1,148 @@
+/* ========== Multi-Event InfoWindow ========== */
+.info-window-multi {
+    min-width: 350px;
+    max-width: 450px;
+    padding: 0;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', sans-serif;
+}
+
+.info-header-multi {
+    background: linear-gradient(135deg, #9B59B6 0%, #8E44AD 100%);
+    padding: 1rem;
+    margin: -0.5rem -0.5rem 0 -0.5rem;
+    border-radius: 4px 4px 0 0;
+    box-shadow: 0 2px 10px rgba(155, 89, 182, 0.3);
+}
+
+.info-header-multi h3 {
+    color: white;
+    margin: 0 0 0.5rem 0;
+    font-size: 1.1rem;
+    font-weight: 600;
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.info-location-name {
+    color: rgba(255, 255, 255, 0.9);
+    font-size: 0.85rem;
+    margin: 0;
+}
+
+.info-event-list {
+    max-height: 400px;
+    overflow-y: auto;
+    margin: 0.75rem 0;
+}
+
+.info-event-item {
+    border-bottom: 1px solid #f0f0f0;
+    transition: all 0.2s ease;
+}
+
+.info-event-item:last-child {
+    border-bottom: none;
+}
+
+.info-event-item.expanded {
+    background: linear-gradient(135deg, rgba(155, 89, 182, 0.05) 0%, rgba(142, 68, 173, 0.05) 100%);
+}
+
+.info-event-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.75rem;
+    cursor: pointer;
+    transition: background 0.2s ease;
+}
+
+.info-event-header:hover {
+    background: rgba(155, 89, 182, 0.08);
+}
+
+.info-event-title {
+    display: flex;
+    flex-direction: column;
+    gap: 0.3rem;
+    flex: 1;
+}
+
+.event-title-text {
+    font-weight: 600;
+    font-size: 0.95rem;
+    color: #333;
+}
+
+.event-date-badge {
+    display: inline-block;
+    font-size: 0.75rem;
+    color: #9B59B6;
+    background: rgba(155, 89, 182, 0.1);
+    padding: 0.2rem 0.5rem;
+    border-radius: 12px;
+    font-weight: 500;
+    width: fit-content;
+}
+
+.expand-icon {
+    color: #9B59B6;
+    font-size: 0.8rem;
+    margin-left: 0.5rem;
+    transition: transform 0.2s ease;
+}
+
+.info-event-details {
+    padding: 0 0.75rem 0.75rem 0.75rem;
+    animation: slideDown 0.2s ease;
+}
+
+@keyframes slideDown {
+    from {
+        opacity: 0;
+        max-height: 0;
+    }
+
+    to {
+        opacity: 1;
+        max-height: 500px;
+    }
+}
+
+.info-event-list::-webkit-scrollbar {
+    width: 6px;
+}
+
+.info-event-list::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 10px;
+}
+
+.info-event-list::-webkit-scrollbar-thumb {
+    background: #9B59B6;
+    border-radius: 10px;
+}
+
+.info-event-list::-webkit-scrollbar-thumb:hover {
+    background: #8E44AD;
+}
+
+/* Responsive Design */
+/* Small Mobile: 320px - 480px */
+@media (max-width: 480px) {
+    .info-window-multi {
+        min-width: min(300px, 92vw);
+        max-width: min(350px, 95vw);
+    }
+
+    .info-event-list {
+        max-height: 300px;
+    }
+}
+
+/* Mobile: 481px - 767px */
+@media (min-width: 481px) and (max-width: 767px) {
+    .info-window-multi {
+        min-width: min(320px, 90vw);
+        max-width: min(420px, 95vw);
+    }
+}

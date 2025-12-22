@@ -1,9 +1,10 @@
 import { useMemo, useState, useRef, useCallback, useEffect } from 'react';
-import { GoogleMap, Marker, InfoWindow } from '@react-google-maps/api';
-import { useTranslation } from 'react-i18next';
+import { GoogleMap, Marker } from '@react-google-maps/api';
 import { Event } from '../types/event';
 import './EventMap.css';
 import { useTheme } from '../context/ThemeContext';
+import SingleEventInfoWindow from './map/SingleEventInfoWindow';
+import GroupEventInfoWindow from './map/GroupEventInfoWindow';
 
 interface EventMapProps {
     events: Event[];
@@ -109,7 +110,6 @@ const mapStyles = [
 
 function EventMap({ events, selectedEvent, onMarkerClick, onInfoWindowClose }: EventMapProps) {
     const { theme } = useTheme();
-    const { t } = useTranslation();
 
     const mapRef = useRef<google.maps.Map | null>(null);
     const [infoWindowStack, setInfoWindowStack] = useState<InfoWindowState | null>(null);
@@ -186,35 +186,13 @@ function EventMap({ events, selectedEvent, onMarkerClick, onInfoWindowClose }: E
         if (infoWindowStack?.type === 'group') {
             const { events: groupEvents, location } = infoWindowStack;
             return (
-                <InfoWindow
-                    position={location}
-                    onCloseClick={handleInfoWindowClose}
-                >
-                    <div className="info-window-multi">
-                        <div className="info-header-multi">
-                            <h3>{t('eventMap.groupModal.title', { count: groupEvents.length })}</h3>
-                            <p className="info-location-name">{groupEvents[0].location}</p>
-                        </div>
-
-                        <div className="info-event-list">
-                            {groupEvents.map(event => (
-                                <div
-                                    key={event.id}
-                                    className="info-event-item"
-                                    onClick={() => handleEventSelectFromGroup(event)}
-                                >
-                                    <div className="info-event-header">
-                                        <div className="info-event-title">
-                                            <span className="event-title-text">{event.title}</span>
-                                            <span className="event-date-badge">{event.event_date}</span>
-                                        </div>
-                                        <span className="expand-icon">▶</span>
-                                    </div>
-                                </div>
-                            ))}
-                        </div>
-                    </div>
-                </InfoWindow>
+                <GroupEventInfoWindow
+                    events={groupEvents}
+                    location={location}
+                    locationName={groupEvents[0].location}
+                    onClose={handleInfoWindowClose}
+                    onEventSelect={handleEventSelectFromGroup}
+                />
             );
         }
 
@@ -222,97 +200,14 @@ function EventMap({ events, selectedEvent, onMarkerClick, onInfoWindowClose }: E
         if (!selectedEvent) return null;
 
         return (
-            <InfoWindow
-                position={{ lat: selectedEvent.latitude, lng: selectedEvent.longitude }}
-                onCloseClick={handleInfoWindowClose}
-            >
-                <div className="info-window">
-                    <div className="info-header">
-                        <h3>{selectedEvent.title}</h3>
-                    </div>
-
-                    <table className="info-table">
-                        <tbody>
-                            <tr>
-                                <td className="info-label">📍 장소</td>
-                                <td className="info-value">
-                                    <a
-                                        href={`https://www.google.com/maps/search/?api=1&query=${selectedEvent.latitude},${selectedEvent.longitude}`}
-                                        target="_blank"
-                                        rel="noopener noreferrer"
-                                        className="info-map-link"
-                                        title="Google Maps에서 보기"
-                                    >
-                                        {selectedEvent.location}
-                                    </a>
-                                </td>
-                            </tr>
-                            {selectedEvent.address && (
-                                <tr>
-                                    <td className="info-label">📮 주소</td>
-                                    <td className="info-value info-address">
-                                        <a
-                                            href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(selectedEvent.address)}`}
-                                            target="_blank"
-                                            rel="noopener noreferrer"
-                                            className="info-map-link"
-                                            title="Google Maps에서 보기"
-                                        >
-                                            {selectedEvent.address}
-                                        </a>
-                                    </td>
-                                </tr>
-                            )}
-                            <tr>
-                                <td className="info-label">📅 날짜</td>
-                                <td className="info-value">{selectedEvent.event_date}</td>
-                            </tr>
-                            {selectedEvent.door_time && (
-                                <tr>
-                                    <td className="info-label">🚪 개장</td>
-                                    <td className="info-value">{selectedEvent.door_time}</td>
-                                </tr>
-                            )}
-                            {selectedEvent.start_time && (
-                                <tr>
-                                    <td className="info-label">🎬 개연</td>
-                                    <td className="info-value">{selectedEvent.start_time}</td>
-                                </tr>
-                            )}
-                            {selectedEvent.end_time && (
-                                <tr>
-                                    <td className="info-label">🏁 종연</td>
-                                    <td className="info-value">{selectedEvent.end_time}</td>
-                                </tr>
-                            )}
-                            {selectedEvent.performers && (
-                                <tr>
-                                    <td className="info-label">🎤 출연자</td>
-                                    <td className="info-value">{selectedEvent.performers}</td>
-                                </tr>
-                            )}
-                        </tbody>
-                    </table>
-
-                    {selectedEvent.description && (
-                        <div className="info-description">
-                            <div className="info-description-label">📝 설명</div>
-                            <div className="info-description-text">{selectedEvent.description}</div>
-                        </div>
-                    )}
-
-                    {selectedEvent.related_link && (
-                        <a
-                            href={selectedEvent.related_link}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="info-link"
-                        >
-                            🔗 {t('eventMap.infoWindow.link')} →
-                        </a>
-                    )}
-                </div>
-            </InfoWindow>
+            <SingleEventInfoWindow
+                event={selectedEvent}
+                position={{
+                    lat: selectedEvent.latitude,
+                    lng: selectedEvent.longitude
+                }}
+                onClose={handleInfoWindowClose}
+            />
         );
     };
 
