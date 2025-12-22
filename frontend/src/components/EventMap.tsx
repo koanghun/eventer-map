@@ -125,6 +125,11 @@ function EventMap({ events, selectedEvent, onMarkerClick, onInfoWindowClose }: E
         }
     }, [selectedEvent]);
 
+    // events 변경 시 infoWindowStack 초기화 (날짜 변경 등)
+    useEffect(() => {
+        setInfoWindowStack(null);
+    }, [events]);
+
     const eventGroups = useMemo(() => {
         const groups = new Map<string, Event[]>();
 

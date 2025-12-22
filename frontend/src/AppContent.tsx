@@ -40,6 +40,11 @@ export default function AppContent() {
         window.location.href = `/api/auth/google/login`;
     };
 
+    const handleDateChange = (newDate: string) => {
+        setSelectedDate(newDate);
+        eventSelection.clearSelection(); // 날짜 변경 시 선택 초기화
+    };
+
     return (
         <LoadScript googleMapsApiKey={apiKey} libraries={GOOGLE_MAPS_LIBRARIES}>
             <div className="app">
@@ -90,7 +95,7 @@ export default function AppContent() {
 
                 <div className="app-container">
                     <aside className="sidebar">
-                        <DatePicker selectedDate={selectedDate} onDateChange={setSelectedDate} />
+                        <DatePicker selectedDate={selectedDate} onDateChange={handleDateChange} />
 
                         <PerformerFilter onPerformerSelect={eventData.setSelectedPerformer} />
 
