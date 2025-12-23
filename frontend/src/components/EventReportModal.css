@@ -5,15 +5,15 @@
 
 .event-info {
     padding: 12px 16px;
-    background: #f5f5f5;
+    background: var(--modal-bg-light);
     border-radius: 8px;
     margin-bottom: 24px;
     font-size: 14px;
-    color: #666;
+    color: var(--modal-text-secondary);
 }
 
 .event-info strong {
-    color: #333;
+    color: var(--modal-text);
 }
 
 .form-group {
@@ -24,7 +24,7 @@
     display: block;
     margin-bottom: 12px;
     font-weight: 600;
-    color: #333;
+    color: var(--modal-text);
     font-size: 15px;
 }
 
@@ -39,15 +39,15 @@
     align-items: flex-start;
     gap: 12px;
     padding: 16px;
-    background: #ffffff;
-    border: 2px solid #e0e0e0;
+    background: var(--modal-surface);
+    border: 2px solid var(--modal-border);
     border-radius: 8px;
     cursor: pointer;
     transition: all 0.2s;
 }
 
 .reason-option:hover {
-    background-color: #f5f5f5;
+    background-color: var(--modal-bg-light);
     border-color: #1976d2;
 }
 
@@ -70,13 +70,13 @@
 
 .reason-label {
     font-weight: 600;
-    color: #1a1a1a;
+    color: var(--modal-text);
     margin-bottom: 4px;
 }
 
 .reason-description {
     font-size: 13px;
-    color: #555;
+    color: var(--modal-text-secondary);
 }
 
 .form-textarea {
