@@ -26,16 +26,18 @@ export default function SingleEventInfoWindow({
 
                     <h3>{event.title}</h3>
                     {isAuthenticated && (
-                        <div className="attendance-control">
-                            <span className="attendance-label">{t('eventMap.infoWindow.attendance')}</span>
-                            <div
-                                className={`toggle-switch ${isFavorited ? 'active' : ''}`}
-                                onClick={() => event.id && toggleFavorite(event.id)}
-                                title={isFavorited ? '참가 취소' : '참가 등록'}
+                        <button
+                            className={`star-toggle-button ${isFavorited ? 'active' : ''}`}
+                            onClick={() => event.id && toggleFavorite(event.id)}
+                        >
+                            <svg
+                                className="star-icon"
+                                viewBox="0 0 24 24"
+                                xmlns="http://www.w3.org/2000/svg"
                             >
-                                <div className="toggle-knob"></div>
-                            </div>
-                        </div>
+                                <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
+                            </svg>
+                        </button>
                     )}
 
                 </div>

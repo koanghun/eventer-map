@@ -10,23 +10,27 @@
 
 /* Header Section - Google InfoWindow 스타일 + EventForm 테마 (보라색) */
 .info-header-multi {
-    background: linear-gradient(135deg, #9B59B6 0%, #8E44AD 100%);
+    background: transparent;
     padding: 16px;
     margin: -8px -8px 0 -8px;
+    border-top: 3px solid #9B59B6;
+    border-bottom: 3px solid #8E44AD;
     border-radius: 8px 8px 0 0;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
 .info-header-multi h3 {
-    color: white;
+    background: linear-gradient(135deg, #9B59B6 0%, #8E44AD 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
     margin: 0 0 4px 0;
-    font-size: 16px;
-    font-weight: 500;
-    text-shadow: none;
+    font-size: 17px;
+    font-weight: 600;
+    letter-spacing: -0.3px;
 }
 
 .info-location-name {
-    color: rgba(255, 255, 255, 0.9);
+    color: #5f6368;
     font-size: 13px;
     margin: 0;
     font-weight: 400;
