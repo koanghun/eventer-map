@@ -183,5 +183,8 @@
             "deleteConfirm": "イベントを削除しますか？",
             "deleteFailed": "イベントの削除に失敗しました。"
         }
+    },
+    "footer": {
+        "dailyVisits": "本日の訪問"
     }
 }

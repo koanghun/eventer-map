@@ -18,6 +18,7 @@ import UserProfile from './components/UserProfile';
 import { useEventData } from './hooks/useEventData';
 import { useEventSelection } from './hooks/useEventSelection';
 import { useEventForm } from './hooks/useEventForm';
+import DailyVisitCounter from './components/DailyVisitCounter';
 
 const GOOGLE_MAPS_LIBRARIES: ("places")[] = ['places'];
 
@@ -156,6 +157,8 @@ export default function AppContent() {
                         onSwitchToEdit={(id) => eventForm.switchToEdit(id, eventData.events)}
                     />
                 )}
+
+                <DailyVisitCounter />
             </div>
         </LoadScript>
     );
