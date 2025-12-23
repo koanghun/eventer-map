@@ -66,3 +66,31 @@ def get_current_user(
 
 # 로그인 필수 데코레이터용
 require_auth = Depends(get_current_user)
+
+
+# 관리자 이메일 목록
+ADMIN_EMAILS = os.getenv("ADMIN_EMAILS", "").split(",")
+
+
+def set_admin_status(user: models.User) -> None:
+    """
+    사용자가 관리자 이메일 목록에 있으면 is_admin을 True로 설정
+    
+    Args:
+        user: User 객체
+    """
+    if user.email in ADMIN_EMAILS:
+        user.is_admin = True
+    else:
+        user.is_admin = False
+
+
+def require_admin(current_user: models.User = require_auth):
+    """관리자 권한 필수 체크"""
+    if not current_user.is_admin:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Admin access required"
+        )
+    return current_user
+

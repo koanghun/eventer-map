@@ -6,7 +6,8 @@ import models
 import schemas
 from utils.normalization import normalize_text
 from utils.event_duplicate import calculate_event_similarity, find_duplicate_events
-from utils.auth import require_auth
+from utils.auth import require_auth, require_admin
+from utils.event_history import create_event_history, get_event_history_with_user_info
 
 router = APIRouter(prefix="/events", tags=["events"])
 
@@ -45,9 +46,18 @@ def create_event(
                 db.flush()
             db_event.performers_rel.append(performer)
     
+    # 생성자 정보 저장
+    db_event.created_by = current_user.id
+    db_event.updated_by = current_user.id
+    
     db.add(db_event)
     db.commit()
     db.refresh(db_event)
+    
+    # 히스토리 생성
+    create_event_history(db, db_event, current_user, 'created')
+    db.commit()
+    
     return db_event
 
 
@@ -124,8 +134,14 @@ def update_event(
                     db.flush()
                 db_event.performers_rel.append(performer)
     
+    # 수정 전 히스토리 저장
+    create_event_history(db, db_event, current_user, 'updated')
+    
     for field, value in update_data.items():
         setattr(db_event, field, value)
+    
+    # 수정자 정보 업데이트
+    db_event.updated_by = current_user.id
     
     db.commit()
     db.refresh(db_event)
@@ -145,6 +161,9 @@ def delete_event(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"Event with id {event_id} not found"
         )
+    
+    # 삭제 히스토리 저장
+    create_event_history(db, db_event, current_user, 'deleted')
     
     db.delete(db_event)
     db.commit()
@@ -214,3 +233,129 @@ def check_duplicate_event(event_data: schemas.EventCreate, db: Session = Depends
     duplicates.sort(key=lambda x: x["similarity_score"], reverse=True)
     
     return {"duplicates": duplicates}
+
+
+@router.get("/{event_id}/history", response_model=List[schemas.EventHistoryResponse])
+def get_event_history(event_id: int, db: Session = Depends(get_db)):
+    """
+    이벤트 수정 이력 조회 (인증 불필요, 모든 유저 조회 가능)
+    
+    Returns:
+        이벤트의 모든 수정 이력 (생성, 수정, 삭제)
+    """
+    # 이벤트 존재 여부 확인
+    event = db.query(models.Event).filter(models.Event.id == event_id).first()
+    if not event:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Event with id {event_id} not found"
+        )
+    
+    # 사용자 정보와 함께 히스토리 조회
+    histories = get_event_history_with_user_info(db, event_id)
+    return histories
+
+
+@router.post("/{event_id}/report", response_model=schemas.EventReportResponse)
+def report_event(
+    event_id: int,
+    report_data: schemas.EventReportCreate,
+    db: Session = Depends(get_db),
+    current_user: models.User = require_auth
+):
+    """
+    이벤트 신고 (인증 필요)
+    
+    - 동일 사용자의 중복 신고 방지
+    - 신고 횟수 5회 이상 시 자동 숨김 처리
+    """
+    # 이벤트 존재 여부 확인
+    event = db.query(models.Event).filter(models.Event.id == event_id).first()
+    if not event:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Event with id {event_id} not found"
+        )
+    
+    # 중복 신고 방지
+    existing = db.query(models.EventReport).filter(
+        models.EventReport.event_id == event_id,
+        models.EventReport.reporter_id == current_user.id
+    ).first()
+    
+    if existing:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="You have already reported this event"
+        )
+    
+    # 신고 생성
+    report = models.EventReport(
+        event_id=event_id,
+        reporter_id=current_user.id,
+        reason=report_data.reason,
+        description=report_data.description
+    )
+    db.add(report)
+    
+    # 이벤트 신고 횟수 증가
+    event.report_count = (event.report_count or 0) + 1
+    
+    # 일정 신고 수 이상이면 자동 숨김
+    if event.report_count >= 5:
+        event.is_hidden = True
+    
+    db.commit()
+    db.refresh(report)
+    
+    # 응답에 reporter 정보 포함
+    return {
+        "id": report.id,
+        "event_id": report.event_id,
+        "reporter_id": report.reporter_id,
+        "reporter_name": current_user.name,
+        "reason": report.reason,
+        "description": report.description,
+        "status": report.status,
+        "created_at": report.created_at
+    }
+
+
+@router.get("/{event_id}/reports", response_model=List[schemas.EventReportResponse])
+def get_event_reports(
+    event_id: int,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(require_admin)
+):
+    """
+    이벤트 신고 내역 조회 (관리자 전용)
+    """
+    # 이벤트 존재 여부 확인
+    event = db.query(models.Event).filter(models.Event.id == event_id).first()
+    if not event:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Event with id {event_id} not found"
+        )
+    
+    # 신고 내역 조회 (reporter 정보 조인)
+    reports_with_user = db.query(models.EventReport, models.User).join(
+        models.User, models.EventReport.reporter_id == models.User.id
+    ).filter(
+        models.EventReport.event_id == event_id
+    ).all()
+    
+    result = []
+    for report, user in reports_with_user:
+        result.append({
+            "id": report.id,
+            "event_id": report.event_id,
+            "reporter_id": report.reporter_id,
+            "reporter_name": user.name,
+            "reason": report.reason,
+            "description": report.description,
+            "status": report.status,
+            "created_at": report.created_at
+        })
+    
+    return result

@@ -204,6 +204,7 @@ body {
 
 .main-content {
   flex: 1;
+  position: relative;
   background: var(--bg-secondary);
   backdrop-filter: blur(10px);
   border-radius: 12px;

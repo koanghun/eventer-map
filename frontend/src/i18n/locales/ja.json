@@ -105,6 +105,63 @@
             "add": "フラグを追加",
             "remove": "フラグを解除"
         },
+        "history": {
+            "title": "イベント履歴",
+            "viewButton": "履歴を表示",
+            "loading": "履歴を読み込み中...",
+            "error": "履歴の読み込みに失敗しました",
+            "noHistory": "このイベントの履歴がありません",
+            "actions": {
+                "created": "作成",
+                "updated": "更新",
+                "deleted": "削除"
+            },
+            "hideDetails": "詳細を隠す ▲",
+            "viewDetails": "詳細を表示 ▼",
+            "createdSummary": "作成",
+            "changedPrefix": "変更",
+            "noChanges": "フィールドの変更なし",
+            "before": "変更前",
+            "after": "変更後",
+            "empty": "(空)",
+            "fields": {
+                "title": "タイトル",
+                "event_date": "日付",
+                "location": "会場",
+                "address": "住所",
+                "door_time": "開場時間",
+                "start_time": "開演時間",
+                "end_time": "終演時間",
+                "performers": "出演者",
+                "description": "説明",
+                "related_link": "関連リンク"
+            }
+        },
+        "report": {
+            "title": "イベント報告",
+            "button": "報告する",
+            "reasonLabel": "報告理由を選択してください",
+            "reasons": {
+                "spam": "スパム",
+                "spamDesc": "スパムまたは広告性イベント",
+                "inappropriate": "不適切なコンテンツ",
+                "inappropriateDesc": "不快または不適切な内容を含む",
+                "wrong_info": "誤った情報",
+                "wrong_infoDesc": "イベント情報が誤っているか誤解を招く",
+                "other": "その他",
+                "otherDesc": "その他の理由"
+            },
+            "descriptionLabel": "追加説明（オプション）",
+            "descriptionPlaceholder": "追加情報を入力してください...",
+            "charCount": "{{current}}/{{max}}",
+            "submit": "報告を送信",
+            "submitting": "送信中...",
+            "success": "報告が送信されました",
+            "successMessage": "報告ありがとうございます！",
+            "alreadyReported": "既に報告済みのイベントです",
+            "error": "報告の送信に失敗しました。もう一度お試しください。",
+            "eventLabel": "イベント"
+        },
         "labels": {
             "location": "会場",
             "address": "住所",

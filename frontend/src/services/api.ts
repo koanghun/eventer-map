@@ -74,6 +74,17 @@ export const eventApi = {
         const response = await api.post('/events/check-duplicate', eventData);
         return response.data;
     },
+
+    // 이벤트 히스토리 조회
+    getHistory: async (eventId: number): Promise<any[]> => {
+        const response = await api.get(`/events/${eventId}/history`);
+        return response.data;
+    },
+
+    // 이벤트 신고
+    reportEvent: async (eventId: number, reportData: { reason: string; description?: string }): Promise<void> => {
+        await api.post(`/events/${eventId}/report`, reportData);
+    },
 };
 
 export const placeApi = {

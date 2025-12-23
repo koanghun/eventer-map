@@ -37,6 +37,29 @@ export interface Event {
     related_link?: string;
     created_at?: string;
     updated_at?: string;
+
+    // 추적 필드
+    created_by?: number;
+    updated_by?: number;
+    report_count?: number;
+    is_hidden?: boolean;
+}
+
+export interface EventHistory {
+    id: number;
+    event_id: number;
+    user_id: number;
+    user_name?: string;
+    user_email?: string;
+    action: 'created' | 'updated' | 'deleted';
+    snapshot: Event;
+    changes_summary?: string;
+    created_at: string;
+}
+
+export interface EventReport {
+    reason: 'spam' | 'inappropriate' | 'wrong_info' | 'other';
+    description?: string;
 }
 
 export interface EventFormData {

@@ -83,6 +83,12 @@ class EventResponse(EventBase):
     created_at: datetime
     updated_at: Optional[datetime] = None
     performers_list: List[PerformerResponse] = []  # 관계형 데이터
+    
+    # 추적 필드
+    created_by: Optional[int] = None
+    updated_by: Optional[int] = None
+    report_count: int = 0
+    is_hidden: bool = False
 
     class Config:
         from_attributes = True
@@ -163,3 +169,39 @@ class Token(BaseModel):
     access_token: str
     token_type: str = "bearer"
     user: UserResponse
+
+
+# Event History schemas
+class EventHistoryResponse(BaseModel):
+    id: int
+    event_id: int
+    user_id: int
+    user_name: Optional[str] = None
+    user_email: Optional[str] = None
+    action: str  # 'created', 'updated', 'deleted'
+    snapshot: dict  # JSON 파싱된 스냅샷
+    changes_summary: Optional[str] = None
+    created_at: datetime
+    
+    class Config:
+        from_attributes = True
+
+
+# Event Report schemas
+class EventReportCreate(BaseModel):
+    reason: str  # 'spam', 'inappropriate', 'wrong_info', 'other'
+    description: Optional[str] = None
+
+
+class EventReportResponse(BaseModel):
+    id: int
+    event_id: int
+    reporter_id: int
+    reporter_name: Optional[str] = None
+    reason: str
+    description: Optional[str] = None
+    status: str
+    created_at: datetime
+    
+    class Config:
+        from_attributes = True
