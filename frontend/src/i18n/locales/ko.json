@@ -117,6 +117,12 @@
         },
         "mapLink": "Google Maps에서 보기"
     },
+    "filter": {
+        "flags": {
+            "showAll": "전체 이벤트 보기",
+            "showFlagsOnly": "플래그한 이벤트만 보기"
+        }
+    },
     "duplicateModal": {
         "title": "중복 이벤트 발견",
         "message": "<strong>{{count}}개</strong>의 유사한 이벤트가 발견되었습니다.",

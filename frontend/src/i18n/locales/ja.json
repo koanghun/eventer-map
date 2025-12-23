@@ -117,6 +117,12 @@
         },
         "mapLink": "Google Mapsで表示"
     },
+    "filter": {
+        "flags": {
+            "showAll": "全てのイベントを表示",
+            "showFlagsOnly": "フラグしたイベントのみ表示"
+        }
+    },
     "duplicateModal": {
         "title": "重複イベント発見",
         "message": "<strong>{{count}}個</strong>の類似イベントが見つかりました。",

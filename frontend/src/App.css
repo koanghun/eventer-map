@@ -117,6 +117,40 @@ body {
   box-shadow: var(--glow-soft);
 }
 
+.flags-filter-toggle {
+  background: var(--bg-tertiary);
+  border: 2px solid var(--border-color);
+  color: var(--text-primary);
+  font-size: 1.3rem;
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.3s;
+}
+
+.flags-filter-toggle:hover {
+  background: var(--bg-primary);
+  transform: scale(1.1);
+  box-shadow: var(--glow-soft);
+  border-color: var(--primary-orange);
+}
+
+.flags-filter-toggle.active {
+  background: linear-gradient(135deg, var(--primary-orange) 0%, var(--accent-orange) 100%);
+  border-color: var(--primary-orange);
+  color: white;
+  box-shadow: 0 4px 15px rgba(255, 107, 53, 0.4);
+}
+
+.flags-filter-toggle.active:hover {
+  transform: scale(1.1);
+  box-shadow: 0 4px 20px rgba(255, 107, 53, 0.6);
+}
+
 .header-controls {
   display: flex;
   gap: 10px;

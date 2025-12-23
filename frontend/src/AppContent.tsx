@@ -27,9 +27,10 @@ export default function AppContent() {
     const { theme, toggleTheme } = useTheme();
     const { language, changeLanguage } = useLanguage();
     const { isAuthenticated, isLoading } = useAuth();
+    const [showFlagsOnly, setShowFlagsOnly] = useState<boolean>(false);
 
     // 3개 훅으로 분리된 책임
-    const eventData = useEventData(selectedDate);
+    const eventData = useEventData(selectedDate, showFlagsOnly);
     const eventSelection = useEventSelection();
     const eventForm = useEventForm(eventData.loadEvents);
 
@@ -43,6 +44,19 @@ export default function AppContent() {
     const handleDateChange = (newDate: string) => {
         setSelectedDate(newDate);
         eventSelection.clearSelection(); // 날짜 변경 시 선택 초기화
+    };
+
+    const handleFlagsToggle = () => {
+        setShowFlagsOnly(prev => !prev);
+        if (!showFlagsOnly) {
+            // 플래그 모드 활성화 시: 날짜를 빈 값으로 설정하여 모든 플래그 이벤트 표시
+            setSelectedDate('');
+            eventData.setSelectedPerformer(null);
+        } else {
+            // 플래그 모드 비활성화 시: 오늘 날짜로 복원
+            setSelectedDate(format(new Date(), 'yyyy-MM-dd'));
+        }
+        eventSelection.clearSelection();
     };
 
     return (
@@ -68,6 +82,15 @@ export default function AppContent() {
                         <button className="theme-toggle" onClick={toggleTheme} title={t('header.themeToggle')}>
                             {theme === 'dark' ? '☀️' : '🌙'}
                         </button>
+                        {isAuthenticated && (
+                            <button
+                                className={`flags-filter-toggle ${showFlagsOnly ? 'active' : ''}`}
+                                onClick={handleFlagsToggle}
+                                title={showFlagsOnly ? t('filter.flags.showAll') : t('filter.flags.showFlagsOnly')}
+                            >
+                                🚩
+                            </button>
+                        )}
                         {isLoading ? (
                             <div style={{
                                 display: 'flex',
