@@ -100,6 +100,23 @@
             "attendance": "참가"
         }
     },
+    "eventDetail": {
+        "flags": {
+            "add": "플래그 추가",
+            "remove": "플래그 제거"
+        },
+        "labels": {
+            "location": "장소",
+            "address": "주소",
+            "date": "날짜",
+            "doorTime": "개장",
+            "startTime": "개연",
+            "endTime": "종연",
+            "performers": "출연자",
+            "description": "설명"
+        },
+        "mapLink": "Google Maps에서 보기"
+    },
     "duplicateModal": {
         "title": "중복 이벤트 발견",
         "message": "<strong>{{count}}개</strong>의 유사한 이벤트가 발견되었습니다.",

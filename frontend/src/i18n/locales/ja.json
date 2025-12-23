@@ -100,6 +100,23 @@
             "attendance": "参加"
         }
     },
+    "eventDetail": {
+        "flags": {
+            "add": "フラグを追加",
+            "remove": "フラグを解除"
+        },
+        "labels": {
+            "location": "会場",
+            "address": "住所",
+            "date": "日付",
+            "doorTime": "開場",
+            "startTime": "開演",
+            "endTime": "終演",
+            "performers": "出演者",
+            "description": "説明"
+        },
+        "mapLink": "Google Mapsで表示"
+    },
     "duplicateModal": {
         "title": "重複イベント発見",
         "message": "<strong>{{count}}個</strong>の類似イベントが見つかりました。",

@@ -16,8 +16,8 @@ export default function SingleEventInfoWindow({
     onClose
 }: SingleEventInfoWindowProps) {
     const { t } = useTranslation();
-    const { isAuthenticated, favoriteEventIds, toggleFavorite } = useAuth();
-    const isFavorited = favoriteEventIds.includes(event.id || 0);
+    const { isAuthenticated, flaggedEventIds, toggleFlag } = useAuth();
+    const isFlagged = flaggedEventIds.includes(event.id || 0);
 
     return (
         <InfoWindow position={position} onCloseClick={onClose}>
@@ -27,16 +27,11 @@ export default function SingleEventInfoWindow({
                     <h3>{event.title}</h3>
                     {isAuthenticated && (
                         <button
-                            className={`star-toggle-button ${isFavorited ? 'active' : ''}`}
-                            onClick={() => event.id && toggleFavorite(event.id)}
+                            className={`flag-toggle-button ${isFlagged ? 'active' : ''}`}
+                            onClick={() => event.id && toggleFlag(event.id)}
+                            title={isFlagged ? t('eventDetail.flags.remove') : t('eventDetail.flags.add')}
                         >
-                            <svg
-                                className="star-icon"
-                                viewBox="0 0 24 24"
-                                xmlns="http://www.w3.org/2000/svg"
-                            >
-                                <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
-                            </svg>
+                            🚩
                         </button>
                     )}
 
@@ -45,14 +40,14 @@ export default function SingleEventInfoWindow({
                 <table className="info-table">
                     <tbody>
                         <tr>
-                            <td className="info-label">📍 장소</td>
+                            <td className="info-label">📍 {t('eventDetail.labels.location')}</td>
                             <td className="info-value">
                                 <a
                                     href={`https://www.google.com/maps/search/?api=1&query=${event.latitude},${event.longitude}`}
                                     target="_blank"
                                     rel="noopener noreferrer"
                                     className="info-map-link"
-                                    title="Google Maps에서 보기"
+                                    title={t('eventDetail.mapLink')}
                                 >
                                     {event.location}
                                 </a>
@@ -60,14 +55,14 @@ export default function SingleEventInfoWindow({
                         </tr>
                         {event.address && (
                             <tr>
-                                <td className="info-label">📮 주소</td>
+                                <td className="info-label">📮 {t('eventDetail.labels.address')}</td>
                                 <td className="info-value info-address">
                                     <a
                                         href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(event.address)}`}
                                         target="_blank"
                                         rel="noopener noreferrer"
                                         className="info-map-link"
-                                        title="Google Maps에서 보기"
+                                        title={t('eventDetail.mapLink')}
                                     >
                                         {event.address}
                                     </a>
@@ -75,30 +70,30 @@ export default function SingleEventInfoWindow({
                             </tr>
                         )}
                         <tr>
-                            <td className="info-label">📅 날짜</td>
+                            <td className="info-label">📅 {t('eventDetail.labels.date')}</td>
                             <td className="info-value">{event.event_date}</td>
                         </tr>
                         {event.door_time && (
                             <tr>
-                                <td className="info-label">🚪 개장</td>
+                                <td className="info-label">🚪 {t('eventDetail.labels.doorTime')}</td>
                                 <td className="info-value">{event.door_time}</td>
                             </tr>
                         )}
                         {event.start_time && (
                             <tr>
-                                <td className="info-label">🎬 개연</td>
+                                <td className="info-label">🎬 {t('eventDetail.labels.startTime')}</td>
                                 <td className="info-value">{event.start_time}</td>
                             </tr>
                         )}
                         {event.end_time && (
                             <tr>
-                                <td className="info-label">🏁 종연</td>
+                                <td className="info-label">🏁 {t('eventDetail.labels.endTime')}</td>
                                 <td className="info-value">{event.end_time}</td>
                             </tr>
                         )}
                         {event.performers && (
                             <tr>
-                                <td className="info-label">🎤 출연자</td>
+                                <td className="info-label">🎤 {t('eventDetail.labels.performers')}</td>
                                 <td className="info-value">{event.performers}</td>
                             </tr>
                         )}
@@ -107,7 +102,7 @@ export default function SingleEventInfoWindow({
 
                 {event.description && (
                     <div className="info-description">
-                        <div className="info-description-label">📝 설명</div>
+                        <div className="info-description-label">📝 {t('eventDetail.labels.description')}</div>
                         <div className="info-description-text">{event.description}</div>
                     </div>
                 )}

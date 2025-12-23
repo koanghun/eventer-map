@@ -36,57 +36,38 @@
     letter-spacing: -0.3px;
 }
 
-/* Star Toggle Button */
-.star-toggle-button {
+/* Flag Toggle Button */
+.flag-toggle-button {
     background: transparent;
-    border: none;
-    padding: 4px;
+    border: 2px solid rgba(255, 140, 66, 0.3);
+    border-radius: 6px;
+    padding: 4px 6px;
     cursor: pointer;
     display: flex;
     align-items: center;
     justify-content: center;
-    transition: transform 0.2s ease;
+    transition: all 0.2s ease;
     outline: none;
+    font-size: 18px;
+    line-height: 1;
 }
 
-.star-toggle-button:hover {
-    transform: scale(1.15);
+.flag-toggle-button:hover {
+    transform: scale(1.1);
+    border-color: #FF8C42;
+    background: rgba(255, 140, 66, 0.1);
 }
 
-.star-toggle-button:active {
-    transform: scale(0.95);
+.flag-toggle-button.active {
+    background: rgba(255, 107, 53, 0.15);
+    border-color: #ff6b35;
+    transform: scale(1.05);
 }
 
-/* Star Icon */
-.star-icon {
-    width: 28px;
-    height: 28px;
-    fill: none;
-    stroke: #FF8C42;
-    stroke-width: 2;
-    transition: all 0.3s ease;
-    filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.1));
-}
-
-/* Active State - Filled Star with Yellow Color */
-.star-toggle-button.active .star-icon {
-    fill: #FFD700;
-    stroke: #FFA500;
-    stroke-width: 1.5;
-    filter: drop-shadow(0 2px 4px rgba(255, 215, 0, 0.4));
-}
-
-/* Hover Effects */
-.star-toggle-button:hover .star-icon {
-    stroke: #FF6B1A;
-    stroke-width: 2.5;
-    filter: drop-shadow(0 2px 4px rgba(255, 140, 66, 0.4));
-}
-
-.star-toggle-button.active:hover .star-icon {
-    fill: #ffc800d3;
-    stroke: #FF8C00;
-    filter: drop-shadow(0 2px 6px rgba(255, 215, 0, 0.6));
+.flag-toggle-button.active:hover {
+    background: rgba(255, 107, 53, 0.25);
+    border-color: #ff6b35;
+    transform: scale(1.1);
 }
 
 /* Table Styles - Google InfoWindow 최적화 */
@@ -102,7 +83,7 @@
 }
 
 .info-table tr:last-child {
-    border-bottom: none;
+    border-color: #ff6b35;
 }
 
 .info-table td {
@@ -209,9 +190,8 @@
         font-size: 15px;
     }
 
-    .star-icon {
-        width: 24px;
-        height: 24px;
+    .flag-toggle-button {
+        font-size: 16px;
     }
 
     .info-label {

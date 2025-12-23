@@ -4,7 +4,7 @@ export interface User {
     name: string | null;
     profile_image: string | null;
     created_at: string;
-    favorite_event_ids: number[];
+    flagged_event_ids: number[];
 }
 
 export interface AuthState {

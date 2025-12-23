@@ -9,10 +9,10 @@ interface AuthContextType {
     token: string | null;
     isAuthenticated: boolean;
     isLoading: boolean;
-    favoriteEventIds: number[];
+    flaggedEventIds: number[];
     login: (token: string) => Promise<void>;
     logout: () => void;
-    toggleFavorite: (eventId: number) => Promise<void>;
+    toggleFlag: (eventId: number) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -23,7 +23,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         localStorage.getItem('auth_token')
     );
     const [isLoading, setIsLoading] = useState(true);
-    const [favoriteEventIds, setFavoriteEventIds] = useState<number[]>([]);
+    const [flaggedEventIds, setFlaggedEventIds] = useState<number[]>([]);
 
     const logout = useCallback(() => {
         localStorage.removeItem('auth_token');
@@ -37,7 +37,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                 headers: { Authorization: `Bearer ${token}` }
             });
             setUser(response.data);
-            setFavoriteEventIds(response.data.favorite_event_ids || []); // 즐겨찾기 초기화
+            setFlaggedEventIds(response.data.flagged_event_ids || []); // 플래그 초기화
         } catch (error) {
             console.error('Failed to fetch user:', error);
             logout();
@@ -83,7 +83,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                         name: userName || null,
                         profile_image: userPicture || null,
                         created_at: new Date().toISOString(), // 임시값 (실제로는 사용 안 함)
-                        favorite_event_ids: []  // 초기값 (fetchUser에서 갱신됨)
+                        flagged_event_ids: []  // 초기값 (fetchUser에서 갱신됨)
                     };
 
                     setUser(userInfo);
@@ -133,38 +133,38 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setToken(newToken);
     }, []);
 
-    const toggleFavorite = useCallback(async (eventId: number) => {
+    const toggleFlag = useCallback(async (eventId: number) => {
         if (!token || !user) return;
 
         // 함수형 업데이트로 최신 상태 참조
-        setFavoriteEventIds(prevIds => {
-            const isFavorited = prevIds.includes(eventId);
-            const method = isFavorited ? 'DELETE' : 'POST';
+        setFlaggedEventIds(prevIds => {
+            const isFlagged = prevIds.includes(eventId);
+            const method = isFlagged ? 'DELETE' : 'POST';
 
             // 비동기 API 호출 (상태 업데이트와 분리)
             axios({
                 method,
-                url: `/api/favorites/events/${eventId}`,
+                url: `/api/flags/events/${eventId}`,
                 headers: { Authorization: `Bearer ${token}` },
             })
                 .then(response => {
                     if (response.status === 200) {
                         // API 응답으로 상태 동기화
-                        setFavoriteEventIds(response.data.favorite_event_ids);
+                        setFlaggedEventIds(response.data.flagged_event_ids);
                     }
                 })
                 .catch(error => {
-                    console.error('Failed to toggle favorite:', error);
+                    console.error('Failed to toggle flag:', error);
                     // 에러 시 이전 상태로 롤백
                     return prevIds;
                 });
 
             // 낙관적 업데이트 (즉시 UI 반영)
-            return isFavorited
+            return isFlagged
                 ? prevIds.filter(id => id !== eventId)
                 : [...prevIds, eventId];
         });
-    }, [token, user]); // favoriteEventIds 제거!
+    }, [token, user]); // flaggedEventIds 제거!
 
     return (
         <AuthContext.Provider value={{
@@ -172,10 +172,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             token,
             isAuthenticated: !!user,
             isLoading,
-            favoriteEventIds,
+            flaggedEventIds,
             login,
             logout,
-            toggleFavorite
+            toggleFlag
         }}>
             {children}
         </AuthContext.Provider>

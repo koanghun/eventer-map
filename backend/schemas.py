@@ -140,11 +140,11 @@ class UserCreate(UserBase):
 class UserResponse(UserBase):
     id: int
     created_at: datetime
-    favorite_event_ids: Optional[List[int]] = []
+    flagged_event_ids: Optional[List[int]] = []
     
-    @field_validator('favorite_event_ids', mode='before')
+    @field_validator('flagged_event_ids', mode='before')
     @classmethod
-    def parse_favorite_event_ids(cls, v):
+    def parse_flagged_event_ids(cls, v):
         """JSON 문자열을 리스트로 파싱"""
         if v is None or v == '':
             return []

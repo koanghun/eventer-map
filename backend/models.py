@@ -77,6 +77,6 @@ class User(Base):
     name = Column(String)
     profile_image = Column(String)
     google_id = Column(String, unique=True, index=True)
-    favorite_event_ids = Column(Text)  # JSON 배열: "[1, 5, 10]"
+    flagged_event_ids = Column(Text)  # JSON 배열: "[1, 5, 10]"
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     last_login = Column(DateTime(timezone=True), onupdate=func.now())
