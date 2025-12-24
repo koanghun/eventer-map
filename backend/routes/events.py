@@ -29,22 +29,7 @@ def create_event(
             models.Performer.id.in_(event.performer_ids)
         ).all()
         db_event.performers_rel = performers
-    # 하위호환: 문자열 방식도 지원
-    elif event.performers:
-        performer_names = [p.strip() for p in event.performers.split(',') if p.strip()]
-        for name in performer_names:
-            normalized = normalize_text(name)
-            performer = db.query(models.Performer).filter(
-                models.Performer.normalized_name == normalized
-            ).first()
-            if not performer:
-                performer = models.Performer(
-                    canonical_name=name,
-                    normalized_name=normalized
-                )
-                db.add(performer)
-                db.flush()
-            db_event.performers_rel.append(performer)
+
     
     # 생성자 정보 저장
     db_event.created_by = current_user.id
@@ -114,25 +99,7 @@ def update_event(
                 models.Performer.id.in_(event_update.performer_ids)
             ).all()
             db_event.performers_rel = performers
-    elif "performers" in update_data:
-        # 하위호환: 문자열 기반 업데이트
-        performers_str = update_data["performers"]
-        db_event.performers_rel = []
-        if performers_str:
-            performer_names = [p.strip() for p in performers_str.split(',') if p.strip()]
-            for name in performer_names:
-                normalized = normalize_text(name)
-                performer = db.query(models.Performer).filter(
-                    models.Performer.normalized_name == normalized
-                ).first()
-                if not performer:
-                    performer = models.Performer(
-                        canonical_name=name,
-                        normalized_name=normalized
-                    )
-                    db.add(performer)
-                    db.flush()
-                db_event.performers_rel.append(performer)
+
     
     # 수정 전 히스토리 저장
     create_event_history(db, db_event, current_user, 'updated')
