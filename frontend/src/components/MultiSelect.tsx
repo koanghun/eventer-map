@@ -4,7 +4,7 @@ import { performerApi, DuplicateCheckResponse } from '../services/api';
 import { Performer } from '../types/event';
 import DuplicateCheckModal from './DuplicateCheckModal';
 import PerformerCreateModal from './PerformerCreateModal';
-import './MultiSelect.css';
+import styles from './MultiSelect.module.css';
 
 interface MultiSelectProps {
     options: Performer[];
@@ -156,14 +156,14 @@ function MultiSelect({ options, selected, onChange, placeholder }: MultiSelectPr
 
     return (
         <>
-            <div className="multiselect-container">
-                <div className="selected-items">
+            <div className={styles.multiselectContainer}>
+                <div className={styles.selectedItems}>
                     {selected.map(item => (
-                        <div key={item} className="selected-item">
+                        <div key={item} className={styles.selectedItem}>
                             {item}
                             <button
                                 type="button"
-                                className="remove-item"
+                                className={styles.removeItem}
                                 onClick={() => handleRemoveOption(item)}
                             >
                                 &times;
@@ -179,21 +179,21 @@ function MultiSelect({ options, selected, onChange, placeholder }: MultiSelectPr
                         onFocus={() => setIsOpen(true)}
                         onBlur={() => setTimeout(() => setIsOpen(false), 200)}
                         placeholder={selected.length === 0 ? placeholder : ''}
-                        className="multiselect-input"
+                        className={styles.multiselectInput}
                     />
                 </div>
                 {isOpen && (
-                    <ul className="options-list">
+                    <ul className={styles.optionsList}>
                         {filteredOptions.length > 0 ? (
                             filteredOptions.map(option => (
                                 <li
                                     key={option.id}
                                     onMouseDown={() => handleSelectOption(option.canonical_name)}
-                                    className="option-item"
+                                    className={styles.optionItem}
                                 >
-                                    <div className="option-name">{option.canonical_name}</div>
+                                    <div className={styles.optionName}>{option.canonical_name}</div>
                                     {option.aliases && option.aliases.length > 0 && (
-                                        <div className="option-aliases">
+                                        <div className={styles.optionAliases}>
                                             {option.aliases.join(', ')}
                                         </div>
                                     )}
@@ -203,7 +203,7 @@ function MultiSelect({ options, selected, onChange, placeholder }: MultiSelectPr
                             inputValue.trim() && (
                                 <li
                                     onMouseDown={async () => await handleAddNewPerformer(inputValue.trim())}
-                                    className="option-item option-item-new"
+                                    className={`${styles.optionItem} ${styles.optionItemNew}`}
                                 >
                                     '{inputValue.trim()}' 추가
                                 </li>

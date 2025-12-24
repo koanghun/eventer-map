@@ -1,9 +1,9 @@
-.multiselect-container {
+.multiselectContainer {
     position: relative;
     width: 100%;
 }
 
-.selected-items {
+.selectedItems {
     background: rgba(255, 255, 255, 0.05);
     border: 2px solid rgba(255, 107, 53, 0.3);
     border-radius: 6px;
@@ -16,13 +16,13 @@
     transition: all 0.3s;
 }
 
-.selected-items:focus-within {
+.selectedItems:focus-within {
     border-color: var(--primary-orange);
     box-shadow: var(--glow-medium);
     background: rgba(255, 255, 255, 0.08);
 }
 
-.selected-item {
+.selectedItem {
     background: linear-gradient(135deg, var(--primary-orange) 0%, var(--accent-orange) 100%);
     color: white;
     padding: 4px 8px;
@@ -35,11 +35,11 @@
     transition: transform 0.2s;
 }
 
-.selected-item:hover {
+.selectedItem:hover {
     transform: scale(1.05);
 }
 
-.remove-item {
+.removeItem {
     background: none;
     border: none;
     color: white;
@@ -51,11 +51,11 @@
     transition: transform 0.2s;
 }
 
-.remove-item:hover {
+.removeItem:hover {
     transform: scale(1.3);
 }
 
-.multiselect-input {
+.multiselectInput {
     border: none;
     outline: none;
     flex: 1;
@@ -65,11 +65,11 @@
     color: white;
 }
 
-.multiselect-input::placeholder {
+.multiselectInput::placeholder {
     color: rgba(255, 255, 255, 0.4);
 }
 
-.options-list {
+.optionsList {
     position: absolute;
     top: 100%;
     left: 0;
@@ -88,30 +88,30 @@
         0 0 20px rgba(255, 107, 53, 0.2);
 }
 
-.option-item {
+.optionItem {
     padding: 10px 12px;
     cursor: pointer;
     transition: all 0.2s;
     color: white;
 }
 
-.option-item:hover {
+.optionItem:hover {
     background: rgba(255, 107, 53, 0.2);
     border-left: 3px solid var(--primary-orange);
 }
 
-.option-item-new {
+.optionItemNew {
     color: var(--accent-orange);
     font-weight: 500;
 }
 
-.option-name {
+.optionName {
     font-weight: 500;
     color: white;
     margin-bottom: 2px;
 }
 
-.option-aliases {
+.optionAliases {
     font-size: 0.85rem;
     color: var(--muted-text);
     font-style: italic;
@@ -119,35 +119,35 @@
 
 /* Responsive Design */
 @media (max-width: 480px) {
-    .selected-items {
+    .selectedItems {
         padding: 6px;
         min-height: 38px;
     }
 
-    .selected-item {
+    .selectedItem {
         font-size: 0.85rem;
         padding: 3px 6px;
     }
 
-    .multiselect-input {
+    .multiselectInput {
         min-width: 100px;
         font-size: 0.9rem;
     }
 
-    .options-list {
+    .optionsList {
         max-height: 180px;
     }
 
-    .option-item {
+    .optionItem {
         padding: 8px 10px;
         font-size: 0.9rem;
     }
 
-    .option-name {
+    .optionName {
         font-size: 0.9rem;
     }
 
-    .option-aliases {
+    .optionAliases {
         font-size: 0.75rem;
     }
 }

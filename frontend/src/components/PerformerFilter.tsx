@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, type ChangeEvent } from 'react';
 import { useTranslation } from 'react-i18next';
 import { performerApi } from '../services/api';
 import { Performer } from '../types/event';
-import './PerformerFilter.css';
+import styles from './PerformerFilter.module.css';
 
 interface PerformerFilterProps {
     onPerformerSelect: (performerName: string | null) => void;
@@ -79,9 +79,9 @@ function PerformerFilter({ onPerformerSelect }: PerformerFilterProps) {
     });
 
     return (
-        <div className="performer-filter">
+        <div className={styles.performerFilter}>
             <label htmlFor="performer-search">🎤 {t('performerFilter.label')}</label>
-            <div className="performer-filter-input-group">
+            <div className={styles.performerFilterInputGroup}>
                 <input
                     ref={inputRef}
                     id="performer-search"
@@ -91,12 +91,12 @@ function PerformerFilter({ onPerformerSelect }: PerformerFilterProps) {
                     onFocus={() => setIsOpen(true)}
                     onBlur={() => setTimeout(() => setIsOpen(false), 200)}
                     placeholder={t('performerFilter.placeholder')}
-                    className="performer-filter-input"
+                    className={styles.performerFilterInput}
                 />
                 {selectedPerformer && (
                     <button
                         type="button"
-                        className="btn-clear-filter"
+                        className={styles.btnClearFilter}
                         onClick={handleClear}
                         title={t('performerFilter.clearFilter')}
                     >
@@ -106,17 +106,17 @@ function PerformerFilter({ onPerformerSelect }: PerformerFilterProps) {
             </div>
 
             {isOpen && filteredPerformers.length > 0 && (
-                <ul className="performer-filter-dropdown">
+                <ul className={styles.performerFilterDropdown}>
                     {filteredPerformers.slice(0, 50).map(performer => (
                         <li
                             key={performer.id}
                             onClick={() => handleSelectPerformer(performer)}
-                            className="performer-filter-item"
+                            className={styles.performerFilterItem}
                         >
-                            <div className="performer-filter-name">
-                                <div className="performer-canonical">{performer.canonical_name}</div>
+                            <div className={styles.performerFilterName}>
+                                <div className={styles.performerCanonical}>{performer.canonical_name}</div>
                                 {performer.aliases && performer.aliases.length > 0 && (
-                                    <div className="performer-aliases">
+                                    <div className={styles.performerAliases}>
                                         {performer.aliases.join(', ')}
                                     </div>
                                 )}

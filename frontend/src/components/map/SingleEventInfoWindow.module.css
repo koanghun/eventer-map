@@ -1,7 +1,7 @@
 /* Google InfoWindow 최적화 스타일 - EventForm 테마 적용 */
 
 /* InfoWindow Container */
-.info-window {
+.infoWindow {
     min-width: 280px;
     max-width: 360px;
     padding: 0;
@@ -11,7 +11,7 @@
 }
 
 /* Header Section - Google InfoWindow 스타일 + EventForm 테마 */
-.info-header {
+.infoHeader {
     background: transparent;
     padding: 16px;
     margin: -8px -8px 0 -8px;
@@ -24,7 +24,7 @@
     gap: 12px;
 }
 
-.info-header h3 {
+.infoHeader h3 {
     background: linear-gradient(135deg, #FF8C42 0%, #FF6B1A 100%);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
@@ -39,15 +39,15 @@
 }
 
 /* Action Buttons Container */
-.info-actions {
+.infoActions {
     display: flex;
     gap: 8px;
     align-items: center;
 }
 
 /* History and Report Buttons */
-.history-button,
-.report-button {
+.historyButton,
+.reportButton {
     background: transparent;
     border: 2px solid rgba(255, 140, 66, 0.3);
     border-radius: 6px;
@@ -62,20 +62,20 @@
     line-height: 1;
 }
 
-.history-button:hover {
+.historyButton:hover {
     transform: scale(1.1);
     border-color: #FF8C42;
     background: rgba(255, 140, 66, 0.1);
 }
 
-.report-button:hover {
+.reportButton:hover {
     transform: scale(1.1);
     border-color: #d32f2f;
     background: rgba(211, 47, 47, 0.1);
 }
 
 /* Flag Toggle Button */
-.flag-toggle-button {
+.flagToggleButton {
     background: transparent;
     border: 2px solid rgba(255, 140, 66, 0.3);
     border-radius: 6px;
@@ -90,46 +90,46 @@
     line-height: 1;
 }
 
-.flag-toggle-button:hover {
+.flagToggleButton:hover {
     transform: scale(1.1);
     border-color: #FF8C42;
     background: rgba(255, 140, 66, 0.1);
 }
 
-.flag-toggle-button.active {
+.flagToggleButton.active {
     background: rgba(255, 107, 53, 0.15);
     border-color: #ff6b35;
     transform: scale(1.05);
 }
 
-.flag-toggle-button.active:hover {
+.flagToggleButton.active:hover {
     background: rgba(255, 107, 53, 0.25);
     border-color: #ff6b35;
     transform: scale(1.1);
 }
 
 /* Table Styles - Google InfoWindow 최적화 */
-.info-table {
+.infoTable {
     width: 100%;
     border-collapse: collapse;
     margin: 12px 0;
     background: var(--infowindow-surface);
 }
 
-.info-table tr {
+.infoTable tr {
     border-bottom: 1px solid #e8e8e8;
 }
 
-.info-table tr:last-child {
+.infoTable tr:last-child {
     border-color: var(--infowindow-label-orange);
 }
 
-.info-table td {
+.infoTable td {
     padding: 8px 12px;
     vertical-align: top;
 }
 
-.info-label {
+.infoLabel {
     font-weight: 500;
     color: var(--infowindow-label-orange) !important;
     white-space: nowrap;
@@ -137,32 +137,32 @@
     font-size: 13px;
 }
 
-.info-value {
+.infoValue {
     color: var(--infowindow-text) !important;
     font-size: 13px;
     line-height: 1.5;
 }
 
-.info-address {
+.infoAddress {
     font-size: 13px;
     color: var(--infowindow-text) !important;
 }
 
 /* Map Links in Table - Google 링크 스타일 */
-.info-map-link {
+.infoMapLink {
     color: #1a73e8;
     text-decoration: none;
     transition: all 0.2s ease;
     cursor: pointer;
 }
 
-.info-map-link:hover {
+.infoMapLink:hover {
     color: #174ea6;
     text-decoration: underline;
 }
 
 /* Description Section - Google 스타일 */
-.info-description {
+.infoDescription {
     margin: 12px;
     padding: 12px;
     background: var(--infowindow-bg-light);
@@ -170,14 +170,14 @@
     border-radius: 4px;
 }
 
-.info-description-label {
+.infoDescriptionLabel {
     font-weight: 500;
     color: var(--infowindow-label-orange) !important;
     font-size: 13px;
     margin-bottom: 6px;
 }
 
-.info-description-text {
+.infoDescriptionText {
     color: var(--infowindow-text) !important;
     font-size: 13px;
     line-height: 1.5;
@@ -186,7 +186,7 @@
 }
 
 /* Link Button - Google 액션 버튼 스타일 + EventForm 테마 */
-.info-link {
+.infoLink {
     display: block;
     margin: 12px;
     padding: 10px 16px;
@@ -201,13 +201,13 @@
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12), 0 1px 2px rgba(0, 0, 0, 0.24);
 }
 
-.info-link:hover {
+.infoLink:hover {
     transform: translateY(-1px);
     box-shadow: 0 3px 6px rgba(0, 0, 0, 0.16), 0 3px 6px rgba(0, 0, 0, 0.23);
     text-decoration: none;
 }
 
-.info-link:active {
+.infoLink:active {
     transform: translateY(0);
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12), 0 1px 2px rgba(0, 0, 0, 0.24);
 }
@@ -215,33 +215,33 @@
 /* Responsive Design */
 /* Small Mobile: 320px - 480px */
 @media (max-width: 480px) {
-    .info-window {
+    .infoWindow {
         min-width: min(260px, 92vw);
         max-width: min(300px, 95vw);
     }
 
-    .info-header {
+    .infoHeader {
         padding: 12px;
     }
 
-    .info-header h3 {
+    .infoHeader h3 {
         font-size: 15px;
     }
 
-    .flag-toggle-button {
+    .flagToggleButton {
         font-size: 16px;
     }
 
-    .info-label {
+    .infoLabel {
         width: 60px;
         font-size: 12px;
     }
 
-    .info-value {
+    .infoValue {
         font-size: 12px;
     }
 
-    .info-link {
+    .infoLink {
         padding: 8px 12px;
         font-size: 13px;
     }
@@ -249,7 +249,7 @@
 
 /* Mobile: 481px - 767px */
 @media (min-width: 481px) and (max-width: 767px) {
-    .info-window {
+    .infoWindow {
         min-width: min(270px, 90vw);
         max-width: min(340px, 95vw);
     }

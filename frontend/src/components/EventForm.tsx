@@ -2,10 +2,9 @@ import { useState, useEffect, type ChangeEvent, type FormEvent } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Event, EventFormData, Performer, Place } from '../types/event';
 import { placeApi, performerApi, eventApi } from '../services/api';
-import './EventForm.css';
+import styles from './EventForm.module.css';
 
 import MultiSelect from './MultiSelect';
-import './MultiSelect.css';
 
 import EventDuplicateModal from './EventDuplicateModal';
 
@@ -304,17 +303,17 @@ function EventForm({ event, onSubmit, onClose, onSwitchToEdit }: EventFormProps)
 
     return (
         <>
-            <div className="modal-overlay" onClick={onClose}>
-                <div className="modal-content" onClick={(e) => e.stopPropagation()}>
-                    <div className="modal-header">
+            <div className={styles.modalOverlay} onClick={onClose}>
+                <div className={styles.modalContent} onClick={(e) => e.stopPropagation()}>
+                    <div className={styles.modalHeader}>
                         <h2>{event ? t('eventForm.titleEdit') : t('eventForm.titleNew')}</h2>
-                        <button className="btn-close" onClick={onClose}>
+                        <button className={styles.btnClose} onClick={onClose}>
                             ✕
                         </button>
                     </div>
 
-                    <form onSubmit={handleSubmit} className="event-form">
-                        <div className="form-group">
+                    <form onSubmit={handleSubmit} className={styles.eventForm}>
+                        <div className={styles.formGroup}>
                             <label htmlFor="title">{t('eventForm.labels.title')} *</label>
                             <input
                                 type="text"
@@ -327,7 +326,7 @@ function EventForm({ event, onSubmit, onClose, onSwitchToEdit }: EventFormProps)
                             />
                         </div>
 
-                        <div className="form-group">
+                        <div className={styles.formGroup}>
                             <label htmlFor="description">{t('eventForm.labels.description')}</label>
                             <textarea
                                 id="description"
@@ -339,7 +338,7 @@ function EventForm({ event, onSubmit, onClose, onSwitchToEdit }: EventFormProps)
                             />
                         </div>
 
-                        <div className="form-group">
+                        <div className={styles.formGroup}>
                             <label htmlFor="event_date">{t('eventForm.labels.date')} *</label>
                             <input
                                 type="date" // 필드의 표시 언어는 브라우저의 언어 설정
@@ -351,8 +350,8 @@ function EventForm({ event, onSubmit, onClose, onSwitchToEdit }: EventFormProps)
                             />
                         </div>
 
-                        <div className="form-row">
-                            <div className="form-group">
+                        <div className={styles.formRow}>
+                            <div className={styles.formGroup}>
                                 <label htmlFor="door_time">{t('eventForm.labels.doorTime')}</label>
                                 <input
                                     type="time"
@@ -364,7 +363,7 @@ function EventForm({ event, onSubmit, onClose, onSwitchToEdit }: EventFormProps)
                                 />
                             </div>
 
-                            <div className="form-group">
+                            <div className={styles.formGroup}>
                                 <label htmlFor="start_time">{t('eventForm.labels.startTime')}</label>
                                 <input
                                     type="time"
@@ -376,7 +375,7 @@ function EventForm({ event, onSubmit, onClose, onSwitchToEdit }: EventFormProps)
                                 />
                             </div>
 
-                            <div className="form-group">
+                            <div className={styles.formGroup}>
                                 <label htmlFor="end_time">{t('eventForm.labels.endTime')}</label>
                                 <input
                                     type="time"
@@ -389,9 +388,9 @@ function EventForm({ event, onSubmit, onClose, onSwitchToEdit }: EventFormProps)
                             </div>
                         </div>
 
-                        <div className="form-group">
+                        <div className={styles.formGroup}>
                             <label htmlFor="location">{t('eventForm.labels.location')} *</label>
-                            <div className="address-group">
+                            <div className={styles.addressGroup}>
                                 <input
                                     type="text"
                                     id="location"
@@ -402,14 +401,14 @@ function EventForm({ event, onSubmit, onClose, onSwitchToEdit }: EventFormProps)
                                     placeholder={t('eventForm.placeholders.location')}
                                     autoComplete="off"
                                 />
-                                <button type="button" className="btn-geocode" onClick={handlePlaceSearch}>
+                                <button type="button" className={styles.btnGeocode} onClick={handlePlaceSearch}>
                                     🔍 {t('eventForm.buttons.searchPlace')}
                                 </button>
                             </div>
                             <small>{t('eventForm.hints.location')}</small>
                         </div>
 
-                        <div className="form-group">
+                        <div className={styles.formGroup}>
                             <label htmlFor="address">{t('eventForm.labels.address')}</label>
                             <input
                                 type="text"
@@ -426,7 +425,7 @@ function EventForm({ event, onSubmit, onClose, onSwitchToEdit }: EventFormProps)
                         <input type="hidden" name="latitude" value={formData.latitude} />
                         <input type="hidden" name="longitude" value={formData.longitude} />
 
-                        <div className="form-group">
+                        <div className={styles.formGroup}>
                             <label htmlFor="performers">{t('eventForm.labels.performers')}</label>
                             <MultiSelect
                                 options={savedPerformers}
@@ -436,7 +435,7 @@ function EventForm({ event, onSubmit, onClose, onSwitchToEdit }: EventFormProps)
                             />
                         </div>
 
-                        <div className="form-group">
+                        <div className={styles.formGroup}>
                             <label htmlFor="related_link">{t('eventForm.labels.relatedLink')}</label>
                             <input
                                 type="url"
@@ -448,11 +447,11 @@ function EventForm({ event, onSubmit, onClose, onSwitchToEdit }: EventFormProps)
                             />
                         </div>
 
-                        <div className="form-actions">
-                            <button type="button" className="btn-cancel" onClick={onClose}>
+                        <div className={styles.formActions}>
+                            <button type="button" className={styles.btnCancel} onClick={onClose}>
                                 {t('buttons.cancel')}
                             </button>
-                            <button type="submit" className="btn-submit" disabled={isSubmitting}>
+                            <button type="submit" className={styles.btnSubmit} disabled={isSubmitting}>
                                 {isSubmitting ? t('eventForm.buttons.submitting') : (event ? t('buttons.update') : t('buttons.submit'))}
                             </button>
                         </div>

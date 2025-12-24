@@ -1,4 +1,4 @@
-.login-button {
+.button {
     display: flex;
     align-items: center;
     gap: 8px;
@@ -13,13 +13,13 @@
     transition: all 0.3s;
 }
 
-.login-button:hover {
+.button:hover {
     background: var(--bg-tertiary);
     box-shadow: var(--glow-soft);
     transform: translateY(-1px);
 }
 
-.login-button svg {
+.button svg {
     width: 18px;
     height: 18px;
 }

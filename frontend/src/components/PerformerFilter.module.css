@@ -1,9 +1,9 @@
-.performer-filter {
+.performerFilter {
     margin-bottom: 20px;
     position: relative;
 }
 
-.performer-filter label {
+.performerFilter label {
     display: block;
     margin-bottom: 0.75rem;
     color: var(--primary-orange);
@@ -11,11 +11,11 @@
     font-size: 1rem;
 }
 
-.performer-filter-input-group {
+.performerFilterInputGroup {
     position: relative;
 }
 
-.performer-filter-input {
+.performerFilterInput {
     width: 100%;
     padding: 10px 36px 10px 12px;
     background: var(--input-bg);
@@ -30,13 +30,13 @@
     color: var(--text-secondary);
 }
 
-.performer-filter-input:focus {
+.performerFilterInput:focus {
     outline: none;
     border-color: var(--primary-orange);
     box-shadow: var(--glow-medium);
 }
 
-.btn-clear-filter {
+.btnClearFilter {
     position: absolute;
     right: 8px;
     top: 50%;
@@ -55,13 +55,13 @@
     transition: all 0.2s;
 }
 
-.btn-clear-filter:hover {
+.btnClearFilter:hover {
     background: var(--bg-primary);
     color: var(--primary-orange);
     transform: translateY(-50%) scale(1.1);
 }
 
-.performer-filter-dropdown {
+.performerFilterDropdown {
     position: absolute;
     top: calc(100% + 4px);
     left: 0;
@@ -79,7 +79,7 @@
     box-shadow: 0 4px 20px var(--shadow-color);
 }
 
-.performer-filter-item {
+.performerFilterItem {
     padding: 12px;
     cursor: pointer;
     transition: all 0.2s;
@@ -87,22 +87,22 @@
     color: var(--text-primary);
 }
 
-.performer-filter-item:last-child {
+.performerFilterItem:last-child {
     border-bottom: none;
 }
 
-.performer-filter-item:hover {
+.performerFilterItem:hover {
     background: rgba(255, 107, 53, 0.1);
     border-left: 3px solid var(--primary-orange);
 }
 
-.performer-filter-name {
+.performerFilterName {
     font-weight: 500;
     color: var(--text-primary);
     margin-bottom: 4px;
 }
 
-.performer-filter-aliases {
+.performerFilterAliases {
     font-size: 0.85rem;
     color: var(--text-secondary);
     font-style: italic;
@@ -129,28 +129,28 @@
 
 /* Responsive Design */
 @media (max-width: 480px) {
-    .performer-filter label {
+    .performerFilter label {
         font-size: 0.9rem;
     }
 
-    .performer-filter-input {
+    .performerFilterInput {
         font-size: 0.9rem;
         padding: 8px 32px 8px 10px;
     }
 
-    .performer-filter-dropdown {
+    .performerFilterDropdown {
         max-height: 250px;
     }
 
-    .performer-filter-item {
+    .performerFilterItem {
         padding: 10px;
     }
 
-    .performer-filter-name {
+    .performerFilterName {
         font-size: 0.9rem;
     }
 
-    .performer-filter-aliases {
+    .performerFilterAliases {
         font-size: 0.75rem;
     }
 }

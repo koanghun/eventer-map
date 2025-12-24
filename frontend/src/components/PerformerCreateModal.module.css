@@ -1,4 +1,4 @@
-.performer-modal-overlay {
+.performerModalOverlay {
     position: fixed;
     top: 0;
     left: 0;
@@ -12,7 +12,7 @@
     animation: fadeIn 0.2s ease-out;
 }
 
-.performer-modal-content {
+.performerModalContent {
     background: rgba(26, 26, 46, 0.95);
     border-radius: 12px;
     width: 90%;
@@ -23,7 +23,7 @@
     animation: slideUp 0.3s ease-out;
 }
 
-.performer-modal-header {
+.performerModalHeader {
     display: flex;
     justify-content: space-between;
     align-items: center;
@@ -31,32 +31,32 @@
     border-bottom: 1px solid #e5e7eb;
 }
 
-.performer-modal-header h3 {
+.performerModalHeader h3 {
     margin: 0;
     font-size: 1.25rem;
     color: white;
 }
 
-.performer-modal-body {
+.performerModalBody {
     padding: 20px;
 }
 
-.form-group {
+.formGroup {
     margin-bottom: 20px;
 }
 
-.form-group label {
+.formGroup label {
     display: block;
     margin-bottom: 8px;
     font-weight: 500;
     color: var(--primary-orange);
 }
 
-.form-group .required {
+.formGroup .required {
     color: #ef4444;
 }
 
-.form-group input {
+.formGroup input {
     width: 100%;
     padding: 10px 12px;
     border: 1px solid #d1d5db;
@@ -65,29 +65,29 @@
     transition: border-color 0.2s;
 }
 
-.form-group input:focus {
+.formGroup input:focus {
     outline: none;
     border-color: var(--primary-orange);
     box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
 }
 
-.form-group small {
+.formGroup small {
     display: block;
     margin-top: 6px;
     font-size: 0.85rem;
     color: #6b7280;
 }
 
-.alias-input-group {
+.aliasInputGroup {
     display: flex;
     gap: 8px;
 }
 
-.alias-input-group input {
+.aliasInputGroup input {
     flex: 1;
 }
 
-.btn-add-alias {
+.btnAddAlias {
     background: var(--primary-orange);
     color: white;
     border: none;
@@ -99,18 +99,18 @@
     white-space: nowrap;
 }
 
-.btn-add-alias:hover {
+.btnAddAlias:hover {
     background: var(--accent-orange);
 }
 
-.aliases-list {
+.aliasesList {
     margin-top: 16px;
     padding: 12px;
     background: #f9fafb;
     border-radius: 6px;
 }
 
-.aliases-list label {
+.aliasesList label {
     display: block;
     margin-bottom: 8px;
     font-size: 0.9rem;
@@ -118,13 +118,13 @@
     color: var(--primary-orange);
 }
 
-.alias-tags {
+.aliasTags {
     display: flex;
     flex-wrap: wrap;
     gap: 8px;
 }
 
-.alias-tag {
+.aliasTag {
     background: var(--primary-orange);
     color: white;
     padding: 6px 10px;
@@ -135,7 +135,7 @@
     gap: 8px;
 }
 
-.alias-tag button {
+.aliasTag button {
     background: none;
     border: none;
     color: white;
@@ -145,7 +145,7 @@
     padding: 0;
 }
 
-.performer-modal-footer {
+.performerModalFooter {
     padding: 16px 20px;
     border-top: 1px solid #e5e7eb;
     display: flex;
@@ -153,7 +153,7 @@
     justify-content: flex-end;
 }
 
-.btn-cancel {
+.btnCancel {
     background: #e5e7eb;
     color: #374151;
     border: none;
@@ -164,11 +164,11 @@
     transition: background 0.2s;
 }
 
-.btn-cancel:hover {
+.btnCancel:hover {
     background: #d1d5db;
 }
 
-.btn-confirm {
+.btnConfirm {
     background: #10b981;
     color: white;
     border: none;
@@ -179,7 +179,7 @@
     transition: background 0.2s;
 }
 
-.btn-confirm:hover {
+.btnConfirm:hover {
     background: #059669;
 }
 

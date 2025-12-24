@@ -1,7 +1,7 @@
 /* Google InfoWindow 최적화 스타일 - Multi-Event (그룹) */
 
 /* Multi-Event InfoWindow Container */
-.info-window-multi {
+.infoWindowMulti {
     min-width: 300px;
     max-width: 400px;
     padding: 0;
@@ -11,7 +11,7 @@
 }
 
 /* Header Section - Google InfoWindow 스타일 + EventForm 테마 (보라색) */
-.info-header-multi {
+.infoHeaderMulti {
     background: transparent;
     padding: 16px;
     margin: -8px -8px 0 -8px;
@@ -20,7 +20,7 @@
     border-radius: 8px 8px 0 0;
 }
 
-.info-header-multi h3 {
+.infoHeaderMulti h3 {
     background: linear-gradient(135deg, var(--primary-purple) 0%, var(--accent-purple) 100%);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
@@ -31,7 +31,7 @@
     letter-spacing: -0.3px;
 }
 
-.info-location-name {
+.infoLocationName {
     color: var(--infowindow-label-purple) !important;
     font-size: 13px;
     margin: 0;
@@ -39,28 +39,28 @@
 }
 
 /* Event List Container */
-.info-event-list {
+.infoEventList {
     max-height: 320px;
     overflow-y: auto;
     margin: 8px 0;
 }
 
 /* Event Item - Google 리스트 스타일 */
-.info-event-item {
+.infoEventItem {
     border-bottom: 1px solid #e8e8e8;
     transition: all 0.2s ease;
 }
 
-.info-event-item:last-child {
+.infoEventItem:last-child {
     border-bottom: none;
 }
 
-.info-event-item.expanded {
+.infoEventItem.expanded {
     background: var(--infowindow-bg-light);
 }
 
 /* Event Header - 클릭 가능한 영역 */
-.info-event-header {
+.infoEventHeader {
     display: flex;
     align-items: center;
     justify-content: space-between;
@@ -69,19 +69,19 @@
     transition: background 0.2s ease;
 }
 
-.info-event-header:hover {
+.infoEventHeader:hover {
     background: var(--infowindow-bg-light);
 }
 
 /* Event Title Container */
-.info-event-title {
+.infoEventTitle {
     display: flex;
     flex-direction: column;
     gap: 6px;
     flex: 1;
 }
 
-.event-title-text {
+.eventTitleText {
     font-weight: 500;
     font-size: 14px;
     color: var(--infowindow-text) !important;
@@ -89,7 +89,7 @@
 }
 
 /* Event Date Badge - Google Chip 스타일 */
-.event-date-badge {
+.eventDateBadge {
     display: inline-block;
     font-size: 12px;
     color: var(--infowindow-label-purple) !important;
@@ -101,7 +101,7 @@
 }
 
 /* Expand Icon - Google Material 스타일 */
-.expand-icon {
+.expandIcon {
     color: var(--primary-purple);
     font-size: 14px;
     margin-left: 8px;
@@ -110,7 +110,7 @@
 }
 
 /* Event Details Section */
-.info-event-details {
+.infoEventDetails {
     padding: 0 12px 12px 12px;
     animation: slideDown 0.2s ease;
 }
@@ -128,56 +128,56 @@
 }
 
 /* Scrollbar - Google 스타일 */
-.info-event-list::-webkit-scrollbar {
+.infoEventList::-webkit-scrollbar {
     width: 8px;
 }
 
-.info-event-list::-webkit-scrollbar-track {
+.infoEventList::-webkit-scrollbar-track {
     background: transparent;
 }
 
-.info-event-list::-webkit-scrollbar-thumb {
+.infoEventList::-webkit-scrollbar-thumb {
     background: #dadce0;
     border-radius: 4px;
 }
 
-.info-event-list::-webkit-scrollbar-thumb:hover {
+.infoEventList::-webkit-scrollbar-thumb:hover {
     background: var(--primary-purple);
 }
 
 /* Responsive Design */
 /* Small Mobile: 320px - 480px */
 @media (max-width: 480px) {
-    .info-window-multi {
+    .infoWindowMulti {
         min-width: min(260px, 92vw);
         max-width: min(320px, 95vw);
     }
 
-    .info-header-multi {
+    .infoHeaderMulti {
         padding: 12px;
     }
 
-    .info-header-multi h3 {
+    .infoHeaderMulti h3 {
         font-size: 15px;
     }
 
-    .info-location-name {
+    .infoLocationName {
         font-size: 12px;
     }
 
-    .info-event-list {
+    .infoEventList {
         max-height: 260px;
     }
 
-    .info-event-header {
+    .infoEventHeader {
         padding: 10px;
     }
 
-    .event-title-text {
+    .eventTitleText {
         font-size: 13px;
     }
 
-    .event-date-badge {
+    .eventDateBadge {
         font-size: 11px;
         padding: 3px 6px;
     }
@@ -185,12 +185,12 @@
 
 /* Mobile: 481px - 767px */
 @media (min-width: 481px) and (max-width: 767px) {
-    .info-window-multi {
+    .infoWindowMulti {
         min-width: min(280px, 90vw);
         max-width: min(380px, 95vw);
     }
 
-    .info-event-list {
+    .infoEventList {
         max-height: 280px;
     }
 }

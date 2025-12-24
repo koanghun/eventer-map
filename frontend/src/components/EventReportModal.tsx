@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { eventApi } from '../services/api';
 import { useTranslation } from 'react-i18next';
-import './EventReportModal.css';
+import styles from './EventReportModal.module.css';
 
 interface EventReportModalProps {
     eventId: number;
@@ -53,10 +53,10 @@ export default function EventReportModal({ eventId, eventTitle, onClose }: Event
 
     if (success) {
         return (
-            <div className="modal-overlay" onClick={onClose}>
-                <div className="modal-content report-modal" onClick={(e) => e.stopPropagation()}>
-                    <div className="success-message">
-                        <div className="success-icon">✅</div>
+            <div className={styles.modalOverlay} onClick={onClose}>
+                <div className={`${styles.modalContent} ${styles.reportModal}`} onClick={(e) => e.stopPropagation()}>
+                    <div className={styles.successMessage}>
+                        <div className={styles.successIcon}>✅</div>
                         <h3>{t('eventDetail.report.success')}</h3>
                         <p>{t('eventDetail.report.successMessage')}</p>
                     </div>
@@ -66,24 +66,24 @@ export default function EventReportModal({ eventId, eventTitle, onClose }: Event
     }
 
     return (
-        <div className="modal-overlay" onClick={onClose}>
-            <div className="modal-content report-modal" onClick={(e) => e.stopPropagation()}>
-                <div className="modal-header">
+        <div className={styles.modalOverlay} onClick={onClose}>
+            <div className={`${styles.modalContent} ${styles.reportModal}`} onClick={(e) => e.stopPropagation()}>
+                <div className={styles.modalHeader}>
                     <h2>🚨 {t('eventDetail.report.title')}</h2>
-                    <button className="modal-close-button" onClick={onClose}>×</button>
+                    <button className={styles.modalCloseButton} onClick={onClose}>×</button>
                 </div>
 
-                <div className="modal-body">
-                    <div className="event-info">
+                <div className={styles.modalBody}>
+                    <div className={styles.eventInfo}>
                         <strong>{t('eventDetail.report.eventLabel')}:</strong> {eventTitle}
                     </div>
 
                     <form onSubmit={handleSubmit}>
-                        <div className="form-group">
-                            <label className="form-label">{t('eventDetail.report.reasonLabel')}</label>
-                            <div className="reason-options">
+                        <div className={styles.formGroup}>
+                            <label className={styles.formLabel}>{t('eventDetail.report.reasonLabel')}</label>
+                            <div className={styles.reasonOptions}>
                                 {reasons.map((r) => (
-                                    <label key={r.value} className={`reason-option ${reason === r.value ? 'selected' : ''}`}>
+                                    <label key={r.value} className={`${styles.reasonOption} ${reason === r.value ? styles.selected : ''}`}>
                                         <input
                                             type="radio"
                                             name="reason"
@@ -91,37 +91,37 @@ export default function EventReportModal({ eventId, eventTitle, onClose }: Event
                                             checked={reason === r.value}
                                             onChange={(e) => setReason(e.target.value)}
                                         />
-                                        <div className="reason-content">
-                                            <div className="reason-label">{r.label}</div>
-                                            <div className="reason-description">{r.description}</div>
+                                        <div className={styles.reasonContent}>
+                                            <div className={styles.reasonLabel}>{r.label}</div>
+                                            <div className={styles.reasonDescription}>{r.description}</div>
                                         </div>
                                     </label>
                                 ))}
                             </div>
                         </div>
 
-                        <div className="form-group">
-                            <label htmlFor="description" className="form-label">
+                        <div className={styles.formGroup}>
+                            <label htmlFor="description" className={styles.formLabel}>
                                 {t('eventDetail.report.descriptionLabel')}:
                             </label>
                             <textarea
                                 id="description"
-                                className="form-textarea"
+                                className={styles.formTextarea}
                                 value={description}
                                 onChange={(e) => setDescription(e.target.value)}
                                 placeholder={t('eventDetail.report.descriptionPlaceholder')}
                                 rows={4}
                                 maxLength={500}
                             />
-                            <div className="char-count">{description.length}/500</div>
+                            <div className={styles.charCount}>{description.length}/500</div>
                         </div>
 
-                        {error && <div className="error-message">{error}</div>}
+                        {error && <div className={styles.errorMessage}>{error}</div>}
 
-                        <div className="form-actions">
+                        <div className={styles.formActions}>
                             <button
                                 type="button"
-                                className="btn-cancel"
+                                className={styles.btnCancel}
                                 onClick={onClose}
                                 disabled={submitting}
                             >
@@ -129,7 +129,7 @@ export default function EventReportModal({ eventId, eventTitle, onClose }: Event
                             </button>
                             <button
                                 type="submit"
-                                className="btn-submit"
+                                className={styles.btnSubmit}
                                 disabled={submitting}
                             >
                                 {submitting ? t('eventDetail.report.submitting') : t('eventDetail.report.submit')}

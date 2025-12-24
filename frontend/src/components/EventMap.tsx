@@ -1,7 +1,7 @@
 import { useMemo, useState, useRef, useCallback, useEffect } from 'react';
 import { GoogleMap, Marker } from '@react-google-maps/api';
 import { Event } from '../types/event';
-import './EventMap.css';
+import styles from './EventMap.module.css';
 import { useTheme } from '../context/ThemeContext';
 import SingleEventInfoWindow from './map/SingleEventInfoWindow';
 import GroupEventInfoWindow from './map/GroupEventInfoWindow';
@@ -218,7 +218,7 @@ function EventMap({ events, selectedEvent, onMarkerClick, onInfoWindowClose }: E
     };
 
     return (
-        <div className="event-map">
+        <div className={styles.eventMap}>
             <GoogleMap
                 mapContainerStyle={mapContainerStyle}
                 center={mapCenter}

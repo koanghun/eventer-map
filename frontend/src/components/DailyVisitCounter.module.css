@@ -1,4 +1,4 @@
-.daily-visit-counter {
+.dailyVisitCounter {
     position: fixed;
     bottom: 10px;
     left: 10px;
@@ -14,6 +14,6 @@
     transition: opacity 0.3s ease;
 }
 
-.daily-visit-counter:hover {
+.dailyVisitCounter:hover {
     opacity: 1;
 }

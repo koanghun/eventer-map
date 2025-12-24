@@ -1,7 +1,7 @@
 import { useState, type KeyboardEvent, type FormEvent, type MouseEvent } from 'react';
 import { useTranslation } from 'react-i18next';
 import ReactDOM from 'react-dom';
-import './PerformerCreateModal.css';
+import styles from './PerformerCreateModal.module.css';
 
 interface PerformerCreateModalProps {
     initialName: string;
@@ -52,18 +52,18 @@ function PerformerCreateModal({
     };
 
     const modalContent = (
-        <div className="performer-modal-overlay" onClick={handleOverlayClick}>
-            <div className="performer-modal-content" onClick={(e) => e.stopPropagation()}>
-                <div className="performer-modal-header">
+        <div className={styles.performerModalOverlay} onClick={handleOverlayClick}>
+            <div className={styles.performerModalContent} onClick={(e) => e.stopPropagation()}>
+                <div className={styles.performerModalHeader}>
                     <h3>✨ {t('performerModal.title')}</h3>
-                    <button className="btn-close" onClick={onCancel}>✕</button>
+                    <button className={styles.btnClose} onClick={onCancel}>✕</button>
                 </div>
 
                 <form onSubmit={handleSubmit}>
-                    <div className="performer-modal-body">
-                        <div className="form-group">
+                    <div className={styles.performerModalBody}>
+                        <div className={styles.formGroup}>
                             <label htmlFor="canonical-name">
-                                {t('performerModal.labels.name')} <span className="required">*</span>
+                                {t('performerModal.labels.name')} <span className={styles.required}>*</span>
                             </label>
                             <input
                                 id="canonical-name"
@@ -77,9 +77,9 @@ function PerformerCreateModal({
                             <small>{t('performerModal.hints.name')}</small>
                         </div>
 
-                        <div className="form-group">
+                        <div className={styles.formGroup}>
                             <label htmlFor="aliases">{t('performerModal.labels.aliases')}</label>
-                            <div className="alias-input-group">
+                            <div className={styles.aliasInputGroup}>
                                 <input
                                     id="aliases"
                                     type="text"
@@ -90,7 +90,7 @@ function PerformerCreateModal({
                                 />
                                 <button
                                     type="button"
-                                    className="btn-add-alias"
+                                    className={styles.btnAddAlias}
                                     onClick={handleAddAlias}
                                 >
                                     {t('performerModal.buttons.add')}
@@ -100,11 +100,11 @@ function PerformerCreateModal({
                         </div>
 
                         {aliases.length > 0 && (
-                            <div className="aliases-list">
+                            <div className={styles.aliasesList}>
                                 <label>{t('performerModal.labels.aliasesRegistered')}</label>
-                                <div className="alias-tags">
+                                <div className={styles.aliasTags}>
                                     {aliases.map((alias, index) => (
-                                        <div key={index} className="alias-tag">
+                                        <div key={index} className={styles.aliasTag}>
                                             {alias}
                                             <button
                                                 type="button"
@@ -119,11 +119,11 @@ function PerformerCreateModal({
                         )}
                     </div>
 
-                    <div className="performer-modal-footer">
-                        <button type="button" className="btn-cancel" onClick={onCancel}>
+                    <div className={styles.performerModalFooter}>
+                        <button type="button" className={styles.btnCancel} onClick={onCancel}>
                             {t('performerModal.buttons.cancel')}
                         </button>
-                        <button type="submit" className="btn-confirm">
+                        <button type="submit" className={styles.btnConfirm}>
                             {t('performerModal.buttons.register')}
                         </button>
                     </div>

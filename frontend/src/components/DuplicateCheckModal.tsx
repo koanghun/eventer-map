@@ -2,7 +2,7 @@ import { type MouseEvent } from 'react';
 import { useTranslation } from 'react-i18next';
 import ReactDOM from 'react-dom';
 import { Performer } from '../types/event';
-import './DuplicateCheckModal.css';
+import styles from './DuplicateCheckModal.module.css';
 
 interface DuplicateCheckModalProps {
     type: 'exact' | 'similar';
@@ -31,30 +31,30 @@ function DuplicateCheckModal({
     };
 
     const modalContent = (
-        <div className="duplicate-modal-overlay" onClick={handleOverlayClick}>
-            <div className="duplicate-modal-content" onClick={(e) => e.stopPropagation()}>
-                <div className="duplicate-modal-header">
+        <div className={styles.duplicateModalOverlay} onClick={handleOverlayClick}>
+            <div className={styles.duplicateModalContent} onClick={(e) => e.stopPropagation()}>
+                <div className={styles.duplicateModalHeader}>
                     <h3>
                         {type === 'exact' ? t('performerDuplicateModal.exactTitle') : t('performerDuplicateModal.similarTitle')}
                     </h3>
-                    <button className="btn-close" onClick={onCancel}>✕</button>
+                    <button className={styles.btnClose} onClick={onCancel}>✕</button>
                 </div>
 
-                <div className="duplicate-modal-body">
+                <div className={styles.duplicateModalBody}>
                     {type === 'exact' && exactMatch && (
                         <>
-                            <p className="duplicate-message">
+                            <p className={styles.duplicateMessage}>
                                 {t('performerDuplicateModal.exactMessage', { name: inputName })}
                             </p>
-                            <div className="existing-item exact-match">
-                                <div className="item-name">{exactMatch.canonical_name}</div>
+                            <div className={`${styles.existingItem} ${styles.exactMatch}`}>
+                                <div className={styles.itemName}>{exactMatch.canonical_name}</div>
                                 {exactMatch.aliases && exactMatch.aliases.length > 0 && (
-                                    <div className="item-aliases">
+                                    <div className={styles.itemAliases}>
                                         {t('performerDuplicateModal.labels.aliases')}: {exactMatch.aliases.join(', ')}
                                     </div>
                                 )}
                                 <button
-                                    className="btn-use-existing"
+                                    className={styles.btnUseExisting}
                                     onClick={() => onUseExisting(exactMatch)}
                                 >
                                     {t('performerDuplicateModal.buttons.useExisting')}
@@ -65,25 +65,25 @@ function DuplicateCheckModal({
 
                     {type === 'similar' && similarMatches.length > 0 && (
                         <>
-                            <p className="duplicate-message">
+                            <p className={styles.duplicateMessage}>
                                 {t('performerDuplicateModal.similarMessage', { name: inputName })}
                             </p>
-                            <div className="similar-matches-list">
+                            <div className={styles.similarMatchesList}>
                                 {similarMatches.map((performer) => (
-                                    <div key={performer.id} className="existing-item">
-                                        <div className="item-info">
-                                            <div className="item-name">{performer.canonical_name}</div>
+                                    <div key={performer.id} className={styles.existingItem}>
+                                        <div className={styles.itemInfo}>
+                                            <div className={styles.itemName}>{performer.canonical_name}</div>
                                             {(() => {
                                                 const aliases = performer.aliases || [];
                                                 return aliases.length > 0 && (
-                                                    <div className="item-aliases">
+                                                    <div className={styles.itemAliases}>
                                                         {t('performerDuplicateModal.labels.aliases')}: {aliases.join(', ')}
                                                     </div>
                                                 );
                                             })()}
                                         </div>
                                         <button
-                                            className="btn-use-existing"
+                                            className={styles.btnUseExisting}
                                             onClick={() => onUseExisting(performer)}
                                         >
                                             {t('performerDuplicateModal.buttons.select')}
@@ -91,24 +91,24 @@ function DuplicateCheckModal({
                                     </div>
                                 ))}
                             </div>
-                            <div className="modal-divider">{t('performerDuplicateModal.divider')}</div>
+                            <div className={styles.modalDivider}>{t('performerDuplicateModal.divider')}</div>
                         </>
                     )}
                 </div>
 
-                <div className="duplicate-modal-footer">
+                <div className={styles.duplicateModalFooter}>
                     {type === 'similar' && (
                         <>
-                            <button className="btn-create-new" onClick={onCreateNew}>
+                            <button className={styles.btnCreateNew} onClick={onCreateNew}>
                                 {t('performerDuplicateModal.buttons.createNew', { name: inputName })}
                             </button>
-                            <button className="btn-cancel-modal" onClick={onCancel}>
+                            <button className={styles.btnCancelModal} onClick={onCancel}>
                                 {t('performerDuplicateModal.buttons.cancel')}
                             </button>
                         </>
                     )}
                     {type === 'exact' && (
-                        <button className="btn-cancel-modal" onClick={onCancel}>
+                        <button className={styles.btnCancelModal} onClick={onCancel}>
                             {t('performerDuplicateModal.buttons.cancel')}
                         </button>
                     )}

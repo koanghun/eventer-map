@@ -3,7 +3,7 @@ import { createPortal } from 'react-dom';
 import { useTranslation } from 'react-i18next';
 import { eventApi } from '../services/api';
 import { Event, EventReportResponse } from '../types/event';
-import './ReportManagementModal.css';
+import styles from './ReportManagementModal.module.css';
 
 interface ReportManagementModalProps {
     onClose: () => void;
@@ -79,10 +79,10 @@ export default function ReportManagementModal({ onClose }: ReportManagementModal
 
     const getStatusColor = (status: string) => {
         switch (status) {
-            case 'pending': return 'status-pending';
-            case 'reviewed': return 'status-reviewed';
-            case 'resolved': return 'status-resolved';
-            default: return 'status-pending';
+            case 'pending': return styles.statusPending;
+            case 'reviewed': return styles.statusReviewed;
+            case 'resolved': return styles.statusResolved;
+            default: return styles.statusPending;
         }
     };
 
@@ -92,76 +92,76 @@ export default function ReportManagementModal({ onClose }: ReportManagementModal
     };
 
     const modalContent = (
-        <div className="report-management-overlay" onClick={onClose}>
-            <div className="report-management-modal" onClick={(e) => e.stopPropagation()}>
-                <div className="modal-header">
+        <div className={styles.overlay} onClick={onClose}>
+            <div className={styles.modal} onClick={(e) => e.stopPropagation()}>
+                <div className={styles.header}>
                     <h2>📊 {t('admin.reports.title')}</h2>
-                    <button className="report-management-close-button" onClick={onClose}>×</button>
+                    <button className={styles.closeButton} onClick={onClose}>×</button>
                 </div>
 
-                <div className="modal-body">
+                <div className={styles.body}>
                     {loading ? (
-                        <div className="loading-state">
-                            <div className="spinner"></div>
+                        <div className={styles.loadingState}>
+                            <div className={styles.spinner}></div>
                             <p>{t('admin.reports.loading')}</p>
                         </div>
                     ) : selectedEvent ? (
                         // Report Details View
-                        <div className="report-details-view">
-                            <button className="back-button" onClick={handleBackToList}>
+                        <div className={styles.detailsView}>
+                            <button className={styles.backButton} onClick={handleBackToList}>
                                 ← {t('admin.reports.backToList')}
                             </button>
 
-                            <div className="event-header">
+                            <div className={styles.eventHeader}>
                                 <h3>{selectedEvent.title}</h3>
-                                <div className="event-meta">
+                                <div className={styles.eventMeta}>
                                     <span>📅 {selectedEvent.event_date}</span>
                                     <span>📍 {selectedEvent.location}</span>
-                                    <span className="report-badge">
+                                    <span className={styles.reportBadge}>
                                         {selectedEvent.report_count} {t('admin.reports.reportCount', { count: selectedEvent.report_count })}
                                     </span>
                                 </div>
                             </div>
 
                             {loadingReports ? (
-                                <div className="loading-state">
-                                    <div className="spinner"></div>
+                                <div className={styles.loadingState}>
+                                    <div className={styles.spinner}></div>
                                     <p>{t('admin.reports.loadingReports')}</p>
                                 </div>
                             ) : error ? (
-                                <div className="error-message">{error}</div>
+                                <div className={styles.errorMessage}>{error}</div>
                             ) : reports.length === 0 ? (
-                                <div className="empty-state">
+                                <div className={styles.emptyState}>
                                     <p>{t('admin.reports.noReportsForEvent')}</p>
                                 </div>
                             ) : (
-                                <div className="reports-list">
+                                <div className={styles.reportsList}>
                                     {reports.map((report) => (
-                                        <div key={report.id} className="report-card">
-                                            <div className="report-header">
-                                                <div className="report-reason">
-                                                    <span className="reason-icon">{getReasonIcon(report.reason)}</span>
+                                        <div key={report.id} className={styles.reportCard}>
+                                            <div className={styles.reportHeader}>
+                                                <div className={styles.reportReason}>
+                                                    <span className={styles.reasonIcon}>{getReasonIcon(report.reason)}</span>
                                                     <strong>{t(`eventDetail.report.reasons.${report.reason}`)}</strong>
                                                 </div>
-                                                <span className={`status-badge ${getStatusColor(report.status)}`}>
+                                                <span className={`${styles.statusBadge} ${getStatusColor(report.status)}`}>
                                                     {t(`admin.reports.statuses.${report.status}`)}
                                                 </span>
                                             </div>
 
-                                            <div className="report-info">
-                                                <div className="info-row">
-                                                    <span className="info-label">{t('admin.reports.reporter')}:</span>
-                                                    <span className="info-value">{report.reporter_name || t('admin.reports.anonymous')}</span>
+                                            <div className={styles.reportInfo}>
+                                                <div className={styles.infoRow}>
+                                                    <span className={styles.infoLabel}>{t('admin.reports.reporter')}:</span>
+                                                    <span className={styles.infoValue}>{report.reporter_name || t('admin.reports.anonymous')}</span>
                                                 </div>
-                                                <div className="info-row">
-                                                    <span className="info-label">{t('admin.reports.reportedAt')}:</span>
-                                                    <span className="info-value">{formatDate(report.created_at)}</span>
+                                                <div className={styles.infoRow}>
+                                                    <span className={styles.infoLabel}>{t('admin.reports.reportedAt')}:</span>
+                                                    <span className={styles.infoValue}>{formatDate(report.created_at)}</span>
                                                 </div>
                                             </div>
 
                                             {report.description && (
-                                                <div className="report-description">
-                                                    <span className="info-label">{t('admin.reports.description')}:</span>
+                                                <div className={styles.reportDescription}>
+                                                    <span className={styles.infoLabel}>{t('admin.reports.description')}:</span>
                                                     <p>{report.description}</p>
                                                 </div>
                                             )}
@@ -172,29 +172,29 @@ export default function ReportManagementModal({ onClose }: ReportManagementModal
                         </div>
                     ) : (
                         // Event List View
-                        <div className="event-list-view">
-                            <p className="list-subtitle">{t('admin.reports.eventList')}</p>
+                        <div className={styles.listView}>
+                            <p className={styles.listSubtitle}>{t('admin.reports.eventList')}</p>
 
                             {events.length === 0 ? (
-                                <div className="empty-state">
+                                <div className={styles.emptyState}>
                                     <p>🎉 {t('admin.reports.noReports')}</p>
                                 </div>
                             ) : (
-                                <div className="events-list">
+                                <div className={styles.eventsList}>
                                     {events.map((event) => (
                                         <div
                                             key={event.id}
-                                            className="event-item"
+                                            className={styles.eventItem}
                                             onClick={() => handleEventClick(event)}
                                         >
-                                            <div className="report-event-info">
+                                            <div className={styles.eventInfo}>
                                                 <h4>{event.title}</h4>
-                                                <div className="event-details">
+                                                <div className={styles.eventDetails}>
                                                     <span>📅 {event.event_date}</span>
                                                     <span>📍 {event.location}</span>
                                                 </div>
                                             </div>
-                                            <div className="report-count-badge">
+                                            <div className={styles.countBadge}>
                                                 {event.report_count}
                                             </div>
                                         </div>
@@ -211,3 +211,4 @@ export default function ReportManagementModal({ onClose }: ReportManagementModal
     // Render modal using React Portal to document.body
     return createPortal(modalContent, document.body);
 }
+

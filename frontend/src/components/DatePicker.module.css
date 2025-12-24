@@ -1,8 +1,8 @@
-.date-picker {
+.container {
     margin-bottom: 20px;
 }
 
-.date-picker label {
+.container label {
     display: block;
     margin-bottom: 8px;
     font-weight: 700;
@@ -10,7 +10,7 @@
     font-size: 1rem;
 }
 
-.date-input {
+.input {
     width: 100%;
     padding: 10px 12px;
     background: var(--input-bg);
@@ -23,36 +23,36 @@
     font-family: inherit;
 }
 
-.date-input:focus {
+.input:focus {
     outline: none;
     border-color: var(--primary-orange);
     box-shadow: var(--glow-medium);
 }
 
-.date-input:hover {
+.input:hover {
     border-color: var(--primary-orange);
     background: rgba(255, 107, 53, 0.05);
 }
 
 /* 달력 아이콘 색상을 주황색으로 변경 */
-.date-input::-webkit-calendar-picker-indicator {
+.input::-webkit-calendar-picker-indicator {
     cursor: pointer;
     filter: invert(56%) sepia(74%) saturate(2476%) hue-rotate(343deg) brightness(102%) contrast(101%);
     transition: all 0.3s;
 }
 
-.date-input::-webkit-calendar-picker-indicator:hover {
+.input::-webkit-calendar-picker-indicator:hover {
     filter: invert(56%) sepia(74%) saturate(2476%) hue-rotate(343deg) brightness(110%) contrast(101%);
     transform: scale(1.1);
 }
 
 /* Responsive Design */
 @media (max-width: 480px) {
-    .date-picker label {
+    .container label {
         font-size: 0.9rem;
     }
 
-    .date-input {
+    .input {
         font-size: 0.9rem;
         padding: 8px 10px;
     }

@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../context/AuthContext';
 import ReportManagementModal from './ReportManagementModal';
-import './UserProfile.css';
+import styles from './UserProfile.module.css';
 
 export default function UserProfile() {
     const { t } = useTranslation();
@@ -31,34 +31,34 @@ export default function UserProfile() {
 
     return (
         <>
-            <div className="user-profile" ref={dropdownRef}>
+            <div className={styles.userProfile} ref={dropdownRef}>
                 <button
-                    className="profile-button"
+                    className={styles.profileButton}
                     onClick={() => setIsOpen(!isOpen)}
                 >
                     {user.profile_image ? (
-                        <img src={user.profile_image} alt={user.name || user.email} className="profile-image" />
+                        <img src={user.profile_image} alt={user.name || user.email} className={styles.profileImage} />
                     ) : (
-                        <div className="profile-avatar">
+                        <div className={styles.profileAvatar}>
                             {(user.name?.[0] || user.email[0]).toUpperCase()}
                         </div>
                     )}
                 </button>
 
                 {isOpen && (
-                    <div className="profile-dropdown">
-                        <div className="profile-info">
-                            <p className="profile-name">{user.name || user.email}</p>
-                            <p className="profile-email">{user.email}</p>
+                    <div className={styles.profileDropdown}>
+                        <div className={styles.profileInfo}>
+                            <p className={styles.profileName}>{user.name || user.email}</p>
+                            <p className={styles.profileEmail}>{user.email}</p>
                         </div>
 
                         {user.is_admin && (
-                            <button className="admin-menu-button" onClick={handleManageReports}>
+                            <button className={styles.adminMenuButton} onClick={handleManageReports}>
                                 📊 {t('admin.manageReports')}
                             </button>
                         )}
 
-                        <button className="logout-button" onClick={logout}>
+                        <button className={styles.logoutButton} onClick={logout}>
                             {t('auth.logout')}
                         </button>
                     </div>

@@ -1,8 +1,8 @@
-.user-profile {
+.userProfile {
     position: relative;
 }
 
-.profile-button {
+.profileButton {
     background: transparent;
     border: none;
     padding: 0;
@@ -13,18 +13,18 @@
     transition: all 0.3s;
 }
 
-.profile-button:hover {
+.profileButton:hover {
     transform: scale(1.05);
 }
 
-.profile-image {
+.profileImage {
     width: 40px;
     height: 40px;
     border-radius: 50%;
     border: 2px solid var(--primary-orange);
 }
 
-.profile-avatar {
+.profileAvatar {
     width: 40px;
     height: 40px;
     border-radius: 50%;
@@ -37,7 +37,7 @@
     font-size: 16px;
 }
 
-.profile-dropdown {
+.profileDropdown {
     position: absolute;
     top: 50px;
     right: 0;
@@ -50,24 +50,24 @@
     z-index: 1200;
 }
 
-.profile-info {
+.profileInfo {
     padding: 8px;
     border-bottom: 1px solid var(--border-color);
     margin-bottom: 8px;
 }
 
-.profile-name {
+.profileName {
     font-weight: 600;
     color: var(--text-primary);
     margin-bottom: 4px;
 }
 
-.profile-email {
+.profileEmail {
     font-size: 12px;
     color: var(--text-secondary);
 }
 
-.admin-menu-button {
+.adminMenuButton {
     width: 100%;
     padding: 8px 12px;
     background: linear-gradient(135deg, var(--primary-orange), var(--accent-orange));
@@ -81,12 +81,12 @@
     margin-bottom: 8px;
 }
 
-.admin-menu-button:hover {
+.adminMenuButton:hover {
     transform: translateY(-2px);
     box-shadow: 0 4px 12px rgba(255, 107, 53, 0.4);
 }
 
-.logout-button {
+.logoutButton {
     width: 100%;
     padding: 8px 12px;
     background: var(--bg-tertiary);
@@ -98,7 +98,7 @@
     transition: all 0.3s;
 }
 
-.logout-button:hover {
+.logoutButton:hover {
     background: var(--primary-orange);
     color: white;
     border-color: var(--primary-orange);
@@ -106,20 +106,20 @@
 
 /* Responsive Design */
 @media (max-width: 480px) {
-    .profile-dropdown {
+    .profileDropdown {
         min-width: min(180px, 90vw);
         right: -10px;
     }
 
-    .profile-name {
+    .profileName {
         font-size: 14px;
     }
 
-    .profile-email {
+    .profileEmail {
         font-size: 11px;
     }
 
-    .logout-button {
+    .logoutButton {
         font-size: 13px;
     }
 }

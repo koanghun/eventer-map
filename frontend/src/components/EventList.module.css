@@ -1,8 +1,8 @@
-.event-list {
+.eventList {
     margin-top: 1.5rem;
 }
 
-.event-list h3 {
+.eventList h3 {
     color: var(--primary-orange);
     font-size: 1.1rem;
     margin-bottom: 1rem;
@@ -11,13 +11,13 @@
     text-shadow: var(--glow-soft);
 }
 
-.event-items {
+.eventItems {
     display: flex;
     flex-direction: column;
     gap: 0.75rem;
 }
 
-.event-item {
+.eventItem {
     background: linear-gradient(135deg, rgba(255, 107, 53, 0.1) 0%, rgba(255, 140, 66, 0.1) 100%);
     border: 2px solid rgba(255, 107, 53, 0.3);
     border-radius: 10px;
@@ -39,18 +39,18 @@
     transition: left 0.5s;
 }
 
-.event-item:hover::before {
+.eventItem:hover::before {
     left: 100%;
 }
 
-.event-item:hover {
+.eventItem:hover {
     border-color: var(--primary-orange);
     transform: translateX(4px);
     box-shadow: 0 4px 15px rgba(255, 107, 53, 0.3),
         0 0 20px rgba(255, 107, 53, 0.2);
 }
 
-.event-item.active {
+.eventItem.active {
     border-color: var(--accent-orange);
     background: linear-gradient(135deg, var(--primary-orange) 0%, var(--accent-orange) 100%);
     color: white;
@@ -58,40 +58,40 @@
         0 0 30px rgba(255, 107, 53, 0.3);
 }
 
-.event-item.active .event-item-location,
-.event-item.active .event-item-time,
-.event-item.active .event-item-performers {
+.eventItem.active .eventItemLocation,
+.eventItem.active .eventItemTime,
+.eventItem.active .eventItemPerformers {
     color: rgba(255, 255, 255, 0.9);
 }
 
-.event-item-header {
+.eventItemHeader {
     display: flex;
     justify-content: space-between;
     align-items: flex-start;
     margin-bottom: 0.5rem;
 }
 
-.event-item-header h4 {
+.eventItemHeader h4 {
     flex: 1;
     margin: 0;
     font-size: 1rem;
     color: var(--primary-orange);
 }
 
-.event-item.active h4 {
+.eventItem.active h4 {
     color: white;
     text-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
 }
 
-.event-item-actions {
+.eventItemActions {
     display: flex;
     gap: 0.25rem;
     position: relative;
     z-index: 1;
 }
 
-.btn-edit,
-.btn-delete {
+.btnEdit,
+.btnDelete {
     background: rgba(255, 255, 255, 0.9);
     border: none;
     border-radius: 6px;
@@ -101,32 +101,32 @@
     transition: all 0.2s;
 }
 
-.btn-edit:hover,
-.btn-delete:hover {
+.btnEdit:hover,
+.btnDelete:hover {
     transform: scale(1.1);
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
 }
 
-.event-item-location,
-.event-item-time,
-.event-item-performers {
+.eventItemLocation,
+.eventItemTime,
+.eventItemPerformers {
     margin: 0.25rem 0;
     font-size: 0.85rem;
     color: var(--muted-text);
 }
 
-.event-list-loading,
-.event-list-empty {
+.eventListLoading,
+.eventListEmpty {
     text-align: center;
     padding: 2rem 1rem;
     color: var(--muted-text);
 }
 
-.event-list-empty p {
+.eventListEmpty p {
     margin: 0.5rem 0;
 }
 
-.event-list-empty p:first-child {
+.eventListEmpty p:first-child {
     color: var(--primary-orange);
     font-weight: 600;
 }
@@ -134,29 +134,29 @@
 /* Responsive Design */
 /* Small Mobile: 320px - 480px */
 @media (max-width: 480px) {
-    .event-list h3 {
+    .eventList h3 {
         font-size: 1rem;
     }
 
-    .event-item {
+    .eventItem {
         padding: 0.75rem;
     }
 
-    .event-item-header h4 {
+    .eventItemHeader h4 {
         font-size: 0.9rem;
     }
 
-    .btn-edit,
-    .btn-delete {
+    .btnEdit,
+    .btnDelete {
         padding: 0.5rem;
         min-width: 44px;
         min-height: 44px;
         font-size: 1.1rem;
     }
 
-    .event-item-location,
-    .event-item-time,
-    .event-item-performers {
+    .eventItemLocation,
+    .eventItemTime,
+    .eventItemPerformers {
         font-size: 0.8rem;
     }
 }
@@ -164,8 +164,8 @@
 /* Mobile: 481px - 767px */
 @media (min-width: 481px) and (max-width: 767px) {
 
-    .btn-edit,
-    .btn-delete {
+    .btnEdit,
+    .btnDelete {
         min-width: 40px;
         min-height: 40px;
     }

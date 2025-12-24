@@ -25,6 +25,7 @@ body {
 .app-header {
   background: var(--bg-secondary);
   backdrop-filter: blur(10px);
+  /* 이 속성 사용시 자식 요소의 기준점이 viewport가 아니라 그 부모 요소로 바뀜 */
   padding: 1rem 2rem;
   box-shadow: 0 2px 20px var(--shadow-color);
   border-bottom: 2px solid var(--border-color);

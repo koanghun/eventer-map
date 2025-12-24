@@ -1,7 +1,7 @@
 import { InfoWindow } from '@react-google-maps/api';
 import { Event } from '../../types/event';
 import { useTranslation } from 'react-i18next';
-import './GroupEventInfoWindow.css';
+import styles from './GroupEventInfoWindow.module.css';
 
 interface GroupEventInfoWindowProps {
     events: Event[];
@@ -22,25 +22,25 @@ export default function GroupEventInfoWindow({
 
     return (
         <InfoWindow position={location} onCloseClick={onClose}>
-            <div className="info-window-multi">
-                <div className="info-header-multi">
+            <div className={styles.infoWindowMulti}>
+                <div className={styles.infoHeaderMulti}>
                     <h3>{t('eventMap.groupModal.title', { count: events.length })}</h3>
-                    <p className="info-location-name">{locationName}</p>
+                    <p className={styles.infoLocationName}>{locationName}</p>
                 </div>
 
-                <div className="info-event-list">
+                <div className={styles.infoEventList}>
                     {events.map(event => (
                         <div
                             key={event.id}
-                            className="info-event-item"
+                            className={styles.infoEventItem}
                             onClick={() => onEventSelect(event)}
                         >
-                            <div className="info-event-header">
-                                <div className="info-event-title">
-                                    <span className="event-title-text">{event.title}</span>
-                                    <span className="event-date-badge">{event.event_date}</span>
+                            <div className={styles.infoEventHeader}>
+                                <div className={styles.infoEventTitle}>
+                                    <span className={styles.eventTitleText}>{event.title}</span>
+                                    <span className={styles.eventDateBadge}>{event.event_date}</span>
                                 </div>
-                                <span className="expand-icon">▶</span>
+                                <span className={styles.expandIcon}>▶</span>
                             </div>
                         </div>
                     ))}

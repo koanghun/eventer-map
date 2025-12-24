@@ -1,4 +1,4 @@
-.modal-overlay {
+.modalOverlay {
     position: absolute;
     top: 0;
     left: 0;
@@ -12,7 +12,7 @@
     padding: 20px;
 }
 
-.modal-content.history-modal {
+.modalContent.historyModal {
     background: var(--modal-surface);
     border-radius: 12px;
     box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
@@ -24,7 +24,7 @@
     flex-direction: column;
 }
 
-.modal-header {
+.modalHeader {
     padding: 20px 24px;
     border-bottom: 1px solid var(--modal-border);
     display: flex;
@@ -32,13 +32,13 @@
     align-items: center;
 }
 
-.modal-header h2 {
+.modalHeader h2 {
     margin: 0;
     font-size: 24px;
     color: var(--modal-text);
 }
 
-.modal-close-button {
+.modalCloseButton {
     background: transparent;
     border: none;
     font-size: 32px;
@@ -54,36 +54,36 @@
     transition: background-color 0.2s;
 }
 
-.modal-close-button:hover {
+.modalCloseButton:hover {
     background-color: rgba(0, 0, 0, 0.05);
 }
 
-.modal-body {
+.modalBody {
     padding: 24px;
     overflow-y: auto;
     flex: 1;
 }
 
 .loading,
-.error-message,
-.no-history {
+.errorMessage,
+.noHistory {
     text-align: center;
     padding: 40px 20px;
     color: var(--modal-text-secondary);
     font-size: 16px;
 }
 
-.error-message {
+.errorMessage {
     color: #d32f2f;
 }
 
-.history-list {
+.historyList {
     display: flex;
     flex-direction: column;
     gap: 16px;
 }
 
-.history-item {
+.historyItem {
     border: 1px solid var(--modal-border);
     border-radius: 8px;
     padding: 16px;
@@ -91,35 +91,35 @@
     transition: box-shadow 0.2s;
 }
 
-.history-item:hover {
+.historyItem:hover {
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
 
-.history-header {
+.historyHeader {
     display: flex;
     flex-direction: column;
     gap: 8px;
     margin-bottom: 12px;
 }
 
-.history-time {
+.historyTime {
     font-size: 14px;
     color: var(--modal-text-secondary);
 }
 
-.history-user {
+.historyUser {
     font-size: 14px;
     color: var(--modal-text);
     font-weight: 500;
 }
 
-.history-action {
+.historyAction {
     font-size: 15px;
     color: #1976d2;
     font-weight: 600;
 }
 
-.history-summary {
+.historySummary {
     margin-bottom: 12px;
     padding: 12px;
     background: var(--modal-surface);
@@ -128,7 +128,7 @@
     color: var(--modal-text-secondary);
 }
 
-.history-toggle {
+.historyToggle {
     background: #1976d2;
     color: white;
     border: none;
@@ -139,23 +139,23 @@
     transition: background-color 0.2s;
 }
 
-.history-toggle:hover {
+.historyToggle:hover {
     background: #1565c0;
 }
 
-.history-details {
+.historyDetails {
     margin-top: 16px;
     padding-top: 16px;
     border-top: 1px solid #e0e0e0;
 }
 
-.snapshot-grid {
+.snapshotGrid {
     display: flex;
     flex-direction: column;
     gap: 12px;
 }
 
-.snapshot-field {
+.snapshotField {
     display: flex;
     flex-direction: column;
     gap: 8px;
@@ -164,31 +164,31 @@
     border-radius: 6px;
 }
 
-.snapshot-field.changed {
+.snapshotField.changed {
     background: #fff9e6;
     border-left: 3px solid #ff9800;
 }
 
-.field-label {
+.fieldLabel {
     font-weight: 600;
     color: #666;
     font-size: 13px;
 }
 
-.field-value {
+.fieldValue {
     color: #333;
     flex: 1;
 }
 
-.field-change {
+.fieldChange {
     display: flex;
     flex-direction: column;
     gap: 8px;
     margin-top: 4px;
 }
 
-.field-old,
-.field-new {
+.fieldOld,
+.fieldNew {
     display: flex;
     flex-direction: column;
     gap: 4px;
@@ -196,36 +196,36 @@
     border-radius: 4px;
 }
 
-.field-old {
+.fieldOld {
     background: #ffebee;
     border-left: 3px solid #f44336;
 }
 
-.field-new {
+.fieldNew {
     background: #e8f5e9;
     border-left: 3px solid #4caf50;
 }
 
-.change-label {
+.changeLabel {
     font-size: 11px;
     font-weight: 600;
     text-transform: uppercase;
     color: #666;
 }
 
-.change-value {
+.changeValue {
     color: #333;
     word-break: break-word;
 }
 
-.change-arrow {
+.changeArrow {
     text-align: center;
     color: #999;
     font-weight: bold;
     font-size: 16px;
 }
 
-.no-changes {
+.noChanges {
     text-align: center;
     padding: 20px;
     color: #999;

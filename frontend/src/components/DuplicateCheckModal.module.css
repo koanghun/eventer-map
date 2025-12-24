@@ -1,4 +1,4 @@
-.duplicate-modal-overlay {
+.duplicateModalOverlay {
     position: fixed;
     top: 0;
     left: 0;
@@ -12,7 +12,7 @@
     animation: fadeIn 0.2s ease-out;
 }
 
-.duplicate-modal-content {
+.duplicateModalContent {
     background: rgba(26, 26, 46, 0.95);
     border-radius: 12px;
     width: 90%;
@@ -23,7 +23,7 @@
     animation: slideUp 0.3s ease-out;
 }
 
-.duplicate-modal-header {
+.duplicateModalHeader {
     display: flex;
     justify-content: space-between;
     align-items: center;
@@ -31,28 +31,28 @@
     border-bottom: 1px solid #e5e7eb;
 }
 
-.duplicate-modal-header h3 {
+.duplicateModalHeader h3 {
     margin: 0;
     font-size: 1.25rem;
     color: white;
 }
 
-.duplicate-modal-body {
+.duplicateModalBody {
     padding: 20px;
 }
 
-.duplicate-message {
+.duplicateMessage {
     margin-bottom: 16px;
     color: var(--muted-text);
     line-height: 1.5;
 }
 
-.duplicate-message strong {
+.duplicateMessage strong {
     color: #f59e0b;
     font-weight: 600;
 }
 
-.existing-item {
+.existingItem {
     background: #f9fafb;
     border: 2px solid #e5e7eb;
     border-radius: 8px;
@@ -61,38 +61,38 @@
     transition: all 0.2s;
 }
 
-.existing-item:hover {
+.existingItem:hover {
     border-color: var(--primary-orange);
     box-shadow: 0 2px 8px rgba(59, 130, 246, 0.1);
 }
 
-.existing-item.exact-match {
+.existingItem.exactMatch {
     border-color: #f59e0b;
     background: #fffbeb;
 }
 
-.existing-item .item-info {
+.existingItem .itemInfo {
     margin-bottom: 12px;
 }
 
-.existing-item .item-name {
+.existingItem .itemName {
     font-size: 1.1rem;
     font-weight: 600;
     color: #1f2937;
     margin-bottom: 6px;
 }
 
-.existing-item .item-aliases {
+.existingItem .itemAliases {
     font-size: 0.9rem;
     color: #6b7280;
     font-style: italic;
 }
 
-.similar-matches-list {
+.similarMatchesList {
     margin-bottom: 16px;
 }
 
-.btn-use-existing {
+.btnUseExisting {
     background: var(--primary-orange);
     color: white;
     border: none;
@@ -104,11 +104,11 @@
     width: 100%;
 }
 
-.btn-use-existing:hover {
+.btnUseExisting:hover {
     background: var(--accent-orange);
 }
 
-.modal-divider {
+.modalDivider {
     text-align: center;
     color: #9ca3af;
     margin: 16px 0;
@@ -133,7 +133,7 @@
     right: 0;
 }
 
-.duplicate-modal-footer {
+.duplicateModalFooter {
     padding: 16px 20px;
     border-top: 1px solid #e5e7eb;
     display: flex;
@@ -141,7 +141,7 @@
     justify-content: flex-end;
 }
 
-.btn-create-new {
+.btnCreateNew {
     background: var(--secondary-orange);
     color: white;
     border: none;
@@ -153,11 +153,11 @@
     flex: 1;
 }
 
-.btn-create-new:hover {
+.btnCreateNew:hover {
     background: #059669;
 }
 
-.btn-cancel-modal {
+.btnCancelModal {
     background: #e5e7eb;
     color: var(--muted-text);
     border: none;
@@ -168,7 +168,7 @@
     transition: all 0.2s;
 }
 
-.btn-cancel-modal:hover {
+.btnCancelModal:hover {
     background: #d1d5db;
 }
 

@@ -1,6 +1,6 @@
 import { useTranslation } from 'react-i18next';
 import { Event } from '../types/event';
-import './EventList.css';
+import styles from './EventList.module.css';
 
 interface EventListProps {
     events: Event[];
@@ -22,12 +22,12 @@ function EventList({
     const { t } = useTranslation();
 
     if (loading) {
-        return <div className="event-list-loading">{t('eventList.loading')}</div>;
+        return <div className={styles.eventListLoading}>{t('eventList.loading')}</div>;
     }
 
     if (events.length === 0) {
         return (
-            <div className="event-list-empty">
+            <div className={styles.eventListEmpty}>
                 <p>{t('eventList.empty.line1')}</p>
                 <p>{t('eventList.empty.line2')}</p>
             </div>
@@ -35,22 +35,22 @@ function EventList({
     }
 
     return (
-        <div className="event-list">
+        <div className={styles.eventList}>
             <h3>{t('eventList.title')} ({events.length})</h3>
-            <div className="event-items">
+            <div className={styles.eventItems}>
                 {events.map((event) => (
                     <div
                         key={event.id}
-                        className={`event-item ${selectedEventId === event.id ? 'active' : ''}`}
+                        className={`${styles.eventItem} ${selectedEventId === event.id ? styles.active : ''}`}
                         onClick={() => onEventClick(event)}
                     >
-                        <div className="event-item-header">
+                        <div className={styles.eventItemHeader}>
                             <h4>{event.title}</h4>
                             {(onEventEdit || onEventDelete) && (
-                                <div className="event-item-actions">
+                                <div className={styles.eventItemActions}>
                                     {onEventEdit && (
                                         <button
-                                            className="btn-edit"
+                                            className={styles.btnEdit}
                                             onClick={(e) => {
                                                 e.stopPropagation();
                                                 onEventEdit(event);
@@ -62,7 +62,7 @@ function EventList({
                                     )}
                                     {onEventDelete && (
                                         <button
-                                            className="btn-delete"
+                                            className={styles.btnDelete}
                                             onClick={(e) => {
                                                 e.stopPropagation();
                                                 if (event.id) onEventDelete(event.id);
@@ -76,8 +76,8 @@ function EventList({
                             )}
                         </div>
 
-                        <p className="event-item-location">📍 {event.location}</p>
-                        <p className="event-item-time">
+                        <p className={styles.eventItemLocation}>📍 {event.location}</p>
+                        <p className={styles.eventItemTime}>
                             🕐{' '}
                             {event.door_time && `${t('eventList.timePrefix.door')} ${event.door_time}`}
                             {event.door_time && event.start_time && ' / '}
@@ -87,7 +87,7 @@ function EventList({
                             {!event.door_time && !event.start_time && !event.end_time && t('eventList.timePrefix.tbd')}
                         </p>
                         {event.performers && (
-                            <p className="event-item-performers">🎤 {event.performers}</p>
+                            <p className={styles.eventItemPerformers}>🎤 {event.performers}</p>
                         )}
                     </div>
                 ))}

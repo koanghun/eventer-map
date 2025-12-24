@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { EventHistory } from '../types/event';
 import { eventApi } from '../services/api';
 import { useTranslation } from 'react-i18next';
-import './EventHistoryModal.css';
+import styles from './EventHistoryModal.module.css';
 
 interface EventHistoryModalProps {
     eventId: number;
@@ -97,93 +97,93 @@ export default function EventHistoryModal({ eventId, onClose }: EventHistoryModa
     };
 
     return (
-        <div className="modal-overlay" onClick={onClose}>
-            <div className="modal-content history-modal" onClick={(e) => e.stopPropagation()}>
-                <div className="modal-header">
+        <div className={styles.modalOverlay} onClick={onClose}>
+            <div className={`${styles.modalContent} ${styles.historyModal}`} onClick={(e) => e.stopPropagation()}>
+                <div className={styles.modalHeader}>
                     <h2>📜 {t('eventDetail.history.title')}</h2>
-                    <button className="modal-close-button" onClick={onClose}>×</button>
+                    <button className={styles.modalCloseButton} onClick={onClose}>×</button>
                 </div>
 
-                <div className="modal-body">
-                    {loading && <div className="loading">{t('eventDetail.history.loading')}</div>}
+                <div className={styles.modalBody}>
+                    {loading && <div className={styles.loading}>{t('eventDetail.history.loading')}</div>}
 
-                    {error && <div className="error-message">{error}</div>}
+                    {error && <div className={styles.errorMessage}>{error}</div>}
 
                     {!loading && !error && histories.length === 0 && (
-                        <div className="no-history">{t('eventDetail.history.noHistory')}</div>
+                        <div className={styles.noHistory}>{t('eventDetail.history.noHistory')}</div>
                     )}
 
                     {!loading && !error && histories.length > 0 && (
-                        <div className="history-list">
+                        <div className={styles.historyList}>
                             {histories.map((history, index) => {
                                 const previousHistory = histories[index + 1]; // 다음 인덱스가 이전 버전 (역순 정렬)
                                 const changedFields = getChangedFields(history, previousHistory);
 
                                 return (
-                                    <div key={history.id} className="history-item">
-                                        <div className="history-header">
-                                            <div className="history-time">
+                                    <div key={history.id} className={styles.historyItem}>
+                                        <div className={styles.historyHeader}>
+                                            <div className={styles.historyTime}>
                                                 ⏱️ {formatDate(history.created_at)}
                                             </div>
-                                            <div className="history-user">
+                                            <div className={styles.historyUser}>
                                                 👤 {history.user_name} ({history.user_email})
                                             </div>
-                                            <div className="history-action">
+                                            <div className={styles.historyAction}>
                                                 {getActionIcon(history.action)} {getActionText(history.action)}
                                             </div>
                                         </div>
 
                                         {history.action === 'created' && (
-                                            <div className="history-summary">
+                                            <div className={styles.historySummary}>
                                                 📝 {t('eventDetail.history.createdSummary')}: {history.snapshot.title} @ {history.snapshot.location}
                                             </div>
                                         )}
 
                                         {history.action === 'updated' && changedFields.length > 0 && (
-                                            <div className="history-summary">
+                                            <div className={styles.historySummary}>
                                                 📝 {t('eventDetail.history.changedPrefix')}: {changedFields.map(([key]) => getFieldLabel(key)).join(', ')}
                                             </div>
                                         )}
 
                                         <button
-                                            className="history-toggle"
+                                            className={styles.historyToggle}
                                             onClick={() => toggleExpand(history.id)}
                                         >
                                             {expandedId === history.id ? t('eventDetail.history.hideDetails') : t('eventDetail.history.viewDetails')}
                                         </button>
 
                                         {expandedId === history.id && (
-                                            <div className="history-details">
-                                                <div className="snapshot-grid">
+                                            <div className={styles.historyDetails}>
+                                                <div className={styles.snapshotGrid}>
                                                     {history.action === 'created' ? (
                                                         // 생성된 경우: 모든 필드 표시
                                                         changedFields.map(([key, value]) => (
-                                                            <div key={key} className="snapshot-field">
-                                                                <span className="field-label">{getFieldLabel(key)}:</span>
-                                                                <span className="field-value">{value || t('eventDetail.history.empty')}</span>
+                                                            <div key={key} className={styles.snapshotField}>
+                                                                <span className={styles.fieldLabel}>{getFieldLabel(key)}:</span>
+                                                                <span className={styles.fieldValue}>{value || t('eventDetail.history.empty')}</span>
                                                             </div>
                                                         ))
                                                     ) : (
                                                         // 수정된 경우: 변경된 필드만 표시 (이전 → 이후)
                                                         changedFields.map(([key, oldValue, newValue]) => (
-                                                            <div key={key} className="snapshot-field changed">
-                                                                <span className="field-label">{getFieldLabel(key)}:</span>
-                                                                <div className="field-change">
-                                                                    <div className="field-old">
-                                                                        <span className="change-label">{t('eventDetail.history.before')}:</span>
-                                                                        <span className="change-value">{oldValue || t('eventDetail.history.empty')}</span>
+                                                            <div key={key} className={`${styles.snapshotField} ${styles.changed}`}>
+                                                                <span className={styles.fieldLabel}>{getFieldLabel(key)}:</span>
+                                                                <div className={styles.fieldChange}>
+                                                                    <div className={styles.fieldOld}>
+                                                                        <span className={styles.changeLabel}>{t('eventDetail.history.before')}:</span>
+                                                                        <span className={styles.changeValue}>{oldValue || t('eventDetail.history.empty')}</span>
                                                                     </div>
-                                                                    <div className="change-arrow">→</div>
-                                                                    <div className="field-new">
-                                                                        <span className="change-label">{t('eventDetail.history.after')}:</span>
-                                                                        <span className="change-value">{newValue || t('eventDetail.history.empty')}</span>
+                                                                    <div className={styles.changeArrow}>→</div>
+                                                                    <div className={styles.fieldNew}>
+                                                                        <span className={styles.changeLabel}>{t('eventDetail.history.after')}:</span>
+                                                                        <span className={styles.changeValue}>{newValue || t('eventDetail.history.empty')}</span>
                                                                     </div>
                                                                 </div>
                                                             </div>
                                                         ))
                                                     )}
                                                     {history.action === 'updated' && changedFields.length === 0 && (
-                                                        <div className="no-changes">{t('eventDetail.history.noChanges')}</div>
+                                                        <div className={styles.noChanges}>{t('eventDetail.history.noChanges')}</div>
                                                     )}
                                                 </div>
                                             </div>

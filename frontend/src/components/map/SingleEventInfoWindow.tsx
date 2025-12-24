@@ -5,7 +5,7 @@ import { useAuth } from '../../context/AuthContext';
 import { useState } from 'react';
 import EventHistoryModal from '../EventHistoryModal';
 import EventReportModal from '../EventReportModal';
-import './SingleEventInfoWindow.css';
+import styles from './SingleEventInfoWindow.module.css';
 
 interface SingleEventInfoWindowProps {
     event: Event;
@@ -28,12 +28,12 @@ export default function SingleEventInfoWindow({
     return (
         <>
             <InfoWindow position={position} onCloseClick={onClose}>
-                <div className="info-window">
-                    <div className="info-header">
+                <div className={styles.infoWindow}>
+                    <div className={styles.infoHeader}>
                         <h3>{event.title}</h3>
-                        <div className="info-actions">
+                        <div className={styles.infoActions}>
                             <button
-                                className="history-button"
+                                className={styles.historyButton}
                                 onClick={() => setShowHistory(true)}
                                 title="View History"
                             >
@@ -42,14 +42,14 @@ export default function SingleEventInfoWindow({
                             {isAuthenticated && (
                                 <>
                                     <button
-                                        className="report-button"
+                                        className={styles.reportButton}
                                         onClick={() => setShowReport(true)}
                                         title="Report Event"
                                     >
                                         🚨
                                     </button>
                                     <button
-                                        className={`flag-toggle-button ${isFlagged ? 'active' : ''}`}
+                                        className={`${styles.flagToggleButton} ${isFlagged ? styles.active : ''}`}
                                         onClick={() => event.id && toggleFlag(event.id)}
                                         title={isFlagged ? t('eventDetail.flags.remove') : t('eventDetail.flags.add')}
                                     >
@@ -60,16 +60,16 @@ export default function SingleEventInfoWindow({
                         </div>
                     </div>
 
-                    <table className="info-table">
+                    <table className={styles.infoTable}>
                         <tbody>
                             <tr>
-                                <td className="info-label">📍 {t('eventDetail.labels.location')}</td>
-                                <td className="info-value">
+                                <td className={styles.infoLabel}>📍 {t('eventDetail.labels.location')}</td>
+                                <td className={styles.infoValue}>
                                     <a
                                         href={`https://www.google.com/maps/search/?api=1&query=${event.latitude},${event.longitude}`}
                                         target="_blank"
                                         rel="noopener noreferrer"
-                                        className="info-map-link"
+                                        className={styles.infoMapLink}
                                         title={t('eventDetail.mapLink')}
                                     >
                                         {event.location}
@@ -78,13 +78,13 @@ export default function SingleEventInfoWindow({
                             </tr>
                             {event.address && (
                                 <tr>
-                                    <td className="info-label">📮 {t('eventDetail.labels.address')}</td>
-                                    <td className="info-value info-address">
+                                    <td className={styles.infoLabel}>📮 {t('eventDetail.labels.address')}</td>
+                                    <td className={`${styles.infoValue} ${styles.infoAddress}`}>
                                         <a
                                             href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(event.address)}`}
                                             target="_blank"
                                             rel="noopener noreferrer"
-                                            className="info-map-link"
+                                            className={styles.infoMapLink}
                                             title={t('eventDetail.mapLink')}
                                         >
                                             {event.address}
@@ -93,40 +93,40 @@ export default function SingleEventInfoWindow({
                                 </tr>
                             )}
                             <tr>
-                                <td className="info-label">📅 {t('eventDetail.labels.date')}</td>
-                                <td className="info-value">{event.event_date}</td>
+                                <td className={styles.infoLabel}>📅 {t('eventDetail.labels.date')}</td>
+                                <td className={styles.infoValue}>{event.event_date}</td>
                             </tr>
                             {event.door_time && (
                                 <tr>
-                                    <td className="info-label">🚪 {t('eventDetail.labels.doorTime')}</td>
-                                    <td className="info-value">{event.door_time}</td>
+                                    <td className={styles.infoLabel}>🚪 {t('eventDetail.labels.doorTime')}</td>
+                                    <td className={styles.infoValue}>{event.door_time}</td>
                                 </tr>
                             )}
                             {event.start_time && (
                                 <tr>
-                                    <td className="info-label">🎬 {t('eventDetail.labels.startTime')}</td>
-                                    <td className="info-value">{event.start_time}</td>
+                                    <td className={styles.infoLabel}>🎬 {t('eventDetail.labels.startTime')}</td>
+                                    <td className={styles.infoValue}>{event.start_time}</td>
                                 </tr>
                             )}
                             {event.end_time && (
                                 <tr>
-                                    <td className="info-label">🏁 {t('eventDetail.labels.endTime')}</td>
-                                    <td className="info-value">{event.end_time}</td>
+                                    <td className={styles.infoLabel}>🏁 {t('eventDetail.labels.endTime')}</td>
+                                    <td className={styles.infoValue}>{event.end_time}</td>
                                 </tr>
                             )}
                             {event.performers && (
                                 <tr>
-                                    <td className="info-label">🎤 {t('eventDetail.labels.performers')}</td>
-                                    <td className="info-value">{event.performers}</td>
+                                    <td className={styles.infoLabel}>🎤 {t('eventDetail.labels.performers')}</td>
+                                    <td className={styles.infoValue}>{event.performers}</td>
                                 </tr>
                             )}
                         </tbody>
                     </table>
 
                     {event.description && (
-                        <div className="info-description">
-                            <div className="info-description-label">📝 {t('eventDetail.labels.description')}</div>
-                            <div className="info-description-text">{event.description}</div>
+                        <div className={styles.infoDescription}>
+                            <div className={styles.infoDescriptionLabel}>📝 {t('eventDetail.labels.description')}</div>
+                            <div className={styles.infoDescriptionText}>{event.description}</div>
                         </div>
                     )}
 
@@ -135,7 +135,7 @@ export default function SingleEventInfoWindow({
                             href={event.related_link}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="info-link"
+                            className={styles.infoLink}
                         >
                             🔗 {t('eventMap.infoWindow.link')} →
                         </a>
