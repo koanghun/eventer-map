@@ -67,6 +67,25 @@
     color: var(--text-secondary);
 }
 
+.admin-menu-button {
+    width: 100%;
+    padding: 8px 12px;
+    background: linear-gradient(135deg, var(--primary-orange), var(--accent-orange));
+    color: white;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: 500;
+    transition: all 0.3s;
+    margin-bottom: 8px;
+}
+
+.admin-menu-button:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(255, 107, 53, 0.4);
+}
+
 .logout-button {
     width: 100%;
     padding: 8px 12px;

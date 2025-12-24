@@ -147,6 +147,7 @@ class UserResponse(UserBase):
     id: int
     created_at: datetime
     flagged_event_ids: Optional[List[int]] = []
+    is_admin: bool = False  # 관리자 권한 여부
     
     @field_validator('flagged_event_ids', mode='before')
     @classmethod

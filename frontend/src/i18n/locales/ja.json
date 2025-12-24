@@ -241,6 +241,34 @@
             "deleteFailed": "イベントの削除に失敗しました。"
         }
     },
+    "admin": {
+        "manageReports": "報告管理",
+        "reports": {
+            "title": "イベント報告管理",
+            "eventList": "報告されたイベント",
+            "reportCount": "{{count}}件の報告",
+            "noReports": "報告されたイベントがありません",
+            "reportDetails": "報告詳細",
+            "reporter": "報告者",
+            "reason": "理由",
+            "description": "説明",
+            "status": "ステータス",
+            "reportedAt": "報告時刻",
+            "anonymous": "匿名",
+            "loading": "読み込み中...",
+            "loadingReports": "報告履歴を読み込み中...",
+            "errorLoadingEvents": "イベントの読み込みに失敗しました",
+            "errorLoadingReports": "報告履歴の読み込みに失敗しました",
+            "accessDenied": "アクセス権限がありません",
+            "noReportsForEvent": "このイベントの報告はありません",
+            "backToList": "リストに戻る",
+            "statuses": {
+                "pending": "保留中",
+                "reviewed": "確認済み",
+                "resolved": "解決済み"
+            }
+        }
+    },
     "footer": {
         "dailyVisits": "本日の訪問"
     }

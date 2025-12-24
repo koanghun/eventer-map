@@ -1,5 +1,5 @@
 import axios from 'axios';
-import { Event, Performer, Place } from '../types/event';
+import { Event, Performer, Place, EventReportResponse } from '../types/event';
 
 // 프로덕션: nginx 프록시를 통해 /api -> http://backend:8000
 // 개발: 환경 변수로 백엔드 URL 지정 가능
@@ -84,6 +84,12 @@ export const eventApi = {
     // 이벤트 신고
     reportEvent: async (eventId: number, reportData: { reason: string; description?: string }): Promise<void> => {
         await api.post(`/events/${eventId}/report`, reportData);
+    },
+
+    // 이벤트 신고 내역 조회 (관리자 전용)
+    getEventReports: async (eventId: number): Promise<EventReportResponse[]> => {
+        const response = await api.get<EventReportResponse[]>(`/events/${eventId}/reports`);
+        return response.data;
     },
 };
 

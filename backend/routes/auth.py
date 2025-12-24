@@ -4,7 +4,7 @@ from sqlalchemy.orm import Session
 import models
 import schemas
 from database import get_db
-from utils.auth import create_access_token, get_current_user
+from utils.auth import create_access_token, get_current_user, set_admin_status
 import os
 
 router = APIRouter(prefix="/auth", tags=["auth"])
@@ -137,6 +137,13 @@ async def google_callback(request: Request, code: str, state: str, db: Session =
             user.name = id_info.get('name')
             user.profile_image = id_info.get('picture')
             db.commit()
+        
+        # 관리자 상태 설정 (ADMIN_EMAILS 환경변수 기반)
+        set_admin_status(user)
+        db.commit()
+
+        # 관리자 상태 확인
+        print(f"User {user.email} is_admin: {user.is_admin}")
         
         # 6. 자체 JWT 토큰 생성
         jwt_token = create_access_token({"sub": str(user.id)})

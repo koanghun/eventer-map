@@ -241,6 +241,34 @@
             "deleteFailed": "이벤트 삭제에 실패했습니다."
         }
     },
+    "admin": {
+        "manageReports": "신고 관리",
+        "reports": {
+            "title": "이벤트 신고 관리",
+            "eventList": "신고된 이벤트",
+            "reportCount": "{{count}}건의 신고",
+            "noReports": "신고된 이벤트가 없습니다",
+            "reportDetails": "신고 상세",
+            "reporter": "신고자",
+            "reason": "사유",
+            "description": "설명",
+            "status": "상태",
+            "reportedAt": "신고 시각",
+            "anonymous": "익명",
+            "loading": "로딩 중...",
+            "loadingReports": "신고 내역 로딩 중...",
+            "errorLoadingEvents": "이벤트 로딩에 실패했습니다",
+            "errorLoadingReports": "신고 내역 로딩에 실패했습니다",
+            "accessDenied": "접근 권한이 없습니다",
+            "noReportsForEvent": "이 이벤트에 대한 신고가 없습니다",
+            "backToList": "목록으로 돌아가기",
+            "statuses": {
+                "pending": "대기중",
+                "reviewed": "검토됨",
+                "resolved": "해결됨"
+            }
+        }
+    },
     "footer": {
         "dailyVisits": "오늘 방문"
     }

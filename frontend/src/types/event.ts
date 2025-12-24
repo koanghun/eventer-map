@@ -62,6 +62,17 @@ export interface EventReport {
     description?: string;
 }
 
+export interface EventReportResponse {
+    id: number;
+    event_id: number;
+    reporter_id: number;
+    reporter_name: string;
+    reason: 'spam' | 'inappropriate' | 'wrong_info' | 'other';
+    description?: string;
+    status: 'pending' | 'reviewed' | 'resolved';
+    created_at: string;
+}
+
 export interface EventFormData {
     title: string;
     description: string;

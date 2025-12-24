@@ -51,6 +51,9 @@ services:
       # SSH 설정
       - USER_PASSWORD=${USER_PASSWORD:-changeme}
       - PUBLIC_KEY=${PUBLIC_KEY:-}
+      # 관리자 설정
+      - ADMIN_EMAILS=${ADMIN_EMAILS:-}
+
     volumes:
       # 코드 Hot Reload를 위한 볼륨 마운트
       - ./backend:/app:rw

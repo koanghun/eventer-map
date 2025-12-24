@@ -83,7 +83,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                         name: userName || null,
                         profile_image: userPicture || null,
                         created_at: new Date().toISOString(), // 임시값 (실제로는 사용 안 함)
-                        flagged_event_ids: []  // 초기값 (fetchUser에서 갱신됨)
+                        flagged_event_ids: [],  // 초기값 (fetchUser에서 갱신됨)
+                        is_admin: false,
                     };
 
                     setUser(userInfo);
