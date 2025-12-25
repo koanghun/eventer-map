@@ -10,6 +10,7 @@ eventer-map 프로젝트를 프로덕션 환경에 배포하는 종합 가이드
 - [Docker Compose 배포](#docker-compose-배포)
 - [Synology NAS 특화 설정](#synology-nas-특화-설정)
 - [외부 접근 설정](#외부-접근-설정)
+- [MyDNS.jp 설정](#mydnsjp-설정)
 - [트러블슈팅](#트러블슈팅)
 - [업데이트 및 유지보수](#업데이트-및-유지보수)
 
@@ -314,6 +315,93 @@ FRONTEND_PORT=65104
 
 ---
 
+## MyDNS.jp 설정
+
+> [!IMPORTANT]
+> **Dynamic DNS 자동 업데이트 필수!**  
+> MyDNS.jp는 정기적인 IP 주소 업데이트가 필요합니다. 7일 이상 업데이트하지 않으면 서비스가 중단됩니다!
+
+### 왜 필요한가요?
+
+`eventermap.mydns.jp` 도메인은 Dynamic DNS 서비스를 사용합니다. 가정용 인터넷의 공인 IP는 수시로 변경될 수 있으므로, 현재 IP를 MyDNS에 자동으로 알려줘야 합니다.
+
+### 빠른 시작
+
+#### 1. 즉시 IP 업데이트 (긴급)
+
+경고 메일을 받았다면 먼저 수동으로 업데이트:
+
+```bash
+curl -u "mydns786724:비밀번호" "https://ipv4.mydns.jp/login.html"
+```
+
+**비밀번호**를 실제 MyDNS 비밀번호로 변경하세요.
+
+#### 2. 자동 업데이트 스크립트 설정
+
+```bash
+# SSH로 NAS 접속 후
+cd /volume1/docker/eventer-map
+
+# 스크립트 편집하여 비밀번호 입력
+vi scripts/update_mydns_ip.sh
+# MYDNS_PASSWORD="YOUR_PASSWORD_HERE" ← 실제 비밀번호로 변경
+
+# 테스트 실행
+./scripts/update_mydns_ip.sh
+```
+
+예상 출력:
+```
+==========================================
+[2025-12-25 10:30:15] MyDNS IP 업데이트 시작
+[2025-12-25 10:30:16] 현재 공인 IP: 123.456.789.012
+[2025-12-25 10:30:17] ✅ 업데이트 성공!
+==========================================
+```
+
+#### 3. Synology 작업 스케줄러 설정
+
+1. **제어판** → **작업 스케줄러** 열기
+2. **생성** → **예약된 작업** → **사용자 정의 스크립트**
+3. 일반 설정:
+   - **작업 이름**: `MyDNS IP 자동 업데이트`
+   - **사용자**: `root`
+   - **사용**: ✅ 체크
+4. 스케줄 설정:
+   - **날짜**: 매일
+   - **시간**: 반복 - `매 6시간마다` (00:00, 06:00, 12:00, 18:00)
+5. **사용자 정의 스크립트** 탭에 다음 내용 붙여넣기 후 **비밀번호 수정**:
+   ```bash
+   #!/bin/bash
+   MYDNS_MASTER_ID="mydns786724"
+   MYDNS_PASSWORD="실제_비밀번호"  # ← 수정 필수!
+   LOG_DIR="/volume2/docker/eventer-map/logs"
+   mkdir -p "$LOG_DIR"
+   echo "[$(date '+%Y-%m-%d %H:%M:%S')] MyDNS IP 업데이트" >> "$LOG_DIR/mydns.log"
+   curl -s -u "$MYDNS_MASTER_ID:$MYDNS_PASSWORD" "https://ipv4.mydns.jp/login.html" >> "$LOG_DIR/mydns.log"
+   ```
+6. **확인** 클릭 → 작업 선택 후 **실행** 버튼으로 즉시 테스트
+
+#### 4. 로그 확인
+
+```bash
+# 업데이트 로그 확인
+tail -f /volume1/docker/eventer-map/logs/mydns_update.log
+```
+
+### 📖 상세 가이드
+
+모든 설정 방법, 트러블슈팅, 보안 설정은 [MyDNS 설정 가이드](./MYDNS_SETUP.md)를 참조하세요.
+
+### ⚠️ 주의사항
+
+- **업데이트 주기**: 최소 일주일에 1회, 권장 6시간마다
+- **경고 시점**: 7일 이상 미업데이트 시 경고
+- **서비스 중단**: 30일 이상 미업데이트 시 데이터 삭제
+
+---
+
 ## 트러블슈팅
 
 ### 문제 1: 지도가 로드되지 않음
@@ -475,6 +563,7 @@ Container Manager에서 리소스 사용량 확인:
 - [프로젝트 개요](../PROJECT_OVERVIEW.md)
 - [현재 상태](../CURRENT_STATUS.md)
 - [환경 변수 설정](../setup/ENVIRONMENT_VARIABLES.md)
+- [MyDNS.jp 설정 가이드](./MYDNS_SETUP.md)
 - [백업 가이드](../operations/backup-guide.md)
 
 ---
