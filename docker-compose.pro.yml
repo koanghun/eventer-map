@@ -24,6 +24,8 @@ services:
       - JWT_SECRET_KEY=${JWT_SECRET_KEY}
       - JWT_ALGORITHM=${JWT_ALGORITHM:-HS256}
       - JWT_ACCESS_TOKEN_EXPIRE_MINUTES=${JWT_ACCESS_TOKEN_EXPIRE_MINUTES:-1440}
+      # 관리자 설정
+      - ADMIN_EMAILS=${ADMIN_EMAILS:-}
     volumes:
       # 데이터 영속성
       - backend-data:/app/data
