@@ -5,6 +5,7 @@ import { placeApi, performerApi, eventApi } from '../services/api';
 import styles from './EventForm.module.css';
 
 import MultiSelect from './MultiSelect';
+import TimeInput from './TimeInput';
 
 import EventDuplicateModal from './EventDuplicateModal';
 
@@ -353,37 +354,31 @@ function EventForm({ event, onSubmit, onClose, onSwitchToEdit }: EventFormProps)
                         <div className={styles.formRow}>
                             <div className={styles.formGroup}>
                                 <label htmlFor="door_time">{t('eventForm.labels.doorTime')}</label>
-                                <input
-                                    type="time"
+                                <TimeInput
                                     id="door_time"
                                     name="door_time"
                                     value={formData.door_time}
                                     onChange={handleChange}
-                                    placeholder="18:00"
                                 />
                             </div>
 
                             <div className={styles.formGroup}>
                                 <label htmlFor="start_time">{t('eventForm.labels.startTime')}</label>
-                                <input
-                                    type="time"
+                                <TimeInput
                                     id="start_time"
                                     name="start_time"
                                     value={formData.start_time}
                                     onChange={handleChange}
-                                    placeholder="19:00"
                                 />
                             </div>
 
                             <div className={styles.formGroup}>
                                 <label htmlFor="end_time">{t('eventForm.labels.endTime')}</label>
-                                <input
-                                    type="time"
+                                <TimeInput
                                     id="end_time"
                                     name="end_time"
                                     value={formData.end_time}
                                     onChange={handleChange}
-                                    placeholder="21:00"
                                 />
                             </div>
                         </div>

@@ -110,17 +110,6 @@
     font-size: 0.8rem;
 }
 
-/* 24시간 형식 강제: AM/PM 필드 숨김 (Webkit 기반 브라우저) */
-.formGroup input[type="time"]::-webkit-datetime-edit-ampm-field {
-    display: none;
-}
-
-/* 시간 입력 필드 추가 스타일링 */
-.formGroup input[type="time"]::-webkit-calendar-picker-indicator {
-    cursor: pointer;
-    filter: var(--icon-filter, invert(0.5));
-}
-
 .formRow {
     display: grid;
     grid-template-columns: 1fr 1fr;
