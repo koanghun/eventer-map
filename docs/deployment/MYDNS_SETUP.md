@@ -155,7 +155,7 @@ log "현재 공인 IP: $CURRENT_IP"
 
 # MyDNS.jp에 IP 업데이트
 log "MyDNS.jp에 IP 주소 업데이트 중..."
-RESPONSE=$(curl -s -u "$MYDNS_MASTER_ID:$MYDNS_PASSWORD" "https://ipv4.mydns.jp/login.html")
+RESPONSE=$(curl -s -u "$MYDNS_MASTER_ID:$MYDNS_PASSWORD" "https://ipv6.mydns.jp/login.html")
 
 # 결과 확인
 if [ $? -eq 0 ]; then
@@ -219,7 +219,7 @@ cd /volume1/docker/eventer-map
 다음 URL을 브라우저에서 열기:
 
 ```
-https://mydns786724:비밀번호@ipv4.mydns.jp/login.html
+https://mydns786724:비밀번호@ipv6.mydns.jp/login.html
 ```
 
 **비밀번호**를 실제 MyDNS 비밀번호로 변경하세요.
@@ -227,7 +227,7 @@ https://mydns786724:비밀번호@ipv4.mydns.jp/login.html
 ### 방법 3: cURL 사용
 
 ```bash
-curl -u "mydns786724:비밀번호" "https://ipv4.mydns.jp/login.html"
+curl -u "mydns786724:비밀번호" "https://ipv6.mydns.jp/login.html"
 ```
 
 ---

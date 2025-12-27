@@ -332,7 +332,7 @@ FRONTEND_PORT=65104
 경고 메일을 받았다면 먼저 수동으로 업데이트:
 
 ```bash
-curl -u "mydns786724:비밀번호" "https://ipv4.mydns.jp/login.html"
+curl -u "mydns786724:비밀번호" "https://ipv6.mydns.jp/login.html"
 ```
 
 **비밀번호**를 실제 MyDNS 비밀번호로 변경하세요.
@@ -379,7 +379,7 @@ vi scripts/update_mydns_ip.sh
    LOG_DIR="/volume2/docker/eventer-map/logs"
    mkdir -p "$LOG_DIR"
    echo "[$(date '+%Y-%m-%d %H:%M:%S')] MyDNS IP 업데이트" >> "$LOG_DIR/mydns.log"
-   curl -s -u "$MYDNS_MASTER_ID:$MYDNS_PASSWORD" "https://ipv4.mydns.jp/login.html" >> "$LOG_DIR/mydns.log"
+   curl -s -u "$MYDNS_MASTER_ID:$MYDNS_PASSWORD" "https://ipv6.mydns.jp/login.html" >> "$LOG_DIR/mydns.log"
    ```
 6. **확인** 클릭 → 작업 선택 후 **실행** 버튼으로 즉시 테스트
 
