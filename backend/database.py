@@ -1,6 +1,6 @@
+from typing import Generator
 from sqlalchemy import create_engine
-from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import sessionmaker
+from sqlalchemy.orm import sessionmaker, DeclarativeBase, Session
 import os
 from dotenv import load_dotenv
 
@@ -27,15 +27,16 @@ engine = create_engine(
 # 'bind=engine'은 이 세션을 데이터베이스 엔진에 연결합니다.
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
-# 선언적 모델을 위한 Base 클래스를 선언합니다.
+# 선언적 모델을 위한 Base 클래스를 선언합니다. (SQLAlchemy 2.0 스타일)
 # 이 Base 클래스는 모든 SQLAlchemy 모델이 스키마를 정의하기 위해 상속합니다.
-Base = declarative_base()
+class Base(DeclarativeBase):
+    pass
 
 
 # 데이터베이스 세션을 가져오기 위한 의존성.
 # 이 함수는 데이터베이스 세션을 생성하고 사용 후 닫히도록 보장합니다.
 # 이는 웹 애플리케이션에서 적절한 리소스 관리에 중요합니다.
-def get_db():
+def get_db() -> Generator[Session, None, None]:
     db = SessionLocal()  # 새 세션을 생성합니다.
     try:
         yield db  # 호출자에게 세션을 생성합니다.

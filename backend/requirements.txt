@@ -10,3 +10,4 @@ python-jose[cryptography]==3.3.0
 passlib[bcrypt]==1.7.4
 google-auth
 google-auth-oauthlib
+alembic==1.17.2
