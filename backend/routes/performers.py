@@ -3,9 +3,9 @@ from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import IntegrityError
 from typing import List
-from database import get_db
-import models
-import schemas
+from db import get_db
+from db import models
+from db import schemas
 from utils.normalization import normalize_text, aliases_to_json, json_to_aliases
 
 router = APIRouter(prefix="/performers", tags=["performers"])

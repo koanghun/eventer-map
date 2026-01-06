@@ -1,9 +1,9 @@
 from fastapi import APIRouter, Depends, HTTPException, status, Request
 from fastapi.responses import RedirectResponse
 from sqlalchemy.orm import Session
-import models
-import schemas
-from database import get_db
+from db import models
+from db import schemas
+from db import get_db
 from utils.auth import create_access_token, get_current_user, set_admin_status
 import os
 

@@ -1,7 +1,7 @@
 from typing import Optional
 from sqlalchemy import String, Float, DateTime, Text, ForeignKey, Table, func
 from sqlalchemy.orm import relationship, Mapped, mapped_column
-from database import Base
+from .database import Base
 from datetime import datetime
 
 # 연결 테이블 (Event <-> Performer)

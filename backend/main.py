@@ -1,7 +1,6 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from database import engine
-import models
+from db import engine, models
 from routes import events, places, performers, auth, flags
 import os
 from dotenv import load_dotenv

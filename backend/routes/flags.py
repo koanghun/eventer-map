@@ -1,8 +1,8 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
-from database import get_db
+from db import get_db
+from db import models
 from utils.auth import require_auth
-import models
 import json
 
 router = APIRouter(prefix="/flags", tags=["flags"])

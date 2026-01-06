@@ -1,9 +1,9 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from typing import List
-from database import get_db
-import models
-import schemas
+from db import get_db
+from db import models
+from db import schemas
 from utils.normalization import normalize_text
 from utils.event_duplicate import calculate_event_similarity, find_duplicate_events
 from utils.auth import require_auth, require_admin

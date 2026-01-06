@@ -2,9 +2,9 @@ import os
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 from typing import List
-from database import get_db
-from models import Place
-from schemas import PlaceResponse, PlaceCreate
+from db import get_db
+from db.models import Place
+from db.schemas import PlaceResponse, PlaceCreate
 from utils.normalization import normalize_text, json_to_aliases, aliases_to_json
 
 router = APIRouter(prefix="/places", tags=["places"])
