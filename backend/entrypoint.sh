@@ -28,13 +28,26 @@ chown -R developer:developer /app 2>/dev/null || true
 /usr/sbin/sshd
 echo "✓ SSH 서버 시작됨 (포트 22)"
 
+# 5. 데이터베이스 마이그레이션 실행
+echo "===================================="
+echo "데이터베이스 마이그레이션 실행 중..."
+echo "===================================="
+
+cd /app
+python -m alembic -c /app/alembic.ini upgrade head
+
+if [ $? -eq 0 ]; then
+    echo "✓ 마이그레이션 완료"
+else
+    echo "⚠ 마이그레이션 실패 (서버는 계속 시작됩니다)"
+fi
+
 echo "===================================="
 echo "FastAPI 서버 시작"
 echo "  - 주소: http://0.0.0.0:8000"
 echo "  - Hot Reload: 활성화"
 echo "===================================="
 
-# 5. FastAPI 서버 시작 (developer 사용자로, 환경변수 유지)
-cd /app
+# 6. FastAPI 서버 시작 (developer 사용자로, 환경변수 유지)
 exec setpriv --reuid=developer --regid=developer --clear-groups \
     uvicorn main:app --reload --host 0.0.0.0 --port 8000
