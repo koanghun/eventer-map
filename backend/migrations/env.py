@@ -26,8 +26,8 @@ if config.config_file_name is not None:
 import sys
 from pathlib import Path
 
-# db 모듈을 import하기 위해 부모 디렉토리를 경로에 추가
-sys.path.insert(0, str(Path(__file__).parent.parent))
+# /app이 루트 디렉토리인지 확인하고 절대 경로로 설정
+sys.path.insert(0, '/app')
 
 # Base.metadata에 등록되도록 모델들을 import
 from db.database import Base
