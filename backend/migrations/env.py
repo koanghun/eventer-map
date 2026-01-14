@@ -6,43 +6,49 @@ from sqlalchemy import pool
 
 from alembic import context
 
-# this is the Alembic Config object, which provides
-# access to the values within the .ini file in use.
+# Alembic Config 객체로, .ini 파일의 값에 접근할 수 있습니다.
 config = context.config
 
-# Override sqlalchemy.url with DATABASE_URL environment variable
-# This prevents the placeholder "driver://" in alembic.ini from being used
+# DATABASE_URL 환경 변수로 sqlalchemy.url을 오버라이드
+# alembic.ini의 플레이스홀더 "driver://"가 사용되는 것을 방지합니다.
 database_url = os.getenv("DATABASE_URL")
 if database_url:
     config.set_main_option("sqlalchemy.url", database_url)
 
-# Interpret the config file for Python logging.
-# This line sets up loggers basically.
+# Python 로깅을 위한 설정 파일 해석
+# 기본적으로 로거를 설정합니다.
 if config.config_file_name is not None:
     fileConfig(config.config_file_name)
 
-# add your model's MetaData object here
-# for 'autogenerate' support
-# from myapp import mymodel
-# target_metadata = mymodel.Base.metadata
-target_metadata = None
+# 모델의 MetaData 객체를 여기에 추가합니다.
+# 'autogenerate' 지원을 위함
+# database 모듈에서 Base를 import (db/__init__.py를 통해 모든 모델 import)
+import sys
+from pathlib import Path
 
-# other values from the config, defined by the needs of env.py,
-# can be acquired:
+# db 모듈을 import하기 위해 부모 디렉토리를 경로에 추가
+sys.path.insert(0, str(Path(__file__).parent.parent))
+
+# Base.metadata에 등록되도록 모델들을 import
+from db.database import Base
+from db import models  # 모든 모델이 로드되도록 함
+
+target_metadata = Base.metadata
+
+# env.py에서 필요한 다른 설정 값들을 가져올 수 있습니다:
 # my_important_option = config.get_main_option("my_important_option")
-# ... etc.
+# ... 등등
 
 
 def run_migrations_offline() -> None:
-    """Run migrations in 'offline' mode.
+    """'offline' 모드로 마이그레이션 실행.
 
-    This configures the context with just a URL
-    and not an Engine, though an Engine is acceptable
-    here as well.  By skipping the Engine creation
-    we don't even need a DBAPI to be available.
+    URL만으로 컨텍스트를 구성하며 Engine은 사용하지 않습니다.
+    (Engine도 사용 가능합니다)
+    Engine 생성을 건너뛰므로 DBAPI조차 필요하지 않습니다.
 
-    Calls to context.execute() here emit the given string to the
-    script output.
+    여기서 context.execute() 호출은 주어진 문자열을
+    스크립트 출력으로 내보냅니다.
 
     """
     url = config.get_main_option("sqlalchemy.url")
@@ -58,10 +64,10 @@ def run_migrations_offline() -> None:
 
 
 def run_migrations_online() -> None:
-    """Run migrations in 'online' mode.
+    """'online' 모드로 마이그레이션 실행.
 
-    In this scenario we need to create an Engine
-    and associate a connection with the context.
+    이 시나리오에서는 Engine을 생성하고
+    컨텍스트와 연결을 연결해야 합니다.
 
     """
     connectable = engine_from_config(
