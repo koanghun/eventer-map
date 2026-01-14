@@ -32,8 +32,15 @@ echo "===================================="
 echo "React 개발 서버 시작"
 echo "  - 주소: http://0.0.0.0:3000"
 echo "  - Hot Reload: 활성화"
+echo "  - 로그: stdout/stderr로 출력"
 echo "===================================="
 
 # 5. React 개발 서버 시작 (developer 사용자로)
 cd /app
-exec su developer -c "npm install --legacy-peer-deps && npm start"
+
+# npm install을 먼저 실행 (로그 출력)
+su developer -c "npm install --legacy-peer-deps" 2>&1
+
+# React 개발 서버 시작 (stdout/stderr를 명시적으로 유지)
+# exec를 사용하여 프로세스를 교체하고 로그 스트림 유지
+exec su developer -c "exec npm start" 2>&1

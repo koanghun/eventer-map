@@ -37,6 +37,9 @@ services:
       - "${BACKEND_PORT:-65105}:8000"
       - "${BACKEND_SSH_PORT:-65107}:22"  # SSH 포트
     environment:
+      # Python 로그 설정
+      - PYTHONUNBUFFERED=1  # Python 표준 출력 버퍼링 비활성화 (로그 즉시 출력)
+      - PYTHONDONTWRITEBYTECODE=1  # .pyc 파일 생성 방지
       - DATABASE_URL=${DATABASE_URL:-sqlite:///./data/eventer.db}
       # CORS: .env에서 NAS IP 설정 필요 (예: http://192.168.1.100:7772)
       - CORS_ORIGINS=${CORS_ORIGINS}
@@ -62,12 +65,6 @@ services:
     restart: unless-stopped
     networks:
       - eventer-network
-    # 로그 관리 설정
-    logging:
-      driver: "json-file" # 로그를 JSON 형식 파일로 저장
-      options:
-        max-size: "10m" # 로그 파일 크기 제한
-        max-file: "3" # 로그 파일 최대 개수
 
   # ============================================
   # Frontend - React 개발 서버 (Hot Reload + SSH)
@@ -98,11 +95,6 @@ services:
     restart: unless-stopped
     networks:
       - eventer-network
-    logging:
-      driver: "json-file"
-      options:
-        max-size: "10m"
-        max-file: "3"
     stdin_open: true  # React 개발 서버를 위해 필요
     tty: true
 

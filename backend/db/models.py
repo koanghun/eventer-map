@@ -1,15 +1,16 @@
 from typing import Optional
-from sqlalchemy import String, Float, DateTime, Text, ForeignKey, Table, func
+from sqlalchemy import String, Float, DateTime, Text, ForeignKey, Table, Column, Integer, func
 from sqlalchemy.orm import relationship, Mapped, mapped_column
 from .database import Base
 from datetime import datetime
 
 # 연결 테이블 (Event <-> Performer)
+# Table은 Core API이므로 Column을 사용해야 함 (mapped_column이 아님!)
 event_performers = Table(
     'event_performers',
     Base.metadata,
-    mapped_column('event_id', ForeignKey('events.id'), primary_key=True),
-    mapped_column('performer_id', ForeignKey('performers.id'), primary_key=True)
+    Column('event_id', Integer, ForeignKey('events.id'), primary_key=True),
+    Column('performer_id', Integer, ForeignKey('performers.id'), primary_key=True)
 )
 
 class Place(Base):

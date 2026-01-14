@@ -9,7 +9,7 @@ from difflib import SequenceMatcher
 from typing import Dict, List, Optional
 from geopy.distance import geodesic
 from sqlalchemy.orm import Session
-import models, schemas
+from db import models, schemas
 
 
 def calculate_distance(lat1: float, lon1: float, lat2: float, lon2: float) -> float:

@@ -5,7 +5,7 @@
 import json
 from sqlalchemy.orm import Session
 from typing import Dict, Any
-import models
+from db import models
 
 
 def create_event_history(
