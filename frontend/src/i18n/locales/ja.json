@@ -192,6 +192,24 @@
             "editExisting": "このイベントを編集する"
         }
     },
+    "eventDuplicateModal": {
+        "title": "⚠️ 重複の可能性を検出",
+        "warningMessage": "<strong>{{count}}個</strong>の類似イベントが見つかりました。",
+        "similarity": "類似度",
+        "labels": {
+            "location": "会場",
+            "date": "日付",
+            "time": "時間",
+            "performers": "出演者",
+            "title": "タイトル",
+            "distance": "距離"
+        },
+        "buttons": {
+            "editExisting": "このイベントを編集する",
+            "cancel": "キャンセル",
+            "proceedAnyway": "このまま登録する"
+        }
+    },
     "performerDuplicateModal": {
         "exactTitle": "⚠️ 重複した出演者",
         "similarTitle": "🔍 類似の出演者を発見",
