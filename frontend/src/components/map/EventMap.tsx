@@ -27,17 +27,26 @@ const defaultCenter = {
     lng: 139.6503,
 };
 
+// 기본적으로 숨길 레이어 (POI, 대중교통, 도로 아이콘 등)
+const baseMapStyles = [
+    {
+        featureType: "poi",
+        elementType: "labels",
+        stylers: [{ visibility: "off" }],
+    },
+    {
+        featureType: "road",
+        elementType: "labels.icon",
+        stylers: [{ visibility: "off" }],
+    },
+];
+
 const mapStyles = [
     { elementType: "geometry", stylers: [{ color: "#242f3e" }] },
     { elementType: "labels.text.stroke", stylers: [{ color: "#242f3e" }] },
     { elementType: "labels.text.fill", stylers: [{ color: "#746855" }] },
     {
         featureType: "administrative.locality",
-        elementType: "labels.text.fill",
-        stylers: [{ color: "#d59563" }],
-    },
-    {
-        featureType: "poi",
         elementType: "labels.text.fill",
         stylers: [{ color: "#d59563" }],
     },
@@ -229,7 +238,10 @@ function EventMap({ events, selectedEvent, onMarkerClick, onInfoWindowClose }: E
                     streetViewControl: false,
                     mapTypeControl: false,
                     fullscreenControl: true,
-                    styles: theme === 'dark' ? mapStyles : undefined,
+                    styles: [
+                        ...baseMapStyles,
+                        ...(theme === 'dark' ? mapStyles : [])
+                    ],
                 }}
             >
                 {Array.from(eventGroups.entries()).map(([coordKey, eventsAtLocation]) => {
