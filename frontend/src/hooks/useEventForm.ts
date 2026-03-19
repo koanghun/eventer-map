@@ -2,12 +2,15 @@ import { useState, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Event } from '../types/event';
 import { eventApi } from '../services/api';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 
 /**
  * 폼 상태 관리 및 CRUD 작업 (등록 책임)
+ * useMutation을 활용하여 CUD 완료 후 자동으로 캐시를 갱신합니다.
  */
-export function useEventForm(loadEvents: () => Promise<void>) {
+export function useEventForm() {
     const { t } = useTranslation();
+    const queryClient = useQueryClient();
     const [isFormOpen, setIsFormOpen] = useState(false);
     const [formEvent, setFormEvent] = useState<Event | null>(null);
 
@@ -26,32 +29,48 @@ export function useEventForm(loadEvents: () => Promise<void>) {
         setFormEvent(null);
     }, []);
 
-    const submit = useCallback(async (event: Event) => {
-        try {
+    // 🌟 이벤트 생성/수정 Mutation
+    const submitMutation = useMutation({
+        mutationFn: async (event: Event) => {
             if (formEvent?.id) {
-                await eventApi.updateEvent(formEvent.id, event);
+                return eventApi.updateEvent(formEvent.id, event);
             } else {
-                await eventApi.createEvent(event);
+                return eventApi.createEvent(event);
             }
+        },
+        onSuccess: () => {
+            // 💡 등록/수정 성공 시 'events' 키를 포함하는 모든 캐시를 무효화하여 자동 갱신 유도
+            queryClient.invalidateQueries({ queryKey: ['events'] });
             close();
-            await loadEvents();
-        } catch (error) {
+        },
+        onError: (error) => {
             console.error('Failed to save event:', error);
             alert(t('hooks.eventForm.saveFailed'));
         }
-    }, [formEvent, loadEvents, close, t]);
+    });
 
-    const deleteEvent = useCallback(async (id: number) => {
-        if (!window.confirm(t('hooks.eventForm.deleteConfirm'))) return;
-
-        try {
-            await eventApi.deleteEvent(id);
-            await loadEvents();
-        } catch (error) {
+    // 🌟 이벤트 삭제 Mutation
+    const deleteMutation = useMutation({
+        mutationFn: async (id: number) => {
+            return eventApi.deleteEvent(id);
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['events'] });
+        },
+        onError: (error) => {
             console.error('Failed to delete event:', error);
             alert(t('hooks.eventForm.deleteFailed'));
         }
-    }, [loadEvents, t]);
+    });
+
+    const submit = useCallback(async (event: Event) => {
+        submitMutation.mutate(event);
+    }, [submitMutation]);
+
+    const deleteEvent = useCallback(async (id: number) => {
+        if (!window.confirm(t('hooks.eventForm.deleteConfirm'))) return;
+        deleteMutation.mutate(id);
+    }, [deleteMutation, t]);
 
     const switchToEdit = useCallback((eventId: number, events: Event[]) => {
         const eventToEdit = events.find(e => e.id === eventId);
@@ -70,6 +89,7 @@ export function useEventForm(loadEvents: () => Promise<void>) {
         close,
         submit,
         deleteEvent,
-        switchToEdit
+        switchToEdit,
+        isSubmitting: submitMutation.isPending, // 💡 필요 시 로딩 상태 지원
     };
 }

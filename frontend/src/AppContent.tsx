@@ -33,7 +33,7 @@ export default function AppContent() {
     // 3개 훅으로 분리된 책임
     const eventData = useEventData(selectedDate, showFlagsOnly);
     const eventSelection = useEventSelection();
-    const eventForm = useEventForm(eventData.loadEvents);
+    const eventForm = useEventForm();
 
     const apiKey = process.env.REACT_APP_GOOGLE_MAPS_API_KEY || '';
 
