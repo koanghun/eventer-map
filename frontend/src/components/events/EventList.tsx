@@ -1,25 +1,26 @@
 import { useTranslation } from 'react-i18next';
 import { Event } from '../../types/event';
 import styles from './EventList.module.css';
+import { useEventStore } from '../../store/useEventStore';
 
 interface EventListProps {
     events: Event[];
     loading: boolean;
-    onEventClick: (event: Event) => void;
     onEventEdit?: (event: Event) => void;  // Optional for non-authenticated users
     onEventDelete?: (id: number) => void;  // Optional for non-authenticated users
-    selectedEventId?: number;
 }
 
 function EventList({
     events,
     loading,
-    onEventClick,
     onEventEdit,
     onEventDelete,
-    selectedEventId,
 }: EventListProps) {
     const { t } = useTranslation();
+
+    // 🌟 Zustand 전역 상태 구독
+    const selectedEvent = useEventStore((state) => state.selectedEvent);
+    const selectEvent = useEventStore((state) => state.selectEvent);
 
     if (loading) {
         return <div className={styles.eventListLoading}>{t('eventList.loading')}</div>;
@@ -41,8 +42,8 @@ function EventList({
                 {events.map((event) => (
                     <div
                         key={event.id}
-                        className={`${styles.eventItem} ${selectedEventId === event.id ? styles.active : ''}`}
-                        onClick={() => onEventClick(event)}
+                        className={`${styles.eventItem} ${selectedEvent?.id === event.id ? styles.active : ''}`}
+                        onClick={() => selectEvent(event)}
                     >
                         <div className={styles.eventItemHeader}>
                             <h4>{event.title}</h4>

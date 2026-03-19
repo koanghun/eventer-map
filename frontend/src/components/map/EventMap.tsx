@@ -5,12 +5,10 @@ import styles from './EventMap.module.css';
 import { useTheme } from '../../context/ThemeContext';
 import SingleEventInfoWindow from './SingleEventInfoWindow';
 import GroupEventInfoWindow from './GroupEventInfoWindow';
+import { useEventStore } from '../../store/useEventStore';
 
 interface EventMapProps {
     events: Event[];
-    selectedEvent: Event | null;
-    onMarkerClick: (event: Event) => void;
-    onInfoWindowClose: () => void;
 }
 
 type InfoWindowState =
@@ -117,8 +115,13 @@ const mapStyles = [
     },
 ];
 
-function EventMap({ events, selectedEvent, onMarkerClick, onInfoWindowClose }: EventMapProps) {
+function EventMap({ events }: EventMapProps) {
     const { theme } = useTheme();
+
+    // 🌟 Zustand 전역 상태 구독
+    const selectedEvent = useEventStore((state) => state.selectedEvent);
+    const selectEvent = useEventStore((state) => state.selectEvent);
+    const clearSelection = useEventStore((state) => state.clearSelection);
 
     const mapRef = useRef<google.maps.Map | null>(null);
     const [infoWindowStack, setInfoWindowStack] = useState<InfoWindowState | null>(null);
@@ -163,8 +166,8 @@ function EventMap({ events, selectedEvent, onMarkerClick, onInfoWindowClose }: E
 
     const handleMarkerClick = (eventsAtLocation: Event[]) => {
         if (eventsAtLocation.length === 1) {
-            // 단일 이벤트: 외부 useEventSelection에 위임
-            onMarkerClick(eventsAtLocation[0]);
+            // 단일 이벤트: Zustand 스토어에 위임
+            selectEvent(eventsAtLocation[0]);
         } else {
             // 그룹: EventMap이 리스트 모달 관리
             const location = {
@@ -172,7 +175,7 @@ function EventMap({ events, selectedEvent, onMarkerClick, onInfoWindowClose }: E
                 lng: eventsAtLocation[0].longitude
             };
             setInfoWindowStack({ type: 'group', events: eventsAtLocation, location });
-            onInfoWindowClose(); // 기존 단일 선택 해제
+            clearSelection(); // 기존 단일 선택 해제
 
             if (mapRef.current) {
                 mapRef.current.panTo(location);
@@ -181,9 +184,9 @@ function EventMap({ events, selectedEvent, onMarkerClick, onInfoWindowClose }: E
     };
 
     const handleEventSelectFromGroup = (event: Event) => {
-        // 그룹 모달 닫고 외부에 선택 위임
+        // 그룹 모달 닫고 Zustand 스토어에 위임
         setInfoWindowStack(null);
-        onMarkerClick(event);
+        selectEvent(event);
     };
 
     const handleInfoWindowClose = () => {
@@ -192,8 +195,8 @@ function EventMap({ events, selectedEvent, onMarkerClick, onInfoWindowClose }: E
             setInfoWindowStack(null);
         } else {
         }
-        // 단일 이벤트 모달: 외부에 위임
-        onInfoWindowClose();
+        // 단일 이벤트 모달: Zustand 스토어에 위임
+        clearSelection();
     };
 
     const renderInfoWindow = () => {

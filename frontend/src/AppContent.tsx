@@ -16,8 +16,8 @@ import LoginButton from './components/common/LoginButton';
 import UserProfile from './components/common/UserProfile';
 
 import { useEventData } from './hooks/useEventData';
-import { useEventSelection } from './hooks/useEventSelection';
 import { useEventForm } from './hooks/useEventForm';
+import { useEventStore } from './store/useEventStore';
 import DailyVisitCounter from './components/common/DailyVisitCounter';
 
 const GOOGLE_MAPS_LIBRARIES: ("places")[] = ['places'];
@@ -30,10 +30,10 @@ export default function AppContent() {
     const { isAuthenticated, isLoading } = useAuth();
     const [showFlagsOnly, setShowFlagsOnly] = useState<boolean>(false);
 
-    // 3개 훅으로 분리된 책임
+    // 2개 훅으로 분리된 책임
     const eventData = useEventData(selectedDate, showFlagsOnly);
-    const eventSelection = useEventSelection();
     const eventForm = useEventForm();
+    const clearSelection = useEventStore((state) => state.clearSelection);
 
     const apiKey = process.env.REACT_APP_GOOGLE_MAPS_API_KEY || '';
 
@@ -51,7 +51,7 @@ export default function AppContent() {
 
     const handleDateChange = (newDate: string) => {
         setSelectedDate(newDate);
-        eventSelection.clearSelection(); // 날짜 변경 시 선택 초기화
+        clearSelection(); // 날짜 변경 시 선택 초기화
     };
 
     const handleFlagsToggle = () => {
@@ -64,7 +64,7 @@ export default function AppContent() {
             // 플래그 모드 비활성화 시: 오늘 날짜로 복원
             setSelectedDate(format(new Date(), 'yyyy-MM-dd'));
         }
-        eventSelection.clearSelection();
+        clearSelection();
     };
 
     return (
@@ -139,19 +139,14 @@ export default function AppContent() {
                         <EventList
                             events={eventData.filteredEvents}
                             loading={eventData.loading}
-                            onEventClick={eventSelection.selectEvent}
                             onEventEdit={isAuthenticated ? eventForm.openEdit : undefined}
                             onEventDelete={isAuthenticated ? eventForm.deleteEvent : undefined}
-                            selectedEventId={eventSelection.selectedEvent?.id}
                         />
                     </aside>
 
                     <main className="main-content">
                         <EventMap
                             events={eventData.filteredEvents}
-                            selectedEvent={eventSelection.selectedEvent}
-                            onMarkerClick={eventSelection.selectEvent}
-                            onInfoWindowClose={eventSelection.clearSelection}
                         />
                     </main>
                 </div>
