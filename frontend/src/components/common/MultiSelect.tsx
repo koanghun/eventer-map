@@ -1,9 +1,9 @@
 import { useState, useRef, type ChangeEvent, type KeyboardEvent } from 'react';
 import { useTranslation } from 'react-i18next';
-import { performerApi, DuplicateCheckResponse } from '../services/api';
-import { Performer } from '../types/event';
-import DuplicateCheckModal from './DuplicateCheckModal';
-import PerformerCreateModal from './PerformerCreateModal';
+import { performerApi, DuplicateCheckResponse } from '../../services/api';
+import { Performer } from '../../types/event';
+import DuplicateCheckModal from '../performers/DuplicateCheckModal';
+import PerformerCreateModal from '../performers/PerformerCreateModal';
 import styles from './MultiSelect.module.css';
 
 interface MultiSelectProps {

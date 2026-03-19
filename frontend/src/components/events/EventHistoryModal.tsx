@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
-import { EventHistory } from '../types/event';
-import { eventApi } from '../services/api';
+import { EventHistory } from '../../types/event';
+import { eventApi } from '../../services/api';
 import { useTranslation } from 'react-i18next';
 import styles from './EventHistoryModal.module.css';
 

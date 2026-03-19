@@ -1,10 +1,10 @@
 import { useMemo, useState, useRef, useCallback, useEffect } from 'react';
 import { GoogleMap, Marker } from '@react-google-maps/api';
-import { Event } from '../types/event';
+import { Event } from '../../types/event';
 import styles from './EventMap.module.css';
-import { useTheme } from '../context/ThemeContext';
-import SingleEventInfoWindow from './map/SingleEventInfoWindow';
-import GroupEventInfoWindow from './map/GroupEventInfoWindow';
+import { useTheme } from '../../context/ThemeContext';
+import SingleEventInfoWindow from './SingleEventInfoWindow';
+import GroupEventInfoWindow from './GroupEventInfoWindow';
 
 interface EventMapProps {
     events: Event[];

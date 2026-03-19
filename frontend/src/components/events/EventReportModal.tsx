@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { eventApi } from '../services/api';
+import { eventApi } from '../../services/api';
 import { useTranslation } from 'react-i18next';
 import styles from './EventReportModal.module.css';
 

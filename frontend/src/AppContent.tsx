@@ -1,24 +1,24 @@
 import { useState } from 'react';
 import { LoadScript } from '@react-google-maps/api';
 import { useTranslation } from 'react-i18next';
-import EventMap from './components/EventMap';
-import EventForm from './components/EventForm';
-import EventList from './components/EventList';
-import DatePicker from './components/DatePicker';
-import PerformerFilter from './components/PerformerFilter';
+import EventMap from './components/map/EventMap';
+import EventForm from './components/events/EventForm';
+import EventList from './components/events/EventList';
+import DatePicker from './components/common/DatePicker';
+import PerformerFilter from './components/performers/PerformerFilter';
 import { format } from 'date-fns';
 import './App.css';
 
 import { useTheme } from './context/ThemeContext';
 import { useLanguage } from './context/LanguageContext';
 import { useAuth } from './context/AuthContext';
-import LoginButton from './components/LoginButton';
-import UserProfile from './components/UserProfile';
+import LoginButton from './components/common/LoginButton';
+import UserProfile from './components/common/UserProfile';
 
 import { useEventData } from './hooks/useEventData';
 import { useEventSelection } from './hooks/useEventSelection';
 import { useEventForm } from './hooks/useEventForm';
-import DailyVisitCounter from './components/DailyVisitCounter';
+import DailyVisitCounter from './components/common/DailyVisitCounter';
 
 const GOOGLE_MAPS_LIBRARIES: ("places")[] = ['places'];
 

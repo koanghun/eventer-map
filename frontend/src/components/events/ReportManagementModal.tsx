@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { useTranslation } from 'react-i18next';
-import { eventApi } from '../services/api';
-import { Event, EventReportResponse } from '../types/event';
+import { eventApi } from '../../services/api';
+import { Event, EventReportResponse } from '../../types/event';
 import styles from './ReportManagementModal.module.css';
 
 interface ReportManagementModalProps {
@@ -27,9 +27,9 @@ export default function ReportManagementModal({ onClose }: ReportManagementModal
             setLoading(true);
             const allEvents = await eventApi.getAllEvents();
             // Filter events that have reports
-            const eventsWithReports = allEvents.filter(event => (event.report_count || 0) > 0);
+            const eventsWithReports = allEvents.filter((event: Event) => (event.report_count || 0) > 0);
             // Sort by report count (highest first)
-            eventsWithReports.sort((a, b) => (b.report_count || 0) - (a.report_count || 0));
+            eventsWithReports.sort((a: Event, b: Event) => (b.report_count || 0) - (a.report_count || 0));
             setEvents(eventsWithReports);
         } catch (err) {
             console.error('Failed to fetch events:', err);

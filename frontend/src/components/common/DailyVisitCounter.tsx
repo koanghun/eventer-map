@@ -1,5 +1,5 @@
 import { useTranslation } from 'react-i18next';
-import { useDailyVisitCounter } from '../hooks/useDailyVisitCounter';
+import { useDailyVisitCounter } from '../../hooks/useDailyVisitCounter';
 import styles from './DailyVisitCounter.module.css';
 
 export default function DailyVisitCounter() {

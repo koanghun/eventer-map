@@ -1,0 +1,156 @@
+.performerFilter {
+    margin-bottom: 20px;
+    position: relative;
+}
+
+.performerFilter label {
+    display: block;
+    margin-bottom: 0.75rem;
+    color: var(--primary-orange);
+    font-weight: 600;
+    font-size: 1rem;
+}
+
+.performerFilterInputGroup {
+    position: relative;
+}
+
+.performerFilterInput {
+    width: 100%;
+    padding: 10px 36px 10px 12px;
+    background: var(--input-bg);
+    border: 2px solid var(--border-color);
+    border-radius: 8px;
+    font-size: 0.95rem;
+    transition: all 0.3s;
+    color: var(--text-primary);
+}
+
+.performer-filter-input::placeholder {
+    color: var(--text-secondary);
+}
+
+.performerFilterInput:focus {
+    outline: none;
+    border-color: var(--primary-orange);
+    box-shadow: var(--glow-medium);
+}
+
+.btnClearFilter {
+    position: absolute;
+    right: 8px;
+    top: 50%;
+    transform: translateY(-50%);
+    background: var(--bg-tertiary);
+    border: none;
+    border-radius: 50%;
+    width: 24px;
+    height: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    font-size: 0.9rem;
+    color: var(--text-secondary);
+    transition: all 0.2s;
+}
+
+.btnClearFilter:hover {
+    background: var(--bg-primary);
+    color: var(--primary-orange);
+    transform: translateY(-50%) scale(1.1);
+}
+
+.performerFilterDropdown {
+    position: absolute;
+    top: calc(100% + 4px);
+    left: 0;
+    right: 0;
+    background: var(--bg-secondary);
+    backdrop-filter: blur(10px);
+    border: 2px solid var(--border-color);
+    border-radius: 8px;
+    max-height: 300px;
+    overflow-y: auto;
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    z-index: 100;
+    box-shadow: 0 4px 20px var(--shadow-color);
+}
+
+.performerFilterItem {
+    padding: 12px;
+    cursor: pointer;
+    transition: all 0.2s;
+    border-bottom: 1px solid var(--border-color);
+    color: var(--text-primary);
+}
+
+.performerFilterItem:last-child {
+    border-bottom: none;
+}
+
+.performerFilterItem:hover {
+    background: rgba(255, 107, 53, 0.1);
+    border-left: 3px solid var(--primary-orange);
+}
+
+.performerFilterName {
+    font-weight: 500;
+    color: var(--text-primary);
+    margin-bottom: 4px;
+}
+
+.performerFilterAliases {
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+    font-style: italic;
+}
+
+/* 스크롤바 스타일링 */
+.performer-filter-dropdown::-webkit-scrollbar {
+    width: 8px;
+}
+
+.performer-filter-dropdown::-webkit-scrollbar-track {
+    background: var(--bg-tertiary);
+    border-radius: 4px;
+}
+
+.performer-filter-dropdown::-webkit-scrollbar-thumb {
+    background: rgba(255, 107, 53, 0.5);
+    border-radius: 4px;
+}
+
+.performer-filter-dropdown::-webkit-scrollbar-thumb:hover {
+    background: var(--primary-orange);
+}
+
+/* Responsive Design */
+@media (max-width: 480px) {
+    .performerFilter label {
+        font-size: 0.9rem;
+    }
+
+    .performerFilterInput {
+        font-size: 0.9rem;
+        padding: 8px 32px 8px 10px;
+    }
+
+    .performerFilterDropdown {
+        max-height: 250px;
+    }
+
+    .performerFilterItem {
+        padding: 10px;
+    }
+
+    .performerFilterName {
+        font-size: 0.9rem;
+    }
+
+    .performerFilterAliases {
+        font-size: 0.75rem;
+    }
+}

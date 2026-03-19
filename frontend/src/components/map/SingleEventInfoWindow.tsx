@@ -3,8 +3,8 @@ import { Event } from '../../types/event';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../../context/AuthContext';
 import { useState } from 'react';
-import EventHistoryModal from '../EventHistoryModal';
-import EventReportModal from '../EventReportModal';
+import EventHistoryModal from '../events/EventHistoryModal';
+import EventReportModal from '../events/EventReportModal';
 import styles from './SingleEventInfoWindow.module.css';
 
 interface SingleEventInfoWindowProps {

@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useAuth } from '../context/AuthContext';
-import ReportManagementModal from './ReportManagementModal';
+import { useAuth } from '../../context/AuthContext';
+import ReportManagementModal from '../events/ReportManagementModal';
 import styles from './UserProfile.module.css';
 
 export default function UserProfile() {
