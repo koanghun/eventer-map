@@ -2,31 +2,7 @@ version: '3.8'
 
 services:
   # ============================================
-  # OpenSSH Server - VSCode Remote 개발 환경 (선택사항)
-  # Ubuntu 22.04 기반 (glibc 지원, VSCode Remote SSH 호환)
-  # 사용: docker-compose --profile ssh up -d
-  # ============================================
-  openssh-server:
-    build:
-      context: ./openssh
-      dockerfile: Dockerfile
-    container_name: eventer-map-ssh
-#    profiles: ["ssh"]  # 선택적으로만 실행
-    ports:
-      - "${SSH_PORT:-7774}:22"
-    environment:
-      - USER_PASSWORD=${USER_PASSWORD:-changeme}
-      - PUBLIC_KEY=${PUBLIC_KEY:-}
-      - SSH_PORT=${SSH_PORT:-7774}  # 로그 출력용
-    volumes:
-      # 프로젝트 전체를 developer 홈 디렉토리에 마운트
-      - ./:/home/developer/eventer-map:rw
-    restart: unless-stopped
-    networks:
-      - eventer-network
-
-  # ============================================
-  # Backend - FastAPI (개발 모드 + SSH)
+  # Backend - FastAPI (개발 모드)
   # ============================================
   backend:
     build:
@@ -35,13 +11,12 @@ services:
     container_name: eventer-map-backend-dev
     ports:
       - "${BACKEND_PORT:-65105}:8000"
-      - "${BACKEND_SSH_PORT:-65107}:22"  # SSH 포트
     environment:
       # Python 로그 설정
-      - PYTHONUNBUFFERED=1  # Python 표준 출력 버퍼링 비활성화 (로그 즉시 출력)
+      - PYTHONUNBUFFERED=1  # Python 표준 출력 버퍼링 비활성화
       - PYTHONDONTWRITEBYTECODE=1  # .pyc 파일 생성 방지
       - DATABASE_URL=${DATABASE_URL:-sqlite:///./data/eventer.db}
-      # CORS: .env에서 NAS IP 설정 필요 (예: http://192.168.1.100:7772)
+      # CORS: .env에서 NAS IP 설정 필요
       - CORS_ORIGINS=${CORS_ORIGINS}
       # Google OAuth
       - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID}
@@ -51,9 +26,6 @@ services:
       - JWT_SECRET_KEY=${JWT_SECRET_KEY}
       - JWT_ALGORITHM=${JWT_ALGORITHM:-HS256}
       - JWT_ACCESS_TOKEN_EXPIRE_MINUTES=${JWT_ACCESS_TOKEN_EXPIRE_MINUTES:-1440}
-      # SSH 설정
-      - USER_PASSWORD=${USER_PASSWORD:-changeme}
-      - PUBLIC_KEY=${PUBLIC_KEY:-}
       # 관리자 설정
       - ADMIN_EMAILS=${ADMIN_EMAILS:-}
 
@@ -67,7 +39,7 @@ services:
       - eventer-network
 
   # ============================================
-  # Frontend - React 개발 서버 (Hot Reload + SSH)
+  # Frontend - React 개발 서버 (Hot Reload)
   # ============================================
   frontend:
     build:
@@ -76,34 +48,24 @@ services:
     container_name: eventer-map-frontend-dev
     ports:
       - "${FRONTEND_PORT:-65104}:3000"
-      - "${FRONTEND_SSH_PORT:-65106}:22"  # SSH 포트
     environment:
-      # API URL: .env에서 설정 (예: http://192.168.1.100:7773 또는 /api)
+      # API URL: .env에서 설정
       - REACT_APP_GOOGLE_MAPS_API_KEY=${REACT_APP_GOOGLE_MAPS_API_KEY}
       - CHOKIDAR_USEPOLLING=true  # Hot reload를 위한 설정
-      - WDS_SOCKET_PORT=0  # WebSocket 포트 자동 설정
-      # SSH 설정
-      - USER_PASSWORD=${USER_PASSWORD:-changeme}
-      - PUBLIC_KEY=${PUBLIC_KEY:-}
+      - WDS_SOCKET_PORT=0
     volumes:
       # 코드 Hot Reload를 위한 볼륨 마운트
       - ./frontend:/app:rw
-      # node_modules는 컨테이너 내부 것 사용 (성능 향상) / 마운트 하지 않음
+      # node_modules는 컨테이너 내부 것 사용 (성능 향상)
       - /app/node_modules
     depends_on:
       - backend
     restart: unless-stopped
     networks:
       - eventer-network
-    stdin_open: true  # React 개발 서버를 위해 필요
+    stdin_open: true
     tty: true
 
-# Named volume
-# Docker가 관리하는 영구 저장소 볼륨
-# 컨테이너 삭제해도 데이터 유지 - 컨테이너를 삭제하거나 재시작해도 /app/data 안의 데이터(SQLite DB 등)가 보존됨
-# 호스트와 독립적 - 호스트 파일시스템과 분리되어 관리됨
-# 성능 최적화 - Docker가 최적화된 위치에 저장
-# 실제 위치 확인 방법: docker volume inspect eventer-map_backend-data
 volumes:
   backend-data:
     driver: local

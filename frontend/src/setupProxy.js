@@ -9,10 +9,8 @@ module.exports = function (app) {
     app.use(
         '/api',
         createProxyMiddleware({
-            // 1. 도커 네트워크 내부의 백엔드 서비스 이름 (docker-compose service name)
-            // 예: http://backend:8000 또는 http://server:8000
-            // 만약 로컬에서 백엔드를 띄웠다면 http://localhost:8000
-            target: 'http://backend:8000',
+            // 1. API 주소를 환경변수(REACT_APP_API_URL)에서 가져오거나 (기본값 localhost)
+            target: process.env.REACT_APP_API_URL || 'http://localhost:8000',
 
             changeOrigin: true,
 

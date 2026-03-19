@@ -1,17 +1,14 @@
 # ============================================
-# 개발용 백엔드 Dockerfile (SSH + 디버거 지원)
+# 개발용 백엔드 Dockerfile (간소화)
 # ============================================
 FROM python:3.11-slim
 
 WORKDIR /app
 
-# SSH 서버 및 필수 도구 설치
+# 필수 도구 설치 (curl, wget 등 기본 수준)
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
-        openssh-server \
         curl \
-        sudo \
-        git \
         wget \
     && apt-get clean && \
     rm -rf /var/lib/apt/lists/*
@@ -20,34 +17,17 @@ RUN apt-get update && \
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-# developer 사용자 생성 (SSH 컨테이너와 동일한 구조)
+# developer 사용자 생성 (볼륨 권한 일관성 유지)
 RUN useradd -m -u 1000 -s /bin/bash developer && \
-    echo "developer ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers && \
     mkdir -p /app/data && \
     chown -R developer:developer /app
-
-# SSH 설정
-RUN mkdir -p /var/run/sshd && \
-    mkdir -p /home/developer/.ssh && \
-    chmod 700 /home/developer/.ssh && \
-    chown -R developer:developer /home/developer/.ssh
-
-# SSH 설정 파일 수정
-# root 계정 SSH 로그인 차단 (보안 강화)
-# 비밀번호 인증 허용 (개발 편의성)
-# 공개키 인증 허용 (보안 권장)
-# developer 사용자만 SSH 접속 허용
-RUN sed -i 's/#PermitRootLogin prohibit-password/PermitRootLogin no/' /etc/ssh/sshd_config && \
-    sed -i 's/#PasswordAuthentication yes/PasswordAuthentication yes/' /etc/ssh/sshd_config && \
-    sed -i 's/#PubkeyAuthentication yes/PubkeyAuthentication yes/' /etc/ssh/sshd_config && \
-    echo "AllowUsers developer" >> /etc/ssh/sshd_config
 
 # entrypoint 스크립트 복사
 COPY entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh
 
-# 포트 노출
-EXPOSE 8000 22
+# 포트 노출 (FastAPI 기본 포트)
+EXPOSE 8000
 
 # 헬스체크
 HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \

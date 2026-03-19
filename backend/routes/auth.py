@@ -59,6 +59,10 @@ async def google_login():
     
     print(f"=== DEBUG: Authorization URL = {authorization_url}")
     
+    # 💡 PKCE 대응: 생성된 code_verifier 추출 
+    # (flow.authorization_url() 호출 시 내부적으로 생성되어 저장됩니다.)
+    code_verifier = getattr(flow, 'code_verifier', None)
+    
     # state 값을 쿠키에 저장 (CSRF 방지)
     response = RedirectResponse(url=authorization_url)
     # 개발 환경 호환성을 위해 samesite='lax', secure=False 명시
@@ -71,13 +75,48 @@ async def google_login():
         secure=False, 
         path="/"
     )
+    
+    # 💡 PKCE 대응: code_verifier 쿠키 저장
+    if code_verifier:
+        response.set_cookie(
+            key="oauth_code_verifier", 
+            value=code_verifier, 
+            httponly=True, 
+            samesite="lax", 
+            secure=False, 
+            path="/"
+        )
+        print(f"=== DEBUG: saved oauth_code_verifier to cookie")
+
     return response
 
 
+from typing import Optional
+
 @router.get("/google/callback")
-async def google_callback(request: Request, code: str, state: str, db: Session = Depends(get_db)):
+async def google_callback(
+    request: Request, 
+    code: Optional[str] = None, 
+    state: Optional[str] = None, 
+    error: Optional[str] = None, 
+    db: Session = Depends(get_db)
+):
     """구글 OAuth 콜백 처리"""
     try:
+        # 0. 구글에서 에러를 보낸 경우 대응 (동의 거부 등)
+        if error:
+            print(f"=== DEBUG: Google OAuth Access Error: {error}")
+            return RedirectResponse(
+                url=f"{FRONTEND_URL}/?error={error}"
+            )
+
+        if not code or not state:
+            print(f"=== DEBUG: Missing code or state. code={code}, state={state}")
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Missing code or state from Google"
+            )
+
         # 1. State 검증 (CSRF 방지)
         stored_state = request.cookies.get("oauth_state")
         
@@ -104,15 +143,47 @@ async def google_callback(request: Request, code: str, state: str, db: Session =
             state=state
         )
         
-        # 3. 인증 코드로 토큰 교환
-        # fetch_token 내부에서 state 검증도 수행할 수 있으나, 
-        # 위에서 수동으로 검증했으므로 안전함
-        flow.fetch_token(code=code)
-        credentials = flow.credentials
+        # 3. 인증 코드로 토큰 교환 (수동 POST 인증 방식 전환 - PKCE 대응)
+        import requests
         
+        # 쿠키에서 code_verifier 읽기 
+        code_verifier = request.cookies.get("oauth_code_verifier")
+        print(f"=== DEBUG: read code_verifier from cookie: {bool(code_verifier)}")
+        
+        token_url = "https://oauth2.googleapis.com/token"
+        data = {
+            "code": code,
+            "client_id": GOOGLE_CLIENT_ID,
+            "client_secret": GOOGLE_CLIENT_SECRET,
+            "redirect_uri": GOOGLE_REDIRECT_URI,
+            "grant_type": "authorization_code"
+        }
+        
+        # 💡 PKCE 대응: code_verifier 주입
+        if code_verifier:
+            data["code_verifier"] = code_verifier
+        
+        token_response = requests.post(token_url, data=data)
+        token_json = token_response.json()
+        
+        if "error" in token_json:
+            print(f"=== DEBUG: Token exchange error: {token_json}")
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST, 
+                detail=f"Token exchange failed: {token_json.get('error_description', 'Unknown error')}"
+            )
+            
+        id_token_jwt = token_json.get("id_token")
+        
+        if not id_token_jwt:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST, 
+                detail="Missing id_token from Google response"
+            )
+
         # 4. ID 토큰 검증 및 사용자 정보 추출
         id_info = id_token.verify_oauth2_token(
-            credentials.id_token,
+            id_token_jwt,
             google_requests.Request(),
             GOOGLE_CLIENT_ID
         )
@@ -160,26 +231,27 @@ async def google_callback(request: Request, code: str, state: str, db: Session =
         }
         
         response = RedirectResponse(
-            url=f"{FRONTEND_URL}/auth/callback?{urlencode(user_params)}"
+            url=f"{FRONTEND_URL}/?{urlencode(user_params)}"
         )
         response.delete_cookie(key="oauth_state")
+        response.delete_cookie(key="oauth_code_verifier")
         return response
     
     except ValueError as e:
         # 토큰 검증 실패 (Invalid token)
         print(f"Token verification failed: {str(e)}")
         return RedirectResponse(
-            url=f"{FRONTEND_URL}/auth/callback?error=invalid_token"
+            url=f"{FRONTEND_URL}/?error=invalid_token"
         )
     except HTTPException as e:
         print(f"OAuth callback error: {e.detail}")
         return RedirectResponse(
-            url=f"{FRONTEND_URL}/auth/callback?error=auth_failed"
+            url=f"{FRONTEND_URL}/?error=auth_failed"
         )
     except Exception as e:
         print(f"OAuth callback error: {str(e)}")
         return RedirectResponse(
-            url=f"{FRONTEND_URL}/auth/callback?error=unknown_error"
+            url=f"{FRONTEND_URL}/?error=unknown_error"
         )
 
 

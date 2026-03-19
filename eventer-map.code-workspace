@@ -1,0 +1,63 @@
+{
+  "folders": [
+    {
+      "name": "Backend (FastAPI)",
+      "path": "backend"
+    },
+    {
+      "name": "Frontend (React)",
+      "path": "frontend"
+    },
+    {
+      "name": "Project Root (전체)",
+      "path": "."
+    }
+  ],
+  "settings": {
+    // Project Root 노드에서 중복 표시 방지를 위한 숨김 처리
+    // 필요 시 아래 설정을 주석 처리하거나 false로 변경하세요.
+    "files.exclude": {
+      "backend": true,
+      "frontend": true
+    }
+  },
+  "launch": {
+    "version": "0.2.0",
+    "configurations": [
+      {
+        "name": "Backend (FastAPI)",
+        "type": "debugpy",
+        "request": "launch",
+        "module": "uvicorn",
+        "python": "${workspaceFolder:Backend (FastAPI)}/.venv/Scripts/python.exe",
+        "args": [
+          "main:app",
+          "--reload",
+          "--host",
+          "0.0.0.0",
+          "--port",
+          "8000"
+        ],
+        "jinja": true,
+        "justMyCode": true,
+        "cwd": "${workspaceFolder:Backend (FastAPI)}"
+      },
+      {
+        "name": "Frontend (React)",
+        "type": "chrome",
+        "request": "launch",
+        "url": "http://localhost:3000",
+        "webRoot": "${workspaceFolder:Frontend (React)}"
+      }
+    ],
+    "compounds": [
+      {
+        "name": "Full Stack Run",
+        "configurations": [
+          "Backend (FastAPI)",
+          "Frontend (React)"
+        ]
+      }
+    ]
+  }
+}

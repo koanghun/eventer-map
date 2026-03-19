@@ -38,8 +38,15 @@ export default function AppContent() {
     const apiKey = process.env.REACT_APP_GOOGLE_MAPS_API_KEY || '';
 
     const handleLogin = () => {
-        // 프록시 사용을 위해 상대 경로 사용
-        window.location.href = `/api/auth/google/login`;
+        const apiBase = process.env.REACT_APP_API_URL;
+
+        if (apiBase) {
+            // [로컬 개발 환경]: 백엔드 주소로 직접 이동하여 프록시 무한 루프 방지
+            window.location.href = `${apiBase}/auth/google/login`;
+        } else {
+            // [프로덕션 배포 환경]: Nginx 등의 프록시 구성을 그대로 타도록 유지
+            window.location.href = `/api/auth/google/login`;
+        }
     };
 
     const handleDateChange = (newDate: string) => {
