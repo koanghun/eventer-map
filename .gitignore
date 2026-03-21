@@ -28,8 +28,10 @@ frontend/dist/
 .env.local
 .env.*.local
 
-# Google OAuth secrets
+# Google OAuth secrets & API credentials
 client_secret_*.json
+credentials.json
+token.json
 
 # IDEs
 .vscode/

@@ -9,6 +9,10 @@
       "path": "frontend"
     },
     {
+      "name": "Event Extractor (Python)",
+      "path": "event-extractor"
+    },
+    {
       "name": "Project Root (전체)",
       "path": "."
     }
@@ -18,7 +22,8 @@
     // 필요 시 아래 설정을 주석 처리하거나 false로 변경하세요.
     "files.exclude": {
       "backend": true,
-      "frontend": true
+      "frontend": true,
+      "event-extractor": true
     }
   },
   "launch": {
