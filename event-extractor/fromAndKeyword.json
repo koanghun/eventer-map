@@ -1,0 +1,12 @@
+{
+  "filters": [
+    {
+      "from": "members_info@pia.co.jp",
+      "keywords": ["イベント", "公演"]
+    },
+    {
+      "from": "members_favorite_o@pia.co.jp",
+      "keywords": ["イベント", "公演"]
+    }
+  ]
+}
