@@ -133,7 +133,11 @@ function EventMap({ events }: EventMapProps) {
     // 외부에서 selectedEvent prop 변경 시 지도 이동만 처리
     useEffect(() => {
         if (selectedEvent && mapRef.current) {
-            mapRef.current.panTo({ lat: selectedEvent.latitude, lng: selectedEvent.longitude });
+            const lat = selectedEvent.place?.latitude ?? selectedEvent.latitude;
+            const lng = selectedEvent.place?.longitude ?? selectedEvent.longitude;
+            if (lat !== undefined && lng !== undefined) {
+                mapRef.current.panTo({ lat, lng });
+            }
         }
     }, [selectedEvent]);
 
@@ -146,7 +150,9 @@ function EventMap({ events }: EventMapProps) {
         const groups = new Map<string, Event[]>();
 
         events.forEach(event => {
-            const key = `${event.latitude},${event.longitude}`;
+            const lat = event.place?.latitude ?? event.latitude;
+            const lng = event.place?.longitude ?? event.longitude;
+            const key = `${lat},${lng}`;
             if (!groups.has(key)) {
                 groups.set(key, []);
             }
@@ -159,8 +165,8 @@ function EventMap({ events }: EventMapProps) {
     // 지도 중심 계산 (메모이제이션으로 안정화)
     const mapCenter = useMemo(() => {
         if (events.length === 0) return defaultCenter;
-        const avgLat = events.reduce((sum, e) => sum + e.latitude, 0) / events.length;
-        const avgLng = events.reduce((sum, e) => sum + e.longitude, 0) / events.length;
+        const avgLat = events.reduce((sum, e) => sum + (e.place?.latitude ?? e.latitude ?? 0), 0) / events.length;
+        const avgLng = events.reduce((sum, e) => sum + (e.place?.longitude ?? e.longitude ?? 0), 0) / events.length;
         return { lat: avgLat, lng: avgLng };
     }, [events]);  // events가 변경될 때만 재계산
 
@@ -170,9 +176,10 @@ function EventMap({ events }: EventMapProps) {
             selectEvent(eventsAtLocation[0]);
         } else {
             // 그룹: EventMap이 리스트 모달 관리
+            const firstEvent = eventsAtLocation[0];
             const location = {
-                lat: eventsAtLocation[0].latitude,
-                lng: eventsAtLocation[0].longitude
+                lat: firstEvent.place?.latitude ?? firstEvent.latitude ?? 0,
+                lng: firstEvent.place?.longitude ?? firstEvent.longitude ?? 0
             };
             setInfoWindowStack({ type: 'group', events: eventsAtLocation, location });
             clearSelection(); // 기존 단일 선택 해제
@@ -207,7 +214,7 @@ function EventMap({ events }: EventMapProps) {
                 <GroupEventInfoWindow
                     events={groupEvents}
                     location={location}
-                    locationName={groupEvents[0].location}
+                    locationName={groupEvents[0].place?.canonical_name ?? groupEvents[0].location ?? ''}
                     onClose={handleInfoWindowClose}
                     onEventSelect={handleEventSelectFromGroup}
                 />
@@ -221,8 +228,8 @@ function EventMap({ events }: EventMapProps) {
             <SingleEventInfoWindow
                 event={selectedEvent}
                 position={{
-                    lat: selectedEvent.latitude,
-                    lng: selectedEvent.longitude
+                    lat: selectedEvent.place?.latitude ?? selectedEvent.latitude ?? 0,
+                    lng: selectedEvent.place?.longitude ?? selectedEvent.longitude ?? 0
                 }}
                 onClose={handleInfoWindowClose}
             />
@@ -253,13 +260,13 @@ function EventMap({ events }: EventMapProps) {
 
                     const isSelected = infoWindowStack && (
                         (infoWindowStack.type === 'single' && eventsAtLocation.some(e => e.id === infoWindowStack.event.id)) ||
-                        (infoWindowStack.type === 'group' && infoWindowStack.location.lat === firstEvent.latitude && infoWindowStack.location.lng === firstEvent.longitude)
+                        (infoWindowStack.type === 'group' && infoWindowStack.location.lat === (firstEvent.place?.latitude ?? firstEvent.latitude) && infoWindowStack.location.lng === (firstEvent.place?.longitude ?? firstEvent.longitude))
                     );
 
                     return (
                         <Marker
                             key={coordKey}
-                            position={{ lat: firstEvent.latitude, lng: firstEvent.longitude }}
+                            position={{ lat: firstEvent.place?.latitude ?? firstEvent.latitude ?? 0, lng: firstEvent.place?.longitude ?? firstEvent.longitude ?? 0 }}
                             onClick={() => handleMarkerClick(eventsAtLocation)}
                             label={isGrouped ? {
                                 text: String(eventsAtLocation.length),

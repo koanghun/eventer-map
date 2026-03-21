@@ -23,15 +23,19 @@ def upgrade():
     개발환경과 배포환경 모두에서 안전하게 실행 가능하도록 컬럼 존재 여부 확인
     """
     
+    from sqlalchemy import inspect
+    conn = op.get_bind()
+    inspector = inspect(conn)
+    
     # 헬퍼 함수: 컬럼 존재 여부 확인
     def column_exists(table_name, column_name):
-        conn = op.get_bind()
-        result = conn.execute(sa.text(f"PRAGMA table_info({table_name})"))
-        columns = [row[1] for row in result]
-        return column_name in columns
+        try:
+            columns = [c['name'] for c in inspector.get_columns(table_name)]
+            return column_name in columns
+        except Exception:
+            return False
     
     # 1. events 테이블에 추적 필드 추가
-    # SQLite는 ALTER TABLE 제약이 많아서 batch 모드 사용
     columns_to_add = []
     
     if not column_exists('events', 'created_by'):
@@ -43,7 +47,6 @@ def upgrade():
     if not column_exists('events', 'is_hidden'):
         columns_to_add.append(('is_hidden', sa.Column('is_hidden', sa.Integer(), server_default='0', nullable=False)))
     
-    # 컬럼이 하나라도 추가될 경우에만 batch 실행
     if columns_to_add:
         with op.batch_alter_table('events', schema=None) as batch_op:
             for col_name, col_def in columns_to_add:
@@ -52,13 +55,11 @@ def upgrade():
     else:
         print("✓ events 테이블 컬럼이 이미 존재함 (스킵)")
     
-    # 외래키 제약조건 추가 (이미 존재 여부는 SQLAlchemy가 자동으로 처리)
-    # SQLite에서는 외래키가 이미 있으면 에러가 발생할 수 있으므로 try-except 사용
     try:
         with op.batch_alter_table('events', schema=None) as batch_op:
-            if not column_exists('events', 'created_by') or True:  # 항상 시도
-                batch_op.create_foreign_key('fk_events_created_by', 'users', ['created_by'], ['id'])
-                batch_op.create_foreign_key('fk_events_updated_by', 'users', ['updated_by'], ['id'])
+            # 외래키 추가
+            batch_op.create_foreign_key('fk_events_created_by', 'users', ['created_by'], ['id'])
+            batch_op.create_foreign_key('fk_events_updated_by', 'users', ['updated_by'], ['id'])
         print("✓ events 테이블 외래키 추가됨")
     except Exception as e:
         print(f"⚠ 외래키 추가 스킵 (이미 존재하거나 오류): {e}")
@@ -68,46 +69,42 @@ def upgrade():
         with op.batch_alter_table('users', schema=None) as batch_op:
             batch_op.add_column(sa.Column('is_admin', sa.Integer(), server_default='0', nullable=False))
         print("✓ users 테이블에 is_admin 컬럼 추가됨")
-    else:
-        print("✓ users.is_admin 컬럼이 이미 존재함 (스킵)")
     
-    # 3. event_histories 테이블 생성 (이미 있으면 CREATE TABLE IF NOT EXISTS로 무시됨)
-    op.execute("""
-        CREATE TABLE IF NOT EXISTS event_histories (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            event_id INTEGER NOT NULL,
-            user_id INTEGER NOT NULL,
-            action VARCHAR NOT NULL,
-            snapshot TEXT NOT NULL,
-            changes_summary TEXT,
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            FOREIGN KEY (event_id) REFERENCES events(id),
-            FOREIGN KEY (user_id) REFERENCES users(id)
+    # 3. event_histories 테이블 생성
+    if not inspector.has_table('event_histories'):
+        op.create_table(
+            'event_histories',
+            sa.Column('id', sa.Integer(), primary_key=True, autoincrement=True),
+            sa.Column('event_id', sa.Integer(), nullable=False),
+            sa.Column('user_id', sa.Integer(), nullable=False),
+            sa.Column('action', sa.String(), nullable=False),
+            sa.Column('snapshot', sa.Text(), nullable=False),
+            sa.Column('changes_summary', sa.Text(), nullable=True),
+            sa.Column('created_at', sa.DateTime(), server_default=sa.func.now()),
+            sa.ForeignKeyConstraint(['event_id'], ['events.id'], name='fk_histories_event_id'),
+            sa.ForeignKeyConstraint(['user_id'], ['users.id'], name='fk_histories_user_id')
         )
-    """)
-    
-    # 인덱스 생성 (이미 있으면 무시)
-    op.execute("CREATE INDEX IF NOT EXISTS idx_event_histories_event_id ON event_histories(event_id)")
-    op.execute("CREATE INDEX IF NOT EXISTS idx_event_histories_user_id ON event_histories(user_id)")
+        op.create_index('idx_event_histories_event_id', 'event_histories', ['event_id'])
+        op.create_index('idx_event_histories_user_id', 'event_histories', ['user_id'])
+        print("✓ event_histories 테이블 생성됨")
     
     # 4. event_reports 테이블 생성
-    op.execute("""
-        CREATE TABLE IF NOT EXISTS event_reports (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            event_id INTEGER NOT NULL,
-            reporter_id INTEGER NOT NULL,
-            reason VARCHAR NOT NULL,
-            description TEXT,
-            status VARCHAR DEFAULT 'pending',
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            FOREIGN KEY (event_id) REFERENCES events(id),
-            FOREIGN KEY (reporter_id) REFERENCES users(id)
+    if not inspector.has_table('event_reports'):
+        op.create_table(
+            'event_reports',
+            sa.Column('id', sa.Integer(), primary_key=True, autoincrement=True),
+            sa.Column('event_id', sa.Integer(), nullable=False),
+            sa.Column('reporter_id', sa.Integer(), nullable=False),
+            sa.Column('reason', sa.String(), nullable=False),
+            sa.Column('description', sa.Text(), nullable=True),
+            sa.Column('status', sa.String(), server_default='pending'),
+            sa.Column('created_at', sa.DateTime(), server_default=sa.func.now()),
+            sa.ForeignKeyConstraint(['event_id'], ['events.id'], name='fk_reports_event_id'),
+            sa.ForeignKeyConstraint(['reporter_id'], ['users.id'], name='fk_reports_reporter_id')
         )
-    """)
-    
-    # 인덱스 생성
-    op.execute("CREATE INDEX IF NOT EXISTS idx_event_reports_event_id ON event_reports(event_id)")
-    op.execute("CREATE INDEX IF NOT EXISTS idx_event_reports_reporter_id ON event_reports(reporter_id)")
+        op.create_index('idx_event_reports_event_id', 'event_reports', ['event_id'])
+        op.create_index('idx_event_reports_reporter_id', 'event_reports', ['reporter_id'])
+        print("✓ event_reports 테이블 생성됨")
 
 
 def downgrade():
