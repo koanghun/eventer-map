@@ -119,10 +119,12 @@ def calculate_event_similarity(event1: models.Event, event2: models.Event) -> Di
     date_score = 1.0 if same_date else 0.0
     
     # 2. 거리 (20%)
-    distance = calculate_distance(
-        event1.latitude, event1.longitude,
-        event2.latitude, event2.longitude
-    )
+    lat1 = event1.place.latitude if event1.place else None
+    lon1 = event1.place.longitude if event1.place else None
+    lat2 = event2.place.latitude if event2.place else None
+    lon2 = event2.place.longitude if event2.place else None
+
+    distance = calculate_distance(lat1, lon1, lat2, lon2)
     # 0m = 1.0, 50m = 0.5, 100m+ = 0.0
     if distance == float('inf'):
         location_score = 0.0

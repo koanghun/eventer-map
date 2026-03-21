@@ -22,6 +22,9 @@ class Place(Base):
     canonical_name: Mapped[str] = mapped_column(String)  # UI 표시용 공식 이름
     normalized_name: Mapped[str] = mapped_column(String, unique=True, index=True)  # 중복 체크용
     
+    # Google Maps 연동 필드
+    google_place_id: Mapped[Optional[str]] = mapped_column(String, unique=True, index=True)
+    
     # 별칭 시스템 필드 (Phase 2)
     aliases: Mapped[Optional[str]] = mapped_column(Text)  # JSON 배열 문자열
     
@@ -58,10 +61,10 @@ class Event(Base):
     door_time: Mapped[Optional[str]] = mapped_column(String)  # 개장 HH:MM
     start_time: Mapped[Optional[str]] = mapped_column(String)  # 개연 HH:MM
     end_time: Mapped[Optional[str]] = mapped_column(String)  # 종연 HH:MM
-    location: Mapped[Optional[str]] = mapped_column(String)
-    address: Mapped[Optional[str]] = mapped_column(String)
-    latitude: Mapped[Optional[float]] = mapped_column(Float)
-    longitude: Mapped[Optional[float]] = mapped_column(Float)
+    
+    # 위치 정보 (Place 모델 외래키로 대체)
+    place_id: Mapped[Optional[int]] = mapped_column(ForeignKey('places.id'))
+    
     performers: Mapped[Optional[str]] = mapped_column(String)  # 기존 문자열 컬럼 (백업용/호환성용)
     related_link: Mapped[Optional[str]] = mapped_column(String)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
@@ -74,6 +77,7 @@ class Event(Base):
     is_hidden: Mapped[int] = mapped_column(default=0)  # SQLite에서는 Boolean이 Integer로 저장됨
 
     # 관계 설정
+    place: Mapped[Optional["Place"]] = relationship()
     performers_rel: Mapped[list["Performer"]] = relationship(secondary=event_performers, back_populates="events")
 
 

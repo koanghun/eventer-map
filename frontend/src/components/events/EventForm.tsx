@@ -1,4 +1,4 @@
-import { useState, useEffect, type ChangeEvent, type FormEvent } from 'react';
+import { useState, useEffect, useRef, type ChangeEvent, type FormEvent } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Event, EventFormData, Performer, Place } from '../../types/event';
 import { placeApi, performerApi, eventApi } from '../../services/api';
@@ -18,6 +18,7 @@ interface EventFormProps {
 
 function EventForm({ event, onSubmit, onClose, onSwitchToEdit }: EventFormProps) {
     const { t } = useTranslation();
+    const locationInputRef = useRef<HTMLInputElement>(null);
     // 임시 저장 키
     const DRAFT_KEY = 'eventFormDraft';
 
@@ -44,6 +45,8 @@ function EventForm({ event, onSubmit, onClose, onSwitchToEdit }: EventFormProps)
                 performers: '',
                 performer_ids: [],
                 related_link: '',
+                place_id: undefined,
+                google_place_id: ''
             };
         }
 
@@ -108,10 +111,12 @@ function EventForm({ event, onSubmit, onClose, onSwitchToEdit }: EventFormProps)
                 door_time: event.door_time || '',
                 start_time: event.start_time || '',
                 end_time: event.end_time || '',
-                location: event.location,
-                address: event.address || '',
-                latitude: event.latitude,
-                longitude: event.longitude,
+                location: event.place?.canonical_name || '',
+                address: event.place?.address || '',
+                latitude: event.place?.latitude || 0,
+                longitude: event.place?.longitude || 0,
+                place_id: event.place_id,
+                google_place_id: event.place?.google_place_id || '',
                 performers: event.performers || '',
                 performer_ids: event.performer_ids || [],
                 related_link: event.related_link || '',
@@ -139,11 +144,16 @@ function EventForm({ event, onSubmit, onClose, onSwitchToEdit }: EventFormProps)
             if (matchedPlace) {
                 setFormData(prev => ({
                     ...prev,
-                    [name]: value, // location 업데이트
+                    [name]: value,
+                    place_id: matchedPlace.id,
                     address: matchedPlace.address,
                     latitude: matchedPlace.latitude,
-                    longitude: matchedPlace.longitude
+                    longitude: matchedPlace.longitude,
+                    google_place_id: matchedPlace.google_place_id
                 }));
+            } else {
+                // 수동 입력 중이면 기존 매칭 해제
+                setFormData(prev => ({ ...prev, place_id: undefined, google_place_id: '' }));
             }
         }
     };
@@ -163,6 +173,29 @@ function EventForm({ event, onSubmit, onClose, onSwitchToEdit }: EventFormProps)
         }));
     };
 
+    useEffect(() => {
+        if (window.google && locationInputRef.current) {
+            const autocomplete = new window.google.maps.places.Autocomplete(locationInputRef.current, {
+                types: ['establishment', 'geocode']
+            });
+
+            autocomplete.addListener('place_changed', () => {
+                const place = autocomplete.getPlace();
+                if (place.place_id) {
+                    setFormData(prev => ({
+                        ...prev,
+                        location: place.name || prev.location,
+                        address: place.formatted_address || '',
+                        latitude: place.geometry?.location?.lat() || prev.latitude,
+                        longitude: place.geometry?.location?.lng() || prev.longitude,
+                        google_place_id: place.place_id,
+                        place_id: undefined // 새로운 장소이므로 기존 매칭 해제
+                    }));
+                }
+            });
+        }
+    }, []);
+
     const handlePlaceSearch = async () => {
         if (!formData.location) {
             alert(t('eventForm.alerts.placeNameRequired'));
@@ -175,63 +208,43 @@ function EventForm({ event, onSubmit, onClose, onSwitchToEdit }: EventFormProps)
 
             setFormData((prev) => ({
                 ...prev,
+                place_id: place.id,
                 location: place.canonical_name || formData.location,
                 address: place.address,
                 latitude: place.latitude,
                 longitude: place.longitude,
+                google_place_id: place.google_place_id || ''
             }));
             alert(t('eventForm.alerts.placeFoundDb'));
 
         } catch (error) {
-            // 2. DB에 없으면 Google Geocoding API 호출 (일본어로)
-            console.log('DB search failed, trying Google API...');
+            // 2. DB에 없으면 Google Places TextSearch 사용 (선택 및 place_id 획득 지원)
+            console.log('DB search failed, trying Google TextSearch...');
 
-            const geocoder = new window.google.maps.Geocoder();
-            geocoder.geocode(
+            const service = new window.google.maps.places.PlacesService(document.createElement('div'));
+            service.textSearch(
                 {
-                    address: formData.location,
-                    language: 'ja',  // 일본어로 결과 반환
-                    region: 'jp'     // 일본 지역 우선
+                    query: formData.location,
+                    language: 'ja',
+                    region: 'jp'
                 },
-                async (results, status) => {
+                (results, status) => {
                     if (status === 'OK' && results && results[0]) {
                         const result = results[0];
-                        const location = result.geometry.location;
-                        const lat = location.lat();
-                        const lng = location.lng();
+                        const lat = result.geometry?.location?.lat() || formData.latitude;
+                        const lng = result.geometry?.location?.lng() || formData.longitude;
                         const address = result.formatted_address || '';
+                        const placeName = result.name || formData.location;
 
-                        // 장소명 추출 (일본어)
-                        const placeName = result.formatted_address || formData.location;
-
-                        // 폼 업데이트
                         setFormData((prev) => ({
                             ...prev,
-                            location: placeName,  // 일본어 장소명
+                            location: placeName,
                             address: address,
                             latitude: lat,
                             longitude: lng,
+                            google_place_id: result.place_id || '',
+                            place_id: undefined
                         }));
-
-                        // 3. 검색 결과를 백엔드 DB에 저장 (캐싱)
-                        // canonical_name은 일본어, 사용자 입력을 별칭으로 추가
-                        try {
-                            const userInput = formData.location.trim();
-                            const aliasesToAdd = placeName !== userInput ? [userInput] : [];
-
-                            const newPlace = await placeApi.createPlace({
-                                canonical_name: placeName,  // 일본어 공식명
-                                address: address,
-                                latitude: lat,
-                                longitude: lng,
-                                aliases: aliasesToAdd  // 사용자 입력을 별칭으로
-                            });
-                            console.log('Place cached in DB with user input as alias');
-                            // 저장된 장소 목록 갱신
-                            setSavedPlaces(prev => [...prev, newPlace]);
-                        } catch (saveError) {
-                            console.error('Failed to cache place:', saveError);
-                        }
 
                         alert(t('eventForm.alerts.placeFoundGoogle'));
                     } else {
@@ -280,9 +293,29 @@ function EventForm({ event, onSubmit, onClose, onSwitchToEdit }: EventFormProps)
     };
 
     const submitEvent = async () => {
+        let currentFormData = { ...formData };
+
+        // 1. google_place_id가 제공된 경우 장소 먼저 처리 (캐싱/검증)
+        if (currentFormData.google_place_id && !currentFormData.place_id) {
+            try {
+                const newPlace = await placeApi.createPlace({
+                    canonical_name: currentFormData.location,
+                    address: currentFormData.address,
+                    latitude: currentFormData.latitude,
+                    longitude: currentFormData.longitude,
+                    google_place_id: currentFormData.google_place_id,
+                    aliases: []
+                });
+                currentFormData.place_id = newPlace.id;
+            } catch (saveError) {
+                console.error('Failed to populate place from backend:', saveError);
+                alert("장소 등록 처리에 실패했습니다.");
+                return;
+            }
+        }
+
         // onSubmit이 Promise를 반환하지 않을 수 있으므로 await을 사용하지 않음
-        // App.tsx의 onSubmit이 비동기 작업 후 상태를 업데이트하도록 구성되어야 함
-        onSubmit(formData as Event);
+        onSubmit(currentFormData as unknown as Event);
 
         // 제출 성공 시 임시 저장 데이터 삭제
         if (!event) {
@@ -390,6 +423,7 @@ function EventForm({ event, onSubmit, onClose, onSwitchToEdit }: EventFormProps)
                                     type="text"
                                     id="location"
                                     name="location"
+                                    ref={locationInputRef}
                                     value={formData.location}
                                     onChange={handleChange}
                                     required

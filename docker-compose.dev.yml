@@ -2,6 +2,22 @@ version: '3.8'
 
 services:
   # ============================================
+  # Database - PostgreSQL
+  # ============================================
+  postgres:
+    image: postgres:15-alpine
+    container_name: eventer-map-postgres-dev
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-eventer}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-eventer_pass}
+      POSTGRES_DB: ${POSTGRES_DB:-eventer_db}
+    volumes:
+      - postgres-data-dev:/var/lib/postgresql/data
+    networks:
+      - eventer-network
+
+  # ============================================
   # Backend - FastAPI (개발 모드)
   # ============================================
   backend:
@@ -34,6 +50,8 @@ services:
       - ./backend:/app:rw
       # 데이터 영속성
       - backend-data:/app/data
+    depends_on:
+      - postgres
     restart: unless-stopped
     networks:
       - eventer-network
@@ -68,6 +86,8 @@ services:
 
 volumes:
   backend-data:
+    driver: local
+  postgres-data-dev:
     driver: local
 
 networks:

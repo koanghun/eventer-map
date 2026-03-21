@@ -11,3 +11,5 @@ passlib[bcrypt]>=1.7.4
 google-auth
 google-auth-oauthlib
 alembic>=1.17.2
+googlemaps
+psycopg2-binary

@@ -42,16 +42,25 @@ def normalize_text(text: str) -> str:
     # 1. 유니코드 정규화 (NFKC)
     #    - 전각 문자를 반각으로 변환
     #    - 호환성 문자를 표준 형태로 통일
-    #    - 가타카나 → 히라가나 변환 포함
     text = unicodedata.normalize('NFKC', text)
     
-    # 2. 소문자 변환 (영문)
+    # 2. 가타카나 -> 히라가나 변환 (일본어 중복 매칭 강화)
+    #    NFKC는 가타카나를 히라가나로 바꾸지 않아 ゼップ와 ぜっぷ가 불일치함
+    converted = []
+    for c in text:
+        if '\u30a1' <= c <= '\u30f6':  # 가타카나 범위
+            converted.append(chr(ord(c) - 96)) # 히라가나로 스위치 (0x60 차이)
+        else:
+            converted.append(c)
+    text = "".join(converted)
+    
+    # 3. 소문자 변환 (영문)
     text = text.lower()
     
-    # 3. 공백 제거 (모든 종류의 공백 문자)
+    # 4. 공백 제거 (모든 종류의 공백 문자)
     text = re.sub(r'\s+', '', text)
     
-    # 4. 특수문자 제거
+    # 5. 특수문자 제거
     #    - 하이픈, 점, 밑줄, 쉼표, 가운뎃점
     text = re.sub(r'[.\-_,・]', '', text)
     

@@ -171,6 +171,10 @@ def check_duplicate_event(event_data: schemas.EventCreate, db: Session = Depends
     temp_event = models.Event(**event_dict)
     temp_event.performers_rel = []
     
+    # 장소 정보 로드 (유사도 계산용)
+    if temp_event.place_id:
+        temp_event.place = db.query(models.Place).filter(models.Place.id == temp_event.place_id).first()
+        
     # 출연자 정보 처리 (ID로 조회)
     if event_data.performer_ids:
         # 한 번의 쿼리로 모든 출연자 조회
@@ -190,7 +194,7 @@ def check_duplicate_event(event_data: schemas.EventCreate, db: Session = Depends
                 "event_id": existing.id,
                 "event_title": existing.title,
                 "event_date": existing.event_date,
-                "location": existing.location,
+                "location": existing.place.canonical_name if existing.place else "",
                 "start_time": existing.start_time,
                 "performers": [p.canonical_name for p in existing.performers_rel],
                 **similarity

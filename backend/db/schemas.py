@@ -42,10 +42,7 @@ class EventBase(BaseModel):
     door_time: Optional[str] = Field(None, pattern=r'^\d{2}:\d{2}$')  # 개장 HH:MM
     start_time: Optional[str] = Field(None, pattern=r'^\d{2}:\d{2}$')  # 개연 HH:MM
     end_time: Optional[str] = Field(None, pattern=r'^\d{2}:\d{2}$')  # 종연 HH:MM
-    location: str = Field(..., min_length=1, max_length=200)
-    address: Optional[str] = Field(None, max_length=500)
-    latitude: float = Field(..., ge=-90, le=90)
-    longitude: float = Field(..., ge=-180, le=180)
+    place_id: Optional[int] = None  # 연결된 장소 ID
     performers: Optional[str] = None  # 기존 문자열 필드 (하위호환)
     performer_ids: Optional[List[int]] = []  # 출연자 ID 배열 (권장)
     related_link: Optional[str] = Field(None, max_length=500)
@@ -70,11 +67,9 @@ class EventUpdate(BaseModel):
     door_time: Optional[str] = Field(None, pattern=r'^\d{2}:\d{2}$')  # 개장
     start_time: Optional[str] = Field(None, pattern=r'^\d{2}:\d{2}$')  # 개연
     end_time: Optional[str] = Field(None, pattern=r'^\d{2}:\d{2}$')  # 종연
-    location: Optional[str] = Field(None, min_length=1, max_length=200)
-    address: Optional[str] = Field(None, max_length=500)
-    latitude: Optional[float] = Field(None, ge=-90, le=90)
-    longitude: Optional[float] = Field(None, ge=-180, le=180)
+    place_id: Optional[int] = None
     performers: Optional[str] = None
+    performer_ids: Optional[List[int]] = []
     related_link: Optional[str] = Field(None, max_length=500)
 
 
@@ -83,6 +78,7 @@ class EventResponse(EventBase):
     created_at: datetime
     updated_at: Optional[datetime] = None
     performers_list: List[PerformerResponse] = []  # 관계형 데이터
+    place: Optional["PlaceResponse"] = None  # 연결된 장소 정보
     
     # 추적 필드
     created_by: Optional[int] = None
@@ -99,6 +95,7 @@ class PlaceBase(BaseModel):
     address: str = Field(..., min_length=1, max_length=500)
     latitude: float = Field(..., ge=-90, le=90)
     longitude: float = Field(..., ge=-180, le=180)
+    google_place_id: Optional[str] = None
     aliases: Optional[List[str]] = []
 
 
@@ -110,6 +107,7 @@ class PlaceResponse(BaseModel):
     id: int
     canonical_name: str = Field(..., min_length=1, max_length=200)
     normalized_name: str
+    google_place_id: Optional[str] = None
     address: str = Field(..., min_length=1, max_length=500)
     latitude: float = Field(..., ge=-90, le=90)
     longitude: float = Field(..., ge=-180, le=180)

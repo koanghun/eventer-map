@@ -2,6 +2,22 @@ version: '3.8'
 
 services:
   # ============================================
+  # Database - PostgreSQL
+  # ============================================
+  postgres:
+    image: postgres:15-alpine
+    container_name: eventer-map-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-eventer}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-eventer_pass}
+      POSTGRES_DB: ${POSTGRES_DB:-eventer_db}
+    volumes:
+      - postgres-data-pro:/var/lib/postgresql/data
+    networks:
+      - eventer-network
+
+  # ============================================
   # Backend - FastAPI (프로덕션)
   # ============================================
   backend:
@@ -31,6 +47,8 @@ services:
       - backend-data:/app/data
       # 백업 디렉토리 (호스트의 ./backups 디렉토리)
       - ./backups:/backups:rw
+    depends_on:
+      - postgres
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
@@ -70,6 +88,8 @@ services:
 
 volumes:
   backend-data:
+    driver: local
+  postgres-data-pro:
     driver: local
 
 networks:

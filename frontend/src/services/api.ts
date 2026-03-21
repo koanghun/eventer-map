@@ -101,7 +101,7 @@ export const placeApi = {
     },
 
     // 장소 생성 (캐시 저장)
-    createPlace: async (place: { canonical_name: string; address: string; latitude: number; longitude: number; aliases?: string[] }): Promise<Place> => {
+    createPlace: async (place: { canonical_name: string; address: string; latitude: number; longitude: number; google_place_id?: string; aliases?: string[] }): Promise<Place> => {
         const response = await api.post<Place>('/places/', place);
         return response.data;
     },

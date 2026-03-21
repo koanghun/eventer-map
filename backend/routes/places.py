@@ -6,6 +6,7 @@ from db import get_db
 from db.models import Place
 from db.schemas import PlaceResponse, PlaceCreate
 from utils.normalization import normalize_text, json_to_aliases, aliases_to_json
+from utils.google_maps import get_place_details
 
 router = APIRouter(prefix="/places", tags=["places"])
 
@@ -59,19 +60,71 @@ def create_place(
 ):
     """
     새로운 장소를 저장합니다.
-    프론트엔드에서 전달받은 aliases(사용자 입력)를 저장하여 다국어 검색을 지원합니다.
+    google_place_id가 제공된 경우 Google Maps API에서 상세 정보를 가져와 정규화합니다.
     """
+    # 1. google_place_id로 중복 확인
+    if place.google_place_id:
+        existing_place = db.query(Place).filter(Place.google_place_id == place.google_place_id).first()
+        if existing_place:
+            # 기존 장소 발견 - 새로운 별칭 병합 (필요 시)
+            existing_aliases = json_to_aliases(existing_place.aliases)
+            updated = False
+            
+            if place.aliases:
+                for alias in place.aliases:
+                    if alias and alias not in existing_aliases and alias != existing_place.canonical_name:
+                        existing_aliases.append(alias)
+                        updated = True
+                        
+            if updated:
+                existing_place.aliases = aliases_to_json(existing_aliases)
+                db.commit()
+                db.refresh(existing_place)
+            return existing_place
+
+    # 2. Google Maps API에서 정보 가져오기 (google_place_id가 있는 경우)
+    if place.google_place_id:
+        print(f"Fetching details for google_place_id: {place.google_place_id}")
+        details = get_place_details(place.google_place_id, language='ja')  # 일본어 우선
+        
+        if details:
+            g_name = details.get('name', place.canonical_name)
+            g_address = details.get('formatted_address', place.address)
+            geometry = details.get('geometry', {})
+            location = geometry.get('location', {})
+            lat = location.get('lat', place.latitude)
+            lng = location.get('lng', place.longitude)
+            
+            normalized = normalize_text(g_name)
+            
+            # 사용자 입력명을 별칭으로 추가
+            initial_aliases = place.aliases if place.aliases else []
+            if place.canonical_name and place.canonical_name != g_name:
+                if place.canonical_name not in initial_aliases:
+                    initial_aliases.append(place.canonical_name)
+
+            new_place = Place(
+                canonical_name=g_name,
+                normalized_name=normalized,
+                google_place_id=place.google_place_id,
+                aliases=aliases_to_json(initial_aliases),
+                address=g_address,
+                latitude=lat,
+                longitude=lng
+            )
+            db.add(new_place)
+            db.commit()
+            db.refresh(new_place)
+            return new_place
+
+    # 3. Google Place ID가 없거나 실패한 경우 레거시 방식으로 처리
     normalized = normalize_text(place.canonical_name)
-    
-    # 이미 존재하는지 확인 (정규화된 이름으로)
     existing_place = db.query(Place).filter(Place.normalized_name == normalized).first()
     
     if existing_place:
-        # 기존 장소 발견 - 새로운 별칭 병합
         existing_aliases = json_to_aliases(existing_place.aliases)
         updated = False
         
-        # 프론트엔드에서 전달받은 aliases 추가
         if place.aliases:
             for alias in place.aliases:
                 if alias and alias not in existing_aliases and alias != existing_place.canonical_name:
@@ -85,15 +138,14 @@ def create_place(
         
         return existing_place
     
-    # 새 장소 생성
-    initial_aliases = place.aliases if place.aliases else []
     new_place = Place(
         canonical_name=place.canonical_name,
         normalized_name=normalized,
-        aliases=aliases_to_json(initial_aliases),  # 프론트엔드에서 전달받은 aliases 사용
+        aliases=aliases_to_json(place.aliases if place.aliases else []),
         address=place.address,
         latitude=place.latitude,
-        longitude=place.longitude
+        longitude=place.longitude,
+        google_place_id=place.google_place_id
     )
     db.add(new_place)
     db.commit()

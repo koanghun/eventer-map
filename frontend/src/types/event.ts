@@ -12,6 +12,7 @@ export interface Place {
     id: number;
     canonical_name: string;
     normalized_name: string;
+    google_place_id?: string;
     aliases?: string[];  // 배열로 변경 (API 형식)
     name?: string; // DEPRECATED: 제거 예정, canonical_name 사용
     address: string;
@@ -28,10 +29,12 @@ export interface Event {
     door_time?: string; // 개장 HH:MM
     start_time?: string; // 개연 HH:MM
     end_time?: string; // 종연 HH:MM
-    location: string;
-    address?: string;
-    latitude: number;
-    longitude: number;
+    place_id?: number;  // 연결된 장소 ID
+    place?: Place;      // 연결된 장소 객체
+    location?: string;  // DEPRECATED: place 사용
+    address?: string;   // DEPRECATED
+    latitude?: number;  // DEPRECATED
+    longitude?: number; // DEPRECATED
     performers?: string;
     performer_ids?: number[];  // 출연자 ID 배열 (권장)
     related_link?: string;
@@ -80,11 +83,13 @@ export interface EventFormData {
     door_time: string;
     start_time: string;
     end_time: string;
-    location: string;
+    place_id?: number;
+    google_place_id?: string;
+    location: string; // UI 입력 버퍼용
     address: string;
     latitude: number;
     longitude: number;
     performers: string;
-    performer_ids: number[];  // 출연자 ID 배열
+    performer_ids: number[];
     related_link: string;
 }

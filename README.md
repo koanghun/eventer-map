@@ -105,12 +105,13 @@ docker-compose up -d --build
 cd backend
 python -m venv venv
 source venv/bin/activate  # WSL/Linux
+.\venv\Scripts\Activate.ps1  # Windows PowerShell
 pip install -r requirements.txt
 uvicorn main:app --reload --host 0.0.0.0 --port 8000
 
 # 프론트엔드 개발 서버 (새 터미널)
 cd frontend
-npm install
+npm install --legacy-peer-deps
 npm start
 ```
 
