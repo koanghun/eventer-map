@@ -19,6 +19,8 @@ from config import load_settings
 from core.llm_client import LLMClient, LLMClientError
 from models.filter_config import load_filters
 from services.gmail_service import GmailService, GmailServiceError
+from services.api_client import APIClient  # 백엔드 동기화 클라이언트
+
 
 # ──────────────────────────────────────────────
 # 로깅 설정
@@ -98,9 +100,10 @@ def main() -> None:
                 print(f"\n  ... (총 {len(body)}자, 500자까지만 표시)")
         return
 
-    # ── 5. LLM으로 이벤트 추출 ────────────────
-    logger.info("🤖 AI 분석 시작...")
+    # ── 5. LLM으로 이벤트 추출 및 백엔드 동기화 ──
+    logger.info("🤖 AI 분석 및 백엔드 동기화 시작...")
     llm = LLMClient(settings.llm_base_url, settings.llm_model)
+    api_client = APIClient(settings.backend_api_url, settings.internal_service_token)
 
     all_events = []
     for i, email in enumerate(emails, 1):
@@ -110,20 +113,39 @@ def main() -> None:
 
             if result.events:
                 all_events.extend(result.events)
+                sync_success = 0
+                
                 for event in result.events:
-                    logger.info("   ✨ [%s] %s | %s | %s", 
+                    logger.info("   ✨ 추출됨: [%s] %s | %s | %s", 
                                 " | ".join(event.performers), 
                                 event.title, 
                                 event.event_date,
                                 event.location)
+                    
+                    # A. 장소 해결 (Place ID 획득)
+                    place_id = api_client.resolve_place(event.location)
+                        
+                    # B. 출연자 해결 (Performer IDs 획득)
+                    performer_ids = []
+                    for performer_name in event.performers:
+                        p_id = api_client.resolve_performer(performer_name)
+                        if p_id:
+                            performer_ids.append(p_id)
+                            
+                    # C. 이벤트 백엔드 동기화 (중복 체크 포함)
+                    if api_client.sync_event(event, place_id, performer_ids):
+                        sync_success += 1
                 
-                # 성공 시 Gmail 라벨 추가 (중복 방지)
-                gmail.add_label_to_message(email["id"])
+                # 하나 이상 동기화에 성공했거나 비즈니스 로직에 따라 라벨 처리
+                if sync_success > 0:
+                     gmail.add_label_to_message(email["id"])
+                     logger.info("   ✅ 메일에 완료 라벨 부착 (ID: %s)", email["id"])
             else:
-                logger.warning("   ⚠️  이벤트 정보를 추출하지 못했습니다.")
+                logger.warning("   ⚠️ 이벤트 정보를 추출하지 못했습니다.")
 
         except LLMClientError as exc:
             logger.error("   ❌ AI 분석 실패: %s", exc)
+
 
     # ── 6. 결과 요약 출력 ─────────────────────
     print(f"\n{'='*60}")
@@ -136,8 +158,8 @@ def main() -> None:
     else:
         print("추출된 이벤트가 없습니다.")
 
-    # TODO: 추후 DB 저장 로직 추가 예정
     logger.info("✅ 파이프라인 완료")
+
 
 
 if __name__ == "__main__":

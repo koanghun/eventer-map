@@ -30,7 +30,10 @@ class Settings:
     gmail_credentials_path: Path
     gmail_token_path: Path
     filter_config_path: Path
+    backend_api_url: str = "http://localhost:8000"
+    internal_service_token: str = "eventer_sync_token_2026"
     project_root: Path = field(init=False)
+
 
     def __post_init__(self) -> None:
         # frozen=True이므로 object.__setattr__ 사용
@@ -59,4 +62,7 @@ def load_settings(env_path: str | Path | None = None) -> Settings:
         gmail_credentials_path=project_root / os.getenv("GMAIL_CREDENTIALS_PATH", "credentials.json"),
         gmail_token_path=project_root / os.getenv("GMAIL_TOKEN_PATH", "token.json"),
         filter_config_path=project_root / os.getenv("FILTER_CONFIG_PATH", "fromAndKeyword.json"),
+        backend_api_url=os.getenv("BACKEND_API_URL", "http://localhost:8000"),
+        internal_service_token=os.getenv("INTERNAL_SERVICE_TOKEN", "eventer_sync_token_2026")
     )
+

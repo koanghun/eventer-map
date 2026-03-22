@@ -22,17 +22,28 @@ Extract event details from the given email text and return them as a JSON object
 Rules:
 1. Extract: 
    - title: Title or name of the event/concert.
+     * STRICT: Exclude ticket sales/application types (e.g., "先行", "一般発売", "オフィシャル先行", "二次先行").
+     * STRICT: Use the actual event/live title, NOT just the artist name if a specific title exists.
    - performers: list of artists, performers, or groups (e.g. ["YOASOBI", "Pyxis"]).
+     * STRICT: Extract ONLY the performer's name. Exclude character names, roles, or titles in parentheses or appended (e.g., "伊達さゆり(澁谷かのん役)" must be extracted as "伊達さゆり").
    - event_date: Date of the event (YYYY-MM-DD format).
    - door_time: Open time for doors to enter (HH:MM format, 24-hour style if possible, or null if unknown).
    - start_time: Performance start time (HH:MM format, 24-hour style, or null if unknown).
    - location: Name of the venue or place.
+   - description: Brief summary or description of the event details/rules from the email (null if none).
+   - related_link: Ticket URLs, URL link in the mail (e.g. eplus.jp, Lawson ticket, official links) or null if none.
 2. If there are multiple events, return them all in the "events" array.
 3. If a field (other than performers list or times) cannot be determined, use "unknown".
 4. Always respond with ONLY valid JSON in this exact format:
 
-{"events": [{"title": "...", "performers": [...], "event_date": "YYYY-MM-DD", "door_time": "HH:MM", "start_time": "HH:MM", "location": "..."}]}
+{"events": [{"title": "...", "performers": [...], "event_date": "YYYY-MM-DD", "door_time": "HH:MM", "start_time": "HH:MM", "location": "...", "description": "...", "related_link": "..."}]}
+
+Examples of Corrected Data Formulation:
+- Bad Title: "SHIGURE UI Birthday Live \\"Wishing Umbrella\\" 三次先行" -> Good Title: "SHIGURE UI Birthday Live \\"Wishing Umbrella\\""
+- Bad Performer: "伊達さゆり(澁谷かのん役)" -> Good Performer: "伊達さゆり"
 """
+
+
 
 
 class LLMClientError(Exception):

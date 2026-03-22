@@ -5,8 +5,8 @@ LLM에서 추출한 이벤트 정보를 구조화된 타입으로 표현합니�
 
 from __future__ import annotations
 
-from pydantic import BaseModel, Field
-
+import re
+from pydantic import BaseModel, Field, field_validator
 
 class EventData(BaseModel):
     """단일 이벤트 정보.
@@ -26,6 +26,25 @@ class EventData(BaseModel):
     door_time: str | None = Field(None, description="개장 시각 (HH:MM)")
     start_time: str | None = Field(None, description="개연 시각 (HH:MM)")
     location: str = Field(..., description="공연 장소 (Venue 명칭)")
+    description: str | None = Field(None, description="공연/이벤트 상세 설명 또는 내용 요약")
+    related_link: str | None = Field(None, description="관련 링크 (예: 예매처, 공식 트위터 등 링크가 있을 경우)")
+
+    @field_validator("performers", mode="before")
+    @classmethod
+    def clean_performers(cls, v):
+        if isinstance(v, list):
+            cleaned = []
+            for name in v:
+                if isinstance(name, str):
+                    # 괄호 내용 삭제 (예: "이름(배역)")
+                    name_cleaned = re.sub(r'\s*\(.*?\)', '', name)
+                    cleaned.append(name_cleaned.strip())
+                else:
+                    cleaned.append(name)
+            return cleaned
+        return v
+
+
 
 
 class ExtractionResult(BaseModel):
