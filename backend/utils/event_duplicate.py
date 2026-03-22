@@ -275,8 +275,9 @@ def find_duplicate_events(
                 "event_id": existing.id,
                 "event_title": existing.title,
                 "event_date": existing.event_date,
-                "location": existing.location,
-                "start_time": existing.start_time,
+                "location": existing.place.canonical_name if getattr(existing, 'place', None) else None,
+                "start_time": str(existing.start_time) if existing.start_time else None,
+
                 **similarity
             })
     

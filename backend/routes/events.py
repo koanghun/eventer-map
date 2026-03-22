@@ -6,10 +6,73 @@ from db import models
 from db import schemas
 from utils.normalization import normalize_text
 from utils.event_duplicate import calculate_event_similarity, find_duplicate_events
-from utils.auth import require_auth, require_admin
+from utils.auth import require_auth, require_admin, require_auth_or_internal
 from utils.event_history import create_event_history, get_event_history_with_user_info
 
+# 추가된 중복 체크용 유틸
+from utils.event_duplicate import find_duplicate_events
+
 router = APIRouter(prefix="/events", tags=["events"])
+
+
+@router.post("/sync", response_model=schemas.EventResponse)
+def sync_event(
+    event: schemas.EventCreate,
+    db: Session = Depends(get_db),
+    current_user: models.User = require_auth_or_internal
+):
+    """
+    이벤트를 동기화(중복 검사 후 생성)합니다.
+    유사도가 높은 기존 이벤트가 있을 경우 생성을 건너뛰고 기존 이벤트를 반환합니다.
+    """
+    # 1. 중복 검사용 임시 객체 생성
+    event_dict = event.model_dump(exclude={'performer_ids'})
+    temp_event = models.Event(**event_dict)
+    
+    # 장소 정보 로드 (유사도 계산용 필수)
+    if temp_event.place_id:
+        temp_event.place = db.query(models.Place).filter(models.Place.id == temp_event.place_id).first()
+        
+    # 출연자 정보 로드
+    if event.performer_ids:
+        performers = db.query(models.Performer).filter(
+            models.Performer.id.in_(event.performer_ids)
+        ).all()
+        temp_event.performers_rel = performers
+    else:
+        temp_event.performers_rel = []
+
+    # 2. 중복 검사
+    duplicates = find_duplicate_events(db, temp_event)
+    
+    if duplicates:
+        best_match = duplicates[0]
+        # 임계값 (예: 확실한 중복이거나 유사도 0.8 이상)
+        if best_match.get("is_duplicate") or best_match.get("similarity_score", 0) >= 0.8:
+            print(f"Duplicate event found (Score: {best_match['similarity_score']}): {best_match['event_title']}")
+            # 기존 이벤트 객체 리턴
+            existing_event = db.query(models.Event).filter(models.Event.id == best_match["event_id"]).first()
+            return existing_event
+
+    # 3. 새로운 이벤트 생성
+    db_event = models.Event(**event_dict)
+    if temp_event.performers_rel:
+         db_event.performers_rel = temp_event.performers_rel
+         
+    # 생성자 정보
+    db_event.created_by = current_user.id
+    db_event.updated_by = current_user.id
+    
+    db.add(db_event)
+    db.commit()
+    db.refresh(db_event)
+    
+    # 히스토리 추가
+    create_event_history(db, db_event, current_user, 'created')
+    db.commit()
+    
+    return db_event
+
 
 
 @router.post("/", response_model=schemas.EventResponse, status_code=status.HTTP_201_CREATED)

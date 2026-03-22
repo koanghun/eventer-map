@@ -49,3 +49,34 @@ def get_place_details(place_id: str, language: str = 'ja') -> Optional[Dict[str,
         print(f"Error fetching place details from Google Maps ({place_id}): {e}")
         
     return None
+def search_place_by_text(query: str, language: str = 'ja') -> Optional[str]:
+    """
+    텍스트 검색(Name/Address)을 통해 Google Place ID를 찾습니다.
+    
+    Args:
+        query: 검색할 장소 이름 또는 주소
+        language: 응답 언어 (기본 'ja')
+        
+    Returns:
+        Google Place ID (str) 또는 None
+    """
+    client = get_google_maps_client()
+    if not client:
+        return None
+        
+    try:
+        # find_place 사용 (단일 장소 검색에 최적화)
+        response = client.find_place(
+            input=query,
+            input_type='textquery',
+            language=language,
+            fields=['place_id']
+        )
+        
+        if response.get('status') == 'OK' and response.get('candidates'):
+            return response['candidates'][0].get('place_id')
+            
+    except Exception as e:
+        print(f"Error searching place from Google Maps ({query}): {e}")
+        
+    return None

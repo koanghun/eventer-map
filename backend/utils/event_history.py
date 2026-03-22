@@ -27,23 +27,27 @@ def create_event_history(
         생성된 EventHistory 객체
     """
     # 스냅샷 생성 (현재 이벤트 데이터)
+    place_name = event.place.canonical_name if getattr(event, 'place', None) else None
+    place_address = event.place.address if getattr(event, 'place', None) else None
+    
     snapshot = {
         "title": event.title,
         "description": event.description,
-        "event_date": event.event_date,
-        "location": event.location,
-        "address": event.address,
-        "latitude": event.latitude,
-        "longitude": event.longitude,
-        "door_time": event.door_time,
-        "start_time": event.start_time,
-        "end_time": event.end_time,
+        "event_date": str(event.event_date) if event.event_date else None,
+        "location": place_name,
+        "address": place_address,
+        "latitude": event.place.latitude if getattr(event, 'place', None) else None,
+        "longitude": event.place.longitude if getattr(event, 'place', None) else None,
+        "door_time": str(event.door_time) if event.door_time else None,
+        "start_time": str(event.start_time) if event.start_time else None,
+        "end_time": str(event.end_time) if event.end_time else None,
         "performers": event.performers,
         "related_link": event.related_link
     }
     
     # 변경 사항 요약 (주요 필드만)
-    changes_summary = f"{action}: {event.title} @ {event.location}"
+    changes_summary = f"{action}: {event.title} @ {place_name or 'Unknown Location'}"
+
     
     history = models.EventHistory(
         event_id=event.id,

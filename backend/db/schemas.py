@@ -92,9 +92,10 @@ class EventResponse(EventBase):
 
 class PlaceBase(BaseModel):
     canonical_name: str = Field(..., min_length=1, max_length=200)
-    address: str = Field(..., min_length=1, max_length=500)
-    latitude: float = Field(..., ge=-90, le=90)
-    longitude: float = Field(..., ge=-180, le=180)
+    address: Optional[str] = Field(None, max_length=500)
+    latitude: Optional[float] = Field(None, ge=-90, le=90)
+    longitude: Optional[float] = Field(None, ge=-180, le=180)
+
     google_place_id: Optional[str] = None
     aliases: Optional[List[str]] = []
 
@@ -108,10 +109,11 @@ class PlaceResponse(BaseModel):
     canonical_name: str = Field(..., min_length=1, max_length=200)
     normalized_name: str
     google_place_id: Optional[str] = None
-    address: str = Field(..., min_length=1, max_length=500)
-    latitude: float = Field(..., ge=-90, le=90)
-    longitude: float = Field(..., ge=-180, le=180)
+    address: Optional[str] = Field(None, max_length=500)
+    latitude: Optional[float] = Field(None, ge=-90, le=90)
+    longitude: Optional[float] = Field(None, ge=-180, le=180)
     aliases: List[str] = []  # API는 배열로 반환
+
     name: Optional[str] = None  # DEPRECATED: 제거 예정, canonical_name 사용
     created_at: datetime
     
