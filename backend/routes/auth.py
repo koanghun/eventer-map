@@ -4,7 +4,7 @@ from sqlalchemy.orm import Session
 from db import models
 from db import schemas
 from db import get_db
-from utils.auth import create_access_token, get_current_user, set_admin_status
+from utils.auth import create_access_token, get_current_user, set_admin_status, ACCESS_TOKEN_EXPIRE_MINUTES, COOKIE_SECURE
 import os
 
 router = APIRouter(prefix="/auth", tags=["auth"])
@@ -219,19 +219,18 @@ async def google_callback(
         # 6. 자체 JWT 토큰 생성
         jwt_token = create_access_token({"sub": str(user.id)})
         
-        # 7. 프론트엔드로 리다이렉트 (사용자 정보 포함으로 즉시 로그인 상태 표시 가능)
-        from urllib.parse import urlencode
-        
-        user_params = {
-            'token': jwt_token,
-            'user_id': user.id,
-            'user_email': user.email,
-            'user_name': user.name or '',
-            'user_picture': user.profile_image or ''
-        }
-        
+        # 7. 프론트엔드로 리다이렉트 (HttpOnly 쿠키로 토큰 전달)
         response = RedirectResponse(
-            url=f"{FRONTEND_URL}/?{urlencode(user_params)}"
+            url=f"{FRONTEND_URL}/?login=success"
+        )
+        response.set_cookie(
+            key="access_token",
+            value=jwt_token,
+            httponly=True,
+            samesite="lax",
+            secure=COOKIE_SECURE,
+            max_age=ACCESS_TOKEN_EXPIRE_MINUTES * 60,
+            path="/",
         )
         response.delete_cookie(key="oauth_state")
         response.delete_cookie(key="oauth_code_verifier")
@@ -263,5 +262,8 @@ async def get_me(current_user: models.User = Depends(get_current_user)):
 
 @router.post("/logout")
 async def logout():
-    """로그아웃 (클라이언트 side에서 토큰 삭제)"""
-    return {"message": "Logged out successfully"}
+    """로그아웃 (HttpOnly 쿠키 삭제)"""
+    from fastapi.responses import JSONResponse
+    response = JSONResponse(content={"message": "Logged out successfully"})
+    response.delete_cookie(key="access_token", path="/")
+    return response

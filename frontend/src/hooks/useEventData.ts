@@ -16,14 +16,10 @@ export function useEventData(selectedDate: string, showFlagsOnly: boolean) {
         queryKey: ['events', selectedDate, showFlagsOnly],
         queryFn: async () => {
             if (showFlagsOnly) {
-                const token = localStorage.getItem('auth_token');
-                if (token) {
                     const response = await axios.get('/api/flags/events', {
-                        headers: { Authorization: `Bearer ${token}` }
+                        withCredentials: true,
                     });
                     return response.data;
-                }
-                return [];
             }
             return eventApi.getEventsByDate(selectedDate);
         },

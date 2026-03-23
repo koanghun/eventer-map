@@ -2,8 +2,7 @@ from datetime import datetime, timedelta
 from typing import Optional
 
 from jose import JWTError, jwt
-from fastapi import Depends, HTTPException, status
-from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
+from fastapi import Depends, HTTPException, status, Request
 from sqlalchemy.orm import Session
 from db import get_db
 from db import models
@@ -12,8 +11,7 @@ import os
 SECRET_KEY = os.getenv("JWT_SECRET_KEY", "your-secret-key-change-in-production")
 ALGORITHM = os.getenv("JWT_ALGORITHM", "HS256")
 ACCESS_TOKEN_EXPIRE_MINUTES = int(os.getenv("JWT_ACCESS_TOKEN_EXPIRE_MINUTES", "1440"))
-
-security = HTTPBearer()
+COOKIE_SECURE = os.getenv("COOKIE_SECURE", "false").lower() == "true"
 
 
 def create_access_token(data: dict):
@@ -25,10 +23,26 @@ def create_access_token(data: dict):
 
 
 
-def verify_token(credentials: HTTPAuthorizationCredentials = Depends(security)):
-    """JWT 토큰 검증"""
+def _extract_token(request: Request) -> Optional[str]:
+    """쿠키 → Authorization 헤더 순서로 JWT 토큰을 추출"""
+    token = request.cookies.get("access_token")
+    if token:
+        return token
+    auth_header = request.headers.get("Authorization")
+    if auth_header and auth_header.startswith("Bearer "):
+        return auth_header.split(" ", 1)[1]
+    return None
+
+
+def verify_token(request: Request):
+    """JWT 토큰 검증 (쿠키 우선, Authorization 헤더 폴백)"""
+    token = _extract_token(request)
+    if not token:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Not authenticated"
+        )
     try:
-        token = credentials.credentials
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
         user_id_str: str = payload.get("sub")
         if user_id_str is None:
@@ -70,7 +84,7 @@ def get_current_user(
 require_auth = Depends(get_current_user)
 
 
-from fastapi import Header, Request
+from fastapi import Header
 
 INTERNAL_TOKEN = os.getenv("INTERNAL_SERVICE_TOKEN", "eventer_sync_token_2026")
 
@@ -97,21 +111,15 @@ def get_current_user_or_internal(
             db.refresh(system_user)
         return system_user
 
-    # 2. 일반 토큰 검증 (수동 파싱)
-    auth_header = request.headers.get("Authorization")
-    if not auth_header:
+    # 2. 일반 토큰 검증 (쿠키 → Authorization 헤더 폴백)
+    token = _extract_token(request)
+    if not token:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Authentication required: Token or Internal Token"
         )
         
     try:
-        # "Bearer <token>" 형식 확인
-        parts = auth_header.split()
-        if len(parts) != 2 or parts[0].lower() != "bearer":
-             raise HTTPException(status_code=401, detail="Invalid authorization header format")
-        
-        token = parts[1]
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
         user_id_str: str = payload.get("sub")
         if user_id_str is None:
