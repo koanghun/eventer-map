@@ -1,6 +1,7 @@
 import os
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, Response, status
 from sqlalchemy.orm import Session
+
 from typing import List
 from db import get_db
 from db import models
@@ -16,10 +17,12 @@ router = APIRouter(prefix="/places", tags=["places"])
 
 @router.post("/resolve", response_model=PlaceResponse)
 def resolve_place(
+    response: Response,
     query: str = Query(..., min_length=1),
     db: Session = Depends(get_db),
     current_user: models.User = require_auth_or_internal
 ):
+
     """
     텍스트 공간명을 받아 장소 인스턴스를 반환합니다.
     1. DB 검색 (canonical_name, aliases)
@@ -32,7 +35,25 @@ def resolve_place(
     # 1-1. normalized_name 검색
     place = db.query(Place).filter(Place.normalized_name == normalized_query).first()
     if place:
+        # 기존에 좌표가 없던 경우 복구 시도 (Coordinates healing)
+        if place.latitude is None or place.longitude is None:
+            print(f"Healing place coordinates: {query}")
+            google_place_id = search_place_by_text(query)
+            if google_place_id:
+                details = get_place_details(google_place_id, language='ja')
+                if details:
+                    geometry = details.get('geometry', {})
+                    location_geo = geometry.get('location', {})
+                    place.latitude = location_geo.get('lat')
+                    place.longitude = location_geo.get('lng')
+                    if not place.google_place_id:
+                        place.google_place_id = google_place_id
+                    if details.get('formatted_address') and not place.address:
+                        place.address = details.get('formatted_address')
+                    db.commit()
+                    db.refresh(place)
         return place
+
         
     # 1-2. aliases 검색
     all_places = db.query(Place).all()
@@ -40,9 +61,10 @@ def resolve_place(
         if query.lower() in [a.lower() for a in json_to_aliases(p.aliases)]:
             return p
             
-    # 2. DB에 없으면 Google Maps 검색
+    # 2. DB에 없으면 Google Maps 검색 (괄호 제거 등 정제)
     print(f"Resolving place from Google Maps: {query}")
     google_place_id = search_place_by_text(query)
+
     
     if google_place_id:
         # 중복 방지 (다시 한 번 google_place_id로 조회)
@@ -72,7 +94,9 @@ def resolve_place(
             db.add(new_place)
             db.commit()
             db.refresh(new_place)
+            response.status_code = status.HTTP_201_CREATED
             return new_place
+
 
     # 3. Google Maps 검색도 실패한 경우 레거시 생성 (좌표/주소 없음)
     new_place = Place(
@@ -87,7 +111,9 @@ def resolve_place(
     db.add(new_place)
     db.commit()
     db.refresh(new_place)
+    response.status_code = status.HTTP_201_CREATED
     return new_place
+
 
 
 

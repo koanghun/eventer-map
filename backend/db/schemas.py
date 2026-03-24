@@ -77,7 +77,7 @@ class EventResponse(EventBase):
     id: int
     created_at: datetime
     updated_at: Optional[datetime] = None
-    performers_list: List[PerformerResponse] = []  # 관계형 데이터
+    performers_list: List[PerformerResponse] = Field(default=[], validation_alias="performers_rel")  # ORM의 performers_rel → JSON의 performers_list
     place: Optional["PlaceResponse"] = None  # 연결된 장소 정보
     
     # 추적 필드

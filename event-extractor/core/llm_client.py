@@ -29,7 +29,7 @@ Rules:
    - event_date: Date of the event (YYYY-MM-DD format).
    - door_time: Open time for doors to enter (HH:MM format, 24-hour style if possible, or null if unknown).
    - start_time: Performance start time (HH:MM format, 24-hour style, or null if unknown).
-   - location: Name of the venue or place.
+   - location: Name of the venue or place ONLY. Do NOT include region, prefecture, or city names in parentheses (e.g., "(東京都)", "(神奈川県)", "(千葉県)"). Extract only the venue name itself.
    - description: Brief summary or description of the event details/rules from the email (null if none).
    - related_link: Ticket URLs, URL link in the mail (e.g. eplus.jp, Lawson ticket, official links) or null if none.
 2. If there are multiple events, return them all in the "events" array.
@@ -38,9 +38,15 @@ Rules:
 
 {"events": [{"title": "...", "performers": [...], "event_date": "YYYY-MM-DD", "door_time": "HH:MM", "start_time": "HH:MM", "location": "...", "description": "...", "related_link": "..."}]}
 
+5. CRITICAL: If the email is NOT about a specific concert, performance, or event ticket sales (e.g., general service announcements, company notices, policy updates), return an empty list `[]` for the events array:
+{"events": []}
+
+
 Examples of Corrected Data Formulation:
 - Bad Title: "SHIGURE UI Birthday Live \\"Wishing Umbrella\\" 三次先行" -> Good Title: "SHIGURE UI Birthday Live \\"Wishing Umbrella\\""
 - Bad Performer: "伊達さゆり(澁谷かのん役)" -> Good Performer: "伊達さゆり"
+- Bad Location: "Kアリーナ横浜 (神奈川県)" -> Good Location: "Kアリーナ横浜"
+- Bad Location: "LaLa arena TOKYO-BAY (千葉県)" -> Good Location: "LaLa arena TOKYO-BAY"
 """
 
 

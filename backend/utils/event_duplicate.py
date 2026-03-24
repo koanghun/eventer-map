@@ -124,7 +124,12 @@ def calculate_event_similarity(event1: models.Event, event2: models.Event) -> Di
     lat2 = event2.place.latitude if event2.place else None
     lon2 = event2.place.longitude if event2.place else None
 
-    distance = calculate_distance(lat1, lon1, lat2, lon2)
+    # 동일한 Place ID를 가진 경우 거리는 0으로 간주 (좌표 없는 기존 데이터 대응)
+    if event1.place_id and event2.place_id and event1.place_id == event2.place_id:
+        distance = 0.0
+    else:
+        distance = calculate_distance(lat1, lon1, lat2, lon2)
+
     # 0m = 1.0, 50m = 0.5, 100m+ = 0.0
     if distance == float('inf'):
         location_score = 0.0
@@ -253,8 +258,11 @@ def find_duplicate_events(
     Returns:
         list: 중복 가능성 있는 이벤트 목록 (유사도 높은 순)
     """
-    # 같은 날짜의 이벤트만 조회
-    query = db.query(models.Event).filter(models.Event.event_date == event_data.event_date)
+    # 같은 날짜의 이벤트만 조회 (숨김 처리된 이벤트 제외)
+    query = db.query(models.Event).filter(
+        models.Event.event_date == event_data.event_date,
+        models.Event.is_hidden == 0
+    )
     
     if exclude_id:
         query = query.filter(models.Event.id != exclude_id)

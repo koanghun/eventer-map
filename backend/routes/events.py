@@ -15,12 +15,16 @@ from utils.event_duplicate import find_duplicate_events
 router = APIRouter(prefix="/events", tags=["events"])
 
 
+from fastapi import Response
+
 @router.post("/sync", response_model=schemas.EventResponse)
 def sync_event(
     event: schemas.EventCreate,
+    response: Response,
     db: Session = Depends(get_db),
     current_user: models.User = require_auth_or_internal
 ):
+
     """
     이벤트를 동기화(중복 검사 후 생성)합니다.
     유사도가 높은 기존 이벤트가 있을 경우 생성을 건너뛰고 기존 이벤트를 반환합니다.
@@ -50,9 +54,19 @@ def sync_event(
         # 임계값 (예: 확실한 중복이거나 유사도 0.8 이상)
         if best_match.get("is_duplicate") or best_match.get("similarity_score", 0) >= 0.8:
             print(f"Duplicate event found (Score: {best_match['similarity_score']}): {best_match['event_title']}")
-            # 기존 이벤트 객체 리턴
+            # 기존 이벤트 객체 리턴 (출연자 병합 후)
             existing_event = db.query(models.Event).filter(models.Event.id == best_match["event_id"]).first()
+            
+            if temp_event.performers_rel:
+                existing_ids = {p.id for p in existing_event.performers_rel}
+                for p in temp_event.performers_rel:
+                    if p.id not in existing_ids:
+                        existing_event.performers_rel.append(p)
+                db.commit()
+                db.refresh(existing_event)
+                
             return existing_event
+
 
     # 3. 새로운 이벤트 생성
     db_event = models.Event(**event_dict)
@@ -66,6 +80,8 @@ def sync_event(
     db.add(db_event)
     db.commit()
     db.refresh(db_event)
+    response.status_code = status.HTTP_201_CREATED
+
     
     # 히스토리 추가
     create_event_history(db, db_event, current_user, 'created')

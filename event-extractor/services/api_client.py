@@ -49,17 +49,24 @@ class APIClient:
             )
             response.raise_for_status()
             data = response.json()
+            if response.status_code == 201:
+                logger.info("장소 신규 등록 완료: %s", location_str)
+            else:
+                logger.info("장소 기존 데이터 조회됨: %s", location_str)
             return data.get("id")
+
         except Exception as exc:
             logger.error("❌ 장소 해결 실패 (%s): %s", location_str, exc)
             return None
 
     def resolve_performer(self, name: str) -> Optional[int]:
         """출연자 이름으로 Performer ID를 조회 또는 생성합니다."""
+        logger.info("출연자 해결 시도 중... (%s)", name)
         # 1. 중복 체크
         check_url = f"{self.base_url}/performers/check-duplicate"
         try:
             res_check = requests.get(
+
                 check_url, 
                 params={"name": name}, 
                 headers=self._headers,
@@ -69,6 +76,7 @@ class APIClient:
             data_check = res_check.json()
             
             if data_check["status"] == "duplicate" and data_check.get("exact_match"):
+                logger.info("출연자 기존 데이터 발견 (중복 체크): %s", name)
                 return data_check["exact_match"]["id"]
             
         except Exception as exc:
@@ -86,15 +94,19 @@ class APIClient:
                 timeout=self.timeout
             )
             if response.status_code == 201:
+                logger.info("출연자 신규 등록 완료: %s", name)
                 return response.json().get("id")
             elif response.status_code == 200: # 기존 병합 봇 응답 호환
                 data = response.json()
                 if "performer" in data:
+                     logger.info("출연자 기존 데이터 조회됨 (생성 요청): %s", name)
                      return data["performer"].get("id")
             elif response.status_code == 409: # 충돌 시 기존 값 추출 시도
                  data = response.json()
+                 logger.info("출연자 충돌 발생, 기존 데이터 사용: %s", name)
                  if "detail" in data and "existing_performer" in data["detail"]:
                       return data["detail"]["existing_performer"].get("id")
+
                       
         except Exception as exc:
             logger.error("❌ 출연자 생성 실패 (%s): %s", name, exc)
@@ -126,8 +138,12 @@ class APIClient:
                 timeout=self.timeout
             )
             response.raise_for_status()
-            logger.info("✅ 이벤트 동기화 성공: %s", event_data.title)
+            if response.status_code == 201:
+                logger.info("✅ 이벤트 신규 등록 성공: %s", event_data.title)
+            else:
+                logger.info("✅ 이벤트 동기화 완료 (중복 매칭 및 병합): %s", event_data.title)
             return True
+
         except Exception as exc:
             logger.error("❌ 이벤트 동기화 실패 (%s): %s", event_data.title, exc)
             return False
