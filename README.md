@@ -1,6 +1,9 @@
 # Event Map Application
 
-이벤트 정보를 지도에 표시하는 웹 애플리케이션입니다. 사용자는 이벤트를 등록하고, 날짜를 선택하여 해당 날짜의 이벤트들을 Google Map에서 확인할 수 있습니다.
+[한국어](./README.md) | [日本語](./README_ja.md)
+
+이벤트 정보를 지도에 표시하는 웹 애플리케이션입니다.
+ 사용자는 이벤트를 등록하고, 날짜를 선택하여 해당 날짜의 이벤트들을 Google Map에서 확인할 수 있습니다.
 
 ## 기술 스택
 
@@ -14,14 +17,23 @@
 ### 프론트엔드
 - **React 18**
 - **TypeScript**: 타입 안정성
+- **Tailwind CSS**: 유틸리티 전용 CSS 프레임워크
+- **Radix UI**: 접근성 및 UI 컴포넌트
 - **Google Maps API**: 지도 및 위치 서비스
 - **Axios**: HTTP 클라이언트
 - **date-fns**: 날짜 처리
+
+### 이벤트 추출기 (Event Extractor)
+- **Python 3.11**
+- **Gmail API**: 이메일 데이터 수집
+- **Pydantic**: 데이터 검증 및 설정 관리
+- **AI/LLM**: 이벤트 데이터 고도화 및 정형화
 
 ### 인프라
 - **Docker & Docker Compose**: 컨테이너화
 - **Nginx**: 프론트엔드 서빙 및 리버스 프록시
 - **Synology NAS**: 배포 환경
+
 
 ## 주요 기능
 
@@ -37,23 +49,33 @@
 eventer-map/
 ├── backend/              # FastAPI 백엔드
 │   ├── routes/          # API 라우트
-│   ├── models.py        # 데이터베이스 모델
-│   ├── schemas.py       # Pydantic 스키마
+│   ├── models/           # DB 모델
 │   ├── database.py      # DB 연결 설정
 │   ├── main.py          # FastAPI 앱
 │   ├── requirements.txt # Python 의존성
 │   └── Dockerfile       # 백엔드 Docker 이미지
 ├── frontend/            # React 프론트엔드
 │   ├── src/
-│   │   ├── components/  # React 컴포넌트
+│   │   ├── components/  # React/Radix 컴포넌트
 │   │   ├── services/    # API 클라이언트
 │   │   ├── types/       # TypeScript 타입
 │   │   └── App.tsx      # 메인 앱
 │   ├── package.json     # Node 의존성
 │   ├── nginx.conf       # Nginx 설정
 │   └── Dockerfile       # 프론트엔드 Docker 이미지
-└── docker-compose.yml   # Docker Compose 설정
+├── event-extractor/     # 이벤트 데이터 추출 파이프라인 (Python)
+│   ├── main.py          # 파이프라인 실행 엔트리포인트
+│   ├── core/            # 핵심 로직 (LLM 클라이언트 등)
+│   ├── services/        # 외부 서비스 연동 (Gmail 등)
+│   ├── models/          # 데이터 모델
+│   └── requirements.txt # 의존성
+├── scripts/             # 배포 및 백업 스크립트
+│   ├── deploy.sh        # 자동 배포 스크립트
+│   ├── backup-db.sh     # DB 백업 스크립트
+│   └── setup_ssl.sh     # SSL 설정 스크립트
+└── docker-compose.yml   # Docker Compose 설정 (로컬)
 ```
+
 
 ## 시작하기
 
@@ -71,15 +93,19 @@ eventer-map/
 
 ### 2. 환경 변수 설정
 
+각 구성 요소의 `.env.example` 파일을 복사하여 `.env` 파일을 생성하고 필요한 값을 설정하세요.
+
 ```bash
 # 백엔드 환경 변수
 cp backend/.env.example backend/.env
-# backend/.env 파일 편집
 
 # 프론트엔드 환경 변수
 cp frontend/.env.example frontend/.env
-# frontend/.env 파일에 Google Maps API 키 추가
+
+# 이벤트 추출기 환경 변수
+cp event-extractor/.env.example event-extractor/.env
 ```
+
 
 ### 3. 실행 (WSL 환경)
 
@@ -98,14 +124,13 @@ docker-compose up -d --build
 
 ### 4. 개발 모드 (WSL)
 
-백엔드와 프론트엔드를 개별적으로 실행할 수도 있습니다.
+각 구성 요소를 개발 모드로 개별 실행할 수 있습니다.
 
 ```bash
 # 백엔드 개발 서버
 cd backend
 python -m venv venv
 source venv/bin/activate  # WSL/Linux
-.\venv\Scripts\Activate.ps1  # Windows PowerShell
 pip install -r requirements.txt
 uvicorn main:app --reload --host 0.0.0.0 --port 8000
 
@@ -113,7 +138,16 @@ uvicorn main:app --reload --host 0.0.0.0 --port 8000
 cd frontend
 npm install --legacy-peer-deps
 npm start
+
+# 이벤트 추출기 파이프라인 (새 터미널)
+cd event-extractor
+python -m venv venv
+source venv/bin/activate
+pip install -r requirements.txt
+# .env 및 credentials.json 설정 필요
+python main.py
 ```
+
 
 ## Synology NAS 배포
 
@@ -157,7 +191,3 @@ docker-compose up -d --build
 - `PUT /events/{id}`: 이벤트 수정
 - `DELETE /events/{id}`: 이벤트 삭제
 - `GET /events/by-date/{date}`: 특정 날짜의 이벤트 조회
-
-## 라이선스
-
-MIT
