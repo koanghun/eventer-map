@@ -50,8 +50,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         const error = params.get('error');
 
         if (error) {
-            console.error('OAuth 로그인 실패:', error);
-            alert('로그인에 실패했습니다.');
+            console.error('OAuth login failed:', error);
+            alert('OAuth login failed.');
             window.history.replaceState({}, document.title, window.location.pathname);
             setIsLoading(false);
             return;

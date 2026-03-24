@@ -27,6 +27,8 @@ function EventForm({ event, onSubmit, onClose, onSwitchToEdit }: EventFormProps)
     const [selectedPerformers, setSelectedPerformers] = useState<string[]>([]);
     const [duplicates, setDuplicates] = useState<any[]>([]); // 중복 이벤트 목록
     const [isSubmitting, setIsSubmitting] = useState(false); // 제출 로딩 상태
+    const [suggestions, setSuggestions] = useState<Place[]>([]);
+    const [showSuggestions, setShowSuggestions] = useState(false);
 
     const [formData, setFormData] = useState<EventFormData>(() => {
         // 수정 모드면 기본값 사용 (useEffect에서 업데이트됨)
@@ -84,6 +86,7 @@ function EventForm({ event, onSubmit, onClose, onSwitchToEdit }: EventFormProps)
     });
 
     // 저장된 데이터 불러오기 (장소, 출연자)
+    // TODO: 모든 데이터를 불러오는 대신, 지역별로 불러오도록 변경
     useEffect(() => {
         const fetchData = async () => {
             try {
@@ -138,6 +141,19 @@ function EventForm({ event, onSubmit, onClose, onSwitchToEdit }: EventFormProps)
 
         // 장소명이 변경되었을 때, 저장된 장소 목록에서 일치하는 것이 있는지 확인
         if (name === 'location') {
+            const trimValue = value.trim();
+            if (trimValue) {
+                const filtered = savedPlaces.filter(p =>
+                    p.canonical_name.toLowerCase().includes(trimValue.toLowerCase()) ||
+                    (p.name && p.name.toLowerCase().includes(trimValue.toLowerCase()))
+                );
+                setSuggestions(filtered);
+                setShowSuggestions(true);
+            } else {
+                setSuggestions([]);
+                setShowSuggestions(false);
+            }
+
             const matchedPlace = savedPlaces.find(p =>
                 p.canonical_name === value || p.name === value
             );
@@ -152,7 +168,6 @@ function EventForm({ event, onSubmit, onClose, onSwitchToEdit }: EventFormProps)
                     google_place_id: matchedPlace.google_place_id
                 }));
             } else {
-                // 수동 입력 중이면 기존 매칭 해제
                 setFormData(prev => ({ ...prev, place_id: undefined, google_place_id: '' }));
             }
         }
@@ -173,28 +188,18 @@ function EventForm({ event, onSubmit, onClose, onSwitchToEdit }: EventFormProps)
         }));
     };
 
-    useEffect(() => {
-        if (window.google && locationInputRef.current) {
-            const autocomplete = new window.google.maps.places.Autocomplete(locationInputRef.current, {
-                types: ['establishment', 'geocode']
-            });
-
-            autocomplete.addListener('place_changed', () => {
-                const place = autocomplete.getPlace();
-                if (place.place_id) {
-                    setFormData(prev => ({
-                        ...prev,
-                        location: place.name || prev.location,
-                        address: place.formatted_address || '',
-                        latitude: place.geometry?.location?.lat() || prev.latitude,
-                        longitude: place.geometry?.location?.lng() || prev.longitude,
-                        google_place_id: place.place_id,
-                        place_id: undefined // 새로운 장소이므로 기존 매칭 해제
-                    }));
-                }
-            });
-        }
-    }, []);
+    const handleSelectSuggestion = (place: Place) => {
+        setFormData(prev => ({
+            ...prev,
+            location: place.canonical_name,
+            place_id: place.id,
+            address: place.address || '',
+            latitude: place.latitude || 0,
+            longitude: place.longitude || 0,
+            google_place_id: place.google_place_id || ''
+        }));
+        setShowSuggestions(false);
+    };
 
     const handlePlaceSearch = async () => {
         if (!formData.location) {
@@ -418,7 +423,7 @@ function EventForm({ event, onSubmit, onClose, onSwitchToEdit }: EventFormProps)
 
                         <div className={styles.formGroup}>
                             <label htmlFor="location">{t('eventForm.labels.location')} *</label>
-                            <div className={styles.addressGroup}>
+                            <div className={styles.addressGroup} style={{ position: 'relative' }}>
                                 <input
                                     type="text"
                                     id="location"
@@ -426,6 +431,7 @@ function EventForm({ event, onSubmit, onClose, onSwitchToEdit }: EventFormProps)
                                     ref={locationInputRef}
                                     value={formData.location}
                                     onChange={handleChange}
+                                    onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
                                     required
                                     placeholder={t('eventForm.placeholders.location')}
                                     autoComplete="off"
@@ -433,6 +439,17 @@ function EventForm({ event, onSubmit, onClose, onSwitchToEdit }: EventFormProps)
                                 <button type="button" className={styles.btnGeocode} onClick={handlePlaceSearch}>
                                     🔍 {t('eventForm.buttons.searchPlace')}
                                 </button>
+
+                                {showSuggestions && suggestions.length > 0 && (
+                                    <ul className={styles.suggestionsList}>
+                                        {suggestions.map(p => (
+                                            <li key={p.id} onClick={() => handleSelectSuggestion(p)}>
+                                                <div className={styles.suggestionName}>{p.canonical_name}</div>
+                                                {p.address && <div className={styles.suggestionAddress}>{p.address}</div>}
+                                            </li>
+                                        ))}
+                                    </ul>
+                                )}
                             </div>
                             <small>{t('eventForm.hints.location')}</small>
                         </div>

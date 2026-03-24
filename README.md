@@ -9,7 +9,7 @@
 - **FastAPI**: 고성능 비동기 웹 프레임워크
 - **Uvicorn**: ASGI 서버
 - **SQLAlchemy**: ORM
-- **SQLite**: 데이터베이스 (PostgreSQL로 전환 가능)
+- **PostgreSQL**: 데이터베이스
 
 ### 프론트엔드
 - **React 18**

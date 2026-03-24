@@ -11,6 +11,7 @@ load_dotenv()
 # 지정되지 않은 경우 SQLite 인메모리 데이터베이스를 기본값으로 사용합니다.
 DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./data/eventer.db")
 
+
 # SQLAlchemy 엔진을 생성합니다.
 # 이 엔진은 데이터베이스와의 통신을 담당합니다.
 # SQLite의 경우, FastAPI와 같은 웹 애플리케이션에서 일반적이듯이 여러 스레드가 동일한 연결에 접근할 수 있도록
