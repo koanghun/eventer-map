@@ -126,7 +126,7 @@ export default function EventHistoryModal({ eventId, onClose }: EventHistoryModa
                                                 ⏱️ {formatDate(history.created_at)}
                                             </div>
                                             <div className={styles.historyUser}>
-                                                👤 {history.user_name} ({history.user_email})
+                                                👤 {history.user_name}
                                             </div>
                                             <div className={styles.historyAction}>
                                                 {getActionIcon(history.action)} {getActionText(history.action)}
