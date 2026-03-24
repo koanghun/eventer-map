@@ -200,7 +200,7 @@ export default function ReportManagementModal({ onClose }: ReportManagementModal
                                                     <h4 className="font-bold text-foreground truncate group-hover:text-primary transition-colors text-base mb-1.5">{event.title}</h4>
                                                     <div className="flex items-center gap-3 text-xs text-muted-foreground truncate">
                                                         <span className="flex items-center gap-1 shrink-0"><Calendar className="w-3.5 h-3.5" />{event.event_date}</span>
-                                                        <span className="flex items-center gap-1 truncate"><MapPin className="w-3.5 h-3.5 shrink-0" /><span className="truncate">{event.location}</span></span>
+                                                        <span className="flex items-center gap-1 truncate"><MapPin className="w-3.5 h-3.5 shrink-0" /><span className="truncate">{event.place?.canonical_name || event.location}</span></span>
                                                     </div>
                                                 </div>
                                                 <div className="shrink-0 flex items-center justify-center w-10 h-10 rounded-full bg-destructive/10 text-destructive font-bold text-lg ring-4 ring-transparent group-hover:bg-destructive group-hover:text-destructive-foreground group-hover:ring-destructive/20 transition-all">

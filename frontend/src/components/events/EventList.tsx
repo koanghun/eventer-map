@@ -97,7 +97,7 @@ function EventList({ events, loading, onEventEdit, onEventDelete }: EventListPro
                                 <div className="space-y-1.5 text-sm">
                                     <div className="flex items-start gap-2 text-muted-foreground">
                                         <MapPin className="h-4 w-4 shrink-0 mt-0.5 text-primary/70" />
-                                        <span className="truncate">{event.location}</span>
+                                        <span className="truncate">{event.place?.canonical_name || event.location}</span>
                                     </div>
                                     
                                     <div className="flex items-start gap-2 text-muted-foreground">

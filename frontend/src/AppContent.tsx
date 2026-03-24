@@ -119,7 +119,7 @@ export default function AppContent() {
                     </div>
                 </header>
 
-                <div className="flex-1 flex flex-col md:flex-row gap-4 p-4 md:p-6 w-full max-w-[2400px] mx-auto overflow-hidden h-[calc(100vh-73px)]">
+                <div className="flex-1 flex flex-col md:flex-row gap-4 p-4 md:p-6 w-full max-w-[2400px] mx-auto md:overflow-hidden md:h-[calc(100vh-73px)]">
                     
                     <aside className="w-full md:w-[350px] lg:w-[400px] shrink-0 bg-card/50 backdrop-blur-sm border border-border rounded-xl shadow-md overflow-hidden flex flex-col transition-all duration-300">
                         <div className="p-4 flex flex-col gap-4 border-b border-border/50 shrink-0">

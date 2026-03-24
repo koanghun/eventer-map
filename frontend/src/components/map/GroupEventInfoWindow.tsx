@@ -1,4 +1,4 @@
-import { InfoWindow } from '@react-google-maps/api';
+import { OverlayView } from '@react-google-maps/api';
 import { Event } from '../../types/event';
 import { useTranslation } from 'react-i18next';
 import { MapPin, Calendar, ChevronRight } from 'lucide-react';
@@ -21,8 +21,20 @@ export default function GroupEventInfoWindow({
     const { t } = useTranslation();
 
     return (
-        <InfoWindow position={location} onCloseClick={onClose}>
-            <div className="min-w-[280px] max-w-[350px] font-sans p-1">
+        <OverlayView position={location} mapPaneName={OverlayView.FLOAT_PANE}>
+            <div className="absolute bottom-[45px] left-0 -translate-x-1/2 z-50">
+                <div className="min-w-[280px] max-w-[350px] font-sans p-1 bg-background text-foreground shadow-2xl rounded-2xl border border-border relative animate-in zoom-in-95 duration-200">
+                    {/* Custom Close Button */}
+                    <button 
+                        className="absolute top-3 right-3 text-muted-foreground hover:text-foreground rounded-full w-6 h-6 flex items-center justify-center transition-colors hover:bg-muted/80 z-10" 
+                        onClick={onClose}
+                        title={t('buttons.close') || "Close"}
+                    >
+                        ✕
+                    </button>
+
+                    {/* Speech Bubble Arrow Tail */}
+                    <div className="absolute bottom-[-6px] left-1/2 -translate-x-1/2 w-3 h-3 bg-background border-r border-b border-border rotate-45"></div>
                 <div className="mb-4 bg-muted/30 -mx-1 -mt-1 p-3 border-b border-border rounded-t-lg">
                     <h3 className="font-bold text-lg text-primary mb-1">
                         {t('eventMap.groupModal.title', { count: events.length })}
@@ -53,7 +65,8 @@ export default function GroupEventInfoWindow({
                         </div>
                     ))}
                 </div>
+                </div>
             </div>
-        </InfoWindow>
+        </OverlayView>
     );
 }

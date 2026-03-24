@@ -61,7 +61,7 @@ function EventDuplicateModal({ duplicates, onClose, onProceed, onEdit }: EventDu
 
     const modalContent = (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4" onClick={onClose}>
-            <div className="w-full max-w-2xl bg-background rounded-2xl shadow-2xl overflow-hidden border border-border flex flex-col max-h-[90vh] animate-in zoom-in-95 duration-200" onClick={(e) => e.stopPropagation()}>
+            <div className="w-full max-w-2xl bg-background rounded-2xl shadow-2xl overflow-hidden border border-border flex flex-col max-h-[90vh] text-foreground animate-in zoom-in-95 duration-200" onClick={(e) => e.stopPropagation()}>
                 
                 <div className="flex items-center justify-between p-6 border-b border-border bg-gradient-to-br from-amber-500 to-orange-600 text-white">
                     <div className="flex items-center gap-2">
@@ -75,7 +75,7 @@ function EventDuplicateModal({ duplicates, onClose, onProceed, onEdit }: EventDu
 
                 <div className="flex-1 overflow-y-auto p-6 bg-muted/10">
                     <p className="text-sm text-muted-foreground mb-6" dangerouslySetInnerHTML={{
-                        __html: t('eventDuplicateModal.warningMessage', { count: `<strong class="text-foreground">${duplicates.length}</strong>` as any })
+                        __html: t('eventDuplicateModal.warningMessage', { count: duplicates.length })
                     }} />
 
                     <div className="space-y-6">
@@ -131,21 +131,21 @@ function EventDuplicateModal({ duplicates, onClose, onProceed, onEdit }: EventDu
                                         )}
                                     </div>
 
-                                    <div className="space-y-3 p-3 bg-muted/40 rounded-lg border border-border/50">
+                                    <div className="space-y-3 p-3 bg-muted/40 rounded-lg border border-border/50 text-foreground">
                                         <h5 className="font-semibold text-xs tracking-wider uppercase text-muted-foreground mb-2">세부 일치 정보</h5>
                                         
                                         <div className="space-y-1.5">
-                                            <div className="flex justify-between text-xs">
+                                            <div className="flex justify-between text-xs text-muted-foreground">
                                                 <span>{t('eventDuplicateModal.labels.title')}</span>
-                                                <span className="font-medium">{Math.round(dup.matched_criteria.title_similarity * 100)}%</span>
+                                                <span className="font-medium text-foreground">{Math.round(dup.matched_criteria.title_similarity * 100)}%</span>
                                             </div>
                                             <Progress value={dup.matched_criteria.title_similarity * 100} className="h-1.5" />
                                         </div>
 
                                         <div className="space-y-1.5">
-                                            <div className="flex justify-between text-xs">
+                                            <div className="flex justify-between text-xs text-muted-foreground">
                                                 <span>{t('eventDuplicateModal.labels.performers')}</span>
-                                                <span className="font-medium">{Math.round(dup.matched_criteria.performer_similarity * 100)}%</span>
+                                                <span className="font-medium text-foreground">{Math.round(dup.matched_criteria.performer_similarity * 100)}%</span>
                                             </div>
                                             <Progress value={dup.matched_criteria.performer_similarity * 100} className="h-1.5" />
                                         </div>

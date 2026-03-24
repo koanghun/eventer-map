@@ -1,11 +1,11 @@
-import { InfoWindow } from '@react-google-maps/api';
+import { OverlayView } from '@react-google-maps/api';
 import { Event } from '../../types/event';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../../context/AuthContext';
 import { useState } from 'react';
 import EventHistoryModal from '../events/EventHistoryModal';
 import EventReportModal from '../events/EventReportModal';
-import { MapPin, Calendar, Clock, Mic2, ExternalLink, History, AlertTriangle, Flag } from 'lucide-react';
+import { MapPin, Calendar, Clock, Mic2, ExternalLink, History, AlertTriangle, Flag, X } from 'lucide-react';
 
 interface SingleEventInfoWindowProps {
     event: Event;
@@ -27,8 +27,11 @@ export default function SingleEventInfoWindow({
 
     return (
         <>
-            <InfoWindow position={position} onCloseClick={onClose}>
-                <div className="min-w-[300px] max-w-[350px] font-sans p-1">
+            <OverlayView position={position} mapPaneName={OverlayView.FLOAT_PANE}>
+                <div className="absolute bottom-[45px] left-0 -translate-x-1/2 z-50">
+                    <div className="min-w-[300px] max-w-[350px] font-sans p-1 bg-background text-foreground rounded-2xl shadow-2xl border border-border relative animate-in zoom-in-95 duration-200">
+                        {/* Speech Bubble Arrow Tail */}
+                        <div className="absolute bottom-[-6px] left-1/2 -translate-x-1/2 w-3 h-3 bg-background border-r border-b border-border rotate-45"></div>
                     <div className="mb-4 bg-muted/30 -mx-1 -mt-1 p-3 border-b border-border rounded-t-lg flex justify-between items-start gap-4">
                         <h3 className="font-bold text-lg text-primary mb-1 break-words">{event.title}</h3>
                         <div className="flex items-center gap-1 shrink-0 -mt-0.5 -mr-1">
@@ -61,6 +64,13 @@ export default function SingleEventInfoWindow({
                                     </button>
                                 </>
                             )}
+                            <button
+                                className="p-1.5 rounded-md text-muted-foreground hover:bg-muted hover:text-foreground transition-colors ml-1 border-l border-border/30 pl-2"
+                                onClick={onClose}
+                                title={t('buttons.close') || "Close"}
+                            >
+                                <X className="w-4 h-4" />
+                            </button>
                         </div>
                     </div>
 
@@ -75,7 +85,7 @@ export default function SingleEventInfoWindow({
                                     className="text-foreground hover:text-primary hover:underline underline-offset-2 transition-colors break-words font-medium"
                                     title={t('eventDetail.mapLink')}
                                 >
-                                    {event.location}
+                                    {event.place?.canonical_name || event.location}
                                 </a>
                                 {event.address && (
                                     <a
@@ -153,7 +163,8 @@ export default function SingleEventInfoWindow({
                         )}
                     </div>
                 </div>
-            </InfoWindow>
+                    </div>
+            </OverlayView>
 
             {showHistory && event.id && (
                 <EventHistoryModal
