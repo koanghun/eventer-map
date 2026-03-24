@@ -4,7 +4,7 @@ import { performerApi, DuplicateCheckResponse } from '../../services/api';
 import { Performer } from '../../types/event';
 import DuplicateCheckModal from '../performers/DuplicateCheckModal';
 import PerformerCreateModal from '../performers/PerformerCreateModal';
-import styles from './MultiSelect.module.css';
+import { X } from 'lucide-react';
 
 interface MultiSelectProps {
     options: Performer[];
@@ -43,29 +43,22 @@ function MultiSelect({ options, selected, onChange, placeholder }: MultiSelectPr
     };
 
     const handleAddNewPerformer = async (name: string) => {
-        // 중복 체크
         try {
             const result = await performerApi.checkDuplicate(name);
-
             if (result.status === 'duplicate' && result.exact_match) {
-                // 정확히 일치하는 출연자 발견 - 중복 모달 표시
                 setDuplicateCheck(result);
                 setPendingName(name);
                 return;
             } else if (result.status === 'similar_found' && result.similar_matches && result.similar_matches.length > 0) {
-                // 유사한 출연자 발견 - 중복 모달 표시
                 setDuplicateCheck(result);
                 setPendingName(name);
                 return;
             }
-
-            // 중복 없음 - 출연자 등록 모달 표시
             setPendingName(name);
             setShowCreateModal(true);
             setInputValue('');
         } catch (error) {
             console.error('Failed to check duplicate:', error);
-            // 에러 발생 시 모달 표시
             setPendingName(name);
             setShowCreateModal(true);
             setInputValue('');
@@ -93,7 +86,6 @@ function MultiSelect({ options, selected, onChange, placeholder }: MultiSelectPr
     };
 
     const handleCreateFromDuplicate = () => {
-        // 중복 모달에서 "새로 등록" 선택
         setDuplicateCheck(null);
         setShowCreateModal(true);
     };
@@ -106,17 +98,13 @@ function MultiSelect({ options, selected, onChange, placeholder }: MultiSelectPr
 
     const handleConfirmCreate = async (canonicalName: string, aliases: string[]) => {
         try {
-            // API로 출연자 생성
             const newPerformer = await performerApi.createPerformer({
                 canonical_name: canonicalName,
                 aliases: aliases
             });
-
-            // MultiSelect에 추가
             if (!selected.includes(newPerformer.canonical_name)) {
                 onChange([...selected, newPerformer.canonical_name]);
             }
-
             setShowCreateModal(false);
             setPendingName('');
             inputRef.current?.focus();
@@ -136,82 +124,77 @@ function MultiSelect({ options, selected, onChange, placeholder }: MultiSelectPr
         if (!option.canonical_name || selected.includes(option.canonical_name)) {
             return false;
         }
-
         const searchLower = inputValue.toLowerCase();
-
-        // canonical_name으로 검색
         if (option.canonical_name.toLowerCase().includes(searchLower)) {
             return true;
         }
-
-        // aliases로 검색
         if (option.aliases && option.aliases.length > 0) {
             return option.aliases.some(alias =>
                 alias.toLowerCase().includes(searchLower)
             );
         }
-
         return false;
     });
 
     return (
-        <>
-            <div className={styles.multiselectContainer}>
-                <div className={styles.selectedItems}>
-                    {selected.map(item => (
-                        <div key={item} className={styles.selectedItem}>
-                            {item}
-                            <button
-                                type="button"
-                                className={styles.removeItem}
-                                onClick={() => handleRemoveOption(item)}
-                            >
-                                &times;
-                            </button>
-                        </div>
-                    ))}
-                    <input
-                        ref={inputRef}
-                        type="text"
-                        value={inputValue}
-                        onChange={handleInputChange}
-                        onKeyDown={handleKeyDown}
-                        onFocus={() => setIsOpen(true)}
-                        onBlur={() => setTimeout(() => setIsOpen(false), 200)}
-                        placeholder={selected.length === 0 ? placeholder : ''}
-                        className={styles.multiselectInput}
-                    />
-                </div>
-                {isOpen && (
-                    <ul className={styles.optionsList}>
-                        {filteredOptions.length > 0 ? (
-                            filteredOptions.map(option => (
-                                <li
-                                    key={option.id}
-                                    onMouseDown={() => handleSelectOption(option.canonical_name)}
-                                    className={styles.optionItem}
-                                >
-                                    <div className={styles.optionName}>{option.canonical_name}</div>
-                                    {option.aliases && option.aliases.length > 0 && (
-                                        <div className={styles.optionAliases}>
-                                            {option.aliases.join(', ')}
-                                        </div>
-                                    )}
-                                </li>
-                            ))
-                        ) : (
-                            inputValue.trim() && (
-                                <li
-                                    onMouseDown={async () => await handleAddNewPerformer(inputValue.trim())}
-                                    className={`${styles.optionItem} ${styles.optionItemNew}`}
-                                >
-                                    '{inputValue.trim()}' 추가
-                                </li>
-                            )
-                        )}
-                    </ul>
-                )}
+        <div className="relative w-full">
+            <div className="min-h-10 flex flex-wrap items-center gap-2 p-2 w-full rounded-md border border-input bg-transparent text-sm ring-offset-background disabled:cursor-not-allowed disabled:opacity-50 focus-within:ring-2 focus-within:ring-ring focus-within:ring-offset-2 transition-all bg-white dark:bg-slate-950">
+                {selected.map(item => (
+                    <div key={item} className="flex items-center gap-1 bg-primary text-primary-foreground px-2.5 py-0.5 rounded-full text-xs font-medium animate-in zoom-in-95">
+                        {item}
+                        <button
+                            type="button"
+                            className="text-primary-foreground/80 hover:text-primary-foreground focus:outline-none"
+                            onClick={() => handleRemoveOption(item)}
+                        >
+                            <X className="h-3 w-3" />
+                        </button>
+                    </div>
+                ))}
+                <input
+                    ref={inputRef}
+                    type="text"
+                    value={inputValue}
+                    onChange={handleInputChange}
+                    onKeyDown={handleKeyDown}
+                    onFocus={() => setIsOpen(true)}
+                    onBlur={() => setTimeout(() => setIsOpen(false), 200)}
+                    placeholder={selected.length === 0 ? placeholder : ''}
+                    className="flex-1 bg-transparent border-none outline-none min-w-[120px] text-sm text-foreground placeholder:text-muted-foreground focus:ring-0"
+                />
             </div>
+            
+            {isOpen && (
+                <ul className="absolute z-50 w-full mt-1 max-h-60 overflow-auto rounded-md border border-border bg-popover text-popover-foreground shadow-md outline-none animate-in fade-in-80 slide-in-from-top-1">
+                    {filteredOptions.length > 0 ? (
+                        filteredOptions.map(option => (
+                            <li
+                                key={option.id}
+                                onMouseDown={() => handleSelectOption(option.canonical_name)}
+                                className="relative flex w-full cursor-pointer select-none items-center rounded-sm py-1.5 px-3 text-sm outline-none hover:bg-accent hover:text-accent-foreground"
+                            >
+                                <div className="flex flex-col">
+                                    <span className="font-medium">{option.canonical_name}</span>
+                                    {option.aliases && option.aliases.length > 0 && (
+                                        <span className="text-xs text-muted-foreground">
+                                            {option.aliases.join(', ')}
+                                        </span>
+                                    )}
+                                </div>
+                            </li>
+                        ))
+                    ) : (
+                        inputValue.trim() && (
+                            <li
+                                onMouseDown={async () => await handleAddNewPerformer(inputValue.trim())}
+                                className="relative flex w-full cursor-pointer select-none items-center rounded-sm py-2 px-3 text-sm text-primary font-medium hover:bg-primary/10 transition-colors"
+                            >
+                                '{inputValue.trim()}' 추가
+                            </li>
+                        )
+                    )}
+                </ul>
+            )}
 
             {duplicateCheck && (
                 <DuplicateCheckModal
@@ -232,7 +215,7 @@ function MultiSelect({ options, selected, onChange, placeholder }: MultiSelectPr
                     onCancel={handleCancelCreate}
                 />
             )}
-        </>
+        </div>
     );
 }
 

@@ -2,7 +2,8 @@ import { type MouseEvent } from 'react';
 import { useTranslation } from 'react-i18next';
 import ReactDOM from 'react-dom';
 import { Performer } from '../../types/event';
-import styles from './DuplicateCheckModal.module.css';
+import { Button } from '../ui/button';
+import { AlertCircle, FileSearch, X, Tag, CheckSquare } from 'lucide-react';
 
 interface DuplicateCheckModalProps {
     type: 'exact' | 'similar';
@@ -26,91 +27,104 @@ function DuplicateCheckModal({
     const { t } = useTranslation();
 
     const handleOverlayClick = (e: MouseEvent) => {
-        e.stopPropagation(); // 이벤트 버블링 방지
+        e.stopPropagation();
         onCancel();
     };
 
     const modalContent = (
-        <div className={styles.duplicateModalOverlay} onClick={handleOverlayClick}>
-            <div className={styles.duplicateModalContent} onClick={(e) => e.stopPropagation()}>
-                <div className={styles.duplicateModalHeader}>
-                    <h3>
-                        {type === 'exact' ? t('performerDuplicateModal.exactTitle') : t('performerDuplicateModal.similarTitle')}
-                    </h3>
-                    <button className={styles.btnClose} onClick={onCancel}>✕</button>
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4" onClick={handleOverlayClick}>
+            <div className="w-full max-w-lg bg-background border border-border rounded-2xl shadow-2xl overflow-hidden animate-in zoom-in-95" onClick={(e) => e.stopPropagation()}>
+                
+                <div className={`flex items-center justify-between p-5 border-b border-border text-white ${type === 'exact' ? 'bg-destructive' : 'bg-amber-500'}`}>
+                    <div className="flex items-center gap-2 font-bold text-lg">
+                        {type === 'exact' ? <AlertCircle className="w-5 h-5" /> : <FileSearch className="w-5 h-5" />}
+                        <h3>{type === 'exact' ? t('performerDuplicateModal.exactTitle') : t('performerDuplicateModal.similarTitle')}</h3>
+                    </div>
+                    <button className="text-white/80 hover:text-white hover:bg-white/20 w-8 h-8 rounded-full flex items-center justify-center transition-colors" onClick={onCancel}>
+                        <X className="h-5 w-5" />
+                    </button>
                 </div>
 
-                <div className={styles.duplicateModalBody}>
+                <div className="p-6 overflow-y-auto max-h-[60vh]">
                     {type === 'exact' && exactMatch && (
-                        <>
-                            <p className={styles.duplicateMessage}>
-                                {t('performerDuplicateModal.exactMessage', { name: inputName })}
-                            </p>
-                            <div className={`${styles.existingItem} ${styles.exactMatch}`}>
-                                <div className={styles.itemName}>{exactMatch.canonical_name}</div>
+                        <div className="space-y-5">
+                            <p className="text-sm text-muted-foreground" dangerouslySetInnerHTML={{ __html: t('performerDuplicateModal.exactMessage', { name: `<strong class="text-foreground">${inputName}</strong>` }) }} />
+                            
+                            <div className="border border-destructive/20 bg-destructive/5 rounded-xl p-5 shadow-sm text-center">
+                                <AlertCircle className="w-10 h-10 text-destructive mx-auto mb-3 opacity-80" />
+                                <div className="text-xl font-bold text-foreground mb-2">{exactMatch.canonical_name}</div>
                                 {exactMatch.aliases && exactMatch.aliases.length > 0 && (
-                                    <div className={styles.itemAliases}>
+                                    <div className="inline-flex items-center gap-1.5 text-xs text-muted-foreground bg-muted/50 px-3 py-1.5 rounded-full mb-4">
+                                        <Tag className="w-3 h-3" />
                                         {t('performerDuplicateModal.labels.aliases')}: {exactMatch.aliases.join(', ')}
                                     </div>
                                 )}
-                                <button
-                                    className={styles.btnUseExisting}
+                                <Button
+                                    variant="default"
+                                    className="w-full bg-destructive text-destructive-foreground hover:bg-destructive/90"
                                     onClick={() => onUseExisting(exactMatch)}
                                 >
+                                    <CheckSquare className="w-4 h-4 mr-2" />
                                     {t('performerDuplicateModal.buttons.useExisting')}
-                                </button>
+                                </Button>
                             </div>
-                        </>
+                        </div>
                     )}
 
                     {type === 'similar' && similarMatches.length > 0 && (
-                        <>
-                            <p className={styles.duplicateMessage}>
-                                {t('performerDuplicateModal.similarMessage', { name: inputName })}
-                            </p>
-                            <div className={styles.similarMatchesList}>
+                        <div className="space-y-5">
+                            <p className="text-sm text-muted-foreground" dangerouslySetInnerHTML={{ __html: t('performerDuplicateModal.similarMessage', { name: `<strong class="text-foreground">${inputName}</strong>` }) }} />
+                            
+                            <div className="space-y-3">
                                 {similarMatches.map((performer) => (
-                                    <div key={performer.id} className={styles.existingItem}>
-                                        <div className={styles.itemInfo}>
-                                            <div className={styles.itemName}>{performer.canonical_name}</div>
+                                    <div key={performer.id} className="group flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-4 rounded-xl border border-border bg-card hover:border-amber-500/50 hover:shadow-md transition-all">
+                                        <div className="flex-1 min-w-0">
+                                            <div className="font-bold text-foreground group-hover:text-amber-600 transition-colors uppercase tracking-wide text-sm">{performer.canonical_name}</div>
                                             {(() => {
                                                 const aliases = performer.aliases || [];
                                                 return aliases.length > 0 && (
-                                                    <div className={styles.itemAliases}>
-                                                        {t('performerDuplicateModal.labels.aliases')}: {aliases.join(', ')}
+                                                    <div className="flex items-center gap-1.5 mt-1.5 text-xs text-muted-foreground truncate">
+                                                        <Tag className="w-3 h-3 shrink-0" />
+                                                        <span className="truncate">{aliases.join(', ')}</span>
                                                     </div>
                                                 );
                                             })()}
                                         </div>
-                                        <button
-                                            className={styles.btnUseExisting}
+                                        <Button
+                                            variant="outline"
+                                            className="w-full sm:w-auto shrink-0 border-amber-200 text-amber-600 hover:bg-amber-50"
                                             onClick={() => onUseExisting(performer)}
                                         >
+                                            <CheckSquare className="w-4 h-4 mr-2" />
                                             {t('performerDuplicateModal.buttons.select')}
-                                        </button>
+                                        </Button>
                                     </div>
                                 ))}
                             </div>
-                            <div className={styles.modalDivider}>{t('performerDuplicateModal.divider')}</div>
-                        </>
+                            
+                            <div className="relative flex py-4 items-center">
+                                <div className="flex-grow border-t border-border"></div>
+                                <span className="shrink-0 mx-4 text-xs font-semibold uppercase tracking-wider text-muted-foreground">{t('performerDuplicateModal.divider')}</span>
+                                <div className="flex-grow border-t border-border"></div>
+                            </div>
+                        </div>
                     )}
                 </div>
 
-                <div className={styles.duplicateModalFooter}>
-                    {type === 'similar' && (
+                <div className="p-4 border-t border-border bg-muted/10 flex flex-col sm:flex-row gap-3">
+                    {type === 'similar' ? (
                         <>
-                            <button className={styles.btnCreateNew} onClick={onCreateNew}>
-                                {t('performerDuplicateModal.buttons.createNew', { name: inputName })}
-                            </button>
-                            <button className={styles.btnCancelModal} onClick={onCancel}>
+                            <Button variant="outline" className="flex-1 order-2 sm:order-1" onClick={onCancel}>
                                 {t('performerDuplicateModal.buttons.cancel')}
-                            </button>
+                            </Button>
+                            <Button className="flex-1 order-1 sm:order-2 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white" onClick={onCreateNew}>
+                                {t('performerDuplicateModal.buttons.createNew', { name: inputName })}
+                            </Button>
                         </>
-                    )}
-                    {type === 'exact' && (
-                        <button className={styles.btnCancelModal} onClick={onCancel}>
+                    ) : (
+                        <Button variant="outline" className="w-full" onClick={onCancel}>
                             {t('performerDuplicateModal.buttons.cancel')}
-                        </button>
+                        </Button>
                     )}
                 </div>
             </div>

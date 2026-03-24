@@ -1,5 +1,6 @@
 import { useTranslation } from 'react-i18next';
-import styles from './DatePicker.module.css';
+import { Input } from '../ui/input';
+import { Label } from '../ui/label';
 
 interface DatePickerProps {
     selectedDate: string;
@@ -10,14 +11,16 @@ function DatePicker({ selectedDate, onDateChange }: DatePickerProps) {
     const { t } = useTranslation();
 
     return (
-        <div className={styles.container}>
-            <label htmlFor="date">📅 {t('datePicker.label')}</label>
-            <input
+        <div className="flex flex-col gap-2 mb-5">
+            <Label htmlFor="date" className="text-primary font-bold text-base">
+                📅 {t('datePicker.label')}
+            </Label>
+            <Input
                 type="date"
                 id="date"
                 value={selectedDate}
                 onChange={(e) => onDateChange(e.target.value)}
-                className={styles.input}
+                className="w-full cursor-pointer focus-visible:ring-primary focus-visible:ring-offset-2 transition-all"
             />
         </div>
     );

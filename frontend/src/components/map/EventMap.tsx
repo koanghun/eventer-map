@@ -1,7 +1,6 @@
 import { useMemo, useState, useRef, useCallback, useEffect } from 'react';
 import { GoogleMap, Marker } from '@react-google-maps/api';
 import { Event } from '../../types/event';
-import styles from './EventMap.module.css';
 import { useTheme } from '../../context/ThemeContext';
 import SingleEventInfoWindow from './SingleEventInfoWindow';
 import GroupEventInfoWindow from './GroupEventInfoWindow';
@@ -118,7 +117,6 @@ const mapStyles = [
 function EventMap({ events }: EventMapProps) {
     const { theme } = useTheme();
 
-    // 🌟 Zustand 전역 상태 구독
     const selectedEvent = useEventStore((state) => state.selectedEvent);
     const selectEvent = useEventStore((state) => state.selectEvent);
     const clearSelection = useEventStore((state) => state.clearSelection);
@@ -131,7 +129,6 @@ function EventMap({ events }: EventMapProps) {
         mapRef.current = map;
     }, []);
 
-    // 외부에서 selectedEvent prop 변경 시 지도 이동만 처리
     useEffect(() => {
         if (selectedEvent && mapRef.current) {
             const lat = selectedEvent.place?.latitude ?? selectedEvent.latitude;
@@ -142,12 +139,10 @@ function EventMap({ events }: EventMapProps) {
         }
     }, [selectedEvent]);
 
-    // events 변경 시 infoWindowStack 초기화 (날짜 변경 등)
     useEffect(() => {
         setInfoWindowStack(null);
     }, [events]);
 
-    // 사용자 위치(GPS/IP) 가져오기
     useEffect(() => {
         const fetchLocation = async () => {
             if ("geolocation" in navigator) {
@@ -192,27 +187,24 @@ function EventMap({ events }: EventMapProps) {
         return groups;
     }, [events]);
 
-    // 지도 중심 계산 (메모이제이션으로 안정화)
     const mapCenter = useMemo(() => {
         if (events.length === 0) return center;
         const avgLat = events.reduce((sum, e) => sum + (e.place?.latitude ?? e.latitude ?? 0), 0) / events.length;
         const avgLng = events.reduce((sum, e) => sum + (e.place?.longitude ?? e.longitude ?? 0), 0) / events.length;
         return { lat: avgLat, lng: avgLng };
-    }, [events, center]);  // events 및 center 변경될 때 재계산
+    }, [events, center]);
 
     const handleMarkerClick = (eventsAtLocation: Event[]) => {
         if (eventsAtLocation.length === 1) {
-            // 단일 이벤트: Zustand 스토어에 위임
             selectEvent(eventsAtLocation[0]);
         } else {
-            // 그룹: EventMap이 리스트 모달 관리
             const firstEvent = eventsAtLocation[0];
             const location = {
                 lat: firstEvent.place?.latitude ?? firstEvent.latitude ?? 0,
                 lng: firstEvent.place?.longitude ?? firstEvent.longitude ?? 0
             };
             setInfoWindowStack({ type: 'group', events: eventsAtLocation, location });
-            clearSelection(); // 기존 단일 선택 해제
+            clearSelection();
 
             if (mapRef.current) {
                 mapRef.current.panTo(location);
@@ -221,23 +213,19 @@ function EventMap({ events }: EventMapProps) {
     };
 
     const handleEventSelectFromGroup = (event: Event) => {
-        // 그룹 모달 닫고 Zustand 스토어에 위임
         setInfoWindowStack(null);
         selectEvent(event);
     };
 
     const handleInfoWindowClose = () => {
         if (infoWindowStack?.type === 'group') {
-            // 그룹 모달만 닫기
             setInfoWindowStack(null);
         } else {
+            clearSelection();
         }
-        // 단일 이벤트 모달: Zustand 스토어에 위임
-        clearSelection();
     };
 
     const renderInfoWindow = () => {
-        // 그룹 모달 (EventMap이 관리)
         if (infoWindowStack?.type === 'group') {
             const { events: groupEvents, location } = infoWindowStack;
             return (
@@ -251,7 +239,6 @@ function EventMap({ events }: EventMapProps) {
             );
         }
 
-        // 단일 이벤트 모달 (외부 selectedEvent prop 사용)
         if (!selectedEvent) return null;
 
         return (
@@ -267,7 +254,7 @@ function EventMap({ events }: EventMapProps) {
     };
 
     return (
-        <div className={styles.eventMap}>
+        <div className="w-full h-full relative z-0">
             <GoogleMap
                 mapContainerStyle={mapContainerStyle}
                 center={mapCenter}

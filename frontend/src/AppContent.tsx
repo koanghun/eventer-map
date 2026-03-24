@@ -7,7 +7,6 @@ import EventList from './components/events/EventList';
 import DatePicker from './components/common/DatePicker';
 import PerformerFilter from './components/performers/PerformerFilter';
 import { format } from 'date-fns';
-import './App.css';
 
 import { useTheme } from './context/ThemeContext';
 import { useLanguage } from './context/LanguageContext';
@@ -19,6 +18,8 @@ import { useEventData } from './hooks/useEventData';
 import { useEventForm } from './hooks/useEventForm';
 import { useEventStore } from './store/useEventStore';
 import DailyVisitCounter from './components/common/DailyVisitCounter';
+import { Sun, Moon, Map as MapIcon, Plus, Flag, Loader2 } from 'lucide-react';
+import { Button } from './components/ui/button';
 
 const GOOGLE_MAPS_LIBRARIES: ("places")[] = ['places'];
 
@@ -30,7 +31,6 @@ export default function AppContent() {
     const { isAuthenticated, isLoading } = useAuth();
     const [showFlagsOnly, setShowFlagsOnly] = useState<boolean>(false);
 
-    // 2개 훅으로 분리된 책임
     const eventData = useEventData(selectedDate, showFlagsOnly);
     const eventForm = useEventForm();
     const clearSelection = useEventStore((state) => state.clearSelection);
@@ -39,29 +39,24 @@ export default function AppContent() {
 
     const handleLogin = () => {
         const apiBase = process.env.REACT_APP_API_URL;
-
         if (apiBase) {
-            // [로컬 개발 환경]: 백엔드 주소로 직접 이동하여 프록시 무한 루프 방지
             window.location.href = `${apiBase}/auth/google/login`;
         } else {
-            // [프로덕션 배포 환경]: Nginx 등의 프록시 구성을 그대로 타도록 유지
             window.location.href = `/api/auth/google/login`;
         }
     };
 
     const handleDateChange = (newDate: string) => {
         setSelectedDate(newDate);
-        clearSelection(); // 날짜 변경 시 선택 초기화
+        clearSelection();
     };
 
     const handleFlagsToggle = () => {
         setShowFlagsOnly(prev => !prev);
         if (!showFlagsOnly) {
-            // 플래그 모드 활성화 시: 날짜를 빈 값으로 설정하여 모든 플래그 이벤트 표시
             setSelectedDate('');
             eventData.setSelectedPerformer(null);
         } else {
-            // 플래그 모드 비활성화 시: 오늘 날짜로 복원
             setSelectedDate(format(new Date(), 'yyyy-MM-dd'));
         }
         clearSelection();
@@ -69,52 +64,52 @@ export default function AppContent() {
 
     return (
         <LoadScript googleMapsApiKey={apiKey} libraries={GOOGLE_MAPS_LIBRARIES}>
-            <div className="app">
-                <header className="app-header">
-                    <div className="header-content">
-                        <div className="header-title">
-                            <h1>🗺️ {t('header.title')}</h1>
-                            <span className="preview-badge">Preview</span>
+            <div className="min-h-screen flex flex-col bg-background text-foreground transition-colors duration-300">
+                
+                <header className="sticky top-0 z-50 w-full bg-background/80 backdrop-blur-md border-b border-border shadow-sm px-4 md:px-8 py-3 flex flex-col md:flex-row justify-between items-center gap-4 transition-all duration-300">
+                    <div className="flex flex-col md:flex-row items-center gap-2 md:gap-4 text-center md:text-left">
+                        <div className="flex items-center gap-2">
+                            <MapIcon className="w-6 h-6 text-primary" />
+                            <h1 className="text-xl md:text-2xl font-bold text-primary tracking-tight">
+                                {t('header.title')}
+                            </h1>
+                            <span className="px-2 py-0.5 rounded-full bg-primary/10 text-primary text-[10px] font-bold uppercase tracking-wider mx-2 animate-pulse">
+                                Preview
+                            </span>
                         </div>
-                        <p>{t('header.subtitle')}</p>
+                        <p className="text-sm text-muted-foreground hidden md:block">{t('header.subtitle')}</p>
                     </div>
-                    <div className="header-controls">
+                    
+                    <div className="flex items-center gap-3">
                         <select
                             value={language}
                             onChange={(e) => changeLanguage(e.target.value as 'ko' | 'ja')}
-                            className="language-selector"
+                            className="h-9 px-3 py-1 bg-background border border-input rounded-md text-sm shadow-sm hover:bg-muted focus:outline-none focus:ring-1 focus:ring-ring transition-colors cursor-pointer"
                         >
                             <option value="ja">{t('language.ja')}</option>
                             <option value="ko">{t('language.ko')}</option>
                         </select>
-                        <button className="theme-toggle" onClick={toggleTheme} title={t('header.themeToggle')}>
-                            {theme === 'dark' ? '☀️' : '🌙'}
-                        </button>
+                        
+                        <Button variant="outline" size="icon" onClick={toggleTheme} className="rounded-full w-9 h-9" title={t('header.themeToggle')}>
+                            {theme === 'dark' ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
+                        </Button>
+
                         {isAuthenticated && (
-                            <button
-                                className={`flags-filter-toggle ${showFlagsOnly ? 'active' : ''}`}
+                            <Button 
+                                variant={showFlagsOnly ? "default" : "outline"} 
+                                size="icon"
+                                className={`rounded-full w-9 h-9 ${showFlagsOnly ? 'bg-orange-500 hover:bg-orange-600 border-orange-500 text-white' : ''}`}
                                 onClick={handleFlagsToggle}
                                 title={showFlagsOnly ? t('filter.flags.showAll') : t('filter.flags.showFlagsOnly')}
                             >
-                                🚩
-                            </button>
+                                <Flag className={`w-4 h-4 ${showFlagsOnly ? 'fill-current' : ''}`} />
+                            </Button>
                         )}
+
                         {isLoading ? (
-                            <div style={{
-                                display: 'flex',
-                                alignItems: 'center',
-                                gap: '8px',
-                                color: 'var(--text-primary)'
-                            }}>
-                                <div style={{
-                                    width: '16px',
-                                    height: '16px',
-                                    border: '2px solid var(--primary-color)',
-                                    borderTopColor: 'transparent',
-                                    borderRadius: '50%',
-                                    animation: 'spin 0.8s linear infinite'
-                                }} />
-                                <span style={{ fontSize: '14px' }}>로그인 중...</span>
+                            <div className="flex items-center gap-2 text-muted-foreground mr-2">
+                                <Loader2 className="w-4 h-4 animate-spin text-primary" />
+                                <span className="text-sm">...</span>
                             </div>
                         ) : isAuthenticated ? (
                             <UserProfile />
@@ -124,30 +119,30 @@ export default function AppContent() {
                     </div>
                 </header>
 
-                <div className="app-container">
-                    <aside className="sidebar">
-                        <DatePicker selectedDate={selectedDate} onDateChange={handleDateChange} />
-
-                        <PerformerFilter onPerformerSelect={eventData.setSelectedPerformer} />
-
-                        {isAuthenticated && (
-                            <button className="btn-new-event" onClick={eventForm.openNew}>
-                                ➕ {t('buttons.newEvent')}
-                            </button>
-                        )}
-
-                        <EventList
-                            events={eventData.filteredEvents}
-                            loading={eventData.loading}
-                            onEventEdit={isAuthenticated ? eventForm.openEdit : undefined}
-                            onEventDelete={isAuthenticated ? eventForm.deleteEvent : undefined}
-                        />
+                <div className="flex-1 flex flex-col md:flex-row gap-4 p-4 md:p-6 w-full max-w-[2400px] mx-auto overflow-hidden h-[calc(100vh-73px)]">
+                    
+                    <aside className="w-full md:w-[350px] lg:w-[400px] shrink-0 bg-card/50 backdrop-blur-sm border border-border rounded-xl shadow-md overflow-hidden flex flex-col transition-all duration-300">
+                        <div className="p-4 flex flex-col gap-4 border-b border-border/50 shrink-0">
+                            <DatePicker selectedDate={selectedDate} onDateChange={handleDateChange} />
+                            <PerformerFilter onPerformerSelect={eventData.setSelectedPerformer} />
+                            {isAuthenticated && (
+                                <Button className="w-full bg-gradient-to-r from-primary to-orange-500 hover:from-primary/90 hover:to-orange-500/90 text-white shadow-md transition-all hover:-translate-y-0.5" onClick={eventForm.openNew}>
+                                    <Plus className="w-4 h-4 mr-2" /> {t('buttons.newEvent')}
+                                </Button>
+                            )}
+                        </div>
+                        <div className="flex-1 overflow-auto min-h-[300px]">
+                            <EventList
+                                events={eventData.filteredEvents}
+                                loading={eventData.loading}
+                                onEventEdit={isAuthenticated ? eventForm.openEdit : undefined}
+                                onEventDelete={isAuthenticated ? eventForm.deleteEvent : undefined}
+                            />
+                        </div>
                     </aside>
 
-                    <main className="main-content">
-                        <EventMap
-                            events={eventData.filteredEvents}
-                        />
+                    <main className="flex-1 min-h-[400px] md:min-h-0 bg-card rounded-xl border border-border overflow-hidden shadow-md relative z-0">
+                        <EventMap events={eventData.filteredEvents} />
                     </main>
                 </div>
 
@@ -160,7 +155,9 @@ export default function AppContent() {
                     />
                 )}
 
-                <DailyVisitCounter />
+                <div className="fixed bottom-4 right-4 z-50 pointer-events-none">
+                    <DailyVisitCounter />
+                </div>
             </div>
         </LoadScript>
     );

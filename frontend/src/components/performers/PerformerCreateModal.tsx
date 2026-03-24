@@ -1,7 +1,10 @@
 import { useState, type KeyboardEvent, type FormEvent, type MouseEvent } from 'react';
 import { useTranslation } from 'react-i18next';
 import ReactDOM from 'react-dom';
-import styles from './PerformerCreateModal.module.css';
+import { Button } from '../ui/button';
+import { Input } from '../ui/input';
+import { Label } from '../ui/label';
+import { Sparkles, X, Plus, Tag } from 'lucide-react';
 
 interface PerformerCreateModalProps {
     initialName: string;
@@ -39,33 +42,38 @@ function PerformerCreateModal({
     };
 
     const handleSubmit = (e: FormEvent) => {
-        e.preventDefault(); // 폼 제출 방지
-        e.stopPropagation(); // 이벤트 버블링 방지
+        e.preventDefault();
+        e.stopPropagation();
         if (canonicalName.trim()) {
             onConfirm(canonicalName.trim(), aliases);
         }
     };
 
     const handleOverlayClick = (e: MouseEvent) => {
-        e.stopPropagation(); // 이벤트 버블링 방지
+        e.stopPropagation();
         onCancel();
     };
 
     const modalContent = (
-        <div className={styles.performerModalOverlay} onClick={handleOverlayClick}>
-            <div className={styles.performerModalContent} onClick={(e) => e.stopPropagation()}>
-                <div className={styles.performerModalHeader}>
-                    <h3>✨ {t('performerModal.title')}</h3>
-                    <button className={styles.btnClose} onClick={onCancel}>✕</button>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4" onClick={handleOverlayClick}>
+            <div className="w-full max-w-md bg-background border border-border rounded-2xl shadow-2xl overflow-hidden animate-in zoom-in-95" onClick={(e) => e.stopPropagation()}>
+                <div className="flex items-center justify-between p-5 border-b border-border bg-gradient-to-r from-primary/10 to-transparent">
+                    <div className="flex items-center gap-2 text-primary font-bold text-lg">
+                        <Sparkles className="h-5 w-5" />
+                        <h3>{t('performerModal.title')}</h3>
+                    </div>
+                    <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full text-muted-foreground hover:text-foreground" onClick={onCancel}>
+                        <X className="h-5 w-5" />
+                    </Button>
                 </div>
 
                 <form onSubmit={handleSubmit}>
-                    <div className={styles.performerModalBody}>
-                        <div className={styles.formGroup}>
-                            <label htmlFor="canonical-name">
-                                {t('performerModal.labels.name')} <span className={styles.required}>*</span>
-                            </label>
-                            <input
+                    <div className="p-6 space-y-6">
+                        <div className="space-y-2.5">
+                            <Label htmlFor="canonical-name" className="text-foreground font-semibold flex items-center gap-1">
+                                {t('performerModal.labels.name')} <span className="text-destructive">*</span>
+                            </Label>
+                            <Input
                                 id="canonical-name"
                                 type="text"
                                 value={canonicalName}
@@ -73,44 +81,54 @@ function PerformerCreateModal({
                                 placeholder={t('performerModal.placeholders.name')}
                                 required
                                 autoFocus
+                                className="bg-muted/50"
                             />
-                            <small>{t('performerModal.hints.name')}</small>
+                            <p className="text-xs text-muted-foreground">{t('performerModal.hints.name')}</p>
                         </div>
 
-                        <div className={styles.formGroup}>
-                            <label htmlFor="aliases">{t('performerModal.labels.aliases')}</label>
-                            <div className={styles.aliasInputGroup}>
-                                <input
+                        <div className="space-y-2.5">
+                            <Label htmlFor="aliases" className="text-foreground font-semibold">
+                                {t('performerModal.labels.aliases')}
+                            </Label>
+                            <div className="flex gap-2">
+                                <Input
                                     id="aliases"
                                     type="text"
                                     value={aliasInput}
                                     onChange={(e) => setAliasInput(e.target.value)}
                                     onKeyDown={handleAliasKeyDown}
                                     placeholder={t('performerModal.placeholders.aliases')}
+                                    className="bg-muted/50"
                                 />
-                                <button
+                                <Button
                                     type="button"
-                                    className={styles.btnAddAlias}
+                                    variant="secondary"
                                     onClick={handleAddAlias}
+                                    className="shrink-0 bg-secondary/80 hover:bg-secondary"
                                 >
+                                    <Plus className="h-4 w-4 mr-1.5" />
                                     {t('performerModal.buttons.add')}
-                                </button>
+                                </Button>
                             </div>
-                            <small>{t('performerModal.hints.aliases')}</small>
+                            <p className="text-xs text-muted-foreground">{t('performerModal.hints.aliases')}</p>
                         </div>
 
                         {aliases.length > 0 && (
-                            <div className={styles.aliasesList}>
-                                <label>{t('performerModal.labels.aliasesRegistered')}</label>
-                                <div className={styles.aliasTags}>
+                            <div className="space-y-2 pt-2 border-t border-border/50">
+                                <Label className="text-xs uppercase tracking-wider text-muted-foreground font-semibold">
+                                    {t('performerModal.labels.aliasesRegistered')}
+                                </Label>
+                                <div className="flex flex-wrap gap-2">
                                     {aliases.map((alias, index) => (
-                                        <div key={index} className={styles.aliasTag}>
+                                        <div key={index} className="flex items-center gap-1.5 bg-primary/10 text-primary border border-primary/20 px-2.5 py-1 rounded-full text-sm font-medium">
+                                            <Tag className="w-3 h-3 opacity-70" />
                                             {alias}
                                             <button
                                                 type="button"
                                                 onClick={() => handleRemoveAlias(alias)}
+                                                className="ml-1 w-4 h-4 rounded-full flex items-center justify-center hover:bg-primary/20 transition-colors"
                                             >
-                                                ✕
+                                                <X className="w-3 h-3" />
                                             </button>
                                         </div>
                                     ))}
@@ -119,13 +137,13 @@ function PerformerCreateModal({
                         )}
                     </div>
 
-                    <div className={styles.performerModalFooter}>
-                        <button type="button" className={styles.btnCancel} onClick={onCancel}>
+                    <div className="flex gap-3 p-5 border-t border-border bg-muted/10">
+                        <Button type="button" variant="outline" className="flex-1" onClick={onCancel}>
                             {t('performerModal.buttons.cancel')}
-                        </button>
-                        <button type="submit" className={styles.btnConfirm}>
+                        </Button>
+                        <Button type="submit" className="flex-1 bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary">
                             {t('performerModal.buttons.register')}
-                        </button>
+                        </Button>
                     </div>
                 </form>
             </div>

@@ -24,7 +24,8 @@
         "noUnusedParameters": true,
         "noFallthroughCasesInSwitch": true,
         "skipLibCheck": true,
-        "allowSyntheticDefaultImports": true
+        "allowSyntheticDefaultImports": true,
+        "baseUrl": "src"
     },
     "include": [
         "src"
