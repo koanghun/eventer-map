@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { LoadScript } from '@react-google-maps/api';
 import { useTranslation } from 'react-i18next';
 import EventMap from './components/map/EventMap';
@@ -61,6 +61,14 @@ export default function AppContent() {
         }
         clearSelection();
     };
+
+    useEffect(() => {
+        document.title = t('seo.title') || 'Event Map';
+        const metaDesc = document.querySelector('meta[name="description"]');
+        if (metaDesc) {
+            metaDesc.setAttribute('content', t('seo.description') || '');
+        }
+    }, [t, language]);
 
     return (
         <LoadScript googleMapsApiKey={apiKey} libraries={GOOGLE_MAPS_LIBRARIES}>
