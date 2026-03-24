@@ -132,7 +132,7 @@ function EventDuplicateModal({ duplicates, onClose, onProceed, onEdit }: EventDu
                                     </div>
 
                                     <div className="space-y-3 p-3 bg-muted/40 rounded-lg border border-border/50 text-foreground">
-                                        <h5 className="font-semibold text-xs tracking-wider uppercase text-muted-foreground mb-2">세부 일치 정보</h5>
+                                        <h5 className="font-semibold text-xs tracking-wider uppercase text-muted-foreground mb-2">{t('eventDuplicateModal.labels.detailInfo')}</h5>
                                         
                                         <div className="space-y-1.5">
                                             <div className="flex justify-between text-xs text-muted-foreground">
@@ -153,7 +153,7 @@ function EventDuplicateModal({ duplicates, onClose, onProceed, onEdit }: EventDu
                                         {dup.matched_criteria.distance_meters !== null && dup.matched_criteria.distance_meters !== undefined && (
                                             <div className="flex justify-between text-xs pt-2 mt-2 border-t border-border/50">
                                                 <span>{t('eventDuplicateModal.labels.distance')}</span>
-                                                <span className="font-medium text-amber-600">{Math.round(dup.matched_criteria.distance_meters)}m 차이</span>
+                                                <span className="font-medium text-amber-600">{t('eventDuplicateModal.labels.distanceDiff', { distance: Math.round(dup.matched_criteria.distance_meters) })}</span>
                                             </div>
                                         )}
                                     </div>

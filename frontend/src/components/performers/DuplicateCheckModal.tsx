@@ -32,7 +32,7 @@ function DuplicateCheckModal({
     };
 
     const modalContent = (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4" onClick={handleOverlayClick}>
+        <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4" onClick={handleOverlayClick}>
             <div className="w-full max-w-lg bg-background border border-border rounded-2xl shadow-2xl overflow-hidden animate-in zoom-in-95" onClick={(e) => e.stopPropagation()}>
                 
                 <div className={`flex items-center justify-between p-5 border-b border-border text-white ${type === 'exact' ? 'bg-destructive' : 'bg-amber-500'}`}>

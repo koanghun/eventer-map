@@ -202,7 +202,9 @@
             "time": "時間",
             "performers": "出演者",
             "title": "タイトル",
-            "distance": "距離"
+            "distance": "距離",
+            "detailInfo": "詳細一致情報",
+            "distanceDiff": "{{distance}}m 差"
         },
         "buttons": {
             "editExisting": "このイベントを編集する",
@@ -289,5 +291,9 @@
     },
     "footer": {
         "dailyVisits": "本日の訪問"
+    },
+    "seo": {
+        "title": "Event Map - イベントマップ",
+        "description": "イベントマップアプリケーション"
     }
 }

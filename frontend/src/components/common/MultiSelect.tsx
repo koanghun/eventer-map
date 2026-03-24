@@ -10,10 +10,11 @@ interface MultiSelectProps {
     options: Performer[];
     selected: string[];
     onChange: (selected: string[]) => void;
+    onPerformerCreated?: (performer: Performer) => void;
     placeholder: string;
 }
 
-function MultiSelect({ options, selected, onChange, placeholder }: MultiSelectProps) {
+function MultiSelect({ options, selected, onChange, onPerformerCreated, placeholder }: MultiSelectProps) {
     const { t } = useTranslation();
     const [inputValue, setInputValue] = useState('');
     const [isOpen, setIsOpen] = useState(false);
@@ -102,6 +103,9 @@ function MultiSelect({ options, selected, onChange, placeholder }: MultiSelectPr
                 canonical_name: canonicalName,
                 aliases: aliases
             });
+            if (onPerformerCreated) {
+                onPerformerCreated(newPerformer);
+            }
             if (!selected.includes(newPerformer.canonical_name)) {
                 onChange([...selected, newPerformer.canonical_name]);
             }
@@ -138,7 +142,7 @@ function MultiSelect({ options, selected, onChange, placeholder }: MultiSelectPr
 
     return (
         <div className="relative w-full">
-            <div className="min-h-10 flex flex-wrap items-center gap-2 p-2 w-full rounded-md border border-input bg-transparent text-sm ring-offset-background disabled:cursor-not-allowed disabled:opacity-50 focus-within:ring-2 focus-within:ring-ring focus-within:ring-offset-2 transition-all bg-white dark:bg-slate-950">
+            <div className="min-h-10 flex flex-wrap items-center gap-2 p-2 w-full rounded-md border border-input bg-background text-sm ring-offset-background disabled:cursor-not-allowed disabled:opacity-50 focus-within:ring-2 focus-within:ring-ring focus-within:ring-offset-2 transition-all">
                 {selected.map(item => (
                     <div key={item} className="flex items-center gap-1 bg-primary text-primary-foreground px-2.5 py-0.5 rounded-full text-xs font-medium animate-in zoom-in-95">
                         {item}

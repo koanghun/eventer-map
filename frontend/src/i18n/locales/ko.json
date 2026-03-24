@@ -202,7 +202,9 @@
             "time": "시간",
             "performers": "출연자",
             "title": "제목",
-            "distance": "거리"
+            "distance": "거리",
+            "detailInfo": "세부 일치 정보",
+            "distanceDiff": "{{distance}}m 차이"
         },
         "buttons": {
             "editExisting": "이 이벤트 수정하기",
@@ -289,5 +291,9 @@
     },
     "footer": {
         "dailyVisits": "오늘 방문"
+    },
+    "seo": {
+        "title": "Event Map - 이벤트 지도",
+        "description": "이벤트 지도 애플리케이션"
     }
 }

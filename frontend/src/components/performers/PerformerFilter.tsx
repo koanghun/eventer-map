@@ -105,7 +105,7 @@ function PerformerFilter({ onPerformerSelect }: PerformerFilterProps) {
                     {filteredPerformers.slice(0, 50).map(performer => (
                         <li
                             key={performer.id}
-                            onClick={() => handleSelectPerformer(performer)}
+                            onMouseDown={() => handleSelectPerformer(performer)}
                             className="relative flex flex-col w-full cursor-pointer select-none border-b last:border-0 border-border/50 py-2.5 px-3 text-sm outline-none hover:bg-muted hover:text-foreground transition-colors"
                         >
                             <span className="font-bold">{performer.canonical_name}</span>

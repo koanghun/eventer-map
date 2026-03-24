@@ -104,6 +104,18 @@ function EventForm({ event, onSubmit, onClose, onSwitchToEdit }: EventFormProps)
         }
     }, [formData, event]);
 
+    useEffect(() => {
+        const performerIds = selectedPerformers
+            .map(name => savedPerformers.find(p => p.canonical_name === name)?.id)
+            .filter((id): id is number => id !== undefined);
+
+        setFormData(prev => ({ 
+            ...prev, 
+            performers: selectedPerformers.join(','), 
+            performer_ids: performerIds 
+        }));
+    }, [selectedPerformers, savedPerformers]);
+
     const handleChange = (e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
         const { name, value } = e.target;
         setFormData(prev => ({ ...prev, [name]: value }));
@@ -139,13 +151,12 @@ function EventForm({ event, onSubmit, onClose, onSwitchToEdit }: EventFormProps)
         }
     };
 
+    const handlePerformerCreated = (newPerformer: Performer) => {
+        setSavedPerformers(prev => [...prev, newPerformer]);
+    };
+
     const handlePerformersChange = (newPerformers: string[]) => {
         setSelectedPerformers(newPerformers);
-        const performerIds = newPerformers
-            .map(name => savedPerformers.find(p => p.canonical_name === name)?.id)
-            .filter((id): id is number => id !== undefined);
-
-        setFormData(prev => ({ ...prev, performers: newPerformers.join(','), performer_ids: performerIds }));
     };
 
     const handleSelectSuggestion = (place: Place) => {
@@ -447,6 +458,7 @@ function EventForm({ event, onSubmit, onClose, onSwitchToEdit }: EventFormProps)
                                             options={savedPerformers}
                                             selected={selectedPerformers}
                                             onChange={handlePerformersChange}
+                                            onPerformerCreated={handlePerformerCreated}
                                             placeholder={t('eventForm.placeholders.performers')}
                                         />
                                     </div>
