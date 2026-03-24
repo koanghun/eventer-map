@@ -125,6 +125,7 @@ function EventMap({ events }: EventMapProps) {
 
     const mapRef = useRef<google.maps.Map | null>(null);
     const [infoWindowStack, setInfoWindowStack] = useState<InfoWindowState | null>(null);
+    const [center, setCenter] = useState<{ lat: number; lng: number }>(defaultCenter);
 
     const onMapLoad = useCallback((map: google.maps.Map) => {
         mapRef.current = map;
@@ -146,6 +147,35 @@ function EventMap({ events }: EventMapProps) {
         setInfoWindowStack(null);
     }, [events]);
 
+    // 사용자 위치(GPS/IP) 가져오기
+    useEffect(() => {
+        const fetchLocation = async () => {
+            if ("geolocation" in navigator) {
+                navigator.geolocation.getCurrentPosition(
+                    (position) => {
+                        setCenter({
+                            lat: position.coords.latitude,
+                            lng: position.coords.longitude
+                        });
+                    },
+                    async (error) => {
+                        console.log('GPS Geolocation failed, trying IP...', error);
+                        try {
+                            const response = await fetch('https://ipapi.co/json/');
+                            const data = await response.json();
+                            if (data.latitude && data.longitude) {
+                                setCenter({ lat: data.latitude, lng: data.longitude });
+                            }
+                        } catch (ipError) {
+                            console.error('IP Location failed too:', ipError);
+                        }
+                    }
+                );
+            }
+        };
+        fetchLocation();
+    }, []);
+
     const eventGroups = useMemo(() => {
         const groups = new Map<string, Event[]>();
 
@@ -164,11 +194,11 @@ function EventMap({ events }: EventMapProps) {
 
     // 지도 중심 계산 (메모이제이션으로 안정화)
     const mapCenter = useMemo(() => {
-        if (events.length === 0) return defaultCenter;
+        if (events.length === 0) return center;
         const avgLat = events.reduce((sum, e) => sum + (e.place?.latitude ?? e.latitude ?? 0), 0) / events.length;
         const avgLng = events.reduce((sum, e) => sum + (e.place?.longitude ?? e.longitude ?? 0), 0) / events.length;
         return { lat: avgLat, lng: avgLng };
-    }, [events]);  // events가 변경될 때만 재계산
+    }, [events, center]);  // events 및 center 변경될 때 재계산
 
     const handleMarkerClick = (eventsAtLocation: Event[]) => {
         if (eventsAtLocation.length === 1) {
