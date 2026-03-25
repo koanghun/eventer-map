@@ -103,7 +103,9 @@
     "eventDetail": {
         "flags": {
             "add": "플래그 추가",
-            "remove": "플래그 제거"
+            "remove": "플래그 제거",
+            "attend": "참가하기",
+            "cancel": "참가 취소"
         },
         "history": {
             "title": "이벤트 히스토리",

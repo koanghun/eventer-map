@@ -3,6 +3,7 @@ import { Event } from '../../types/event';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../../context/AuthContext';
 import { useState } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import EventHistoryModal from '../events/EventHistoryModal';
 import EventReportModal from '../events/EventReportModal';
 import { MapPin, Calendar, Clock, Mic2, ExternalLink, History, AlertTriangle, Flag, X } from 'lucide-react';
@@ -20,6 +21,7 @@ export default function SingleEventInfoWindow({
 }: SingleEventInfoWindowProps) {
     const { t } = useTranslation();
     const { isAuthenticated, flaggedEventIds, toggleFlag } = useAuth();
+    const queryClient = useQueryClient();
     const isFlagged = flaggedEventIds.includes(event.id || 0);
 
     const [showHistory, setShowHistory] = useState(false);
@@ -43,26 +45,13 @@ export default function SingleEventInfoWindow({
                                 <History className="w-4 h-4" />
                             </button>
                             {isAuthenticated && (
-                                <>
-                                    <button
-                                        className="p-1.5 rounded-md text-muted-foreground hover:bg-destructive/10 hover:text-destructive transition-colors"
-                                        onClick={() => setShowReport(true)}
-                                        title="Report Event"
-                                    >
-                                        <AlertTriangle className="w-4 h-4" />
-                                    </button>
-                                    <button
-                                        className={`p-1.5 rounded-md transition-colors ${
-                                            isFlagged 
-                                            ? 'text-red-500 bg-red-500/10 hover:bg-red-500/20' 
-                                            : 'text-muted-foreground hover:bg-muted hover:text-foreground'
-                                        }`}
-                                        onClick={() => event.id && toggleFlag(event.id)}
-                                        title={isFlagged ? t('eventDetail.flags.remove') : t('eventDetail.flags.add')}
-                                    >
-                                        <Flag className={`w-4 h-4 ${isFlagged ? 'fill-current' : ''}`} />
-                                    </button>
-                                </>
+                                <button
+                                    className="p-1.5 rounded-md text-muted-foreground hover:bg-destructive/10 hover:text-destructive transition-colors"
+                                    onClick={() => setShowReport(true)}
+                                    title="Report Event"
+                                >
+                                    <AlertTriangle className="w-4 h-4" />
+                                </button>
                             )}
                             <button
                                 className="p-1.5 rounded-md text-muted-foreground hover:bg-muted hover:text-foreground transition-colors ml-1 border-l border-border/30 pl-2"
@@ -79,7 +68,7 @@ export default function SingleEventInfoWindow({
                             <MapPin className="w-4 h-4 text-primary/70 mt-0.5" />
                             <div>
                                 <a
-                                    href={`https://www.google.com/maps/search/?api=1&query=${event.latitude},${event.longitude}`}
+                                    href={`https://www.google.com/maps/search/?api=1&query=${event.place?.latitude ?? event.latitude},${event.place?.longitude ?? event.longitude}`}
                                     target="_blank"
                                     rel="noopener noreferrer"
                                     className="text-foreground hover:text-primary hover:underline underline-offset-2 transition-colors break-words font-medium"
@@ -161,8 +150,29 @@ export default function SingleEventInfoWindow({
                                 </a>
                             </div>
                         )}
+
+                        {isAuthenticated && (
+                            <div className="mt-4 pt-4 border-t border-border/50">
+                                <button
+                                    className={`w-full flex items-center justify-center gap-2 py-2.5 rounded-xl font-bold text-sm transition-all focus:outline-none focus:ring-2 focus:ring-offset-2 hover:scale-[1.01] active:scale-[0.99] ${
+                                        !isFlagged 
+                                        ? 'bg-orange-500 text-white hover:bg-orange-600 focus:ring-orange-400 shadow-orange-500/20 shadow-md' 
+                                        : 'bg-secondary hover:bg-secondary/80 text-secondary-foreground border border-border/50 focus:ring-secondary/50'
+                                    }`}
+                                    onClick={async () => {
+                                        if (event.id) {
+                                            await toggleFlag(event.id);
+                                            queryClient.invalidateQueries({ queryKey: ['events'] });
+                                        }
+                                    }}
+                                >
+                                    <Flag className={`w-4 h-4 ${isFlagged ? 'fill-current' : ''}`} />
+                                    <span>{isFlagged ? t('eventDetail.flags.cancel') : t('eventDetail.flags.attend')}</span>
+                                </button>
+                            </div>
+                        )}
                     </div>
-                </div>
+                 </div>
                     </div>
             </OverlayView>
 

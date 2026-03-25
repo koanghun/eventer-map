@@ -103,7 +103,9 @@
     "eventDetail": {
         "flags": {
             "add": "フラグを追加",
-            "remove": "フラグを解除"
+            "remove": "フラグを解除",
+            "attend": "参加する",
+            "cancel": "参加をキャンセル"
         },
         "history": {
             "title": "イベント履歴",

@@ -1,7 +1,9 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
+from typing import List
 from db import get_db
 from db import models
+from db import schemas
 from utils.auth import require_auth
 import json
 
@@ -54,7 +56,7 @@ async def remove_flag_event(
     return {"message": "Removed from flags", "flagged_event_ids": flagged_ids}
 
 
-@router.get("/events")
+@router.get("/events", response_model=List[schemas.EventResponse])
 async def get_flagged_events(
     current_user: models.User = require_auth,
     db: Session = Depends(get_db)
