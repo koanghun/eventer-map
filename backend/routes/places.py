@@ -7,9 +7,9 @@ from db import get_db
 from db import models
 from db.models import Place
 
-from db.schemas import PlaceResponse, PlaceCreate
+from db.schemas import PlaceResponse, PlaceCreate, PlaceUpdate
 from utils.normalization import normalize_text, json_to_aliases, aliases_to_json
-from utils.auth import require_auth, require_auth_or_internal
+from utils.auth import require_auth, require_auth_or_internal, require_admin
 from utils.google_maps import get_place_details, search_place_by_text
 
 router = APIRouter(prefix="/places", tags=["places"])
@@ -262,5 +262,60 @@ def create_place(
 
 @router.get("/", response_model=List[PlaceResponse])
 def get_all_places(db: Session = Depends(get_db)):
-    """모든저장된 장소 목록을 반환합니다."""
+    """모든 저장된 장소 목록을 반환합니다."""
     return db.query(Place).all()
+
+
+@router.put("/{place_id}", response_model=PlaceResponse)
+def update_place(
+    place_id: int, 
+    place_data: PlaceUpdate, 
+    db: Session = Depends(get_db)
+):
+    """장소 정보 수정"""
+    db_place = db.query(Place).filter(Place.id == place_id).first()
+    if not db_place:
+        raise HTTPException(status_code=404, detail="장소를 찾을 수 없습니다")
+    
+    if place_data.canonical_name:
+        db_place.canonical_name = place_data.canonical_name
+        db_place.normalized_name = normalize_text(place_data.canonical_name)
+    
+    if place_data.address is not None:
+        db_place.address = place_data.address
+        
+    if place_data.latitude is not None:
+        db_place.latitude = place_data.latitude
+        
+    if place_data.longitude is not None:
+        db_place.longitude = place_data.longitude
+        
+    if place_data.google_place_id is not None:
+        db_place.google_place_id = place_data.google_place_id
+        
+    if place_data.aliases is not None:
+        db_place.aliases = aliases_to_json(place_data.aliases)
+        
+    try:
+        db.commit()
+        db.refresh(db_place)
+        return db_place
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=400, detail=str(e))
+
+
+@router.delete("/{place_id}", status_code=204)
+def delete_place(
+    place_id: int, 
+    db: Session = Depends(get_db),
+    admin: models.User = Depends(require_admin)
+):
+    """장소 삭제 (관리자 전용)"""
+    db_place = db.query(Place).filter(Place.id == place_id).first()
+    if not db_place:
+        raise HTTPException(status_code=404, detail="장소를 찾을 수 없습니다")
+        
+    db.delete(db_place)
+    db.commit()
+    return None

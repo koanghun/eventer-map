@@ -4,6 +4,11 @@
         "subtitle": "날짜를 선택하여 이벤트를 확인하세요",
         "themeToggle": "테마 변경"
     },
+    "nav": {
+        "map": "지도",
+        "performers": "출연자",
+        "places": "장소"
+    },
     "language": {
         "ko": "한국어",
         "ja": "日本語"
@@ -290,6 +295,51 @@
                 "resolved": "해결됨"
             }
         }
+    },
+    "management": {
+        "performer": {
+            "title": "출연자 관리",
+            "description": "공연에 출연하는 아티스트 및 그룹 정보를 관리합니다.",
+            "new": "신규 출연자",
+            "edit": "출연자 정보 수정",
+            "noAliases": "별칭 없음",
+            "deleteConfirm": "'{{name}}' 출연자를 삭제하시겠습니까?",
+            "saveSuccess": "저장되었습니다.",
+            "saveError": "저장에 실패했습니다.",
+            "deleteError": "삭제에 실패했습니다.",
+            "labels": {
+                "name": "이름 (공식 명칭)",
+                "aliases": "별칭 (Aliases)",
+                "newAlias": "새 별칭 추가...",
+                "save": "저장",
+                "saving": "저장 중...",
+                "cancel": "취소"
+            }
+        },
+        "place": {
+            "title": "장소 관리",
+            "description": "공연이 열리는 공연장 및 장소 정보를 관리합니다.",
+            "new": "신규 장소",
+            "edit": "장소 정보 수정",
+            "addressInfoNone": "주소 정보 없음",
+            "deleteConfirm": "'{{name}}' 장소를 삭제하시겠습니까? 관련된 모든 이벤트도 영향을 받을 수 있습니다.",
+            "saveSuccess": "저장되었습니다.",
+            "saveError": "저장에 실패했습니다.",
+            "deleteError": "삭제에 실패했습니다.",
+            "labels": {
+                "name": "이름 (공식 명칭)",
+                "address": "주소",
+                "lat": "위도 (Latitude)",
+                "lng": "경도 (Longitude)",
+                "aliases": "별칭 (Aliases)",
+                "newAlias": "새 별칭 추가...",
+                "save": "저장",
+                "saving": "저장 중...",
+                "cancel": "취소"
+            }
+        },
+        "searchPlaceholder": "검색어를 입력하세요...",
+        "noResults": "검색 결과가 없습니다."
     },
     "footer": {
         "dailyVisits": "오늘 방문"

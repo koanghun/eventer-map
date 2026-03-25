@@ -13,6 +13,8 @@ import { useLanguage } from './context/LanguageContext';
 import { useAuth } from './context/AuthContext';
 import LoginButton from './components/common/LoginButton';
 import UserProfile from './components/common/UserProfile';
+import PerformerManagement from './components/management/PerformerManagement';
+import PlaceManagement from './components/management/PlaceManagement';
 
 import { useEventData } from './hooks/useEventData';
 import { useEventForm } from './hooks/useEventForm';
@@ -30,6 +32,7 @@ export default function AppContent() {
     const { language, changeLanguage } = useLanguage();
     const { isAuthenticated, isLoading } = useAuth();
     const [showFlagsOnly, setShowFlagsOnly] = useState<boolean>(false);
+    const [view, setView] = useState<'map' | 'performers' | 'places'>('map');
 
     const eventData = useEventData(selectedDate, showFlagsOnly);
     const eventForm = useEventForm();
@@ -87,6 +90,34 @@ export default function AppContent() {
                         </div>
                         <p className="text-sm text-muted-foreground hidden md:block">{t('header.subtitle')}</p>
                     </div>
+
+                    <div className="flex items-center gap-2 mr-auto hidden lg:flex">
+                        <Button
+                            variant={view === 'map' ? "default" : "ghost"}
+                            size="sm"
+                            onClick={() => setView('map')}
+                            className="rounded-full h-8 px-4"
+                        >
+                            <MapIcon className="w-4 h-4 mr-2" />
+                            {t('nav.map', '지도')}
+                        </Button>
+                        <Button
+                            variant={view === 'performers' ? "default" : "ghost"}
+                            size="sm"
+                            onClick={() => setView('performers')}
+                            className="rounded-full h-8 px-4"
+                        >
+                            {t('nav.performers', '출연자')}
+                        </Button>
+                        <Button
+                            variant={view === 'places' ? "default" : "ghost"}
+                            size="sm"
+                            onClick={() => setView('places')}
+                            className="rounded-full h-8 px-4"
+                        >
+                            {t('nav.places', '장소')}
+                        </Button>
+                    </div>
                     
                     <div className="flex items-center gap-3">
                         <select
@@ -128,30 +159,41 @@ export default function AppContent() {
                 </header>
 
                 <div className="flex-1 flex flex-col md:flex-row gap-4 p-4 md:p-6 w-full max-w-[2400px] mx-auto md:overflow-hidden md:h-[calc(100vh-73px)]">
-                    
-                    <aside className="w-full md:w-[350px] lg:w-[400px] shrink-0 bg-card/50 backdrop-blur-sm border border-border rounded-xl shadow-md overflow-hidden flex flex-col transition-all duration-300">
-                        <div className="p-4 flex flex-col gap-4 border-b border-border/50 shrink-0">
-                            <DatePicker selectedDate={selectedDate} onDateChange={handleDateChange} />
-                            <PerformerFilter onPerformerSelect={eventData.setSelectedPerformer} />
-                            {isAuthenticated && (
-                                <Button className="w-full bg-gradient-to-r from-primary to-orange-500 hover:from-primary/90 hover:to-orange-500/90 text-white shadow-md transition-all hover:-translate-y-0.5" onClick={eventForm.openNew}>
-                                    <Plus className="w-4 h-4 mr-2" /> {t('buttons.newEvent')}
-                                </Button>
-                            )}
-                        </div>
-                        <div className="flex-1 overflow-auto min-h-[300px]">
-                            <EventList
-                                events={eventData.filteredEvents}
-                                loading={eventData.loading}
-                                onEventEdit={isAuthenticated ? eventForm.openEdit : undefined}
-                                onEventDelete={isAuthenticated ? eventForm.deleteEvent : undefined}
-                            />
-                        </div>
-                    </aside>
+                    {view === 'map' ? (
+                        <>
+                            <aside className="w-full md:w-[350px] lg:w-[400px] shrink-0 bg-card/50 backdrop-blur-sm border border-border rounded-xl shadow-md overflow-hidden flex flex-col transition-all duration-300">
+                                <div className="p-4 flex flex-col gap-4 border-b border-border/50 shrink-0">
+                                    <DatePicker selectedDate={selectedDate} onDateChange={handleDateChange} />
+                                    <PerformerFilter onPerformerSelect={eventData.setSelectedPerformer} />
+                                    {isAuthenticated && (
+                                        <Button className="w-full bg-gradient-to-r from-primary to-orange-500 hover:from-primary/90 hover:to-orange-500/90 text-white shadow-md transition-all hover:-translate-y-0.5" onClick={eventForm.openNew}>
+                                            <Plus className="w-4 h-4 mr-2" /> {t('buttons.newEvent')}
+                                        </Button>
+                                    )}
+                                </div>
+                                <div className="flex-1 overflow-auto min-h-[300px]">
+                                    <EventList
+                                        events={eventData.filteredEvents}
+                                        loading={eventData.loading}
+                                        onEventEdit={isAuthenticated ? eventForm.openEdit : undefined}
+                                        onEventDelete={isAuthenticated ? eventForm.deleteEvent : undefined}
+                                    />
+                                </div>
+                            </aside>
 
-                    <main className="flex-1 min-h-[400px] md:min-h-0 bg-card rounded-xl border border-border overflow-hidden shadow-md relative z-0">
-                        <EventMap events={eventData.filteredEvents} />
-                    </main>
+                            <main className="flex-1 min-h-[400px] md:min-h-0 bg-card rounded-xl border border-border overflow-hidden shadow-md relative z-0">
+                                <EventMap events={eventData.filteredEvents} />
+                            </main>
+                        </>
+                    ) : view === 'performers' ? (
+                        <div className="flex-1 bg-card rounded-xl border border-border overflow-hidden shadow-md">
+                            <PerformerManagement />
+                        </div>
+                    ) : (
+                        <div className="flex-1 bg-card rounded-xl border border-border overflow-hidden shadow-md">
+                            <PlaceManagement />
+                        </div>
+                    )}
                 </div>
 
                 {eventForm.isFormOpen && (

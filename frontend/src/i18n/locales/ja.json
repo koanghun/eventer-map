@@ -4,6 +4,11 @@
         "subtitle": "日付を選択してイベントを確認してください",
         "themeToggle": "テーマ変更"
     },
+    "nav": {
+        "map": "地図",
+        "performers": "出演者",
+        "places": "会場"
+    },
     "language": {
         "ko": "韓国語",
         "ja": "日本語"
@@ -290,6 +295,51 @@
                 "resolved": "解決済み"
             }
         }
+    },
+    "management": {
+        "performer": {
+            "title": "出演者管理",
+            "description": "公演に出演するアーティストおよびグループ情報を管理します。",
+            "new": "新規出演者",
+            "edit": "出演者情報修正",
+            "noAliases": "別名なし",
+            "deleteConfirm": "'{{name}}' 出演者を削除しますか？",
+            "saveSuccess": "保存されました。",
+            "saveError": "保存に失敗しました。",
+            "deleteError": "削除に失敗しました。",
+            "labels": {
+                "name": "名前 (公式名称)",
+                "aliases": "別名 (Aliases)",
+                "newAlias": "新しい別名を追加...",
+                "save": "保存",
+                "saving": "保存中...",
+                "cancel": "キャンセル"
+            }
+        },
+        "place": {
+            "title": "会場管理",
+            "description": "公演が行われる会場および場所の情報を管理します。",
+            "new": "新規会場",
+            "edit": "会場情報修正",
+            "addressInfoNone": "住所情報なし",
+            "deleteConfirm": "'{{name}}' 会場を削除しますか？ 関連するすべてのイベントにも影響が出る可能性があります。",
+            "saveSuccess": "保存されました。",
+            "saveError": "保存に失敗しました。",
+            "deleteError": "削除に失敗しました。",
+            "labels": {
+                "name": "名前 (公式名称)",
+                "address": "住所",
+                "lat": "緯度 (Latitude)",
+                "lng": "経度 (Longitude)",
+                "aliases": "別名 (Aliases)",
+                "newAlias": "新しい別名を追加...",
+                "save": "保存",
+                "saving": "保存中...",
+                "cancel": "キャンセル"
+            }
+        },
+        "searchPlaceholder": "検索語を入力してください...",
+        "noResults": "検索結果がありません。"
     },
     "footer": {
         "dailyVisits": "本日の訪問"

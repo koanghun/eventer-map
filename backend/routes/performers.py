@@ -7,6 +7,7 @@ from db import get_db
 from db import models
 from db import schemas
 from utils.normalization import normalize_text, aliases_to_json, json_to_aliases
+from utils.auth import require_admin
 
 router = APIRouter(prefix="/performers", tags=["performers"])
 
@@ -191,3 +192,46 @@ def search_performers(query: str = Query(..., min_length=1), db: Session = Depen
     
     # aliases는 JSON 문자열 그대로 반환
     return performers
+
+
+@router.put("/{performer_id}", response_model=schemas.PerformerResponse)
+def update_performer(
+    performer_id: int, 
+    performer_data: schemas.PerformerUpdate, 
+    db: Session = Depends(get_db)
+):
+    """출연자 정보 수정"""
+    db_performer = db.query(models.Performer).filter(models.Performer.id == performer_id).first()
+    if not db_performer:
+        raise HTTPException(status_code=404, detail="출연자를 찾을 수 없습니다")
+    
+    if performer_data.canonical_name:
+        db_performer.canonical_name = performer_data.canonical_name
+        db_performer.normalized_name = normalize_text(performer_data.canonical_name)
+    
+    if performer_data.aliases is not None:
+        db_performer.aliases = aliases_to_json(performer_data.aliases)
+        
+    try:
+        db.commit()
+        db.refresh(db_performer)
+        return db_performer
+    except IntegrityError:
+        db.rollback()
+        raise HTTPException(status_code=409, detail="이미 존재하는 이름입니다")
+
+
+@router.delete("/{performer_id}", status_code=204)
+def delete_performer(
+    performer_id: int, 
+    db: Session = Depends(get_db),
+    admin: models.User = Depends(require_admin)
+):
+    """출연자 삭제 (관리자 전용)"""
+    db_performer = db.query(models.Performer).filter(models.Performer.id == performer_id).first()
+    if not db_performer:
+        raise HTTPException(status_code=404, detail="출연자를 찾을 수 없습니다")
+        
+    db.delete(db_performer)
+    db.commit()
+    return None

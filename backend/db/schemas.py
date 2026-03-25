@@ -11,6 +11,12 @@ class PerformerBase(BaseModel):
 class PerformerCreate(PerformerBase):
     pass
 
+
+class PerformerUpdate(BaseModel):
+    canonical_name: Optional[str] = Field(None, min_length=1, max_length=200)
+    aliases: Optional[List[str]] = None
+
+
 class PerformerResponse(BaseModel):
     id: int
     canonical_name: str
@@ -102,6 +108,15 @@ class PlaceBase(BaseModel):
 
 class PlaceCreate(PlaceBase):
     pass
+
+
+class PlaceUpdate(BaseModel):
+    canonical_name: Optional[str] = Field(None, min_length=1, max_length=200)
+    address: Optional[str] = Field(None, max_length=500)
+    latitude: Optional[float] = Field(None, ge=-90, le=90)
+    longitude: Optional[float] = Field(None, ge=-180, le=180)
+    google_place_id: Optional[str] = None
+    aliases: Optional[List[str]] = None
 
 
 class PlaceResponse(BaseModel):
