@@ -1,193 +1,193 @@
 # Event Map Application
 
-[한국어](./README.md) | [日本語](./README_ja.md)
+[日本語](./README.md) | [한국어](./README_ko.md)
 
-이벤트 정보를 지도에 표시하는 웹 애플리케이션입니다.
- 사용자는 이벤트를 등록하고, 날짜를 선택하여 해당 날짜의 이벤트들을 Google Map에서 확인할 수 있습니다.
+イベント情報を地図に表示するウェブアプリケーションです。
+ユーザーはイベントを登録し、日付を選択して、該当する日付のイベントをGoogleマップで確認できます。
 
-## 기술 스택
+## 技術スタック
 
-### 백엔드
+### バックエンド
 - **Python 3.11**
-- **FastAPI**: 고성능 비동기 웹 프레임워크
-- **Uvicorn**: ASGI 서버
+- **FastAPI**: 高性能な非同期ウェブフレームワーク
+- **Uvicorn**: ASGIサーバー
 - **SQLAlchemy**: ORM
-- **PostgreSQL**: 데이터베이스
+- **PostgreSQL**: データベース
 
-### 프론트엔드
+### フロントエンド
 - **React 18**
-- **TypeScript**: 타입 안정성
-- **Tailwind CSS**: 유틸리티 전용 CSS 프레임워크
-- **Radix UI**: 접근성 및 UI 컴포넌트
-- **Google Maps API**: 지도 및 위치 서비스
-- **Axios**: HTTP 클라이언트
-- **date-fns**: 날짜 처리
+- **TypeScript**: 型の安全性
+- **Tailwind CSS**: ユーティリティファーストのCSSフレームワーク
+- **Radix UI**: アクセシビリティとUIコンポーネント
+- **Google Maps API**: 地図および位置サービス
+- **Axios**: HTTPクライアント
+- **date-fns**: 日付処理
 
-### 이벤트 추출기 (Event Extractor)
+### イベント抽出機 (Event Extractor)
 - **Python 3.11**
-- **Gmail API**: 이메일 데이터 수집
-- **Pydantic**: 데이터 검증 및 설정 관리
-- **AI/LLM**: 이벤트 데이터 고도화 및 정형화
+- **Gmail API**: メールのデータ収集
+- **Pydantic**: データの検証および設定管理
+- **AI/LLM**: イベントデータの高度化および構造化
 
-### 인프라
-- **Docker & Docker Compose**: 컨테이너화
-- **Nginx**: 프론트엔드 서빙 및 리버스 프록시
-- **Synology NAS**: 배포 환경
+### インフラ
+- **Docker & Docker Compose**: コンテナ化
+- **Nginx**: フロントエンドのサービングおよびリバースプロキシ
+- **Synology NAS**: デプロイ環境
 
 
-## 주요 기능
+## 主な機能
 
-- ✅ 이벤트 등록/수정/삭제 (CRUD)
-- ✅ 날짜별 이벤트 필터링
-- ✅ Google Maps에 이벤트 마커 표시
-- ✅ 이벤트 상세 정보 (개최일, 시간, 장소, 출연자, 관련 링크)
-- ✅ Google Maps API 최적화 (최소 사용량)
+- ✅ イベントの登録/修正/削除 (CRUD)
+- ✅ 日付別のイベントフィルター
+- ✅ Googleマップにイベントマーカーを表示
+- ✅ イベントの詳細情報 (開催日、時間、場所、出演者、関連リンク)
+- ✅ Google Maps APIの最適化 (最小使用量)
 
-## 프로젝트 구조
+## プロジェクト構造
 
 ```
 eventer-map/
-├── backend/              # FastAPI 백엔드
-│   ├── routes/          # API 라우트
-│   ├── models/           # DB 모델
-│   ├── database.py      # DB 연결 설정
-│   ├── main.py          # FastAPI 앱
-│   ├── requirements.txt # Python 의존성
-│   └── Dockerfile       # 백엔드 Docker 이미지
-├── frontend/            # React 프론트엔드
+├── backend/              # FastAPIバックエンド
+│   ├── routes/          # APIルート
+│   ├── models/           # DBモデル
+│   ├── database.py      # DB接続設定
+│   ├── main.py          # FastAPIアプリ
+│   ├── requirements.txt # Python依存関係
+│   └── Dockerfile       # バックエンドDockerイメージ
+├── frontend/            # Reactフロントエンド
 │   ├── src/
-│   │   ├── components/  # React/Radix 컴포넌트
-│   │   ├── services/    # API 클라이언트
-│   │   ├── types/       # TypeScript 타입
-│   │   └── App.tsx      # 메인 앱
-│   ├── package.json     # Node 의존성
-│   ├── nginx.conf       # Nginx 설정
-│   └── Dockerfile       # 프론트엔드 Docker 이미지
-├── event-extractor/     # 이벤트 데이터 추출 파이프라인 (Python)
-│   ├── main.py          # 파이프라인 실행 엔트리포인트
-│   ├── core/            # 핵심 로직 (LLM 클라이언트 등)
-│   ├── services/        # 외부 서비스 연동 (Gmail 등)
-│   ├── models/          # 데이터 모델
-│   └── requirements.txt # 의존성
-├── scripts/             # 배포 및 백업 스크립트
-│   ├── deploy.sh        # 자동 배포 스크립트
-│   ├── backup-db.sh     # DB 백업 스크립트
-│   └── setup_ssl.sh     # SSL 설정 스크립트
-└── docker-compose.yml   # Docker Compose 설정 (로컬)
+│   │   ├── components/  # React/Radixコンポーネント
+│   │   ├── services/    # APIクライアント
+│   │   ├── types/       # TypeScript型
+│   │   └── App.tsx      # メインアプリ
+│   ├── package.json     # Node依存関係
+│   ├── nginx.conf       # Nginx設定
+│   └── Dockerfile       # フロントエンドDockerイメージ
+├── event-extractor/     # イベントデータ抽出パイプライン (Python)
+│   ├── main.py          # パイプライン実行エントリーポイント
+│   ├── core/            # コアロジック (LLMクライアントなど)
+│   ├── services/        # 外部サービス連携 (Gmailなど)
+│   ├── models/          # データモデル
+│   └── requirements.txt # 依存関係
+├── scripts/             # デプロイおよびバックアップスクリプト
+│   ├── deploy.sh        # 自動デプロイスクリプト
+│   ├── backup-db.sh     # DBバックアップスクリプト
+│   └── setup_ssl.sh     # SSL設定スクリプト
+└── docker-compose.yml   # Docker Compose設定 (ローカル)
 ```
 
 
-## 시작하기
+## はじめに
 
-### 사전 요구사항
+### 前提条件
 
 - Docker & Docker Compose
-- Google Maps API 키
+- Google Maps APIキー
 
-### 1. Google Maps API 키 발급
+### 1. Google Maps APIキーの発行
 
-1. [Google Cloud Console](https://console.cloud.google.com/)에서 프로젝트 생성
-2. Maps JavaScript API 활성화
-3. Geocoding API 활성화 (주소 → 좌표 변환용)
-4. API 키 생성 및 제한 설정
+1. [Google Cloud Console](https://console.cloud.google.com/)でプロジェクトを作成
+2. Maps JavaScript APIを有効にする
+3. Geocoding APIを有効にする (住所 → 座標の変換用)
+4. APIキーを生成し、制限を設定する
 
-### 2. 환경 변수 설정
+### 2. 環境変数の設定
 
-각 구성 요소의 `.env.example` 파일을 복사하여 `.env` 파일을 생성하고 필요한 값을 설정하세요.
+各コンポーネントの `.env.example` ファイルをコピーして `.env` ファイルを作成し、必要な値を設定してください。
 
 ```bash
-# 백엔드 환경 변수
+# バックエンドの環境変数
 cp backend/.env.example backend/.env
 
-# 프론트엔드 환경 변수
+# フロントエンドの環境変数
 cp frontend/.env.example frontend/.env
 
-# 이벤트 추출기 환경 변수
+# イベント抽出機の環境変数
 cp event-extractor/.env.example event-extractor/.env
 ```
 
 
-### 3. 실행 (WSL 환경)
+### 3. 実行 (WSL環境)
 
 ```bash
-# Docker Compose로 전체 스택 실행
+# Docker Composeで全スタックを実行
 docker-compose up --build
 
-# 백그라운드 실행
+# バックグラウンド実行
 docker-compose up -d --build
 ```
 
-애플리케이션이 실행되면:
-- 프론트엔드: http://localhost:3000
-- 백엔드 API: http://localhost:8000
-- API 문서: http://localhost:8000/docs
+アプリケーションが実行されると:
+- フロントエンド: http://localhost:3000
+- バックエンドAPI: http://localhost:8000
+- APIドキュメント: http://localhost:8000/docs
 
-### 4. 개발 모드 (WSL)
+### 4. 開発モード (WSL)
 
-각 구성 요소를 개발 모드로 개별 실행할 수 있습니다.
+各コンポーネントを開発モードで個別に実行できます。
 
 ```bash
-# 백엔드 개발 서버
+# バックエンド開発サーバー
 cd backend
 python -m venv venv
 source venv/bin/activate  # WSL/Linux
 pip install -r requirements.txt
 uvicorn main:app --reload --host 0.0.0.0 --port 8000
 
-# 프론트엔드 개발 서버 (새 터미널)
+# フロントエンド開発サーバー (新ターミナル)
 cd frontend
 npm install --legacy-peer-deps
 npm start
 
-# 이벤트 추출기 파이프라인 (새 터미널)
+# イベント抽出機（新ターミナル）
 cd event-extractor
 python -m venv venv
 source venv/bin/activate
 pip install -r requirements.txt
-# .env 및 credentials.json 설정 필요
+# .envおよびcredentials.jsonの設定が必要
 python main.py
 ```
 
 
-## Synology NAS 배포
+## Synology NASへのデプロイ
 
-### Docker를 통한 배포
+### Dockerを使用したデプロイ
 
-1. Synology NAS에 SSH 접속
-2. 프로젝트 파일을 NAS에 복사
-3. Docker Compose 실행
+1. Synology NASにSSHで接続
+2. プロジェクトファイルをNASにコピー
+3. Docker Composeを実行
 
 ```bash
-# NAS에서 실행
+# NASで実行
 cd /volume1/docker/eventer-map
 docker-compose up -d --build
 ```
 
-### 포트 포워딩 설정
+### ポートフォワーディングの設定
 
-- 라우터에서 외부 포트를 NAS IP:3000으로 포워딩
-- 또는 역프록시(Nginx Proxy Manager 등) 사용
+- ルーターで外部ポートをNASのIP:3000にフォワーディング
+- またはリバースプロキシ(Nginx Proxy Managerなど)を使用
 
-### 보안 권장사항
+### セキュリティの推奨事項
 
-- Google Maps API 키에 도메인/IP 제한 설정
-- HTTPS 사용 (Let's Encrypt)
-- 환경 변수로 민감 정보 관리
+- Google Maps APIキーにドメイン/IPの制限を設定
+- HTTPSを使用 (Let's Encrypt)
+- 環境変数で機密情報を管理
 
-## Google Maps API 최적화
+## Google Maps APIの最適化
 
-자택 환경에서 API 비용을 최소화하기 위한 전략:
+自宅環境でAPIコストを最小限に抑えるための戦略:
 
-1. **Geocoding 캐싱**: 이벤트 등록 시 주소를 좌표로 변환하여 DB 저장
-2. **정적 마커**: 런타임에 불필요한 API 호출 방지
-3. **지도 재사용**: 한 번 로드한 지도 인스턴스 재사용
-4. **API 키 제한**: 특정 도메인/IP만 허용
+1. **Geocoding キャッシュ**: イベント登録時に住所を座標に変換してDBに保存
+2. **静的マーカー**: ランタイムでの不要なAPI呼び出しを防止
+3. **地図の再利用**: 一度ロードした地図インスタンスを再利用
+4. **APIキーの制限**: 特定のドメイン/IPのみを許可
 
-## API 엔드포인트
+## APIエンドポイント
 
-- `POST /events`: 이벤트 생성
-- `GET /events`: 모든 이벤트 조회
-- `GET /events/{id}`: 특정 이벤트 조회
-- `PUT /events/{id}`: 이벤트 수정
-- `DELETE /events/{id}`: 이벤트 삭제
-- `GET /events/by-date/{date}`: 특정 날짜의 이벤트 조회
+- `POST /events`: イベントの作成
+- `GET /events`: すべてのイベントの取得
+- `GET /events/{id}`: 特定のイベントの取得
+- `PUT /events/{id}`: イベントの修正
+- `DELETE /events/{id}`: イベントの削除
+- `GET /events/by-date/{date}`: 特定の日付のイベントの取得

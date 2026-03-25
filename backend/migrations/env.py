@@ -1,5 +1,6 @@
 from logging.config import fileConfig
 import os
+from dotenv import load_dotenv
 
 from sqlalchemy import engine_from_config
 from sqlalchemy import pool
@@ -8,6 +9,9 @@ from alembic import context
 
 # Alembic Config 객체로, .ini 파일의 값에 접근할 수 있습니다.
 config = context.config
+
+# .env 파일 로드
+load_dotenv()
 
 # DATABASE_URL 환경 변수로 sqlalchemy.url을 오버라이드
 # alembic.ini의 플레이스홀더 "driver://"가 사용되는 것을 방지합니다.

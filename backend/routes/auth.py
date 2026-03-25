@@ -185,7 +185,8 @@ async def google_callback(
         id_info = id_token.verify_oauth2_token(
             id_token_jwt,
             google_requests.Request(),
-            GOOGLE_CLIENT_ID
+            GOOGLE_CLIENT_ID,
+            clock_skew_in_seconds=10  # 구글 서버와의 미세한 시간 차이(데싱크) 허용
         )
         
         # 5. 사용자 찾기 또는 생성
