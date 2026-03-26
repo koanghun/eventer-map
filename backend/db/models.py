@@ -1,5 +1,5 @@
 from typing import Optional
-from sqlalchemy import String, Float, DateTime, Text, ForeignKey, Table, Column, Integer, func
+from sqlalchemy import String, Float, DateTime, Text, ForeignKey, Table, Column, Integer, func, Boolean
 from sqlalchemy.orm import relationship, Mapped, mapped_column
 from .database import Base
 from datetime import datetime
@@ -74,7 +74,7 @@ class Event(Base):
     created_by: Mapped[Optional[int]] = mapped_column(ForeignKey('users.id'))
     updated_by: Mapped[Optional[int]] = mapped_column(ForeignKey('users.id'))
     report_count: Mapped[int] = mapped_column(default=0)
-    is_hidden: Mapped[int] = mapped_column(default=0)  # SQLite에서는 Boolean이 Integer로 저장됨
+    is_hidden: Mapped[bool] = mapped_column(Boolean, default=False)
 
     # 관계 설정
     place: Mapped[Optional["Place"]] = relationship()
@@ -90,7 +90,7 @@ class User(Base):
     profile_image: Mapped[Optional[str]] = mapped_column(String)
     google_id: Mapped[Optional[str]] = mapped_column(String, unique=True, index=True)
     flagged_event_ids: Mapped[Optional[str]] = mapped_column(Text)  # JSON 배열: "[1, 5, 10]"
-    is_admin: Mapped[int] = mapped_column(default=0)  # SQLite에서는 Boolean이 Integer로 저장됨
+    is_admin: Mapped[bool] = mapped_column(Boolean, default=False)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     last_login: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), onupdate=func.now())
 
