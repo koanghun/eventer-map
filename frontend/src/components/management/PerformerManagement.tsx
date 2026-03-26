@@ -42,10 +42,12 @@ export default function PerformerManagement() {
             onSearchChange={setSearchQuery}
             isLoading={isLoading}
             actions={
-                <Button onClick={() => { setEditingPerformer(null); setIsModalOpen(true); }}>
-                    <Plus className="w-4 h-4 mr-2" />
-                    {t('management.performer.new')}
-                </Button>
+                user && (
+                    <Button onClick={() => { setEditingPerformer(null); setIsModalOpen(true); }}>
+                        <Plus className="w-4 h-4 mr-2" />
+                        {t('management.performer.new')}
+                    </Button>
+                )
             }
         >
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-3 p-4">
@@ -79,15 +81,17 @@ export default function PerformerManagement() {
                             </div>
 
                             <div className="absolute inset-y-0 right-0 flex items-center gap-1 px-2 bg-gradient-to-l from-card via-card to-transparent opacity-0 group-hover:opacity-100 transition-opacity rounded-r-xl">
-                                <Button
-                                    variant="ghost"
-                                    size="icon"
-                                    onClick={() => { setEditingPerformer(performer); setIsModalOpen(true); }}
-                                    className="h-7 w-7 text-muted-foreground hover:text-foreground"
-                                    title={t('buttons.edit')}
-                                >
-                                    <Edit className="w-3.5 h-3.5" />
-                                </Button>
+                                {user && (
+                                    <Button
+                                        variant="ghost"
+                                        size="icon"
+                                        onClick={() => { setEditingPerformer(performer); setIsModalOpen(true); }}
+                                        className="h-7 w-7 text-muted-foreground hover:text-foreground"
+                                        title={t('buttons.edit')}
+                                    >
+                                        <Edit className="w-3.5 h-3.5" />
+                                    </Button>
+                                )}
                                 {user?.is_admin && (
                                     <Button
                                         variant="ghost"

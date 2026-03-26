@@ -43,10 +43,12 @@ export default function PlaceManagement() {
             onSearchChange={setSearchQuery}
             isLoading={isLoading}
             actions={
-                <Button onClick={() => { setEditingPlace(null); setIsModalOpen(true); }}>
-                    <Plus className="w-4 h-4 mr-2" />
-                    {t('management.place.new')}
-                </Button>
+                user && (
+                    <Button onClick={() => { setEditingPlace(null); setIsModalOpen(true); }}>
+                        <Plus className="w-4 h-4 mr-2" />
+                        {t('management.place.new')}
+                    </Button>
+                )
             }
         >
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 3xl:grid-cols-6 gap-3 p-4">
@@ -98,15 +100,17 @@ export default function PlaceManagement() {
                                         <ExternalLink className="w-3.5 h-3.5" />
                                     </a>
                                 </Button>
-                                <Button
-                                    variant="ghost"
-                                    size="icon"
-                                    onClick={() => { setEditingPlace(place); setIsModalOpen(true); }}
-                                    className="h-7 w-7 text-muted-foreground hover:text-foreground"
-                                    title={t('buttons.edit')}
-                                >
-                                    <Edit className="w-3.5 h-3.5" />
-                                </Button>
+                                {user && (
+                                    <Button
+                                        variant="ghost"
+                                        size="icon"
+                                        onClick={() => { setEditingPlace(place); setIsModalOpen(true); }}
+                                        className="h-7 w-7 text-muted-foreground hover:text-foreground"
+                                        title={t('buttons.edit')}
+                                    >
+                                        <Edit className="w-3.5 h-3.5" />
+                                    </Button>
+                                )}
                                 {user?.is_admin && (
                                     <Button
                                         variant="ghost"

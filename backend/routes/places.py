@@ -162,7 +162,8 @@ def search_place(
 @router.post("/", response_model=PlaceResponse)
 def create_place(
     place: PlaceCreate,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: models.User = require_auth
 ):
     """
     새로운 장소를 저장합니다.
@@ -270,7 +271,8 @@ def get_all_places(db: Session = Depends(get_db)):
 def update_place(
     place_id: int, 
     place_data: PlaceUpdate, 
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: models.User = require_auth
 ):
     """장소 정보 수정"""
     db_place = db.query(Place).filter(Place.id == place_id).first()

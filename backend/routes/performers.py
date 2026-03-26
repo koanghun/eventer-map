@@ -7,7 +7,7 @@ from db import get_db
 from db import models
 from db import schemas
 from utils.normalization import normalize_text, aliases_to_json, json_to_aliases
-from utils.auth import require_admin
+from utils.auth import require_admin, require_auth
 
 router = APIRouter(prefix="/performers", tags=["performers"])
 
@@ -63,7 +63,11 @@ def check_duplicate_performer(name: str = Query(..., min_length=1), db: Session 
 
 
 @router.post("/", response_model=schemas.PerformerResponse)
-def create_performer(performer: schemas.PerformerCreate, db: Session = Depends(get_db)):
+def create_performer(
+    performer: schemas.PerformerCreate, 
+    db: Session = Depends(get_db),
+    current_user: models.User = require_auth
+):
     """
     새 출연자 생성
     
@@ -198,7 +202,8 @@ def search_performers(query: str = Query(..., min_length=1), db: Session = Depen
 def update_performer(
     performer_id: int, 
     performer_data: schemas.PerformerUpdate, 
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: models.User = require_auth
 ):
     """출연자 정보 수정"""
     db_performer = db.query(models.Performer).filter(models.Performer.id == performer_id).first()
