@@ -49,7 +49,26 @@ def parse_args() -> argparse.Namespace:
         action="store_true",
         help="Gmail 조회만 수행하고 AI 분석은 건너뜀",
     )
+    parser.add_argument(
+        "--interactive",
+        action="store_true",
+        help="데이터 저장 전 사용자 확인 단계 추가",
+    )
     return parser.parse_args()
+
+
+def confirm_step(prompt: str) -> bool:
+    """사용자에게 진행 여부를 확인합니다."""
+    while True:
+        try:
+            resp = input(f"❓ {prompt} (y/n): ").strip().lower()
+            if resp in ("y", "yes"):
+                return True
+            if resp in ("n", "no"):
+                return False
+            print("   'y' 또는 'n'을 입력해주세요.")
+        except EOFError:
+            return False
 
 
 def main() -> None:
@@ -123,16 +142,37 @@ def main() -> None:
                                 event.location)
                     
                     # A. 장소 해결 (Place ID 획득)
+                    if args.interactive:
+                        if not confirm_step(f"장소를 확인하시겠습니까? ({event.location})"):
+                            logger.info("   ⏭️ 장소 해결 건너뜀")
+                            continue
+                    
                     place_id = api_client.resolve_place(event.location)
+                    if not place_id:
+                        logger.warning("   ⚠️ 장소를 해결하지 못해 이벤트를 건너뜁니다.")
+                        continue
                         
                     # B. 출연자 해결 (Performer IDs 획득)
                     performer_ids = []
                     for performer_name in event.performers:
+                        if args.interactive:
+                            if not confirm_step(f"출연자를 등록/확인하시겠습니까? ({performer_name})"):
+                                logger.info("   ⏭️ 출연자 ({performer_name}) 건너뜀")
+                                continue
+                        
                         p_id = api_client.resolve_performer(performer_name)
                         if p_id:
                             performer_ids.append(p_id)
                             
                     # C. 이벤트 백엔드 동기화 (중복 체크 포함)
+                    if args.interactive:
+                        print(f"\n   [최종 검토] 이벤트: {event.title}")
+                        print(f"   📅 날짜: {event.event_date} | 📍 장소 ID: {place_id}")
+                        print(f"   👥 출연자 ID 목록: {performer_ids}")
+                        if not confirm_step("이 이벤트를 백엔드에 동기화하시겠습니까?"):
+                            logger.info("   ⏭️ 이벤트 동기화 건너뜀")
+                            continue
+
                     if api_client.sync_event(event, place_id, performer_ids):
                         sync_success += 1
                 
