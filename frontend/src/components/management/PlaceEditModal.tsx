@@ -1,10 +1,10 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { Place, PlaceUpdate } from '../../hooks/usePlaceData';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '../ui/dialog';
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
 import { Label } from '../ui/label';
-import { X, Plus, MapPin } from 'lucide-react';
+import { X, Plus } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 
 interface PlaceEditModalProps {
@@ -71,7 +71,7 @@ export default function PlaceEditModal({
             onClose();
         } catch (error) {
             console.error('Failed to save place:', error);
-            alert('저장에 실패했습니다.');
+            alert(t('management.place.saveError'));
         } finally {
             setIsSubmitting(false);
         }
@@ -81,7 +81,7 @@ export default function PlaceEditModal({
         <Dialog open={isOpen} onOpenChange={onClose}>
             <DialogContent className="sm:max-w-[500px]">
                 <DialogHeader>
-                    <DialogTitle>{place ? '장소 정보 수정' : '신규 장소 등록'}</DialogTitle>
+                    <DialogTitle>{place ? t('management.place.edit') : t('management.place.new')}</DialogTitle>
                 </DialogHeader>
                 <div className="grid gap-4 py-4">
                     <div className="grid gap-2">

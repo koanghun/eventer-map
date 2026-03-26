@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { Performer, PerformerUpdate } from '../../hooks/usePerformerData';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '../ui/dialog';
 import { Button } from '../ui/button';
@@ -59,7 +59,7 @@ export default function PerformerEditModal({
             onClose();
         } catch (error) {
             console.error('Failed to save performer:', error);
-            alert('저장에 실패했습니다.');
+            alert(t('management.performer.saveError'));
         } finally {
             setIsSubmitting(false);
         }

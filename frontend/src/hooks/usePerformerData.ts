@@ -5,8 +5,8 @@ const API_URL = process.env.REACT_APP_API_URL || '';
 
 export interface Performer {
     id: number;
-    canonical_name: str;
-    normalized_name: str;
+    canonical_name: string;
+    normalized_name: string;
     aliases: string[];
     created_at: string;
 }

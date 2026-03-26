@@ -78,7 +78,7 @@ export default function AppContent() {
             <div className="min-h-screen flex flex-col bg-background text-foreground transition-colors duration-300">
                 
                 <header className="sticky top-0 z-50 w-full bg-background/80 backdrop-blur-md border-b border-border shadow-sm px-4 md:px-8 py-3 flex flex-col md:flex-row justify-between items-center gap-4 transition-all duration-300">
-                    <div className="flex flex-col md:flex-row items-center gap-2 md:gap-4 text-center md:text-left">
+                    <div className="flex-1 flex flex-col md:flex-row items-center gap-2 md:gap-4 text-center md:text-left justify-start">
                         <div className="flex items-center gap-2">
                             <MapIcon className="w-6 h-6 text-primary" />
                             <h1 className="text-xl md:text-2xl font-bold text-primary tracking-tight">
@@ -91,35 +91,37 @@ export default function AppContent() {
                         <p className="text-sm text-muted-foreground hidden md:block">{t('header.subtitle')}</p>
                     </div>
 
-                    <div className="flex items-center gap-2 mr-auto hidden lg:flex">
-                        <Button
-                            variant={view === 'map' ? "default" : "ghost"}
-                            size="sm"
-                            onClick={() => setView('map')}
-                            className="rounded-full h-8 px-4"
-                        >
-                            <MapIcon className="w-4 h-4 mr-2" />
-                            {t('nav.map', '지도')}
-                        </Button>
-                        <Button
-                            variant={view === 'performers' ? "default" : "ghost"}
-                            size="sm"
-                            onClick={() => setView('performers')}
-                            className="rounded-full h-8 px-4"
-                        >
-                            {t('nav.performers', '출연자')}
-                        </Button>
-                        <Button
-                            variant={view === 'places' ? "default" : "ghost"}
-                            size="sm"
-                            onClick={() => setView('places')}
-                            className="rounded-full h-8 px-4"
-                        >
-                            {t('nav.places', '장소')}
-                        </Button>
+                    <div className="flex-1 hidden lg:flex justify-center">
+                        <div className="flex items-center gap-2">
+                            <Button
+                                variant={view === 'map' ? "default" : "ghost"}
+                                size="sm"
+                                onClick={() => setView('map')}
+                                className="rounded-full h-8 px-4"
+                            >
+                                <MapIcon className="w-4 h-4 mr-2" />
+                                {t('nav.map', '지도')}
+                            </Button>
+                            <Button
+                                variant={view === 'performers' ? "default" : "ghost"}
+                                size="sm"
+                                onClick={() => setView('performers')}
+                                className="rounded-full h-8 px-4"
+                            >
+                                {t('nav.performers', '출연자')}
+                            </Button>
+                            <Button
+                                variant={view === 'places' ? "default" : "ghost"}
+                                size="sm"
+                                onClick={() => setView('places')}
+                                className="rounded-full h-8 px-4"
+                            >
+                                {t('nav.places', '장소')}
+                            </Button>
+                        </div>
                     </div>
                     
-                    <div className="flex items-center gap-3">
+                    <div className="flex-1 flex items-center justify-end gap-3">
                         <select
                             value={language}
                             onChange={(e) => changeLanguage(e.target.value as 'ko' | 'ja')}

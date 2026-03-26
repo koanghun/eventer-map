@@ -68,7 +68,7 @@ export default function SingleEventInfoWindow({
                             <MapPin className="w-4 h-4 text-primary/70 mt-0.5" />
                             <div>
                                 <a
-                                    href={`https://www.google.com/maps/search/?api=1&query=${event.place?.latitude ?? event.latitude},${event.place?.longitude ?? event.longitude}`}
+                                    href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${event.place?.canonical_name || event.location}${event.address ? ` ${event.address}` : ''}`)}`}
                                     target="_blank"
                                     rel="noopener noreferrer"
                                     className="text-foreground hover:text-primary hover:underline underline-offset-2 transition-colors break-words font-medium"

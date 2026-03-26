@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import { useState, useMemo } from 'react';
 import ManagementLayout from './ManagementLayout';
 import { usePerformerData, Performer } from '../../hooks/usePerformerData';
 import { useAuth } from '../../context/AuthContext';
@@ -48,56 +48,55 @@ export default function PerformerManagement() {
                 </Button>
             }
         >
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 p-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-3 p-4">
                 {filteredPerformers.length > 0 ? (
                     filteredPerformers.map((performer) => (
                         <div
                             key={performer.id}
-                            className="bg-card border border-border/50 rounded-xl p-4 flex flex-col justify-between hover:shadow-md transition-shadow group"
+                            className="bg-card border border-border/50 rounded-xl p-3 flex items-center justify-between hover:border-primary/30 hover:shadow-sm transition-all group relative"
                         >
-                            <div>
-                                <div className="flex items-center gap-3 mb-2">
-                                    <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-primary">
-                                        <UserIcon className="w-5 h-5" />
-                                    </div>
-                                    <h3 className="font-bold text-foreground line-clamp-1">
+                            <div className="flex items-center gap-3 overflow-hidden">
+                                <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-primary shrink-0">
+                                    <UserIcon className="w-4 h-4" />
+                                </div>
+                                <div className="min-w-0">
+                                    <h3 className="font-bold text-foreground text-sm line-clamp-1">
                                         {performer.canonical_name}
                                     </h3>
-                                </div>
-                                <div className="flex flex-wrap gap-1 mb-4">
-                                    {performer.aliases && performer.aliases.length > 0 ? (
-                                        performer.aliases.slice(0, 3).map((alias, i) => (
-                                            <span key={i} className="text-[10px] bg-muted px-1.5 py-0.5 rounded text-muted-foreground">
-                                                {alias}
-                                            </span>
-                                        ))
-                                    ) : (
-                                        <span className="text-[10px] text-muted-foreground italic">{t('management.performer.noAliases')}</span>
-                                    )}
-                                    {performer.aliases && performer.aliases.length > 3 && (
-                                        <span className="text-[10px] text-muted-foreground">+{performer.aliases.length - 3}</span>
-                                    )}
+                                    <div className="flex flex-wrap gap-1 mt-0.5">
+                                        {performer.aliases && performer.aliases.length > 0 ? (
+                                            performer.aliases.slice(0, 2).map((alias, i) => (
+                                                <span key={i} className="text-[9px] bg-muted/50 px-1 py-0.5 rounded text-muted-foreground truncate max-w-[60px]">
+                                                    {alias}
+                                                </span>
+                                            ))
+                                        ) : null}
+                                        {performer.aliases && performer.aliases.length > 2 && (
+                                            <span className="text-[9px] text-muted-foreground/60">+{performer.aliases.length - 2}</span>
+                                        )}
+                                    </div>
                                 </div>
                             </div>
-                            <div className="flex items-center justify-end gap-2 border-t border-border/30 pt-3">
+
+                            <div className="absolute inset-y-0 right-0 flex items-center gap-1 px-2 bg-gradient-to-l from-card via-card to-transparent opacity-0 group-hover:opacity-100 transition-opacity rounded-r-xl">
                                 <Button
                                     variant="ghost"
-                                    size="sm"
+                                    size="icon"
                                     onClick={() => { setEditingPerformer(performer); setIsModalOpen(true); }}
-                                    className="h-8 px-2 text-muted-foreground hover:text-foreground"
+                                    className="h-7 w-7 text-muted-foreground hover:text-foreground"
+                                    title={t('buttons.edit')}
                                 >
-                                    <Edit className="w-3.5 h-3.5 mr-1" />
-                                    수정
+                                    <Edit className="w-3.5 h-3.5" />
                                 </Button>
                                 {user?.is_admin && (
                                     <Button
                                         variant="ghost"
-                                        size="sm"
+                                        size="icon"
                                         onClick={() => handleDelete(performer.id, performer.canonical_name)}
-                                        className="h-8 px-2 text-destructive hover:text-destructive hover:bg-destructive/10"
+                                        className="h-7 w-7 text-destructive hover:text-destructive hover:bg-destructive/10"
+                                        title={t('buttons.delete')}
                                     >
-                                        <Trash2 className="w-3.5 h-3.5 mr-1" />
-                                        삭제
+                                        <Trash2 className="w-3.5 h-3.5" />
                                     </Button>
                                 )}
                             </div>
