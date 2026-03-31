@@ -104,7 +104,7 @@ def get_current_user_or_internal(
             system_user = models.User(
                 email="system@eventer", 
                 name="System Pipeline", 
-                is_admin=1
+                is_admin=True
             )
             db.add(system_user)
             db.commit()

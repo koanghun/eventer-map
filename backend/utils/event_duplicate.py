@@ -261,7 +261,7 @@ def find_duplicate_events(
     # 같은 날짜의 이벤트만 조회 (숨김 처리된 이벤트 제외)
     query = db.query(models.Event).filter(
         models.Event.event_date == event_data.event_date,
-        models.Event.is_hidden == 0
+        models.Event.is_hidden == False
     )
     
     if exclude_id:

@@ -128,7 +128,7 @@ def create_event(
 @router.get("/", response_model=List[schemas.EventResponse])
 def get_events(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
     """모든 이벤트 조회"""
-    events = db.query(models.Event).filter(models.Event.is_hidden == 0).offset(skip).limit(limit).all()
+    events = db.query(models.Event).filter(models.Event.is_hidden == False).offset(skip).limit(limit).all()
     return events
 
 
@@ -137,7 +137,7 @@ def get_events_by_date(event_date: str, db: Session = Depends(get_db)):
     """특정 날짜의 이벤트 조회 (YYYY-MM-DD 형식)"""
     events = db.query(models.Event).filter(
         models.Event.event_date == event_date,
-        models.Event.is_hidden == 0
+        models.Event.is_hidden == False
     ).all()
     return events
 
@@ -147,7 +147,7 @@ def get_event(event_id: int, db: Session = Depends(get_db)):
     """특정 이벤트 조회"""
     event = db.query(models.Event).filter(
         models.Event.id == event_id,
-        models.Event.is_hidden == 0
+        models.Event.is_hidden == False
     ).first()
     if not event:
         raise HTTPException(
@@ -167,7 +167,7 @@ def update_event(
     """이벤트 수정"""
     db_event = db.query(models.Event).filter(
         models.Event.id == event_id,
-        models.Event.is_hidden == 0
+        models.Event.is_hidden == False
     ).first()
     if not db_event:
         raise HTTPException(
@@ -221,7 +221,7 @@ def delete_event(
     create_event_history(db, db_event, current_user, 'deleted')
     
     # 논리 삭제 (Soft Delete) 적용
-    db_event.is_hidden = 1
+    db_event.is_hidden = True
     db.commit()
     return None
 
@@ -246,7 +246,7 @@ def check_duplicate_event(event_data: schemas.EventCreate, db: Session = Depends
     # 같은 날짜의 이벤트 조회
     existing_events = db.query(models.Event).filter(
         models.Event.event_date == event_data.event_date,
-        models.Event.is_hidden == 0
+        models.Event.is_hidden == False
     ).all()
     
     if not existing_events:
@@ -364,7 +364,7 @@ def report_event(
     
     # 일정 신고 수 이상이면 자동 숨김
     if event.report_count >= 5:
-        event.is_hidden = 1
+        event.is_hidden = True
     
     db.commit()
     db.refresh(report)
