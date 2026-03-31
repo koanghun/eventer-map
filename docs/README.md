@@ -1,203 +1,32 @@
-# Event Map 프로젝트 문서
+# Eventer Map Documentation (이벤트 맵 공식 문서)
 
-이 디렉토리에는 Event Map 프로젝트의 모든 문서가 포함되어 있습니다.
+이벤트 맵 프로젝트의 개발 및 운영에 필요한 최신 가이드라인을 제공합니다.
 
-## 📚 핵심 문서
+## 🚀 주요 문서 가이드
 
-### 1. [PROJECT_OVERVIEW.md](./PROJECT_OVERVIEW.md) ⭐
-**프로젝트 전체 개요**
-- 프로젝트 목표 및 핵심 기능
-- 기술 스택 및 아키텍처
-- UI/UX 특징
-- Google Maps API 최적화 전략
-
-👉 **이 문서를 가장 먼저 읽으세요!** 프로젝트의 전체 그림을 파악할 수 있습니다.
+| 문서 명칭 | 설명 |
+| :--- | :--- |
+| **[개발 가이드 (DEVELOPMENT.md)](./DEVELOPMENT.md)** | 로컬 개발 환경 구축, 환경 변수 설정, DB 관리, 트러블슈팅 및 프론트엔드 스타일 가이드 |
+| **[배포 및 운영 가이드 (DEPLOYMENT.md)](./DEPLOYMENT.md)** | 시놀로지 NAS 배포 절차, 도메인/네트워크 설정, DB 백업 및 복구 절차 |
+| **[기능 및 설계 문서 (FEATURES.md)](./performer-place-manager.md)** | 연주자/장소 관리 기능 등 프로젝트의 주요 기능 상세 설명 및 설계 철학 |
 
 ---
 
-### 2. [CURRENT_STATUS.md](./CURRENT_STATUS.md) ⭐
-**현재 상태 및 다음 계획**
-- 전체 진행 상황 (진행률)
-- 완료된 작업 목록
-- 다음 단계 우선순위
-- 알려진 이슈 및 개선 아이디어
+## 🛠️ 프로젝트 기술 스택
 
-👉 **개발을 시작하기 전에 항상 확인하세요!**
+- **Backend**: FastAPI (Python 3.11), SQLAlchemy 2.0, Alembic
+- **Frontend**: React (TypeScript), Tailwind CSS, shadcn/ui, TanStack Query
+- **Database**: PostgreSQL (Production), SQLite (Development)
+- **Infrastructure**: Docker, Docker Compose, Synology NAS
 
 ---
 
-## 📂 문서 디렉토리
+## 📂 문서 관리 규칙
 
-### 📅 [개발 일지](./logs/)
-시간순 개발 활동 기록 (연도/월별 구조)
-- [2025년 11월](./logs/2025/11-November.md)
-
-### ⚙️ [설정 가이드](./setup/)
-개발 및 프로덕션 환경 설정
-- [개발 환경 설정](./setup/DEVELOPMENT.md) - Docker + SSH 통합
-- [환경 변수](./setup/ENVIRONMENT_VARIABLES.md)
-- [Google OAuth 설정](./setup/GOOGLE_OAUTH_SETUP.md)
-- [트러블슈팅](./setup/TROUBLESHOOTING.md)
-
-### 🚀 [배포 가이드](./deployment/)
-프로덕션 환경 배포
-- [배포 가이드](./deployment/DEPLOYMENT_GUIDE.md) - Docker Compose + Synology NAS
-
-### 🔧 [운영 가이드](./operations/)
-백업 및 유지보수
-- [백업 가이드](./operations/backup-guide.md) - 자동 백업 및 복원
-- [세션 종료](./operations/SESSION_CLOSING.md)
-
-### 🔍 [기술 결정](./decisions/)
-주제별 기술적 의사결정
-- [아키텍처](./decisions/architecture.md)
-- [데이터베이스](./decisions/database.md)
-- [프론트엔드](./decisions/frontend.md)
-- [인프라/배포](./decisions/infrastructure.md)
-- [최적화](./decisions/optimization.md)
-- [중복 검사](./decisions/deduplication.md)
-
-### 📐 [설계 문서](./designs/)
-주요 기능의 상세 설계
-- [이벤트 중복 검사 시스템](./designs/event-duplicate-detection.md)
-- [OAuth 시퀀스](./designs/OAUTH_SEQUENCE.md)
-
-### 🔬 [분석 문서](./analysis/)
-코드 분석 및 리팩토링
-- [handleEmployeeSelectionToggle 분석](./analysis/handleEmployeeSelectionToggle.md)
+- **최신성 유지**: 모든 문서는 실제 코드 변경 사항에 맞춰 실시간으로 업데이트되어야 합니다.
+- **간결함**: 불필모한 중복 문서는 삭제하고 이 핵심 문서 3종을 중심으로 관리합니다.
+- **언어**: 모든 공식 문서는 한국어(KR)를 우선적으로 사용합니다.
 
 ---
 
-## 🤖 AI 어시스턴트 가이드
-
-새로운 개발 세션을 시작할 때 **이 순서**로 문서를 읽으세요:
-
-1. **PROJECT_OVERVIEW.md** - 프로젝트 전체 맥락 파악
-2. **CURRENT_STATUS.md** - 현재 상태 및 다음 할 일 확인
-3. **logs/2025/11-November.md** (최근 항목만) - 최근 작업 내역
-4. **decisions/** (필요시) - 기술적 결정 배경 이해
-
----
-
-## 👤 사용자 가이드
-
-### 처음 프로젝트를 접하는 경우
-1. [PROJECT_OVERVIEW.md](./PROJECT_OVERVIEW.md) 읽기
-2. [메인 README.md](../README.md) 읽기
-3. [CURRENT_STATUS.md](./CURRENT_STATUS.md)에서 현재 상태 확인
-
-### 개발 환경 설정
-1. [개발 환경 설정](./setup/DEVELOPMENT.md) 따라하기
-2. [환경 변수](./setup/ENVIRONMENT_VARIABLES.md) 설정
-3. 문제 발생 시 [트러블슈팅](./setup/TROUBLESHOOTING.md) 참고
-
-### 프로덕션 배포
-1. [배포 가이드](./deployment/DEPLOYMENT_GUIDE.md) 읽기
-2. 환경 변수 및 API 키 설정
-3. Docker Compose 또는 Container Manager로 배포
-4. [백업 시스템](./operations/backup-guide.md) 설정
-
-### 개발을 재개하는 경우
-1. [CURRENT_STATUS.md](./CURRENT_STATUS.md)에서 다음 단계 확인
-2. 필요시 [logs/](./logs/)에서 최근 기록 확인
-
-### 기술적 질문이 있는 경우
-1. [decisions/](./decisions/)에서 관련 주제 문서 찾기
-2. 없으면 해당 주제 문서에 새 Q&A 추가
-
----
-
-## 📝 문서 업데이트 규칙
-
-### 개발 일지 (logs/)
-- 주요 작업 완료 시마다 기록
-- 월별 파일에 날짜별로 구분하여 작성
-- 변경 파일 명시
-- 이슈 및 해결 방법 기록
-
-### 기술 결정 (decisions/)
-- 중요한 기술적 결정을 내릴 때마다 기록
-- 해당 주제의 문서에 Q&A 형식으로 추가
-- 결정 이유와 대안 명시
-- 날짜 기록
-
-### 현재 상태 (CURRENT_STATUS.md)
-- 작업 시작/완료 시마다 체크리스트 업데이트
-- 진행률 업데이트
-- 다음 단계 우선순위 조정
-- 날짜 업데이트
-
-### 프로젝트 개요 (PROJECT_OVERVIEW.md)
-- 프로젝트의 근본적인 변경이 있을 때만 수정
-- 초기 목표와 방향성 유지
-
----
-
-## 🔄 문서 버전 관리
-
-모든 문서는 Git으로 버전 관리됩니다.
-
-**권장 커밋 메시지 형식**:
-```
-docs: [카테고리] 업데이트 내용 요약
-
-- 상세 변경 내역 1
-- 상세 변경 내역 2
-```
-
-예시:
-```
-docs: logs 2025년 11월 개발 환경 설정 완료 기록
-
-- Google Maps API 키 발급 완료
-- WSL 환경 설정 및 테스트
-```
-
----
-
-## 📊 문서 구조
-
-```
-docs/
-├── README.md                    # 이 문서
-├── PROJECT_OVERVIEW.md          # 프로젝트 개요
-├── CURRENT_STATUS.md            # 현재 상태
-│
-├── setup/                       # 설정 가이드
-│   ├── README.md
-│   ├── DEVELOPMENT.md           # 개발 환경 설정
-│   ├── ENVIRONMENT_VARIABLES.md
-│   ├── GOOGLE_OAUTH_SETUP.md
-│   └── TROUBLESHOOTING.md
-│
-├── deployment/                  # 배포 가이드
-│   ├── README.md
-│   └── DEPLOYMENT_GUIDE.md      # 프로덕션 배포
-│
-├── operations/                  # 운영 가이드
-│   ├── README.md
-│   ├── backup-guide.md
-│   └── SESSION_CLOSING.md
-│
-├── decisions/                   # 기술 결정
-│   ├── README.md
-│   ├── architecture.md
-│   ├── database.md
-│   ├── frontend.md
-│   ├── infrastructure.md
-│   ├── optimization.md
-│   └── deduplication.md
-│
-├── designs/                     # 설계 문서
-│   ├── README.md
-│   ├── event-duplicate-detection.md
-│   └── OAUTH_SEQUENCE.md
-│
-├── analysis/                    # 분석 문서
-│   └── handleEmployeeSelectionToggle.md
-│
-└── logs/                        # 개발 일지
-    ├── README.md
-    └── 2025/
-        └── 11-November.md
-```
+**ⓒ 2026 Eventer Map Team. All rights reserved.**
