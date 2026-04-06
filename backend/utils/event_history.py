@@ -41,7 +41,7 @@ def create_event_history(
         "door_time": str(event.door_time) if event.door_time else None,
         "start_time": str(event.start_time) if event.start_time else None,
         "end_time": str(event.end_time) if event.end_time else None,
-        "performers": event.performers,
+        "performers": [p.canonical_name for p in event.performers_rel] if getattr(event, 'performers_rel', None) else [],
         "related_link": event.related_link
     }
     

@@ -38,7 +38,7 @@ export function useEventData(selectedDate: string, showFlagsOnly: boolean) {
         // 출연자 필터링 (공통)
         if (selectedPerformer) {
             filtered = filtered.filter(event =>
-                event.performers?.includes(selectedPerformer)
+                (event.performers_list as any[])?.some((p: any) => p.canonical_name === selectedPerformer) ?? false
             );
         }
 

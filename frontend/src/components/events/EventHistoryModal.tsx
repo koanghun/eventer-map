@@ -169,7 +169,9 @@ export default function EventHistoryModal({ eventId, onClose }: EventHistoryModa
                                                             {changedFields.map(([key, value]) => (
                                                                 <div key={key} className="text-sm border-l-2 border-primary/30 pl-3">
                                                                     <div className="text-xs text-muted-foreground mb-1">{getFieldLabel(key)}</div>
-                                                                    <div className="font-medium whitespace-pre-wrap">{value || <span className="text-muted-foreground italic">{t('eventDetail.history.empty')}</span>}</div>
+                                                                    <div className="font-medium whitespace-pre-wrap">
+                                                                        {Array.isArray(value) ? value.join(', ') : (value || <span className="text-muted-foreground italic">{t('eventDetail.history.empty')}</span>)}
+                                                                    </div>
                                                                 </div>
                                                             ))}
                                                         </div>
@@ -181,12 +183,16 @@ export default function EventHistoryModal({ eventId, onClose }: EventHistoryModa
                                                                     <div className="grid grid-cols-[1fr_auto_1fr] gap-3 items-start bg-muted/30 p-2 rounded-md">
                                                                         <div className="break-words">
                                                                             <span className="text-[10px] uppercase text-muted-foreground block mb-0.5">{t('eventDetail.history.before')}</span>
-                                                                            <span className="text-destructive/80 line-through">{oldValue || <span className="italic">{t('eventDetail.history.empty')}</span>}</span>
+                                                                            <span className="text-destructive/80 line-through">
+                                                                                {Array.isArray(oldValue) ? oldValue.join(', ') : (oldValue || <span className="italic">{t('eventDetail.history.empty')}</span>)}
+                                                                            </span>
                                                                         </div>
                                                                         <ArrowRight className="w-4 h-4 mt-4 text-muted-foreground shrink-0" />
                                                                         <div className="break-words">
                                                                             <span className="text-[10px] uppercase text-muted-foreground block mb-0.5">{t('eventDetail.history.after')}</span>
-                                                                            <span className="text-green-600 font-medium">{newValue || <span className="italic">{t('eventDetail.history.empty')}</span>}</span>
+                                                                            <span className="text-green-600 font-medium">
+                                                                                {Array.isArray(newValue) ? newValue.join(', ') : (newValue || <span className="italic">{t('eventDetail.history.empty')}</span>)}
+                                                                            </span>
                                                                         </div>
                                                                     </div>
                                                                 </div>

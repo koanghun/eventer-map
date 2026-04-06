@@ -1,0 +1,4 @@
+  File "<string>", line 1
+    import os, googlemaps, sys; from dotenv import load_dotenv; load_dotenv(); key = os.getenv("REACT_APP_GOOGLE_MAPS_API_KEY"); client = googlemaps.Client(key=key); fields = ['name', 'formatted_address', 'geometry', 'address_components', 'types']; try: response = client.place(place_id='ChIJeVmAOuphGGARoWY4-GPmhhA', language='ja', fields=fields); print(response); except Exception as e: print(f'ERROR: {e}'); sys.exit(1)
+                                                                                                                                                                                                                                                         ^^^
+SyntaxError: invalid syntax

@@ -49,7 +49,6 @@ class EventBase(BaseModel):
     start_time: Optional[str] = Field(None, pattern=r'^\d{2}:\d{2}$')  # 개연 HH:MM
     end_time: Optional[str] = Field(None, pattern=r'^\d{2}:\d{2}$')  # 종연 HH:MM
     place_id: Optional[int] = None  # 연결된 장소 ID
-    performers: Optional[str] = None  # 기존 문자열 필드 (하위호환)
     performer_ids: Optional[List[int]] = []  # 출연자 ID 배열 (권장)
     related_link: Optional[str] = Field(None, max_length=500)
     
@@ -74,7 +73,6 @@ class EventUpdate(BaseModel):
     start_time: Optional[str] = Field(None, pattern=r'^\d{2}:\d{2}$')  # 개연
     end_time: Optional[str] = Field(None, pattern=r'^\d{2}:\d{2}$')  # 종연
     place_id: Optional[int] = None
-    performers: Optional[str] = None
     performer_ids: Optional[List[int]] = []
     related_link: Optional[str] = Field(None, max_length=500)
 
@@ -83,7 +81,7 @@ class EventResponse(EventBase):
     id: int
     created_at: datetime
     updated_at: Optional[datetime] = None
-    performers_list: List[PerformerResponse] = Field(default=[], validation_alias="performers_rel")  # ORM의 performers_rel → JSON의 performers_list
+    performers_list: List[PerformerResponse] = Field(default=[], alias="performers_rel", serialization_alias="performers_list")
     place: Optional["PlaceResponse"] = None  # 연결된 장소 정보
     
     # 추적 필드

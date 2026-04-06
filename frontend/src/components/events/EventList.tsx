@@ -112,10 +112,12 @@ function EventList({ events, loading, onEventEdit, onEventDelete }: EventListPro
                                         </span>
                                     </div>
 
-                                    {event.performers && (
+                                    {event.performers_list && event.performers_list.length > 0 && (
                                         <div className="flex items-start gap-2 text-muted-foreground mt-2 pt-2 border-t border-border/50">
                                             <Mic2 className="h-4 w-4 shrink-0 mt-0.5 text-primary/70" />
-                                            <span className="line-clamp-2">{event.performers}</span>
+                                            <span className="line-clamp-2">
+                                                {event.performers_list.map(p => p.canonical_name).join(', ')}
+                                            </span>
                                         </div>
                                     )}
                                 </div>

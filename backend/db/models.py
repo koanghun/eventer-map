@@ -65,7 +65,6 @@ class Event(Base):
     # 위치 정보 (Place 모델 외래키로 대체)
     place_id: Mapped[Optional[int]] = mapped_column(ForeignKey('places.id'))
     
-    performers: Mapped[Optional[str]] = mapped_column(String)  # 기존 문자열 컬럼 (백업용/호환성용)
     related_link: Mapped[Optional[str]] = mapped_column(String)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     updated_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), onupdate=func.now())

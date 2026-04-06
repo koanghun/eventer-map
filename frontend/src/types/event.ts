@@ -35,7 +35,7 @@ export interface Event {
     address?: string;   // DEPRECATED
     latitude?: number;  // DEPRECATED
     longitude?: number; // DEPRECATED
-    performers?: string;
+    performers_list?: Performer[]; // 출연자 객체 목록 (관계 데이터)
     performer_ids?: number[];  // 출연자 ID 배열 (권장)
     related_link?: string;
     created_at?: string;
@@ -89,7 +89,6 @@ export interface EventFormData {
     address: string;
     latitude: number;
     longitude: number;
-    performers: string;
     performer_ids: number[];
     related_link: string;
 }

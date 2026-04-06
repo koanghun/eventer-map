@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 from typing import List
 from db import get_db
 from db import models
@@ -87,7 +87,11 @@ def sync_event(
     create_event_history(db, db_event, current_user, 'created')
     db.commit()
     
-    return db_event
+    # 관계 데이터와 함께 다시 조회하여 반환
+    return db.query(models.Event).options(
+        joinedload(models.Event.performers_rel),
+        joinedload(models.Event.place)
+    ).filter(models.Event.id == db_event.id).first()
 
 
 
@@ -128,14 +132,20 @@ def create_event(
 @router.get("/", response_model=List[schemas.EventResponse])
 def get_events(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
     """모든 이벤트 조회"""
-    events = db.query(models.Event).filter(models.Event.is_hidden == False).offset(skip).limit(limit).all()
+    events = db.query(models.Event).options(
+        joinedload(models.Event.performers_rel),
+        joinedload(models.Event.place)
+    ).filter(models.Event.is_hidden == False).offset(skip).limit(limit).all()
     return events
 
 
 @router.get("/by-date/{event_date}", response_model=List[schemas.EventResponse])
 def get_events_by_date(event_date: str, db: Session = Depends(get_db)):
     """특정 날짜의 이벤트 조회 (YYYY-MM-DD 형식)"""
-    events = db.query(models.Event).filter(
+    events = db.query(models.Event).options(
+        joinedload(models.Event.performers_rel),
+        joinedload(models.Event.place)
+    ).filter(
         models.Event.event_date == event_date,
         models.Event.is_hidden == False
     ).all()
@@ -145,7 +155,10 @@ def get_events_by_date(event_date: str, db: Session = Depends(get_db)):
 @router.get("/{event_id}", response_model=schemas.EventResponse)
 def get_event(event_id: int, db: Session = Depends(get_db)):
     """특정 이벤트 조회"""
-    event = db.query(models.Event).filter(
+    event = db.query(models.Event).options(
+        joinedload(models.Event.performers_rel),
+        joinedload(models.Event.place)
+    ).filter(
         models.Event.id == event_id,
         models.Event.is_hidden == False
     ).first()

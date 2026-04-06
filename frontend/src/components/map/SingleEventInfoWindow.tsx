@@ -122,10 +122,12 @@ export default function SingleEventInfoWindow({
                                 </>
                             )}
 
-                            {event.performers && (
+                            {event.performers_list && event.performers_list.length > 0 && (
                                 <>
                                     <Mic2 className="w-4 h-4 text-primary/70 mt-0.5" />
-                                    <div className="text-foreground">{event.performers}</div>
+                                    <div className="text-foreground">
+                                        {event.performers_list.map(p => p.canonical_name).join(', ')}
+                                    </div>
                                 </>
                             )}
                         </div>

@@ -34,7 +34,7 @@ def get_place_details(place_id: str, language: str = 'ja') -> Optional[Dict[str,
         
     try:
         # 필요한 필드 명시 (요금 중복 청구 방지 및 응답 속도 최적화)
-        fields = ['name', 'formatted_address', 'geometry', 'address_components', 'types']
+        fields = ['name', 'formatted_address', 'geometry', 'address_component', 'type']
         
         response = client.place(
             place_id=place_id,

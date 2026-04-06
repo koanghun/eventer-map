@@ -36,15 +36,15 @@ function EventForm({ event, onSubmit, onClose, onSwitchToEdit }: EventFormProps)
             return {
                 title: '', description: '', event_date: '', door_time: '', start_time: '', end_time: '',
                 location: '', address: '', latitude: 35.6762, longitude: 139.6503,
-                performers: '', performer_ids: [], related_link: '', place_id: undefined, google_place_id: ''
+                performer_ids: [], related_link: '', place_id: undefined, google_place_id: ''
             };
         }
         const savedDraft = localStorage.getItem(DRAFT_KEY);
         if (savedDraft) {
             try {
                 const draft = JSON.parse(savedDraft);
-                if (draft.performers) {
-                    setSelectedPerformers(draft.performers.split(',').filter(Boolean));
+                if (draft.performer_ids && draft.performer_ids.length > 0) {
+                    // draft에 이름 정보가 없을 수도 있으므로 ID 기반으로 이름 복구는 나중에 함
                 }
                 return draft;
             } catch (e) {
@@ -54,7 +54,7 @@ function EventForm({ event, onSubmit, onClose, onSwitchToEdit }: EventFormProps)
         return {
             title: '', description: '', event_date: '', door_time: '', start_time: '', end_time: '',
             location: '', address: '', latitude: 35.6762, longitude: 139.6503,
-            performers: '', performer_ids: [], related_link: '',
+            performer_ids: [], related_link: '',
         };
     });
 
@@ -76,7 +76,7 @@ function EventForm({ event, onSubmit, onClose, onSwitchToEdit }: EventFormProps)
 
     useEffect(() => {
         if (event) {
-            const performersArray = event.performers ? event.performers.split(',').map(p => p.trim()) : [];
+            const performersArray = event.performers_list ? event.performers_list.map(p => p.canonical_name) : [];
             setSelectedPerformers(performersArray);
             setFormData({
                 title: event.title,
@@ -91,7 +91,6 @@ function EventForm({ event, onSubmit, onClose, onSwitchToEdit }: EventFormProps)
                 longitude: event.place?.longitude || 0,
                 place_id: event.place_id,
                 google_place_id: event.place?.google_place_id || '',
-                performers: event.performers || '',
                 performer_ids: event.performer_ids || [],
                 related_link: event.related_link || '',
             });
@@ -111,7 +110,6 @@ function EventForm({ event, onSubmit, onClose, onSwitchToEdit }: EventFormProps)
 
         setFormData(prev => ({ 
             ...prev, 
-            performers: selectedPerformers.join(','), 
             performer_ids: performerIds 
         }));
     }, [selectedPerformers, savedPerformers]);

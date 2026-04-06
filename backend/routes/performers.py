@@ -7,7 +7,7 @@ from db import get_db
 from db import models
 from db import schemas
 from utils.normalization import normalize_text, aliases_to_json, json_to_aliases
-from utils.auth import require_admin, require_auth
+from utils.auth import require_admin, require_auth, require_auth_or_internal
 
 router = APIRouter(prefix="/performers", tags=["performers"])
 
@@ -66,7 +66,7 @@ def check_duplicate_performer(name: str = Query(..., min_length=1), db: Session 
 def create_performer(
     performer: schemas.PerformerCreate, 
     db: Session = Depends(get_db),
-    current_user: models.User = require_auth
+    current_user: models.User = require_auth_or_internal
 ):
     """
     새 출연자 생성
