@@ -4,9 +4,7 @@ from typing import Optional, Dict, Any
 
 def get_google_maps_client():
     api_key = os.getenv("GOOGLE_MAPS_API_KEY")
-    if not api_key:
-        # 백업용으로 프론트엔드 키라도 확인 (동일한 키를 전제)
-        api_key = os.getenv("REACT_APP_GOOGLE_MAPS_API_KEY")
+
     if not api_key:
          # 실 서비스 시 에러 발생
         print("WARNING: GOOGLE_MAPS_API_KEY is not set in environment variables.")

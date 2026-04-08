@@ -3,13 +3,13 @@
 .env 파일에서 환경 변수를 로드하고, dataclass로 타입이 명확한 설정 객체를 제공합니다.
 """
 
-from __future__ import annotations
+from __future__ import annotations # 타입 힌트를 유연하게 사용할 수 있게 함
 
-import os
-from dataclasses import dataclass, field
-from pathlib import Path
+import os # OS 환경 변수에 접근하기 위함
+from dataclasses import dataclass, field # 설정을 담는 깔끔한 객체 구조를 만들기 위함
+from pathlib import Path # 파일 경로를 객체 기반으로 안전하게 다루기 위함
 
-from dotenv import load_dotenv
+from dotenv import load_dotenv # .env 파일의 내용을 시스템 환경 변수로 불러오기 위함
 
 
 @dataclass(frozen=True)
