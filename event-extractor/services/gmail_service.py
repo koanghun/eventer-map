@@ -41,6 +41,7 @@ class GmailService:
         self.credentials_path = credentials_path
         self.token_path = token_path
         self._service: Resource | None = None
+        self._label_cache: dict[str, str] = {}  # 라벨 이름 -> ID 캐시
 
     @property
     def service(self) -> Resource:
@@ -110,12 +111,21 @@ class GmailService:
 
     def _get_or_create_label(self) -> str:
         """처리 완료 라벨의 ID를 가져오거나 생성합니다."""
+        if _PROCESSED_LABEL in self._label_cache:
+            return self._label_cache[_PROCESSED_LABEL]
+
         try:
-            results = self.service.users().labels().list(userId="me").execute()
+            results = (
+                self.service.users()
+                .labels()
+                .list(userId="me", fields="labels(id,name)")
+                .execute()
+            )
             labels = results.get("labels", [])
 
             for label in labels:
                 if label["name"] == _PROCESSED_LABEL:
+                    self._label_cache[_PROCESSED_LABEL] = label["id"]
                     return label["id"]
 
             # 없으면 생성
@@ -131,6 +141,7 @@ class GmailService:
                 .create(userId="me", body=label_body)
                 .execute()
             )
+            self._label_cache[_PROCESSED_LABEL] = new_label["id"]
             return new_label["id"]
 
         except Exception as exc:
@@ -164,7 +175,12 @@ class GmailService:
             results = (
                 self.service.users()
                 .messages()
-                .list(userId="me", q=query, maxResults=max_results)
+                .list(
+                    userId="me",
+                    q=query,
+                    maxResults=max_results,
+                    fields="messages(id),nextPageToken",
+                )
                 .execute()
             )
         except Exception as exc:
@@ -175,36 +191,63 @@ class GmailService:
             logger.info("조건에 맞는 메일이 없습니다.")
             return []
 
-        logger.info("%d건의 메일 발견, 본문 로드 중...", len(messages))
+        logger.info("%d건의 메일 발견, 배치 요청으로 본문 로드 중...", len(messages))
 
         email_data: list[dict] = []
-        for msg in messages:
-            body = self._extract_body(msg["id"])
+
+        def callback(request_id: str, response: dict, exception: Exception | None) -> None:
+            if exception:
+                logger.warning(
+                    "메일 본문 추출 실패 (request_id=%s): %s", request_id, exception
+                )
+                return
+
+            body = self._parse_body_payload(response.get("payload"))
             if body:
-                email_data.append({"id": msg["id"], "body": body})
+                email_data.append({"id": response["id"], "body": body})
+
+        batch = self.service.new_batch_http_request(callback=callback)
+        for msg in messages:
+            batch.add(
+                self.service.users()
+                .messages()
+                .get(userId="me", id=msg["id"], fields="id,payload")
+            )
+        batch.execute()
 
         logger.info("총 %d건의 메일 본문 추출 완료", len(email_data))
         return email_data
 
-    def _extract_body(self, message_id: str) -> str | None:
-        """메일 ID로 본문 텍스트를 추출합니다."""
-        try:
-            msg = (
-                self.service.users()
-                .messages()
-                .get(userId="me", id=message_id)
-                .execute()
-            )
-            payload = msg["payload"]
+    def _parse_body_payload(self, payload: dict | None) -> str | None:
+        """메일 페이로드에서 본문 텍스트를 추출합니다."""
+        if not payload:
+            return None
 
-            # multipart 구조 처리
+        try:
+            # multipart 구조 처리 (간소화된 로직)
             if "parts" in payload:
+                # 첫 번째 파트가 보통 plain text인 경우가 많음
                 data = payload["parts"][0]["body"].get("data")
             else:
                 data = payload["body"].get("data")
 
             if data:
                 return base64.urlsafe_b64decode(data).decode("utf-8")
+        except Exception as exc:
+            logger.warning("페이로드 파싱 실패: %s", exc)
+
+        return None
+
+    def _extract_body(self, message_id: str) -> str | None:
+        """메일 ID로 본문 텍스트를 추출합니다. (단일 요청용)"""
+        try:
+            msg = (
+                self.service.users()
+                .messages()
+                .get(userId="me", id=message_id, fields="id,payload")
+                .execute()
+            )
+            return self._parse_body_payload(msg.get("payload"))
 
         except Exception as exc:  # noqa: BLE001
             logger.warning("메일 본문 추출 실패 (id=%s): %s", message_id, exc)
