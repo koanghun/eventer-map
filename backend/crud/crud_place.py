@@ -1,8 +1,8 @@
 from typing import List, Optional
 from sqlalchemy.orm import Session
-from db.models import Place
+from db.models import Place, PlaceAlias
 from db.schemas import PlaceCreate, PlaceUpdate
-from utils.normalization import normalize_text, aliases_to_json, json_to_aliases
+from utils.normalization import normalize_text
 
 def get(db: Session, id: int) -> Optional[Place]:
     """ID로 장소 조회"""
@@ -38,15 +38,11 @@ def search_place(db: Session, query: str) -> Optional[Place]:
     return search_by_alias(db, query)
 
 def search_by_alias(db: Session, query: str) -> Optional[Place]:
-    """별칭(Aliases) 목록에서 검색"""
-    search_term = query.lower()
-    all_places = db.query(Place).all()
-    for p in all_places:
-        if p.aliases:
-            aliases = [a.lower() for a in json_to_aliases(p.aliases)]
-            if search_term in aliases:
-                return p
-    return None
+    """별칭(Aliases) 목록에서 검색 (Index 기반 JOIN 쿼리)"""
+    normalized_query = normalize_text(query)
+    return db.query(Place).join(PlaceAlias).filter(
+        PlaceAlias.normalized_alias == normalized_query
+    ).first()
 
 def create(db: Session, obj_in: PlaceCreate) -> Place:
     """새 장소 생성"""
@@ -55,7 +51,7 @@ def create(db: Session, obj_in: PlaceCreate) -> Place:
         canonical_name=obj_in.canonical_name,
         normalized_name=normalized,
         google_place_id=obj_in.google_place_id,
-        aliases=aliases_to_json(obj_in.aliases) if obj_in.aliases else "[]",
+        aliases=obj_in.aliases or [],
         address=obj_in.address,
         latitude=obj_in.latitude,
         longitude=obj_in.longitude
@@ -69,9 +65,7 @@ def update(db: Session, db_obj: Place, obj_in: PlaceUpdate) -> Place:
     """기존 장소 정보 수정"""
     update_data = obj_in.model_dump(exclude_unset=True)
     
-    # 특수 필드 처리 (aliases)
-    if "aliases" in update_data:
-        update_data["aliases"] = aliases_to_json(update_data["aliases"])
+    # 특수 필드 처리 없음 (association proxy가 처리함)
     
     # canonical_name 변경 시 normalized_name도 업데이트
     if "canonical_name" in update_data:

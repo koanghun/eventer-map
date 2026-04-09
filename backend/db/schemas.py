@@ -1,12 +1,12 @@
 from pydantic import BaseModel, Field, field_validator
-from typing import Optional, List, List
+from typing import Optional, List
 from datetime import datetime
 import json
 
 
 class PerformerBase(BaseModel):
     canonical_name: str
-    aliases: Optional[List[str]] = []  # 배열로 받아서 JSON으로 변환
+    aliases: Optional[List[str]] = []  # 배열로 받아서 저장
 
 class PerformerCreate(PerformerBase):
     pass
@@ -29,13 +29,15 @@ class PerformerResponse(BaseModel):
     @field_validator('aliases', mode='before')
     @classmethod
     def deserialize_aliases(cls, value):
-        """DB의 JSON 문자열을 배열로 변환"""
+        """별칭 데이터 처리 (SQLAlchemy Proxy 또는 JSON 대응)"""
         if isinstance(value, str):
-            try:
-                return json.loads(value)
-            except:
-                return []
-        return value if value else []
+            try: return json.loads(value)
+            except: return []
+        # AssociationProxy 등 리스트류 객체 대응
+        try:
+            return [v for v in value] if value and not isinstance(value, (list, str)) else (value or [])
+        except:
+            return value
     
     class Config:
         from_attributes = True
@@ -133,13 +135,15 @@ class PlaceResponse(BaseModel):
     @field_validator('aliases', mode='before')
     @classmethod
     def deserialize_aliases(cls, value):
-        """DB의 JSON 문자열을 배열로 변환"""
+        """별칭 데이터 처리 (SQLAlchemy Proxy 또는 JSON 대응)"""
         if isinstance(value, str):
-            try:
-                return json.loads(value)
-            except:
-                return []
-        return value if value else []
+            try: return json.loads(value)
+            except: return []
+        # AssociationProxy 등 리스트류 객체 대응
+        try:
+            return [v for v in value] if value and not isinstance(value, (list, str)) else (value or [])
+        except:
+            return value
 
     class Config:
         from_attributes = True

@@ -1,8 +1,8 @@
 from typing import List, Optional
 from sqlalchemy.orm import Session
-from db.models import Performer
+from db.models import Performer, PerformerAlias
 from db.schemas import PerformerCreate, PerformerUpdate
-from utils.normalization import normalize_text, aliases_to_json, json_to_aliases
+from utils.normalization import normalize_text
 
 def get(db: Session, id: int) -> Optional[Performer]:
     """ID로 출연자 조회"""
@@ -17,9 +17,11 @@ def get_multi(db: Session, skip: int = 0, limit: int = 100) -> List[Performer]:
     return db.query(Performer).offset(skip).limit(limit).all()
 
 def search_by_alias(db: Session, name: str) -> List[Performer]:
-    """별칭(Aliases) 목록에서 검색 (일부 일치 또는 JSON 포함 확인)"""
-    # SQLite LIKE 검색 활용
-    return db.query(Performer).filter(Performer.aliases.like(f'%"{name}"%')).all()
+    """별칭(Aliases) 목록에서 검색 (Index 기반 JOIN 쿼리)"""
+    normalized_name = normalize_text(name)
+    return db.query(Performer).join(PerformerAlias).filter(
+        PerformerAlias.normalized_alias == normalized_name
+    ).all()
 
 def create(db: Session, obj_in: PerformerCreate) -> Performer:
     """새 출연자 생성"""
@@ -27,7 +29,7 @@ def create(db: Session, obj_in: PerformerCreate) -> Performer:
     db_obj = Performer(
         canonical_name=obj_in.canonical_name,
         normalized_name=normalized,
-        aliases=aliases_to_json(obj_in.aliases) if obj_in.aliases else "[]"
+        aliases=obj_in.aliases or []
     )
     db.add(db_obj)
     db.commit()
@@ -38,8 +40,7 @@ def update(db: Session, db_obj: Performer, obj_in: PerformerUpdate) -> Performer
     """기존 출연자 정보 수정"""
     update_data = obj_in.model_dump(exclude_unset=True)
     
-    if "aliases" in update_data:
-        update_data["aliases"] = aliases_to_json(update_data["aliases"])
+    # 특수 필드 처리 없음 (proxy가 처리)
         
     if "canonical_name" in update_data:
         update_data["normalized_name"] = normalize_text(update_data["canonical_name"])
