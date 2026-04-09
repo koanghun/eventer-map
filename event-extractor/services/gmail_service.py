@@ -52,31 +52,50 @@ class GmailService:
 
     def _authenticate(self) -> Resource:
         """OAuth2 인증을 수행하고 Gmail API 서비스를 반환합니다."""
+        # Credentials: 구글 서버와 통신할 때 사용하는 '로그인 증명서' 객체입니다.
         creds: Credentials | None = None
 
+        # 1. 기존에 저장된 '열쇠(token.json)'가 있는지 확인합니다.
         if self.token_path.exists():
+            # from_authorized_user_file: 파일에 저장된 JSON 데이터를 읽어 
+            # Credentials 객체로 변환해주는 도우미 함수입니다.
             creds = Credentials.from_authorized_user_file(
                 str(self.token_path), _SCOPES
             )
 
+        # 2. 증명서가 없거나, 있더라도 사용할 수 없는 상태(유효하지 않음)인지 확인합니다.
+        # .valid: 토큰이 존재하고 만료되지 않았으며, 필요한 권한(Scope)을 모두 가지고 있는지 체크합니다.
         if not creds or not creds.valid:
+            # .expired: 단순히 시간만 만료된 것인지 확인합니다.
+            # .refresh_token: 재로그인 없이 새 토큰을 받을 수 있는 '갱신용 열쇠'가 있는지 확인합니다.
             if creds and creds.expired and creds.refresh_token:
                 logger.info("토큰 갱신 중...")
+                # refresh(Request()): 갱신용 열쇠를 구글 서버에 보내서 
+                # 새로운 Access Token(실제 API 호출용 열쇠)을 받아옵니다.
                 creds.refresh(Request())
             else:
+                # 3. 아예 처음이거나 갱신조차 불가능한 경우, 새로 로그인을 받아야 합니다.
                 if not self.credentials_path.exists():
                     raise GmailServiceError(
                         f"credentials.json을 찾을 수 없습니다: {self.credentials_path}"
                     )
                 logger.info("새 OAuth2 인증 진행 중...")
+                # InstalledAppFlow: 내 컴퓨터 같은 '로컬 환경'에서 브라우저를 띄워 
+                # 인증 절차를 진행해주는 클래스입니다.
                 flow = InstalledAppFlow.from_client_secrets_file(
                     str(self.credentials_path), _SCOPES
                 )
+                # run_local_server: 실제로 기본 브라우저를 띄우고 구글 로그인 화면을 보여줍니다.
+                # 인증이 완료되면 구글이 보내주는 응답을 받기 위해 잠시 대기합니다.
                 creds = flow.run_local_server(port=0)
 
+            # 4. 새로 얻은 증명서를 다음에 또 쓸 수 있게 파일로 기록해둡니다.
+            # to_json(): 증명서 정보를 다시 JSON 문자열로 바꿔줍니다.
             self.token_path.write_text(creds.to_json(), encoding="utf-8")
             logger.info("토큰 저장 완료: %s", self.token_path)
 
+        # 5. build: 최종적으로 '구글 서비스 이름(gmail)', '버전(v1)', '증명서'를 조합하여
+        # 메일 보내기/읽기 등의 기능을 수행할 수 있는 "API 클라이언트"를 만들어 반환합니다.
         return build("gmail", "v1", credentials=creds)
 
     @staticmethod
