@@ -37,6 +37,15 @@ def search_place(
         raise HTTPException(status_code=404, detail="장소를 찾을 수 없습니다")
     return place
 
+@router.get("/suggest", response_model=List[PlaceResponse])
+def suggest_places(
+    query: str = Query(..., min_length=1),
+    limit: int = 10,
+    db: Session = Depends(get_db)
+):
+    """장소를 자동완성 검색합니다. (부분 일치 지원)"""
+    return crud_place.suggest_places(db, query, limit=limit)
+
 @router.post("/", response_model=PlaceResponse, status_code=status.HTTP_201_CREATED)
 def create_place(
     place: PlaceCreate,

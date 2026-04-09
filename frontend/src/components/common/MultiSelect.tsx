@@ -1,4 +1,4 @@
-import { useState, useRef, type ChangeEvent, type KeyboardEvent } from 'react';
+import { useState, useRef, useEffect, type ChangeEvent, type KeyboardEvent } from 'react';
 import { useTranslation } from 'react-i18next';
 import { performerApi, DuplicateCheckResponse } from '../../services/api';
 import { Performer } from '../../types/event';
@@ -7,21 +7,40 @@ import PerformerCreateModal from '../performers/PerformerCreateModal';
 import { X } from 'lucide-react';
 
 interface MultiSelectProps {
-    options: Performer[];
-    selected: string[];
-    onChange: (selected: string[]) => void;
+    selected: Performer[];
+    onChange: (selected: Performer[]) => void;
     onPerformerCreated?: (performer: Performer) => void;
     placeholder: string;
 }
 
-function MultiSelect({ options, selected, onChange, onPerformerCreated, placeholder }: MultiSelectProps) {
+function MultiSelect({ selected, onChange, onPerformerCreated, placeholder }: MultiSelectProps) {
     const { t } = useTranslation();
     const [inputValue, setInputValue] = useState('');
     const [isOpen, setIsOpen] = useState(false);
+    const [options, setOptions] = useState<Performer[]>([]);
     const [duplicateCheck, setDuplicateCheck] = useState<DuplicateCheckResponse | null>(null);
     const [showCreateModal, setShowCreateModal] = useState(false);
     const [pendingName, setPendingName] = useState('');
     const inputRef = useRef<HTMLInputElement>(null);
+
+    useEffect(() => {
+        const query = inputValue.trim();
+        if (!query) {
+            setOptions([]);
+            return;
+        }
+
+        const timeoutId = setTimeout(async () => {
+            try {
+                const results = await performerApi.suggestPerformers(query);
+                setOptions(results);
+            } catch (error) {
+                console.error('Failed to fetch performer suggestions:', error);
+            }
+        }, 300);
+
+        return () => clearTimeout(timeoutId);
+    }, [inputValue]);
 
     const handleInputChange = (e: ChangeEvent<HTMLInputElement>) => {
         setInputValue(e.target.value);
@@ -30,17 +49,17 @@ function MultiSelect({ options, selected, onChange, onPerformerCreated, placehol
         }
     };
 
-    const handleSelectOption = (optionName: string) => {
-        if (!selected.includes(optionName)) {
-            onChange([...selected, optionName]);
+    const handleSelectOption = (option: Performer) => {
+        if (!selected.some(p => p.id === option.id)) {
+            onChange([...selected, option]);
         }
         setInputValue('');
         setIsOpen(false);
         inputRef.current?.focus();
     };
 
-    const handleRemoveOption = (optionName: string) => {
-        onChange(selected.filter(item => item !== optionName));
+    const handleRemoveOption = (optionId: number) => {
+        onChange(selected.filter(item => item.id !== optionId));
     };
 
     const handleAddNewPerformer = async (name: string) => {
@@ -76,9 +95,8 @@ function MultiSelect({ options, selected, onChange, onPerformerCreated, placehol
     };
 
     const handleUseExisting = (performer: Performer) => {
-        const name = performer.canonical_name;
-        if (!selected.includes(name)) {
-            onChange([...selected, name]);
+        if (!selected.some(p => p.id === performer.id)) {
+            onChange([...selected, performer]);
         }
         setDuplicateCheck(null);
         setPendingName('');
@@ -106,8 +124,8 @@ function MultiSelect({ options, selected, onChange, onPerformerCreated, placehol
             if (onPerformerCreated) {
                 onPerformerCreated(newPerformer);
             }
-            if (!selected.includes(newPerformer.canonical_name)) {
-                onChange([...selected, newPerformer.canonical_name]);
+            if (!selected.some(p => p.id === newPerformer.id)) {
+                onChange([...selected, newPerformer]);
             }
             setShowCreateModal(false);
             setPendingName('');
@@ -124,32 +142,18 @@ function MultiSelect({ options, selected, onChange, onPerformerCreated, placehol
         inputRef.current?.focus();
     };
 
-    const filteredOptions = options.filter(option => {
-        if (!option.canonical_name || selected.includes(option.canonical_name)) {
-            return false;
-        }
-        const searchLower = inputValue.toLowerCase();
-        if (option.canonical_name.toLowerCase().includes(searchLower)) {
-            return true;
-        }
-        if (option.aliases && option.aliases.length > 0) {
-            return option.aliases.some(alias =>
-                alias.toLowerCase().includes(searchLower)
-            );
-        }
-        return false;
-    });
+    const availableOptions = options.filter(option => !selected.some(p => p.id === option.id));
 
     return (
         <div className="relative w-full">
             <div className="min-h-10 flex flex-wrap items-center gap-2 p-2 w-full rounded-md border border-input bg-background text-sm ring-offset-background disabled:cursor-not-allowed disabled:opacity-50 focus-within:ring-2 focus-within:ring-ring focus-within:ring-offset-2 transition-all">
                 {selected.map(item => (
-                    <div key={item} className="flex items-center gap-1 bg-primary text-primary-foreground px-2.5 py-0.5 rounded-full text-xs font-medium animate-in zoom-in-95">
-                        {item}
+                    <div key={item.id} className="flex items-center gap-1 bg-primary text-primary-foreground px-2.5 py-0.5 rounded-full text-xs font-medium animate-in zoom-in-95">
+                        {item.canonical_name}
                         <button
                             type="button"
                             className="text-primary-foreground/80 hover:text-primary-foreground focus:outline-none"
-                            onClick={() => handleRemoveOption(item)}
+                            onClick={() => handleRemoveOption(item.id)}
                         >
                             <X className="h-3 w-3" />
                         </button>
@@ -170,11 +174,11 @@ function MultiSelect({ options, selected, onChange, onPerformerCreated, placehol
             
             {isOpen && (
                 <ul className="absolute z-50 w-full mt-1 max-h-60 overflow-auto rounded-md border border-border bg-popover text-popover-foreground shadow-md outline-none animate-in fade-in-80 slide-in-from-top-1">
-                    {filteredOptions.length > 0 ? (
-                        filteredOptions.map(option => (
+                    {availableOptions.length > 0 ? (
+                        availableOptions.map(option => (
                             <li
                                 key={option.id}
-                                onMouseDown={() => handleSelectOption(option.canonical_name)}
+                                onMouseDown={() => handleSelectOption(option)}
                                 className="relative flex w-full cursor-pointer select-none items-center rounded-sm py-1.5 px-3 text-sm outline-none hover:bg-accent hover:text-accent-foreground"
                             >
                                 <div className="flex flex-col">

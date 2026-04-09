@@ -102,6 +102,12 @@ export const placeApi = {
         const response = await api.get<Place[]>('/places/');
         return response.data;
     },
+
+    // 장소 자동완성 검색 (부분 일치 지원)
+    suggestPlaces: async (query: string, limit: number = 10): Promise<Place[]> => {
+        const response = await api.get<Place[]>(`/places/suggest?query=${encodeURIComponent(query)}&limit=${limit}`);
+        return response.data;
+    },
 };
 
 interface DuplicateCheckResponse {
@@ -132,6 +138,12 @@ export const performerApi = {
     // 출연자 생성
     createPerformer: async (performer: { canonical_name: string; aliases?: string[] }): Promise<Performer> => {
         const response = await api.post<Performer>('/performers/', performer);
+        return response.data;
+    },
+
+    // 출연자 자동완성 검색 (부분 일치 지원)
+    suggestPerformers: async (query: string, limit: number = 10): Promise<Performer[]> => {
+        const response = await api.get<Performer[]>(`/performers/suggest?query=${encodeURIComponent(query)}&limit=${limit}`);
         return response.data;
     },
 };

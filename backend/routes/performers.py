@@ -104,6 +104,15 @@ def search_performers(query: str = Query(..., min_length=1), db: Session = Depen
     
     return list(unique_results)
 
+@router.get("/suggest", response_model=List[schemas.PerformerResponse])
+def suggest_performers(
+    query: str = Query(..., min_length=1),
+    limit: int = 10,
+    db: Session = Depends(get_db)
+):
+    """출연자를 자동완성 검색합니다. (부분 일치 지원)"""
+    return crud_performer.suggest_performers(db, query, limit=limit)
+
 @router.put("/{performer_id}", response_model=schemas.PerformerResponse)
 def update_performer(
     performer_id: int, 

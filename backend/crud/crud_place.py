@@ -1,4 +1,5 @@
 from typing import List, Optional
+from sqlalchemy import or_
 from sqlalchemy.orm import Session
 from db.models import Place, PlaceAlias
 from db.schemas import PlaceCreate, PlaceUpdate
@@ -43,6 +44,21 @@ def search_by_alias(db: Session, query: str) -> Optional[Place]:
     return db.query(Place).join(PlaceAlias).filter(
         PlaceAlias.normalized_alias == normalized_query
     ).first()
+
+def suggest_places(db: Session, query: str, limit: int = 10) -> List[Place]:
+    """자동완성을 위한 장소 검색 (부분 일치)"""
+    normalized_query = normalize_text(query)
+    if not normalized_query:
+        return []
+        
+    return db.query(Place).outerjoin(PlaceAlias).filter(
+        or_(
+            Place.canonical_name.ilike(f"%{query}%"),
+            Place.normalized_name.contains(normalized_query),
+            PlaceAlias.alias.ilike(f"%{query}%"),
+            PlaceAlias.normalized_alias.contains(normalized_query)
+        )
+    ).distinct().limit(limit).all()
 
 def create(db: Session, obj_in: PlaceCreate) -> Place:
     """새 장소 생성"""

@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, type ChangeEvent, type FormEvent } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Event, EventFormData, Performer, Place } from '../../types/event';
-import { placeApi, performerApi, eventApi } from '../../services/api';
+import { placeApi, eventApi } from '../../services/api';
 import MultiSelect from '../common/MultiSelect';
 import TimeInput from '../common/TimeInput';
 import EventDuplicateModal from './EventDuplicateModal';
@@ -23,9 +23,8 @@ function EventForm({ event, onSubmit, onClose, onSwitchToEdit }: EventFormProps)
     const locationInputRef = useRef<HTMLInputElement>(null);
     const DRAFT_KEY = 'eventFormDraft';
 
-    const [savedPlaces, setSavedPlaces] = useState<Place[]>([]);
-    const [savedPerformers, setSavedPerformers] = useState<Performer[]>([]);
-    const [selectedPerformers, setSelectedPerformers] = useState<string[]>([]);
+    const [selectedPerformers, setSelectedPerformers] = useState<Performer[]>([]);
+    const [placeSearchQuery, setPlaceSearchQuery] = useState('');
     const [duplicates, setDuplicates] = useState<any[]>([]);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [suggestions, setSuggestions] = useState<Place[]>([]);
@@ -58,25 +57,11 @@ function EventForm({ event, onSubmit, onClose, onSwitchToEdit }: EventFormProps)
         };
     });
 
-    useEffect(() => {
-        const fetchData = async () => {
-            try {
-                const [places, performers] = await Promise.all([
-                    placeApi.getAllPlaces(),
-                    performerApi.getAllPerformers()
-                ]);
-                setSavedPlaces(places);
-                setSavedPerformers(performers);
-            } catch (error) {
-                console.error('Failed to fetch data:', error);
-            }
-        };
-        fetchData();
-    }, []);
+    // Removed fetchData since we now use server-side async suggestions
 
     useEffect(() => {
         if (event) {
-            const performersArray = event.performers_list ? event.performers_list.map(p => p.canonical_name) : [];
+            const performersArray = event.performers_list || [];
             setSelectedPerformers(performersArray);
             setFormData({
                 title: event.title,
@@ -105,55 +90,65 @@ function EventForm({ event, onSubmit, onClose, onSwitchToEdit }: EventFormProps)
 
     useEffect(() => {
         const performerIds = selectedPerformers
-            .map(name => savedPerformers.find(p => p.canonical_name === name)?.id)
+            .map(p => p.id)
             .filter((id): id is number => id !== undefined);
 
         setFormData(prev => ({ 
             ...prev, 
             performer_ids: performerIds 
         }));
-    }, [selectedPerformers, savedPerformers]);
+    }, [selectedPerformers]);
 
     const handleChange = (e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
         const { name, value } = e.target;
         setFormData(prev => ({ ...prev, [name]: value }));
 
         if (name === 'location') {
-            const trimValue = value.trim();
-            if (trimValue) {
-                const filtered = savedPlaces.filter(p =>
-                    p.canonical_name.toLowerCase().includes(trimValue.toLowerCase()) ||
-                    (p.name && p.name.toLowerCase().includes(trimValue.toLowerCase()))
-                );
-                setSuggestions(filtered);
-                setShowSuggestions(true);
-            } else {
-                setSuggestions([]);
-                setShowSuggestions(false);
-            }
-
-            const matchedPlace = savedPlaces.find(p => p.canonical_name === value || p.name === value);
-            if (matchedPlace) {
-                setFormData(prev => ({
-                    ...prev,
-                    [name]: value,
-                    place_id: matchedPlace.id,
-                    address: matchedPlace.address,
-                    latitude: matchedPlace.latitude,
-                    longitude: matchedPlace.longitude,
-                    google_place_id: matchedPlace.google_place_id
-                }));
-            } else {
-                setFormData(prev => ({ ...prev, place_id: undefined, google_place_id: '' }));
-            }
+            setPlaceSearchQuery(value);
+            setShowSuggestions(value.trim().length > 0);
+            // Reset place ID since the typed string might not perfectly match yet.
+            // An exact match check will be performed in the suggestion fetcher.
+            setFormData(prev => ({ ...prev, place_id: undefined, google_place_id: '' }));
         }
     };
 
-    const handlePerformerCreated = (newPerformer: Performer) => {
-        setSavedPerformers(prev => [...prev, newPerformer]);
+    useEffect(() => {
+        const query = placeSearchQuery.trim();
+        if (!query) {
+            setSuggestions([]);
+            return;
+        }
+
+        const timeoutId = setTimeout(async () => {
+            try {
+                const results = await placeApi.suggestPlaces(query);
+                setSuggestions(results);
+                
+                // If there's an exact canonical name match, prepopulate place data
+                const exactMatch = results.find(p => p.canonical_name === query);
+                if (exactMatch) {
+                    setFormData(prev => ({
+                        ...prev,
+                        place_id: exactMatch.id,
+                        address: exactMatch.address || '',
+                        latitude: exactMatch.latitude || prev.latitude,
+                        longitude: exactMatch.longitude || prev.longitude,
+                        google_place_id: exactMatch.google_place_id || ''
+                    }));
+                }
+            } catch (error) {
+                console.error('Failed to fetch place suggestions:', error);
+            }
+        }, 300);
+
+        return () => clearTimeout(timeoutId);
+    }, [placeSearchQuery]);
+
+    const handlePerformerCreated = () => {
+        // Now handled inside MultiSelect directly or implicitly via selection
     };
 
-    const handlePerformersChange = (newPerformers: string[]) => {
+    const handlePerformersChange = (newPerformers: Performer[]) => {
         setSelectedPerformers(newPerformers);
     };
 
@@ -453,7 +448,6 @@ function EventForm({ event, onSubmit, onClose, onSwitchToEdit }: EventFormProps)
                                     </Label>
                                     <div className="bg-background rounded-md border border-input focus-within:ring-1 focus-within:ring-ring">
                                         <MultiSelect
-                                            options={savedPerformers}
                                             selected={selectedPerformers}
                                             onChange={handlePerformersChange}
                                             onPerformerCreated={handlePerformerCreated}

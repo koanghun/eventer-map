@@ -1,4 +1,5 @@
 from typing import List, Optional
+from sqlalchemy import or_
 from sqlalchemy.orm import Session
 from db.models import Performer, PerformerAlias
 from db.schemas import PerformerCreate, PerformerUpdate
@@ -22,6 +23,21 @@ def search_by_alias(db: Session, name: str) -> List[Performer]:
     return db.query(Performer).join(PerformerAlias).filter(
         PerformerAlias.normalized_alias == normalized_name
     ).all()
+
+def suggest_performers(db: Session, query: str, limit: int = 10) -> List[Performer]:
+    """자동완성을 위한 출연자 검색 (부분 일치)"""
+    normalized_query = normalize_text(query)
+    if not normalized_query:
+        return []
+        
+    return db.query(Performer).outerjoin(PerformerAlias).filter(
+        or_(
+            Performer.canonical_name.ilike(f"%{query}%"),
+            Performer.normalized_name.contains(normalized_query),
+            PerformerAlias.alias.ilike(f"%{query}%"),
+            PerformerAlias.normalized_alias.contains(normalized_query)
+        )
+    ).distinct().limit(limit).all()
 
 def create(db: Session, obj_in: PerformerCreate) -> Performer:
     """새 출연자 생성"""
