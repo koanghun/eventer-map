@@ -189,12 +189,17 @@ def main() -> None:
                     if api_client.sync_event(event, place_id, performer_ids):
                         sync_success += 1
                 
-                # 저장에 성공했다면 메일에 '처리 완료' 라벨을 붙입니다.
+                # 저장에 최소 하나 이상 성공했다면 메일에 '처리 완료' 라벨을 붙입니다.
                 if sync_success > 0:
                      gmail.add_label_to_message(email["id"])
-                     logger.info("   ✅ 메일에 완료 라벨 부착 (ID: %s)", email["id"])
+                     logger.info("   ✅ 저장 완료: 메일에 라벨 부착 (ID: %s)", email["id"])
+                else:
+                     logger.warning("   ❌ 추출된 이벤트가 있으나 동기화에 모두 실패했습니다. (ID: %s)", email["id"])
             else:
-                logger.warning("   ⚠️ 이벤트 정보를 추출하지 못했습니다.")
+                # AI 분석 결과 추출할 이벤트가 없는 경우에도 처리 완료로 간주하여 라벨을 붙입니다.
+                # 이렇게 해야 다음 실행 시 이 메일을 다시 분석하지 않습니다.
+                logger.info("   ℹ️ 추출된 이벤트 없음: 처리 완료 라벨 부착 (ID: %s)", email["id"])
+                gmail.add_label_to_message(email["id"])
 
         except LLMClientError as exc: # AI 분석 중 에러가 나면 기록만 남기고 다음 메일로 넘어감
             logger.error("   ❌ AI 분석 실패: %s", exc)

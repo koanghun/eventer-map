@@ -65,7 +65,7 @@ class LLMClient:
         timeout: HTTP 요청 타임아웃(초).
     """
 
-    def __init__(self, base_url: str, model: str, timeout: int = 60) -> None:
+    def __init__(self, base_url: str, model: str, timeout: int = 180) -> None:
         self.base_url = base_url.rstrip("/")
         self.model = model
         self.timeout = timeout
@@ -138,14 +138,19 @@ class LLMClient:
         # "events" 배열이 있으면 사용, 없으면 단일 객체를 리스트로 감싸기
         if "events" in parsed and isinstance(parsed["events"], list):
             events_raw = parsed["events"]
-        else:
+        elif parsed:  # {} 가 아닌 유의미한 데이터가 있는 경우만 처리
             events_raw = [parsed]
+        else:
+            # 완전 빈 객체({})가 반환된 경우
+            logger.warning("LLM이 빈 결과를 순치했습니다 (추출된 정보 없음).")
+            events_raw = []
 
         events: list[EventData] = []
         for item in events_raw:
             try:
                 events.append(EventData.model_validate(item))
             except Exception as exc:  # noqa: BLE001
-                logger.warning("이벤트 파싱 실패 (건너뜀): %s — %s", item, exc)
+                logger.warning("이벤트 파싱 실패: %s — %s", item, exc)
+                logger.info("이벤트 파싱 실패 상세 (원본 응답): %s", raw_content)
 
         return ExtractionResult(events=events, raw_response=raw_content)
