@@ -1,8 +1,7 @@
 import { useState, useMemo } from 'react';
 import { Event } from '../types/event';
-import { eventApi } from '../services/api';
+import api, { eventApi } from '../services/api';
 import { useQuery } from '@tanstack/react-query';
-import axios from 'axios';
 
 /**
  * 이벤트 데이터 로딩 및 필터링 (검색 책임)
@@ -16,9 +15,7 @@ export function useEventData(selectedDate: string, showFlagsOnly: boolean) {
         queryKey: ['events', selectedDate, showFlagsOnly],
         queryFn: async () => {
             if (showFlagsOnly) {
-                    const response = await axios.get('/api/flags/events', {
-                        withCredentials: true,
-                    });
+                    const response = await api.get('/flags/events');
                     return response.data;
             }
             return eventApi.getEventsByDate(selectedDate);

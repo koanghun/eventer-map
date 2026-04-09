@@ -1,7 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import axios from 'axios';
+import api from '../services/api';
 
-const API_URL = process.env.REACT_APP_API_URL || '';
 
 export interface Place {
     id: number;
@@ -28,14 +27,14 @@ export function usePlaceData() {
     const placesQuery = useQuery<Place[]>({
         queryKey: ['places'],
         queryFn: async () => {
-            const { data } = await axios.get(`${API_URL}/places/`);
+            const { data } = await api.get('/places/');
             return data;
         },
     });
 
     const updatePlaceMutation = useMutation({
         mutationFn: async ({ id, data }: { id: number; data: PlaceUpdate }) => {
-            const response = await axios.put(`${API_URL}/places/${id}`, data);
+            const response = await api.put(`/places/${id}`, data);
             return response.data;
         },
         onSuccess: () => {
@@ -45,7 +44,7 @@ export function usePlaceData() {
 
     const createPlaceMutation = useMutation({
         mutationFn: async (data: PlaceUpdate) => {
-            const response = await axios.post(`${API_URL}/places/`, {
+            const response = await api.post('/places/', {
                 canonical_name: data.canonical_name,
                 address: data.address,
                 latitude: data.latitude,
@@ -62,7 +61,7 @@ export function usePlaceData() {
 
     const deletePlaceMutation = useMutation({
         mutationFn: async (id: number) => {
-            await axios.delete(`${API_URL}/places/${id}`);
+            await api.delete(`/places/${id}`);
         },
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['places'] });

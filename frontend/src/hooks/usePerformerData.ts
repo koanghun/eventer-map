@@ -1,7 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import axios from 'axios';
+import api from '../services/api';
 
-const API_URL = process.env.REACT_APP_API_URL || '';
 
 export interface Performer {
     id: number;
@@ -22,14 +21,14 @@ export function usePerformerData() {
     const performersQuery = useQuery<Performer[]>({
         queryKey: ['performers'],
         queryFn: async () => {
-            const { data } = await axios.get(`${API_URL}/performers/`);
+            const { data } = await api.get('/performers/');
             return data;
         },
     });
 
     const updatePerformerMutation = useMutation({
         mutationFn: async ({ id, data }: { id: number; data: PerformerUpdate }) => {
-            const response = await axios.put(`${API_URL}/performers/${id}`, data);
+            const response = await api.put(`/performers/${id}`, data);
             return response.data;
         },
         onSuccess: () => {
@@ -39,7 +38,7 @@ export function usePerformerData() {
 
     const createPerformerMutation = useMutation({
         mutationFn: async (data: PerformerUpdate) => {
-            const response = await axios.post(`${API_URL}/performers/`, {
+            const response = await api.post('/performers/', {
                 canonical_name: data.canonical_name,
                 aliases: data.aliases || []
             });
@@ -52,7 +51,7 @@ export function usePerformerData() {
 
     const deletePerformerMutation = useMutation({
         mutationFn: async (id: number) => {
-            await axios.delete(`${API_URL}/performers/${id}`);
+            await api.delete(`/performers/${id}`);
         },
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['performers'] });

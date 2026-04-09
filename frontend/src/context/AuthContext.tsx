@@ -1,6 +1,6 @@
 import { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
 import { User } from '../types/auth';
-import axios from 'axios';
+import api from '../services/api';
 
 interface AuthContextType {
     user: User | null;
@@ -20,9 +20,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     const fetchUser = useCallback(async () => {
         try {
-            const response = await axios.get(`/api/auth/me`, {
-                withCredentials: true,
-            });
+            const response = await api.get(`/auth/me`);
             setUser(response.data);
             setFlaggedEventIds(response.data.flagged_event_ids || []);
         } catch (error) {
@@ -35,7 +33,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     const logout = useCallback(async () => {
         try {
-            await axios.post(`/api/auth/logout`, {}, { withCredentials: true });
+            await api.post(`/auth/logout`);
         } catch (error) {
             console.error('Logout API failed:', error);
         }
@@ -78,10 +76,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             const method = isFlagged ? 'DELETE' : 'POST';
 
             // 비동기 API 호출 (상태 업데이트와 분리)
-            axios({
+            api({
                 method,
-                url: `/api/flags/events/${eventId}`,
-                withCredentials: true,
+                url: `/flags/events/${eventId}`,
             })
                 .then(response => {
                     if (response.status === 200) {
