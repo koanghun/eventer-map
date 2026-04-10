@@ -19,7 +19,8 @@
 ### 🗺️ Google Mapsベースのインタラクティブな探索
 - リアルタイムの位置ベースのイベントマーカー表示および詳細情報(InfoWindow)の提供
 - **「いつ、どこで」** 開催されるイベントかを地図上で直感的に把握可能
-![Main Map View](./assets/map_view.png)
+![Main Map View](./assets/main.png)
+![Create Event View](./assets/create_event.png)
 - **[例]**: 「2026-03-31」の日付フィルターを選択すると、その日に開催される東京ドームや渋谷近辺のすべての公演情報が地図上に即座に同期して表示されます。
 
 ### 🏷️ 知能型データの正規化および管理
@@ -27,14 +28,13 @@
 - **ユーザー入力例**: 
   - `IVE`、`ive`、`アイヴ`、`ヨアソビ` -> システム内部で**`ive`**、**`yoasobi`**のような単一の固有値として自動マッチングおよび保存
 - **別名(Aliases)システム**: 「東京ドーム」検索時、「Tokyo Dome」、「Tokyo Dome」など多言語の別名に基づいた検索をサポート
-![Filter View](./assets/filter_view.png)
+![Filter View](./assets/search.png)
 
 - **ハイブリッドインフラの活用**: 高性能な推論が必要な**Event Extractor**と**SGLang**はデスクトップ(GPU/WSL2)環境で、ウェブサービスとDBは**Synology NAS**で駆動させる効率的な分散アーキテクチャを構築
 ₩
 ### 🔒 ユーザー認証および参加システム
 - **Google OAuth 2.0**: ソーシャルログインによる簡便で安全な認証体系
 - **パーソナライゼーション(Personalization)の例**: ユーザーが特定のアーティストの公演で「参加予定(Join)」ボタンをクリックすると、そのイベントはユーザーの個人ダッシュボードに即座に反映され、地図のフィルタリング時に優先的に露出されます。
-![Event Detail](./assets/event_detail.png)
 
 ### 📊 安定したデータ履歴管理
 - すべてのイベント作成/修正/削除活動を履歴として記録し、データの変更を追跡可能(Audit logging)
@@ -78,6 +78,7 @@
       
       return intersection / union if union > 0 else 0.0
   ```
+![Duplicate View](./assets/duplicate.png)
 - **成果**: 日付(25%)、距離(20%)、出演者(25%)、タイトル(15%)などに重みを付与した総合スコアの算出により、データの整合性を90%以上向上させました。
 
 ### 🤖 ハイブリッドAIインフラの構築 (NAS + Desktop GPU)

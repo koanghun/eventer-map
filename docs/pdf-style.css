@@ -1,0 +1,14 @@
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;700&display=swap');
+
+body {
+    font-family: 'Noto Sans JP', sans-serif !important;
+}
+
+h1, h2, h3, h4, h5, h6 {
+    font-family: 'Noto Sans JP', sans-serif !important;
+}
+
+/* Ensure code blocks also look okay if they have CJK */
+code, pre {
+    font-family: 'Consolas', 'Monaco', 'Noto Sans JP', monospace !important;
+}
