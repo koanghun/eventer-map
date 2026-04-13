@@ -93,9 +93,9 @@ function EventForm({ event, onSubmit, onClose, onSwitchToEdit }: EventFormProps)
             .map(p => p.id)
             .filter((id): id is number => id !== undefined);
 
-        setFormData(prev => ({ 
-            ...prev, 
-            performer_ids: performerIds 
+        setFormData(prev => ({
+            ...prev,
+            performer_ids: performerIds
         }));
     }, [selectedPerformers]);
 
@@ -123,7 +123,7 @@ function EventForm({ event, onSubmit, onClose, onSwitchToEdit }: EventFormProps)
             try {
                 const results = await placeApi.suggestPlaces(query);
                 setSuggestions(results);
-                
+
                 // If there's an exact canonical name match, prepopulate place data
                 const exactMatch = results.find(p => p.canonical_name === query);
                 if (exactMatch) {
@@ -171,43 +171,27 @@ function EventForm({ event, onSubmit, onClose, onSwitchToEdit }: EventFormProps)
             return;
         }
 
+        setIsSubmitting(true);
         try {
-            const place = await placeApi.searchPlace(formData.location);
+            const place = await placeApi.resolvePlace(formData.location);
             setFormData((prev) => ({
                 ...prev,
                 place_id: place.id,
                 location: place.canonical_name || formData.location,
-                address: place.address,
-                latitude: place.latitude,
-                longitude: place.longitude,
+                address: place.address || '',
+                latitude: place.latitude || 0,
+                longitude: place.longitude || 0,
                 google_place_id: place.google_place_id || ''
             }));
-            alert(t('eventForm.alerts.placeFoundDb'));
+            alert(t('eventForm.alerts.placeFound'));
         } catch (error) {
-            console.log('DB search failed, trying Google TextSearch...');
-            const service = new window.google.maps.places.PlacesService(document.createElement('div'));
-            service.textSearch(
-                { query: formData.location, language: 'ja', region: 'jp' },
-                (results, status) => {
-                    if (status === 'OK' && results && results[0]) {
-                        const result = results[0];
-                        const lat = result.geometry?.location?.lat() || formData.latitude;
-                        const lng = result.geometry?.location?.lng() || formData.longitude;
-                        const address = result.formatted_address || '';
-                        const placeName = result.name || formData.location;
-
-                        setFormData((prev) => ({
-                            ...prev, location: placeName, address: address, latitude: lat, longitude: lng,
-                            google_place_id: result.place_id || '', place_id: undefined
-                        }));
-                        alert(t('eventForm.alerts.placeFoundGoogle'));
-                    } else {
-                        alert(t('eventForm.alerts.placeNotFound'));
-                    }
-                }
-            );
+            console.error('Place resolution failed:', error);
+            alert(t('eventForm.alerts.placeNotFound'));
+        } finally {
+            setIsSubmitting(false);
         }
     };
+
 
     const handleSubmit = async (e: FormEvent) => {
         e.preventDefault();
@@ -259,7 +243,7 @@ function EventForm({ event, onSubmit, onClose, onSwitchToEdit }: EventFormProps)
                 currentFormData.place_id = newPlace.id;
             } catch (saveError) {
                 console.error('Failed to populate place from backend:', saveError);
-                alert("장소 등록 처리에 실패했습니다.");
+                alert(t('eventForm.alerts.placeCreateFailed'));
                 return;
             }
         }
@@ -287,7 +271,7 @@ function EventForm({ event, onSubmit, onClose, onSwitchToEdit }: EventFormProps)
         <>
             <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 overflow-y-auto w-full h-full" onClick={onClose}>
                 <div className="relative w-full max-w-2xl bg-background border border-border shadow-2xl rounded-2xl overflow-hidden animate-in zoom-in-95 my-auto max-h-[90vh] flex flex-col" onClick={(e) => e.stopPropagation()}>
-                    
+
                     {/* Header */}
                     <div className="flex items-center justify-between p-5 md:p-6 border-b border-border bg-card sticky top-0 z-10">
                         <h2 className="text-xl md:text-2xl font-bold text-foreground flex items-center gap-2">
@@ -305,7 +289,7 @@ function EventForm({ event, onSubmit, onClose, onSwitchToEdit }: EventFormProps)
                     {/* Body */}
                     <div className="flex-1 overflow-y-auto p-5 md:p-6 custom-scrollbar">
                         <form id="event-form" onSubmit={handleSubmit} className="space-y-6">
-                            
+
                             {/* Title & Description */}
                             <div className="space-y-4 bg-muted/30 p-4 border border-border/50 rounded-xl">
                                 <div className="space-y-1.5">

@@ -89,6 +89,8 @@
             "placeFoundDb": "장소 정보가 자동으로 입력되었습니다! (DB 캐시)",
             "placeFoundGoogle": "장소 정보가 자동으로 입력되었습니다! (Google API)",
             "placeNotFound": "장소를 찾을 수 없습니다. 다른 검색어를 시도해주세요.",
+            "placeFound": "장소 정보를 자동으로 가져왔습니다.",
+            "placeCreateFailed": "장소 등록 처리에 실패했습니다.",
             "requiredFields": "필수 항목을 모두 입력해주세요.",
             "duplicateCheckError": "중복 확인 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요."
         }

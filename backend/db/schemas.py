@@ -78,6 +78,15 @@ class EventUpdate(BaseModel):
     performer_ids: Optional[List[int]] = []
     related_link: Optional[str] = Field(None, max_length=500)
 
+    @field_validator('door_time', 'start_time', 'end_time', mode='before')
+    @classmethod
+    def empty_str_to_none(cls, value):
+        """빈 문자열을 None으로 변환"""
+        if value == '' or value is None:
+            return None
+        return value
+
+
 
 class EventResponse(EventBase):
     id: int

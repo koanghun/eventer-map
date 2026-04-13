@@ -89,6 +89,9 @@
             "placeFoundDb": "会場情報が自動的に入力されました！（DBキャッシュ）",
             "placeFoundGoogle": "会場情報が自動的に入力されました！（Google API）",
             "placeNotFound": "会場が見つかりませんでした。別の検索語をお試しください。",
+            "placeFound": "会場情報を自動的に取得しました。",
+            "placeCreateFailed": "会場の登録処理に失敗しました。",
+
             "requiredFields": "必須項目をすべて入力してください。",
             "duplicateCheckError": "重複確認中にエラーが発生しました。しばらくしてから再度お試しください。"
         }

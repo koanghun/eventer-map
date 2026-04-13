@@ -20,7 +20,7 @@
 - リアルタイムの位置ベースのイベントマーカー表示および詳細情報(InfoWindow)の提供
 - **「いつ、どこで」** 開催されるイベントかを地図上で直感的に把握可能
 ![Main Map View](./assets/main.png)
-![Create Event View](./assets/create_event.png)
+![Create Event View](./assets/creat-event.png)
 - **[例]**: 「2026-03-31」の日付フィルターを選択すると、その日に開催される東京ドームや渋谷近辺のすべての公演情報が地図上に即座に同期して表示されます。
 
 ### 🏷️ 知能型データの正規化および管理
@@ -31,7 +31,7 @@
 ![Filter View](./assets/search.png)
 
 - **ハイブリッドインフラの活用**: 高性能な推論が必要な**Event Extractor**と**SGLang**はデスクトップ(GPU/WSL2)環境で、ウェブサービスとDBは**Synology NAS**で駆動させる効率的な分散アーキテクチャを構築
-₩
+
 ### 🔒 ユーザー認証および参加システム
 - **Google OAuth 2.0**: ソーシャルログインによる簡便で安全な認証体系
 - **パーソナライゼーション(Personalization)の例**: ユーザーが特定のアーティストの公演で「参加予定(Join)」ボタンをクリックすると、そのイベントはユーザーの個人ダッシュボードに即座に反映され、地図のフィルタリング時に優先的に露出されます。
@@ -101,38 +101,7 @@
 - **問題**: 動的IP環境で外部接続の安定性を確保し、Google Maps APIの呼び出しコストを管理しなければならない課題
 - **解決**: MyDNSとSynology Reverse Proxyを連動させ、ジオコーディングの結果をDBにキャッシュする構造を設計
 ### **システムアーキテクチャ (Infrastructure)**
-  ```mermaid
-  graph TD
-      User["🌍 ユーザー (Browser)"] -- HTTPS/443 --> MyDNS["🌐 MyDNS (DDNS)"]
-      MyDNS -- Forward --> NAS_Host["📦 Synology NAS"]
-      
-      subgraph NAS_Node ["📦 Synology NAS (Web Node)"]
-          Proxy["🛡️ リバースプロキシ"]
-          Nginx["🌐 Nginx (Frontend)"]
-          App["⚙️ FastAPI Backend"]
-          DB["🐘 PostgreSQL"]
-      end
-      
-      subgraph Desktop_Node ["💻 Desktop (AI Node)"]
-          Extractor["🤖 Event Extractor (WSL2)"]
-          SGLang["🧠 SGLang (Docker)"]
-          GPU["🎮 NVIDIA RTX 3060 (WSL)"]
-      end
-
-      subgraph External ["外部連携"]
-          Gmail["📩 Gmail API"]
-      end
-      
-      NAS_Host --> Proxy
-      Proxy --> Nginx
-      Nginx --> App
-      App --> DB
-      
-      Extractor -- "Fetch Email" --> Gmail
-      Extractor -- "Inference" --> SGLang
-      SGLang -- "Qwen" --> GPU
-      Extractor -- "Sync Data" --> App
-  ```
+![System Architecture](https://mermaid.ink/img/pako:eNptU01PwzAM_StWz0wgNnHggNQq-6g0qo5ugBQmlLWmTNuSKg3bKsR_x0k6KGg5uLH97Lw8N59BrgoMbiEotajeYc5eJNBa1Ki5NRBpdaDvEno9mMznaXY5GPTJuYP7hiUZdxYYmaUv9QFCj5Q-CF04bBJmrxNVG541Um1V2dhIW-Bt_bHyFCw0IVLwBws9eMIV2ERbZleq1bHhD7hHXaP3OtmkXMsjd5bKR1pJg7LoAMKq4iNRmzCNCRCJfPM3zyKeEulSYzabEoJFbZJgZ7kzrDdGVS3_1qPCMP7PfHg0WuRGaT7cozS_vr1oNr3uQLPxVMiS-49loYin7gDG6YInjzGLQ3iYP0P_6uaqy_MfRzoJtRRb4D-7DPV-nWPd7bkT6y13Fkie8_c-TdWN2Knv427r527Fb8F-DhQk2X2INi7Aom7XjhQ0NTQ5cXY8LNQxOoOL5RtqlDk6lNfKw0669WB2QOmbpIszLeh3y4EJI04kgwsIdqjpxIJeyGdg3nHn3kqBb-Jja4Kvr28dH_oE)
 
 ---
 

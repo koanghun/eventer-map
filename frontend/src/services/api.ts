@@ -113,7 +113,14 @@ export const placeApi = {
         const response = await api.get<Place[]>(`/places/suggest?query=${encodeURIComponent(query)}&limit=${limit}`);
         return response.data;
     },
+
+    // 장소 해결 (DB 검색 -> Google Maps 검색 -> 신규 생성/반환)
+    resolvePlace: async (query: string): Promise<Place> => {
+        const response = await api.post<Place>(`/places/resolve?query=${encodeURIComponent(query)}`);
+        return response.data;
+    },
 };
+
 
 interface DuplicateCheckResponse {
     status: 'duplicate' | 'similar_found' | 'no_duplicate';
