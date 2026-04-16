@@ -10,13 +10,13 @@ from services import place_service
 
 router = APIRouter(prefix="/places", tags=["places"])
 
-@router.post("/resolve", response_model=PlaceResponse)
+@router.post("/resolve")
 def resolve_place(
     response: Response,
     query: str = Query(..., min_length=1),
     db: Session = Depends(get_db),
     current_user: models.User = require_auth_or_internal
-):
+) -> PlaceResponse:
     """
     텍스트 공간명을 받아 장소 객체를 반환하거나 새로 생성합니다.
     (DB 검색 -> Google Maps 검색 -> 레거시 생성 순서)
@@ -26,32 +26,32 @@ def resolve_place(
         response.status_code = status.HTTP_201_CREATED
     return place
 
-@router.get("/search", response_model=PlaceResponse)
+@router.get("/search")
 def search_place(
     query: str = Query(..., min_length=1),
     db: Session = Depends(get_db)
-):
+) -> PlaceResponse:
     """장소를 검색합니다. (공식명칭, 정규화 명칭, 별칭 포함)"""
     place = crud_place.search_place(db, query)
     if not place:
         raise HTTPException(status_code=404, detail="장소를 찾을 수 없습니다")
     return place
 
-@router.get("/suggest", response_model=List[PlaceResponse])
+@router.get("/suggest")
 def suggest_places(
     query: str = Query(..., min_length=1),
     limit: int = 10,
     db: Session = Depends(get_db)
-):
+) -> List[PlaceResponse]:
     """장소를 자동완성 검색합니다. (부분 일치 지원)"""
     return crud_place.suggest_places(db, query, limit=limit)
 
-@router.post("/", response_model=PlaceResponse, status_code=status.HTTP_201_CREATED)
+@router.post("/", status_code=status.HTTP_201_CREATED)
 def create_place(
     place: PlaceCreate,
     db: Session = Depends(get_db),
     current_user: models.User = require_auth
-):
+) -> PlaceResponse:
     """
     새로운 장소를 저장합니다.
     google_place_id가 있으면 Google 정보를 기반으로 생성하거나 기존 장소와 병합합니다.
@@ -64,22 +64,22 @@ def create_place(
     
     return crud_place.create(db, place)
 
-@router.get("/", response_model=List[PlaceResponse])
+@router.get("/")
 def get_all_places(
     skip: int = 0, 
     limit: int = 100, 
     db: Session = Depends(get_db)
-):
+) -> List[PlaceResponse]:
     """모든 저장된 장소 목록을 반환합니다."""
     return crud_place.get_multi(db, skip=skip, limit=limit)
 
-@router.put("/{place_id}", response_model=PlaceResponse)
+@router.put("/{place_id}")
 def update_place(
     place_id: int, 
     place_data: PlaceUpdate, 
     db: Session = Depends(get_db),
     current_user: models.User = require_auth
-):
+) -> PlaceResponse:
     """장소 정보 수정"""
     db_place = crud_place.get(db, id=place_id)
     if not db_place:
@@ -95,7 +95,7 @@ def delete_place(
     place_id: int, 
     db: Session = Depends(get_db),
     admin: models.User = Depends(require_admin)
-):
+) -> None:
     """장소 삭제 (관리자 전용)"""
     db_place = crud_place.get(db, id=place_id)
     if not db_place:

@@ -43,6 +43,18 @@ class PerformerResponse(BaseModel):
         from_attributes = True
 
 
+class PerformerDuplicateResponse(BaseModel):
+    status: str  # "duplicate", "similar_found", "no_duplicate"
+    exact_match: Optional[PerformerResponse] = None
+    similar_matches: List[PerformerResponse] = []
+
+
+class PerformerCreateResponse(BaseModel):
+    status: str  # "created", "merged", "exists"
+    message: str
+    performer: PerformerResponse
+
+
 class EventBase(BaseModel):
     title: str = Field(..., min_length=1, max_length=200)
     description: Optional[str] = None
@@ -232,3 +244,12 @@ class EventReportResponse(BaseModel):
     
     class Config:
         from_attributes = True
+
+
+class EventDuplicateResponse(BaseModel):
+    duplicates: List[dict]
+
+
+class FlagActionResponse(BaseModel):
+    message: str
+    flagged_event_ids: List[int]

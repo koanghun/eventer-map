@@ -5,59 +5,59 @@ from typing import List
 from db import get_db, models, schemas
 from utils.auth import require_auth, require_admin, require_auth_or_internal
 from utils.event_history import get_event_history_with_user_info
-from utils.event_duplicate import calculate_event_similarity, find_duplicate_events
+from utils.event_duplicate import find_duplicate_events
 from crud import crud_event, crud_place, crud_performer
 from services import event_service
 
 router = APIRouter(prefix="/events", tags=["events"])
 
-@router.post("/sync", response_model=schemas.EventResponse)
+@router.post("/sync")
 def sync_event(
     event: schemas.EventCreate,
     response: Response,
     db: Session = Depends(get_db),
     current_user: models.User = require_auth_or_internal
-):
+) -> schemas.EventResponse:
     """이벤트를 동기화(중복 검사 후 생성/병합)합니다."""
     db_event, is_created = event_service.sync_event(db, event, current_user)
     if is_created:
         response.status_code = status.HTTP_201_CREATED
     return db_event
 
-@router.post("/", response_model=schemas.EventResponse, status_code=status.HTTP_201_CREATED)
+@router.post("/", status_code=status.HTTP_201_CREATED)
 def create_event(
     event: schemas.EventCreate,
     db: Session = Depends(get_db),
     current_user: models.User = require_auth
-):
+) -> schemas.EventResponse:
     """새로운 이벤트를 생성합니다."""
     return event_service.create_event(db, event, current_user)
 
-@router.get("/", response_model=List[schemas.EventResponse])
-def get_events(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
+@router.get("/")
+def get_events(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)) -> List[schemas.EventResponse]:
     """숨김 처리되지 않은 모든 이벤트를 조회합니다."""
     return crud_event.get_multi(db, skip=skip, limit=limit)
 
-@router.get("/by-date/{event_date}", response_model=List[schemas.EventResponse])
-def get_events_by_date(event_date: str, db: Session = Depends(get_db)):
+@router.get("/by-date/{event_date}")
+def get_events_by_date(event_date: str, db: Session = Depends(get_db)) -> List[schemas.EventResponse]:
     """특정 날짜의 이벤트를 조회합니다 (YYYY-MM-DD)."""
     return crud_event.get_by_date(db, event_date)
 
-@router.get("/{event_id}", response_model=schemas.EventResponse)
-def get_event(event_id: int, db: Session = Depends(get_db)):
+@router.get("/{event_id}")
+def get_event(event_id: int, db: Session = Depends(get_db)) -> schemas.EventResponse:
     """ID로 특정 이벤트를 조회합니다."""
     db_event = crud_event.get(db, event_id)
     if not db_event:
         raise HTTPException(status_code=404, detail="이벤트를 찾을 수 없습니다")
     return db_event
 
-@router.put("/{event_id}", response_model=schemas.EventResponse)
+@router.put("/{event_id}")
 def update_event(
     event_id: int,
     event_update: schemas.EventUpdate,
     db: Session = Depends(get_db),
     current_user: models.User = require_auth
-):
+) -> schemas.EventResponse:
     """이벤트 정보를 수정합니다."""
     db_event = event_service.update_event(db, event_id, event_update, current_user)
     if not db_event:
@@ -81,8 +81,9 @@ def delete_event(
     crud_event.remove_soft(db, db_event)
     return None
 
+
 @router.post("/check-duplicate")
-def check_duplicate_event(event_data: schemas.EventCreate, db: Session = Depends(get_db)):
+def check_duplicate_event(event_data: schemas.EventCreate, db: Session = Depends(get_db)) -> schemas.EventDuplicateResponse:
     """이벤트 중복 여부를 확인합니다."""
     # 중복 검사용 임시 객체 생성
     event_dict = event_data.model_dump(exclude={'performer_ids'})
@@ -97,23 +98,23 @@ def check_duplicate_event(event_data: schemas.EventCreate, db: Session = Depends
         ).all()
         
     duplicates = find_duplicate_events(db, temp_event)
-    return {"duplicates": duplicates}
+    return schemas.EventDuplicateResponse(duplicates=duplicates)
 
-@router.get("/{event_id}/history", response_model=List[schemas.EventHistoryResponse])
-def get_event_history(event_id: int, db: Session = Depends(get_db)):
+@router.get("/{event_id}/history")
+def get_event_history(event_id: int, db: Session = Depends(get_db)) -> List[schemas.EventHistoryResponse]:
     """이벤트의 모든 수정 이력을 조회합니다."""
     db_event = crud_event.get(db, event_id, include_hidden=True)
     if not db_event:
         raise HTTPException(status_code=404, detail="이벤트를 찾을 수 없습니다")
     return get_event_history_with_user_info(db, event_id)
 
-@router.post("/{event_id}/report", response_model=schemas.EventReportResponse)
+@router.post("/{event_id}/report")
 def report_event(
     event_id: int,
     report_data: schemas.EventReportCreate,
     db: Session = Depends(get_db),
     current_user: models.User = require_auth
-):
+) -> schemas.EventReportResponse:
     """이벤트를 신고합니다."""
     db_event = crud_event.get(db, event_id)
     if not db_event:
@@ -150,12 +151,12 @@ def report_event(
         "reporter_name": current_user.name
     }
 
-@router.get("/{event_id}/reports", response_model=List[schemas.EventReportResponse])
+@router.get("/{event_id}/reports")
 def get_event_reports(
     event_id: int,
     db: Session = Depends(get_db),
     admin: models.User = Depends(require_admin)
-):
+) -> List[schemas.EventReportResponse]:
     """이벤트 신고 내역을 조회합니다 (관리자 전용)."""
     reports_with_user = db.query(models.EventReport, models.User).join(
         models.User, models.EventReport.reporter_id == models.User.id

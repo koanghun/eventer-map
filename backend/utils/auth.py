@@ -69,7 +69,7 @@ def verify_token(request: Request):
 def get_current_user(
     user_id: int = Depends(verify_token),
     db: Session = Depends(get_db)
-):
+) -> models.User:
     """현재 인증된 사용자 조회"""
     user = db.query(models.User).filter(models.User.id == user_id).first()
     if not user:
@@ -92,7 +92,7 @@ def get_current_user_or_internal(
     request: Request,
     x_internal_token: Optional[str] = Header(None),
     db: Session = Depends(get_db)
-):
+) -> models.User:
     """
     현재 인증된 사용자 또는 내부 서비스 토큰으로 인증된 'System' 사용자 반환.
     X-Internal-Token 헤더가 일치하면 인증 통과 처리합니다.
@@ -157,7 +157,7 @@ def set_admin_status(user: models.User) -> None:
         user.is_admin = False
 
 
-def require_admin(current_user: models.User = require_auth):
+def require_admin(current_user: models.User = require_auth) -> models.User:
     """관리자 권한 필수 체크"""
     if not current_user.is_admin:
         raise HTTPException(
