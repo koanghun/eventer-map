@@ -35,7 +35,8 @@ services:
     ports:
       - "${BACKEND_PORT:-7773}:8000"
     volumes:
-      - ./backend/data:/app/data
+      - ./backend:/app
+    command: uvicorn main:app --host 0.0.0.0 --port 8000 --reload
     networks:
       - eventer-network
 
