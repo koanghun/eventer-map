@@ -34,13 +34,10 @@ class Place(Base):
     # Google Maps 연동 필드
     google_place_id: Mapped[Optional[str]] = mapped_column(String, unique=True, index=True)
     
-    # 별칭 시스템 필드 (DEPRECATED: 별치 테이블로 정규화됨)
-    _aliases_old: Mapped[Optional[str]] = mapped_column("aliases", Text)  # 원본 aliases 컬럼 매핑
-    
     address: Mapped[Optional[str]] = mapped_column(String)
     latitude: Mapped[Optional[float]] = mapped_column(Float)
     longitude: Mapped[Optional[float]] = mapped_column(Float)
-    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), index=True)
 
     # 관계 설정
     aliases_rel: Mapped[list["PlaceAlias"]] = relationship(back_populates="place", cascade="all, delete-orphan")
@@ -53,8 +50,8 @@ class PlaceAlias(Base):
 
     id: Mapped[int] = mapped_column(primary_key=True)
     place_id: Mapped[int] = mapped_column(ForeignKey('places.id', ondelete="CASCADE"), index=True)
-    alias: Mapped[str] = mapped_column(String, index=True)
-    normalized_alias: Mapped[str] = mapped_column(String, index=True)  # 검색 성능 최적화용
+    alias: Mapped[str] = mapped_column(String)
+    normalized_alias: Mapped[str] = mapped_column(String)  # 검색 성능 최적화용
 
     place: Mapped["Place"] = relationship(back_populates="aliases_rel")
 
@@ -71,10 +68,7 @@ class Performer(Base):
     canonical_name: Mapped[str] = mapped_column(String)  # UI 표시용 공식 이름
     normalized_name: Mapped[str] = mapped_column(String, unique=True, index=True)  # 중복 체크용 정규화된 이름
     
-    # 별칭 시스템 필드 (DEPRECATED)
-    _aliases_old: Mapped[Optional[str]] = mapped_column("aliases", Text)
-    
-    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), index=True)
     updated_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), onupdate=func.now())
 
     # 관계 설정
@@ -89,8 +83,8 @@ class PerformerAlias(Base):
 
     id: Mapped[int] = mapped_column(primary_key=True)
     performer_id: Mapped[int] = mapped_column(ForeignKey('performers.id', ondelete="CASCADE"), index=True)
-    alias: Mapped[str] = mapped_column(String, index=True)
-    normalized_alias: Mapped[str] = mapped_column(String, index=True)  # 검색 성능 최적화용
+    alias: Mapped[str] = mapped_column(String)
+    normalized_alias: Mapped[str] = mapped_column(String)  # 검색 성능 최적화용
 
     performer: Mapped["Performer"] = relationship(back_populates="aliases_rel")
 
@@ -104,27 +98,31 @@ class Event(Base):
     id: Mapped[int] = mapped_column(primary_key=True)
     title: Mapped[Optional[str]] = mapped_column(String, index=True)
     description: Mapped[Optional[str]] = mapped_column(String)
-    event_date: Mapped[Optional[str]] = mapped_column(String)  # YYYY-MM-DD
+    event_date: Mapped[Optional[str]] = mapped_column(String, index=True)  # YYYY-MM-DD
     door_time: Mapped[Optional[str]] = mapped_column(String)  # 개장 HH:MM
     start_time: Mapped[Optional[str]] = mapped_column(String)  # 개연 HH:MM
     end_time: Mapped[Optional[str]] = mapped_column(String)  # 종연 HH:MM
     
     # 위치 정보 (Place 모델 외래키로 대체)
-    place_id: Mapped[Optional[int]] = mapped_column(ForeignKey('places.id'))
+    place_id: Mapped[Optional[int]] = mapped_column(ForeignKey('places.id'), index=True)
     
     related_link: Mapped[Optional[str]] = mapped_column(String)
-    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), index=True)
     updated_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), onupdate=func.now())
     
     # 추적 필드
-    created_by: Mapped[Optional[int]] = mapped_column(ForeignKey('users.id'))
-    updated_by: Mapped[Optional[int]] = mapped_column(ForeignKey('users.id'))
+    created_by: Mapped[Optional[int]] = mapped_column(ForeignKey('users.id'), index=True)
+    updated_by: Mapped[Optional[int]] = mapped_column(ForeignKey('users.id'), index=True)
     report_count: Mapped[int] = mapped_column(default=0)
-    is_hidden: Mapped[bool] = mapped_column(Boolean, default=False)
+    is_hidden: Mapped[bool] = mapped_column(Boolean, default=False, index=True)
 
     # 관계 설정
     place: Mapped[Optional["Place"]] = relationship()
     performers_rel: Mapped[list["Performer"]] = relationship(secondary=event_performers, back_populates="events")
+
+    __table_args__ = (
+        Index('ix_events_date_hidden', 'event_date', 'is_hidden'),
+    )
 
 
 class User(Base):
@@ -145,8 +143,8 @@ class EventHistory(Base):
     __tablename__ = "event_histories"
     
     id: Mapped[int] = mapped_column(primary_key=True)
-    event_id: Mapped[int] = mapped_column(ForeignKey('events.id'))
-    user_id: Mapped[int] = mapped_column(ForeignKey('users.id'))
+    event_id: Mapped[int] = mapped_column(ForeignKey('events.id'), index=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey('users.id'), index=True)
     action: Mapped[str] = mapped_column(String)  # 'created', 'updated', 'deleted'
     
     # 변경된 데이터 스냅샷 (JSON 문자열)
@@ -166,8 +164,8 @@ class EventReport(Base):
     __tablename__ = "event_reports"
     
     id: Mapped[int] = mapped_column(primary_key=True)
-    event_id: Mapped[int] = mapped_column(ForeignKey('events.id'))
-    reporter_id: Mapped[int] = mapped_column(ForeignKey('users.id'))
+    event_id: Mapped[int] = mapped_column(ForeignKey('events.id'), index=True)
+    reporter_id: Mapped[int] = mapped_column(ForeignKey('users.id'), index=True)
     reason: Mapped[str] = mapped_column(String)  # 'spam', 'inappropriate', 'wrong_info', 'other'
     description: Mapped[Optional[str]] = mapped_column(Text)  # 상세 설명
     status: Mapped[str] = mapped_column(String, default='pending')  # 'pending', 'reviewed', 'resolved'
