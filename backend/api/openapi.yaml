@@ -5,6 +5,8 @@ info:
 paths:
   /ping:
     get:
+      tags:
+        - System
       summary: 서버 상태 확인
       responses:
         "200":
@@ -18,6 +20,8 @@ paths:
                     type: string
   /auth/google:
     post:
+      tags:
+        - Auth
       summary: 구글 로그인
       description: 구글 ID 토큰을 검증하고 자체 JWT(Access, Refresh) 발급
       requestBody:
@@ -42,6 +46,8 @@ paths:
           description: 인증 실패 (유효하지 않은 구글 토큰)
   /auth/refresh:
     post:
+      tags:
+        - Auth
       summary: 액세스 토큰 갱신
       description: 유효한 리프레시 토큰을 사용하여 새로운 액세스 토큰 발급
       parameters:
@@ -67,6 +73,8 @@ paths:
           description: 인증 실패 (유효하지 않은 리프레시 토큰)
   /auth/signup:
     post:
+      tags:
+        - Auth
       summary: 로컬 회원가입
       description: 이메일과 비밀번호를 사용하여 새로운 사용자 등록
       requestBody:
@@ -91,6 +99,8 @@ paths:
           description: 잘못된 요청(이메일 중복 또는 데이터 누락)
   /auth/login:
     post:
+      tags:
+        - Auth
       summary: 로컬 로그인
       description: 이메일과 비밀번호를 사용하여 로그인
       requestBody:
@@ -115,6 +125,8 @@ paths:
           description: 인증 실패 (잘못된 자격 증명)
   /users/me/link-google:
     post:
+      tags:
+        - User
       summary: 구글 계정 연동
       description: 현재 로그인된 사용자의 계정에 구글 계정 연동
       security:
@@ -141,6 +153,8 @@ paths:
           description: 인증 실패 (유효하지 않은 JWT 또는 구글 토큰)
   /auth/logout:
     post:
+      tags:
+        - Auth
       summary: 로그아웃
       description: 데이터베이스에서 리프레시 토큰 무효화
       parameters:
@@ -165,9 +179,765 @@ paths:
                 properties:
                   message:
                     type: string
+  /artists:
+    get:
+      tags:
+        - Artists
+      summary: 아티스트 목록 조회 (통합)
+      description: 검색어(초성 또는 일반 문자열)를 입력받아 아티스트 목록 요약 정보 반환
+      parameters:
+        - in: query
+          name: query
+          required: false
+          schema:
+            type: string
+            minLength: 1
+          description: "검색어 (초성, 영문, 히라가나 등)"
+        - in: query
+          name: status
+          required: false
+          schema:
+            type: string
+            enum: [PENDING, APPROVED, REJECTED]
+          description: "특정 상태의 아티스트만 필터링 (선택)"
+      responses:
+        "200":
+          description: 조회 성공
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ArtistSummary"
+    post:
+      tags:
+        - Artists
+      summary: 아티스트 등록
+      description: 유저(PENDING) 또는 관리자(APPROVED) 권한에 따라 아티스트 등록
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              $ref: "#/components/schemas/ArtistInput"
+      responses:
+        "201":
+          description: 등록 성공
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Artist"
+        "401":
+          description: 인증 필요
+
+  /artists/{artistId}:
+    get:
+      tags:
+        - Artists
+      summary: 아티스트 상세 정보 조회
+      description: 아티스트 ID로 상세 정보 단건 반환
+      parameters:
+        - in: path
+          name: artistId
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          description: 조회 성공
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Artist"
+        "404":
+          description: 아티스트를 찾을 수 없음
+    put:
+      tags:
+        - Artists
+      summary: 아티스트 수정
+      description: 유저 또는 관리자가 아티스트 정보 수정 (권한에 따라 다르게 처리됨)
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: artistId
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              $ref: "#/components/schemas/ArtistInput"
+      responses:
+        "200":
+          description: 수정 성공
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Artist"
+        "403":
+          description: "권한 없음 (예: 승인된 데이터를 일반 유저가 수정 시도)"
+    delete:
+      tags:
+        - Artists
+      summary: 아티스트 삭제
+      description: 유저 또는 관리자가 아티스트 삭제 (권한에 따라 다르게 처리됨)
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: artistId
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "204":
+          description: 삭제 성공
+        "403":
+          description: 권한 없음
+        "409":
+          description: 연결된 이벤트가 존재하여 삭제 불가
+  /artists/{artistId}/approve:
+    post:
+      tags:
+        - Artists
+      summary: 아티스트 승인 (관리자 전용)
+      description: 대기 중인 아티스트를 공식 승인 처리 (상태를 APPROVED로 변경)
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: artistId
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          description: 승인 성공
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Artist"
+  /venues:
+    get:
+      tags:
+        - Venues
+      summary: 공연장 목록 조회 (지도 기반)
+      description: Bounding Box 내의 공연장을 평점 순으로 최대 100개 조회합니다. (결과 초과 시 hasMore true 반환)
+      parameters:
+        - in: query
+          name: minLat
+          required: true
+          schema:
+            type: number
+            format: double
+          description: "최소 위도 (남쪽 경계)"
+        - in: query
+          name: maxLat
+          required: true
+          schema:
+            type: number
+            format: double
+          description: "최대 위도 (북쪽 경계)"
+        - in: query
+          name: minLng
+          required: true
+          schema:
+            type: number
+            format: double
+          description: "최소 경도 (서쪽 경계)"
+        - in: query
+          name: maxLng
+          required: true
+          schema:
+            type: number
+            format: double
+          description: "최대 경도 (동쪽 경계)"
+        - in: query
+          name: query
+          required: false
+          schema:
+            type: string
+          description: "공연장 이름 검색어 (선택)"
+        - in: query
+          name: status
+          required: false
+          schema:
+            type: string
+            enum: [PENDING, APPROVED, REJECTED]
+          description: "상태 필터링 (선택)"
+      responses:
+        "200":
+          description: 조회 성공
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/VenueListResponse"
+    post:
+      tags:
+        - Venues
+      summary: 공연장 등록
+      description: 유저(PENDING) 또는 관리자(APPROVED) 권한에 따라 공연장 등록
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/VenueInput"
+      responses:
+        "201":
+          description: 등록 성공
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Venue"
+        "401":
+          description: 인증 필요
+  /venues/{venueId}:
+    get:
+      tags:
+        - Venues
+      summary: 공연장 상세 정보 조회
+      parameters:
+        - in: path
+          name: venueId
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          description: 조회 성공
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Venue"
+        "404":
+          description: 공연장을 찾을 수 없음
+    put:
+      tags:
+        - Venues
+      summary: 공연장 수정
+      description: 권한(유저/관리자)에 따른 조건부 수정
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: venueId
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/VenueInput"
+      responses:
+        "200":
+          description: 수정 성공
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Venue"
+        "403":
+          description: 수정 권한 없음
+    delete:
+      tags:
+        - Venues
+      summary: 공연장 삭제
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: venueId
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "204":
+          description: 삭제 성공
+        "403":
+          description: 권한 없음
+  /venues/{venueId}/approve:
+    post:
+      tags:
+        - Venues
+      summary: 공연장 승인 (관리자 전용)
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: venueId
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          description: 승인 성공
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Venue"
+
+  /events:
+    get:
+      tags:
+        - Events
+      summary: 이벤트 목록 조회
+      parameters:
+        - in: query
+          name: artistId
+          required: false
+          schema:
+            type: string
+            format: uuid
+        - in: query
+          name: venueId
+          required: false
+          schema:
+            type: string
+            format: uuid
+        - in: query
+          name: timeRange
+          required: false
+          schema:
+            type: string
+            enum: [upcoming, past]
+        - in: query
+          name: status
+          required: false
+          schema:
+            type: string
+            enum: [PENDING, APPROVED, REJECTED]
+      responses:
+        "200":
+          description: 조회 성공
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EventListResponse"
+    post:
+      tags:
+        - Events
+      summary: 이벤트 등록 (위키 방식)
+      description: 유저가 이벤트를 등록하면 즉시 반영되며 이력이 생성됨
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              $ref: "#/components/schemas/EventInput"
+      responses:
+        "201":
+          description: 등록 성공
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Event"
+        "401":
+          description: 인증 필요
+        "403":
+          description: 밴(Ban) 당한 유저라 등록 불가
+  /events/{eventId}:
+    get:
+      tags:
+        - Events
+      summary: 이벤트 상세 조회
+      parameters:
+        - in: path
+          name: eventId
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          description: 조회 성공
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Event"
+        "404":
+          description: 찾을 수 없음
+    put:
+      tags:
+        - Events
+      summary: 이벤트 수정 (위키 방식)
+      description: 즉시 반영되며 이력이 생성됨
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: eventId
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              $ref: "#/components/schemas/EventInput"
+      responses:
+        "200":
+          description: 수정 성공
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Event"
+        "403":
+          description: 권한 없음 (Ban)
+  /events/{eventId}/delete-request:
+    post:
+      tags:
+        - Events
+      summary: 이벤트 삭제 요청
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: eventId
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          description: 삭제 요청 접수됨
+  /events/{eventId}/attend:
+    post:
+      tags:
+        - Events
+      summary: 참가/취소 토글
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: eventId
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          description: 성공
+  /events/{eventId}/rate:
+    post:
+      tags:
+        - Events
+      summary: 이벤트 평점 등록
+      description: 이벤트 종료 후, 참가자만 가능
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: eventId
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RatingInput"
+      responses:
+        "200":
+          description: 평점 등록 성공
+        "400":
+          description: 아직 이벤트가 종료되지 않음
+        "403":
+          description: 참가하지 않은 유저
+  /events/{eventId}/threads:
+    get:
+      tags:
+        - Threads
+      summary: 이벤트 스레드(부가정보) 조회
+      description: 추천순(recommendCount) 내림차순 정렬
+      parameters:
+        - in: path
+          name: eventId
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          description: 조회 성공
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/EventThread"
+    post:
+      tags:
+        - Threads
+      summary: 이벤트 스레드 작성
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: eventId
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/EventThreadInput"
+      responses:
+        "201":
+          description: 작성 성공
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EventThread"
+  /event-threads/{threadId}/recommend:
+    post:
+      tags:
+        - Threads
+      summary: 스레드 추천 토글
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: threadId
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          description: 추천 성공
+  /events/{eventId}/history:
+    get:
+      tags:
+        - History
+      summary: 이벤트 수정 이력 조회
+      parameters:
+        - in: path
+          name: eventId
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          description: 이력 목록
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/EventHistorySummary"
+  /event-history/{historyId}/report:
+    post:
+      tags:
+        - History
+      summary: 수정 이력 신고
+      description: 임계치 초과 시 해당 이력 취소(REVERTED) 및 롤백, 유저 밴 처리됨
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: historyId
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          description: 신고 성공
 
 components:
   schemas:
+    EventSummary:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        title:
+          type: string
+        venueId:
+          type: string
+          format: uuid
+        startTime:
+          type: string
+          format: date-time
+        endTime:
+          type: string
+          format: date-time
+        rating:
+          type: number
+          format: double
+        posterImageUrl:
+          type: string
+          format: uri
+        status:
+          type: string
+          enum: [PENDING, APPROVED, REJECTED]
+    EventListResponse:
+      type: object
+      properties:
+        events:
+          type: array
+          items:
+            $ref: "#/components/schemas/EventSummary"
+        hasMore:
+          type: boolean
+    Event:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        title:
+          type: string
+        venue:
+          $ref: "#/components/schemas/VenueSummary"
+        artists:
+          type: array
+          items:
+            $ref: "#/components/schemas/ArtistSummary"
+        openingTime:
+          type: string
+          format: date-time
+        startTime:
+          type: string
+          format: date-time
+        endTime:
+          type: string
+          format: date-time
+        relatedLinks:
+          type: array
+          items:
+            type: string
+            format: uri
+        posterImageUrl:
+          type: string
+          format: uri
+        ratingSum:
+          type: number
+          format: double
+        ratingCount:
+          type: integer
+        status:
+          type: string
+          enum: [PENDING, APPROVED, REJECTED]
+    EventInput:
+      type: object
+      required:
+        - title
+        - venueId
+        - startTime
+        - endTime
+      properties:
+        title:
+          type: string
+        venueId:
+          type: string
+          format: uuid
+        artistIds:
+          type: array
+          items:
+            type: string
+            format: uuid
+        openingTime:
+          type: string
+          format: date-time
+        startTime:
+          type: string
+          format: date-time
+        endTime:
+          type: string
+          format: date-time
+        relatedLinks:
+          type: array
+          items:
+            type: string
+            format: uri
+        posterImage:
+          type: string
+          format: binary
+    RatingInput:
+      type: object
+      required:
+        - score
+      properties:
+        score:
+          type: integer
+          minimum: 1
+          maximum: 5
+    EventThread:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        eventId:
+          type: string
+          format: uuid
+        authorId:
+          type: string
+          format: uuid
+        content:
+          type: string
+        recommendCount:
+          type: integer
+        createdAt:
+          type: string
+          format: date-time
+    EventThreadInput:
+      type: object
+      required:
+        - content
+      properties:
+        content:
+          type: string
+    EventHistorySummary:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        eventId:
+          type: string
+          format: uuid
+        editorId:
+          type: string
+          format: uuid
+        reportCount:
+          type: integer
+        status:
+          type: string
+          enum: [ACTIVE, REVERTED]
+        createdAt:
+          type: string
+          format: date-time
+
     GoogleLoginRequest:
       type: object
       required:
@@ -224,6 +994,184 @@ components:
         idToken:
           type: string
           description: 클라이언트로부터 전달받은 구글 ID 토큰
+    ArtistSummary:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: 아티스트 고유 식별자
+        officialName:
+          type: string
+          description: 공식 이름
+        hiragana:
+          type: string
+          description: 히라가나
+        status:
+          type: string
+          enum: [PENDING, APPROVED, REJECTED]
+          description: 아티스트 상태
+    Artist:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: 아티스트 고유 식별자
+        officialName:
+          type: string
+          description: 공식 이름
+        hiragana:
+          type: string
+          description: 히라가나
+        gender:
+          type: string
+          enum: [MALE, FEMALE, MIXED, OTHER]
+          description: 성별
+        profileImageUrl:
+          type: string
+          format: uri
+          description: 프로필 이미지 URL
+        birthDate:
+          type: string
+          format: date
+          description: 생년월일 (YYYY-MM-DD)
+        debutDate:
+          type: string
+          format: date
+          description: 데뷔일 (YYYY-MM-DD)
+        status:
+          type: string
+          enum: [PENDING, APPROVED, REJECTED]
+          description: 아티스트 상태 (유저 등록 시 PENDING, 관리자 승인 시 APPROVED)
+        authorId:
+          type: string
+          format: uuid
+          description: 등록한 유저 ID
+    ArtistInput:
+      type: object
+      required:
+        - officialName
+        - gender
+      properties:
+        officialName:
+          type: string
+          description: 공식 이름
+        hiragana:
+          type: string
+          description: 히라가나
+        gender:
+          type: string
+          enum: [MALE, FEMALE, MIXED, OTHER]
+          description: 성별
+        profileImage:
+          type: string
+          format: binary
+          description: "프로필 이미지 업로드 파일 (최대 5MB, JPG/PNG 형식만 허용)"
+        birthDate:
+          type: string
+          format: date
+          description: 생년월일 (YYYY-MM-DD)
+        debutDate:
+          type: string
+          format: date
+          description: 데뷔일 (YYYY-MM-DD)
+    VenueSummary:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: 공연장 고유 식별자
+        officialName:
+          type: string
+          description: 공식 이름
+        latitude:
+          type: number
+          format: double
+          description: 위도
+        longitude:
+          type: number
+          format: double
+          description: 경도
+        rating:
+          type: number
+          format: double
+          description: 런닝 토탈 방식의 평균 평점
+        status:
+          type: string
+          enum: [PENDING, APPROVED, REJECTED]
+          description: 공연장 승인 상태
+    VenueListResponse:
+      type: object
+      properties:
+        venues:
+          type: array
+          items:
+            $ref: "#/components/schemas/VenueSummary"
+        hasMore:
+          type: boolean
+          description: "결과가 최대치(100개)를 초과하여 더 존재하는지 여부"
+    Venue:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        officialName:
+          type: string
+        googleMapId:
+          type: string
+          description: "Google Maps Place ID"
+        address:
+          type: string
+        latitude:
+          type: number
+          format: double
+        longitude:
+          type: number
+          format: double
+        relatedLinks:
+          type: array
+          items:
+            type: string
+            format: uri
+        capacity:
+          type: integer
+        rating:
+          type: number
+          format: double
+        ratingCount:
+          type: integer
+        status:
+          type: string
+          enum: [PENDING, APPROVED, REJECTED]
+    VenueInput:
+      type: object
+      required:
+        - officialName
+        - latitude
+        - longitude
+      properties:
+        officialName:
+          type: string
+        googleMapId:
+          type: string
+        address:
+          type: string
+        latitude:
+          type: number
+          format: double
+        longitude:
+          type: number
+          format: double
+        relatedLinks:
+          type: array
+          items:
+            type: string
+            format: uri
+        capacity:
+          type: integer
 
   securitySchemes:
     bearerAuth:
