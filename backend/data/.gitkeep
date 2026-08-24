@@ -1,3 +1,0 @@
-# This file ensures the data/ directory is tracked by Git
-# The directory itself is needed for Docker volume mapping
-# Actual database files (*.db, *.sqlite) are ignored per .gitignore

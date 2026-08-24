@@ -1,0 +1,43 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: >
+  eventer-map-backend
+  
+  Sample SAM Template for Eventer Map Backend
+
+Globals:
+  Function:
+    Timeout: 30
+    MemorySize: 256
+    Runtime: provided.al2023
+    Architectures:
+      - arm64
+
+Resources:
+  EventerMapApiFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: .
+      Handler: bootstrap
+      Environment:
+        Variables:
+          ENV: dev
+      Events:
+        CatchAll:
+          Type: Api
+          Properties:
+            Path: /{proxy+}
+            Method: ANY
+        RootPath:
+          Type: Api
+          Properties:
+            Path: /
+            Method: ANY
+
+    Metadata:
+      BuildMethod: go1.x
+
+Outputs:
+  EventerMapApi:
+    Description: "API Gateway endpoint URL"
+    Value: !Sub "https://${ServerlessRestApi}.execute-api.${AWS::Region}.amazonaws.com/Prod/"
