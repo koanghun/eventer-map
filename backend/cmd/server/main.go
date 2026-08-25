@@ -2,8 +2,13 @@ package main
 
 import (
 	"context"
-	"fmt"
+	"database/sql"
 	"net/http"
+
+	"eventer-map-backend/internal/handler"
+	"eventer-map-backend/internal/middleware"
+	"eventer-map-backend/internal/repository"
+	"eventer-map-backend/internal/service"
 
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/aws/aws-lambda-go/lambda"
@@ -11,23 +16,33 @@ import (
 )
 
 func main() {
-	// 1. 표준 http.ServeMux 라우터 생성
+	// 1. DB Connection (Dummy for now until we configure DSN)
+	// db, err := sql.Open("postgres", "postgres://user:pass@localhost:5432/db?sslmode=disable")
+	// if err != nil { log.Fatal(err) }
+	var db *sql.DB
+
+	// 2. Initialize Repository
+	repo := repository.New(db)
+
+	// 3. Initialize Services
+	services := service.NewServices(repo)
+
+	// 4. Initialize Handler (implements ServerInterface)
+	apiHandler := handler.NewServer(services)
+
+	// 5. Setup Router (ServeMux)
 	mux := http.NewServeMux()
 	
-	// TODO: oapi-codegen으로 생성된 핸들러를 mux에 등록
-	// handler.HandlerFromMux(myServerImpl, mux)
+	// 6. Register oapi-codegen Handlers
+	handler.HandlerFromMux(apiHandler, mux)
 
-	mux.HandleFunc("/ping", func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Content-Type", "application/json")
-		fmt.Fprint(w, `{"message":"pong"}`)
-	})
+	// 7. Wrap with Middlewares (e.g., Logger)
+	var h http.Handler = mux
+	h = middleware.Logger(h)
 
-	// 2. AWS Lambda 프록시 어댑터로 감싸기
-	adapter := httpadapter.New(mux)
-
-	// 3. Lambda 핸들러 시작
+	// 8. Start AWS Lambda Proxy
+	adapter := httpadapter.New(h)
 	lambda.Start(func(ctx context.Context, req events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {
-		// API Gateway를 통한 요청이 들어올 때 실행됨
 		return adapter.ProxyWithContext(ctx, req)
 	})
 }
