@@ -4,6 +4,7 @@ CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 CREATE TABLE users (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     email VARCHAR UNIQUE,
+    display_name VARCHAR NOT NULL,
     password_hash VARCHAR,
     google_id VARCHAR UNIQUE,
     is_banned BOOLEAN NOT NULL DEFAULT false,
@@ -15,7 +16,7 @@ CREATE TABLE users (
 CREATE TABLE artists (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     official_name VARCHAR NOT NULL,
-    hiragana VARCHAR NOT NULL,
+    hiragana VARCHAR,
     gender VARCHAR NOT NULL,
     profile_image_url VARCHAR,
     birth_date DATE,
@@ -23,7 +24,7 @@ CREATE TABLE artists (
     rating_sum DOUBLE PRECISION NOT NULL DEFAULT 0,
     rating_count INTEGER NOT NULL DEFAULT 0,
     status VARCHAR NOT NULL DEFAULT 'PENDING',
-    author_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    author_id UUID REFERENCES users(id) ON DELETE SET NULL,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
@@ -32,7 +33,7 @@ CREATE TABLE artists (
 CREATE TABLE venues (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     official_name VARCHAR NOT NULL,
-    google_map_id VARCHAR,
+    google_map_id VARCHAR NOT NULL,
     address VARCHAR NOT NULL,
     latitude DOUBLE PRECISION NOT NULL,
     longitude DOUBLE PRECISION NOT NULL,
@@ -41,7 +42,7 @@ CREATE TABLE venues (
     rating_sum DOUBLE PRECISION NOT NULL DEFAULT 0,
     rating_count INTEGER NOT NULL DEFAULT 0,
     status VARCHAR NOT NULL DEFAULT 'PENDING',
-    author_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    author_id UUID REFERENCES users(id) ON DELETE SET NULL,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
@@ -50,7 +51,7 @@ CREATE TABLE venues (
 CREATE TABLE events (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     title VARCHAR NOT NULL,
-    venue_id UUID NOT NULL REFERENCES venues(id) ON DELETE CASCADE,
+    venue_id UUID REFERENCES venues(id) ON DELETE SET NULL,
     opening_time TIMESTAMPTZ,
     start_time TIMESTAMPTZ NOT NULL,
     end_time TIMESTAMPTZ NOT NULL,
@@ -59,7 +60,7 @@ CREATE TABLE events (
     rating_sum DOUBLE PRECISION NOT NULL DEFAULT 0,
     rating_count INTEGER NOT NULL DEFAULT 0,
     status VARCHAR NOT NULL DEFAULT 'PENDING',
-    author_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    author_id UUID REFERENCES users(id) ON DELETE SET NULL,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
@@ -75,7 +76,6 @@ CREATE TABLE event_artists (
 CREATE TABLE event_attendances (
     user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     event_id UUID NOT NULL REFERENCES events(id) ON DELETE CASCADE,
-    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     PRIMARY KEY (user_id, event_id)
 );
 
@@ -84,8 +84,6 @@ CREATE TABLE user_event_ratings (
     user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     event_id UUID NOT NULL REFERENCES events(id) ON DELETE CASCADE,
     score INTEGER NOT NULL CHECK (score >= 1 AND score <= 5),
-    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     PRIMARY KEY (user_id, event_id)
 );
 
@@ -93,7 +91,7 @@ CREATE TABLE user_event_ratings (
 CREATE TABLE event_threads (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     event_id UUID NOT NULL REFERENCES events(id) ON DELETE CASCADE,
-    author_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    author_id UUID REFERENCES users(id) ON DELETE SET NULL,
     content TEXT NOT NULL,
     recommend_count INTEGER NOT NULL DEFAULT 0,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
@@ -104,7 +102,6 @@ CREATE TABLE event_threads (
 CREATE TABLE thread_recommendations (
     user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     thread_id UUID NOT NULL REFERENCES event_threads(id) ON DELETE CASCADE,
-    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     PRIMARY KEY (user_id, thread_id)
 );
 
@@ -112,7 +109,7 @@ CREATE TABLE thread_recommendations (
 CREATE TABLE event_histories (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     event_id UUID NOT NULL REFERENCES events(id) ON DELETE CASCADE,
-    editor_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    editor_id UUID REFERENCES users(id) ON DELETE SET NULL,
     snapshot JSONB NOT NULL,
     report_count INTEGER NOT NULL DEFAULT 0,
     status VARCHAR NOT NULL DEFAULT 'ACTIVE',
@@ -141,3 +138,6 @@ CREATE INDEX idx_event_artists_artist_id ON event_artists (artist_id);
 
 -- Threads: Ordered by recommend_count
 CREATE INDEX idx_event_threads_event_id_recommend ON event_threads (event_id, recommend_count DESC);
+-- 자동완성(LIKE '검색어%') 속도 최적화를 위한 전용 B-Tree 인덱스
+CREATE INDEX idx_artists_name_pattern ON artists (official_name varchar_pattern_ops);
+CREATE INDEX idx_venues_name_pattern ON venues (official_name varchar_pattern_ops);
