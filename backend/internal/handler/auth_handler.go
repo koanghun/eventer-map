@@ -17,8 +17,12 @@ func (s *Server) PostAuthSignup(w http.ResponseWriter, r *http.Request) {
 
 	user, err := s.services.Auth.Signup(r.Context(), string(req.Email), req.Nickname, req.Password)
 	if err != nil {
-		if err == service.ErrUserExists {
+		if err == service.ErrUserExists || err == service.ErrNicknameExists {
 			RespondError(w, http.StatusConflict, err.Error())
+			return
+		}
+		if err == service.ErrInvalidPassword {
+			RespondError(w, http.StatusBadRequest, err.Error())
 			return
 		}
 		RespondError(w, http.StatusInternalServerError, "Failed to create user")

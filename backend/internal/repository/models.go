@@ -31,7 +31,7 @@ type Artist struct {
 type Event struct {
 	ID             uuid.UUID
 	Title          string
-	VenueID        uuid.UUID
+	VenueID        uuid.NullUUID
 	OpeningTime    sql.NullTime
 	StartTime      time.Time
 	EndTime        time.Time
@@ -51,9 +51,8 @@ type EventArtist struct {
 }
 
 type EventAttendance struct {
-	UserID    uuid.UUID
-	EventID   uuid.UUID
-	CreatedAt time.Time
+	UserID  uuid.UUID
+	EventID uuid.UUID
 }
 
 type EventHistory struct {
@@ -83,9 +82,8 @@ type HistoryReport struct {
 }
 
 type ThreadRecommendation struct {
-	UserID    uuid.UUID
-	ThreadID  uuid.UUID
-	CreatedAt time.Time
+	UserID   uuid.UUID
+	ThreadID uuid.UUID
 }
 
 type User struct {
@@ -100,11 +98,9 @@ type User struct {
 }
 
 type UserEventRating struct {
-	UserID    uuid.UUID
-	EventID   uuid.UUID
-	Score     int32
-	CreatedAt time.Time
-	UpdatedAt time.Time
+	UserID  uuid.UUID
+	EventID uuid.UUID
+	Score   int32
 }
 
 type Venue struct {

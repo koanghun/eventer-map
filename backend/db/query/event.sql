@@ -67,7 +67,8 @@ SELECT EXISTS(
 -- name: RateEvent :exec
 INSERT INTO user_event_ratings (user_id, event_id, score)
 VALUES ($1, $2, $3)
-ON CONFLICT (user_id, event_id) DO UPDATE SET score = EXCLUDED.score, updated_at = NOW();
+ON CONFLICT (user_id, event_id) DO UPDATE SET score = EXCLUDED.score;
+
 
 -- name: GetUserRatingForEvent :one
 SELECT * FROM user_event_ratings

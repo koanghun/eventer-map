@@ -19,3 +19,7 @@ WHERE id = $1 LIMIT 1;
 UPDATE users
 SET is_banned = $2, updated_at = NOW()
 WHERE id = $1;
+
+-- name: CheckNicknameExists :one
+SELECT EXISTS(SELECT 1 FROM users WHERE display_name = $1);
+

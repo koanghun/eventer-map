@@ -77,7 +77,7 @@ RETURNING id, title, venue_id, opening_time, start_time, end_time, related_links
 
 type CreateEventParams struct {
 	Title          string
-	VenueID        uuid.UUID
+	VenueID        uuid.NullUUID
 	OpeningTime    sql.NullTime
 	StartTime      time.Time
 	EndTime        time.Time
@@ -190,7 +190,7 @@ func (q *Queries) GetEvent(ctx context.Context, id uuid.UUID) (Event, error) {
 }
 
 const getUserRatingForEvent = `-- name: GetUserRatingForEvent :one
-SELECT user_id, event_id, score, created_at, updated_at FROM user_event_ratings
+SELECT user_id, event_id, score FROM user_event_ratings
 WHERE user_id = $1 AND event_id = $2 LIMIT 1
 `
 
@@ -202,13 +202,7 @@ type GetUserRatingForEventParams struct {
 func (q *Queries) GetUserRatingForEvent(ctx context.Context, arg GetUserRatingForEventParams) (UserEventRating, error) {
 	row := q.db.QueryRowContext(ctx, getUserRatingForEvent, arg.UserID, arg.EventID)
 	var i UserEventRating
-	err := row.Scan(
-		&i.UserID,
-		&i.EventID,
-		&i.Score,
-		&i.CreatedAt,
-		&i.UpdatedAt,
-	)
+	err := row.Scan(&i.UserID, &i.EventID, &i.Score)
 	return i, err
 }
 
@@ -297,7 +291,7 @@ func (q *Queries) ListEvents(ctx context.Context, arg ListEventsParams) ([]Event
 const rateEvent = `-- name: RateEvent :exec
 INSERT INTO user_event_ratings (user_id, event_id, score)
 VALUES ($1, $2, $3)
-ON CONFLICT (user_id, event_id) DO UPDATE SET score = EXCLUDED.score, updated_at = NOW()
+ON CONFLICT (user_id, event_id) DO UPDATE SET score = EXCLUDED.score
 `
 
 type RateEventParams struct {

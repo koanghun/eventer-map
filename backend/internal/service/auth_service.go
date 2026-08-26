@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"regexp"
 	"time"
 
 	"eventer-map-backend/internal/repository"
@@ -28,8 +29,10 @@ func NewAuthService(repo *repository.Queries) *AuthService {
 
 // Custom errors
 var (
-	ErrUserExists   = errors.New("user already exists")
-	ErrInvalidLogin = errors.New("invalid email or password")
+	ErrUserExists      = errors.New("user already exists")
+	ErrNicknameExists  = errors.New("nickname already exists")
+	ErrInvalidLogin    = errors.New("invalid email or password")
+	ErrInvalidPassword = errors.New("password must be at least 8 characters and contain both letters and numbers")
 )
 
 type TokenResponse struct {
@@ -37,7 +40,17 @@ type TokenResponse struct {
 }
 
 func (s *AuthService) Signup(ctx context.Context, email, displayName, password string) (*repository.User, error) {
-	// 1. Check if user exists
+	// 1. Validate password complexity (at least 8 chars, letters + numbers)
+	if len(password) < 8 {
+		return nil, ErrInvalidPassword
+	}
+	hasLetter := regexp.MustCompile(`[a-zA-Z]`).MatchString(password)
+	hasNumber := regexp.MustCompile(`[0-9]`).MatchString(password)
+	if !hasLetter || !hasNumber {
+		return nil, ErrInvalidPassword
+	}
+
+	// 2. Check if user email exists
 	_, err := s.repo.GetUserByEmail(ctx, sql.NullString{String: email, Valid: true})
 	if err == nil {
 		return nil, ErrUserExists
@@ -46,13 +59,22 @@ func (s *AuthService) Signup(ctx context.Context, email, displayName, password s
 		return nil, err
 	}
 
-	// 2. Hash password
+	// 3. Check if nickname exists
+	nicknameExists, err := s.repo.CheckNicknameExists(ctx, displayName)
+	if err != nil {
+		return nil, err
+	}
+	if nicknameExists {
+		return nil, ErrNicknameExists
+	}
+
+	// 4. Hash password
 	hashed, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
 	if err != nil {
 		return nil, err
 	}
 
-	// 3. Create user
+	// 5. Create user
 	user, err := s.repo.CreateUser(ctx, repository.CreateUserParams{
 		Email:        sql.NullString{String: email, Valid: true},
 		DisplayName:  displayName,
