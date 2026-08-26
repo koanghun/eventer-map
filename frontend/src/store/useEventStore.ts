@@ -1,9 +1,8 @@
 import { create } from 'zustand';
-import { Event } from '../types/event';
 
 interface EventState {
-    selectedEvent: Event | null;
-    selectEvent: (event: Event | null) => void;
+    selectedEvent: any | null;
+    selectEvent: (event: any | null) => void;
     clearSelection: () => void;
 }
 

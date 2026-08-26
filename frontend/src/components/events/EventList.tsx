@@ -1,14 +1,13 @@
 import { useTranslation } from 'react-i18next';
-import { Event } from '../../types/event';
 import { useEventStore } from '../../store/useEventStore';
 import { Button } from '../ui/button';
 import { Edit2, Trash2, MapPin, Clock, Mic2 } from 'lucide-react';
 import { ScrollArea } from '../ui/scroll-area';
 
 interface EventListProps {
-    events: Event[];
+    events: any[];
     loading: boolean;
-    onEventEdit?: (event: Event) => void;
+    onEventEdit?: (event: any) => void;
     onEventDelete?: (id: number) => void;
 }
 
@@ -116,7 +115,7 @@ function EventList({ events, loading, onEventEdit, onEventDelete }: EventListPro
                                         <div className="flex items-start gap-2 text-muted-foreground mt-2 pt-2 border-t border-border/50">
                                             <Mic2 className="h-4 w-4 shrink-0 mt-0.5 text-primary/70" />
                                             <span className="line-clamp-2">
-                                                {event.performers_list.map(p => p.canonical_name).join(', ')}
+                                                {event.performers_list.map((p: any) => p.canonical_name).join(', ')}
                                             </span>
                                         </div>
                                     )}

@@ -1,18 +1,18 @@
 import { useMemo, useState, useRef, useCallback, useEffect } from 'react';
 import { GoogleMap, Marker } from '@react-google-maps/api';
-import { Event } from '../../types/event';
+
 import { useTheme } from '../../context/ThemeContext';
 import SingleEventInfoWindow from './SingleEventInfoWindow';
 import GroupEventInfoWindow from './GroupEventInfoWindow';
 import { useEventStore } from '../../store/useEventStore';
 
 interface EventMapProps {
-    events: Event[];
+    events: any[];
 }
 
 type InfoWindowState =
-    | { type: 'single'; event: Event }
-    | { type: 'group'; events: Event[]; location: { lat: number; lng: number } };
+    | { type: 'single'; event: any }
+    | { type: 'group'; events: any[]; location: { lat: number; lng: number } };
 
 const mapContainerStyle = {
     width: '100%',
@@ -172,7 +172,7 @@ function EventMap({ events }: EventMapProps) {
     }, []);
 
     const eventGroups = useMemo(() => {
-        const groups = new Map<string, Event[]>();
+        const groups = new Map<string, any[]>();
 
         events.forEach(event => {
             const lat = event.place?.latitude ?? event.latitude;
@@ -194,7 +194,7 @@ function EventMap({ events }: EventMapProps) {
         return { lat: avgLat, lng: avgLng };
     }, [events, center]);
 
-    const handleMarkerClick = (eventsAtLocation: Event[]) => {
+    const handleMarkerClick = (eventsAtLocation: any[]) => {
         if (eventsAtLocation.length === 1) {
             selectEvent(eventsAtLocation[0]);
         } else {
@@ -212,7 +212,7 @@ function EventMap({ events }: EventMapProps) {
         }
     };
 
-    const handleEventSelectFromGroup = (event: Event) => {
+    const handleEventSelectFromGroup = (event: any) => {
         setInfoWindowStack(null);
         selectEvent(event);
     };

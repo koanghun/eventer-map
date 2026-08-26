@@ -1,15 +1,12 @@
 import { OverlayView } from '@react-google-maps/api';
-import { Event } from '../../types/event';
+
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../../context/AuthContext';
-import { useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
-import EventHistoryModal from '../events/EventHistoryModal';
-import EventReportModal from '../events/EventReportModal';
-import { MapPin, Calendar, Clock, Mic2, ExternalLink, History, AlertTriangle, Flag, X } from 'lucide-react';
+import { MapPin, Calendar, Clock, Mic2, ExternalLink, Flag, X } from 'lucide-react';
 
 interface SingleEventInfoWindowProps {
-    event: Event;
+    event: any;
     position: { lat: number; lng: number };
     onClose: () => void;
 }
@@ -24,9 +21,6 @@ export default function SingleEventInfoWindow({
     const queryClient = useQueryClient();
     const isFlagged = flaggedEventIds.includes(event.id || 0);
 
-    const [showHistory, setShowHistory] = useState(false);
-    const [showReport, setShowReport] = useState(false);
-
     return (
         <>
             <OverlayView position={position} mapPaneName={OverlayView.FLOAT_PANE}>
@@ -38,23 +32,7 @@ export default function SingleEventInfoWindow({
                         <h3 className="font-bold text-lg text-primary mb-1 break-words">{event.title}</h3>
                         <div className="flex items-center gap-1 shrink-0 -mt-0.5 -mr-1">
                             <button
-                                className="p-1.5 rounded-md text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
-                                onClick={() => setShowHistory(true)}
-                                title="View History"
-                            >
-                                <History className="w-4 h-4" />
-                            </button>
-                            {isAuthenticated && (
-                                <button
-                                    className="p-1.5 rounded-md text-muted-foreground hover:bg-destructive/10 hover:text-destructive transition-colors"
-                                    onClick={() => setShowReport(true)}
-                                    title="Report Event"
-                                >
-                                    <AlertTriangle className="w-4 h-4" />
-                                </button>
-                            )}
-                            <button
-                                className="p-1.5 rounded-md text-muted-foreground hover:bg-muted hover:text-foreground transition-colors ml-1 border-l border-border/30 pl-2"
+                                className="p-1.5 rounded-md text-muted-foreground hover:bg-muted hover:text-foreground transition-colors ml-1 border-border/30 pl-2"
                                 onClick={onClose}
                                 title={t('buttons.close') || "Close"}
                             >
@@ -126,7 +104,7 @@ export default function SingleEventInfoWindow({
                                 <>
                                     <Mic2 className="w-4 h-4 text-primary/70 mt-0.5" />
                                     <div className="text-foreground">
-                                        {event.performers_list.map(p => p.canonical_name).join(', ')}
+                                        {event.performers_list.map((p: any) => p.canonical_name).join(', ')}
                                     </div>
                                 </>
                             )}
@@ -178,20 +156,6 @@ export default function SingleEventInfoWindow({
                     </div>
             </OverlayView>
 
-            {showHistory && event.id && (
-                <EventHistoryModal
-                    eventId={event.id}
-                    onClose={() => setShowHistory(false)}
-                />
-            )}
-
-            {showReport && event.id && (
-                <EventReportModal
-                    eventId={event.id}
-                    eventTitle={event.title}
-                    onClose={() => setShowReport(false)}
-                />
-            )}
         </>
     );
 }

@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../../context/AuthContext';
-import ReportManagementModal from '../events/ReportManagementModal';
 import { Popover, PopoverContent, PopoverTrigger } from '../ui/popover';
 import { Button } from '../ui/button';
 import { LogOut, LayoutDashboard } from 'lucide-react';
@@ -10,13 +9,11 @@ export default function UserProfile() {
     const { t } = useTranslation();
     const { user, logout } = useAuth();
     const [isOpen, setIsOpen] = useState(false);
-    const [showReportModal, setShowReportModal] = useState(false);
 
     if (!user) return null;
 
     const handleManageReports = () => {
         setIsOpen(false);
-        setShowReportModal(true);
     };
 
     return (
@@ -56,9 +53,6 @@ export default function UserProfile() {
                 </PopoverContent>
             </Popover>
 
-            {showReportModal && (
-                <ReportManagementModal onClose={() => setShowReportModal(false)} />
-            )}
         </div>
     );
 }

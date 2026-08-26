@@ -1,14 +1,14 @@
 import { OverlayView } from '@react-google-maps/api';
-import { Event } from '../../types/event';
+
 import { useTranslation } from 'react-i18next';
 import { MapPin, Calendar, ChevronRight } from 'lucide-react';
 
 interface GroupEventInfoWindowProps {
-    events: Event[];
+    events: any[];
     location: { lat: number; lng: number };
     locationName: string;
     onClose: () => void;
-    onEventSelect: (event: Event) => void;
+    onEventSelect: (event: any) => void;
 }
 
 export default function GroupEventInfoWindow({

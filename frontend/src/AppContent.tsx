@@ -2,10 +2,8 @@ import { useState, useEffect } from 'react';
 import { LoadScript } from '@react-google-maps/api';
 import { useTranslation } from 'react-i18next';
 import EventMap from './components/map/EventMap';
-import EventForm from './components/events/EventForm';
 import EventList from './components/events/EventList';
 import DatePicker from './components/common/DatePicker';
-import PerformerFilter from './components/performers/PerformerFilter';
 import { format } from 'date-fns';
 
 import { useTheme } from './context/ThemeContext';
@@ -13,11 +11,6 @@ import { useLanguage } from './context/LanguageContext';
 import { useAuth } from './context/AuthContext';
 import LoginButton from './components/common/LoginButton';
 import UserProfile from './components/common/UserProfile';
-import PerformerManagement from './components/management/PerformerManagement';
-import PlaceManagement from './components/management/PlaceManagement';
-
-import { useEventData } from './hooks/useEventData';
-import { useEventForm } from './hooks/useEventForm';
 import { useEventStore } from './store/useEventStore';
 import DailyVisitCounter from './components/common/DailyVisitCounter';
 import { Sun, Moon, Map as MapIcon, Plus, Flag, Loader2 } from 'lucide-react';
@@ -34,8 +27,24 @@ export default function AppContent() {
     const [showFlagsOnly, setShowFlagsOnly] = useState<boolean>(false);
     const [view, setView] = useState<'map' | 'performers' | 'places'>('map');
 
-    const eventData = useEventData(selectedDate, showFlagsOnly);
-    const eventForm = useEventForm();
+    const eventData = {
+        filteredEvents: [],
+        loading: false,
+        events: [],
+        setSelectedPerformer: (_: any) => {}
+    };
+    
+    const eventForm = {
+        isFormOpen: false,
+        openNew: () => {},
+        openEdit: () => {},
+        deleteEvent: () => {},
+        submit: () => {},
+        close: () => {},
+        formEvent: null,
+        switchToEdit: () => {}
+    };
+
     const clearSelection = useEventStore((state) => state.clearSelection);
 
     const apiKey = process.env.REACT_APP_GOOGLE_MAPS_API_KEY || '';
@@ -166,7 +175,6 @@ export default function AppContent() {
                             <aside className="w-full md:w-[350px] lg:w-[400px] shrink-0 bg-card/50 backdrop-blur-sm border border-border rounded-xl shadow-md overflow-hidden flex flex-col transition-all duration-300">
                                 <div className="p-4 flex flex-col gap-4 border-b border-border/50 shrink-0">
                                     <DatePicker selectedDate={selectedDate} onDateChange={handleDateChange} />
-                                    <PerformerFilter onPerformerSelect={eventData.setSelectedPerformer} />
                                     {isAuthenticated && (
                                         <Button className="w-full bg-gradient-to-r from-primary to-orange-500 hover:from-primary/90 hover:to-orange-500/90 text-white shadow-md transition-all hover:-translate-y-0.5" onClick={eventForm.openNew}>
                                             <Plus className="w-4 h-4 mr-2" /> {t('buttons.newEvent')}
@@ -188,24 +196,15 @@ export default function AppContent() {
                             </main>
                         </>
                     ) : view === 'performers' ? (
-                        <div className="flex-1 bg-card rounded-xl border border-border overflow-hidden shadow-md">
-                            <PerformerManagement />
+                        <div className="flex-1 bg-card rounded-xl border border-border overflow-hidden shadow-md p-6 flex items-center justify-center">
+                            <p className="text-muted-foreground">Performers Mockup View</p>
                         </div>
                     ) : (
-                        <div className="flex-1 bg-card rounded-xl border border-border overflow-hidden shadow-md">
-                            <PlaceManagement />
+                        <div className="flex-1 bg-card rounded-xl border border-border overflow-hidden shadow-md p-6 flex items-center justify-center">
+                            <p className="text-muted-foreground">Places Mockup View</p>
                         </div>
                     )}
                 </div>
-
-                {eventForm.isFormOpen && (
-                    <EventForm
-                        event={eventForm.formEvent}
-                        onSubmit={eventForm.submit}
-                        onClose={eventForm.close}
-                        onSwitchToEdit={(id) => eventForm.switchToEdit(id, eventData.events)}
-                    />
-                )}
 
                 <div className="fixed bottom-4 right-4 z-50 pointer-events-none">
                     <DailyVisitCounter />
