@@ -1,6 +1,7 @@
 import { ThemeProvider } from './context/ThemeContext';
 import { LanguageProvider } from './context/LanguageContext';
 import { AuthProvider } from './context/AuthContext';
+import { BrowserRouter } from 'react-router-dom';
 import AppContent from './AppContent';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 
@@ -20,7 +21,9 @@ function App() {
             <ThemeProvider>
                 <LanguageProvider>
                     <AuthProvider>
-                        <AppContent />
+                        <BrowserRouter>
+                            <AppContent />
+                        </BrowserRouter>
                     </AuthProvider>
                 </LanguageProvider>
             </ThemeProvider>

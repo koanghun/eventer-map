@@ -1,31 +1,70 @@
-import { useState, useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { LoadScript } from '@react-google-maps/api';
 import { useTranslation } from 'react-i18next';
 import EventMap from './components/map/EventMap';
 import EventList from './components/events/EventList';
+import EventDetailPane from './components/events/EventDetailPane';
 import DatePicker from './components/common/DatePicker';
 import { format } from 'date-fns';
 
 import { useTheme } from './context/ThemeContext';
 import { useLanguage } from './context/LanguageContext';
 import { useAuth } from './context/AuthContext';
-import LoginButton from './components/common/LoginButton';
 import UserProfile from './components/common/UserProfile';
 import { useEventStore } from './store/useEventStore';
 import DailyVisitCounter from './components/common/DailyVisitCounter';
-import { Sun, Moon, Map as MapIcon, Plus, Flag, Loader2 } from 'lucide-react';
+import EventFormPane from './components/events/EventFormPane';
+import AuthPanel from './components/auth/AuthPanel';
+import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
+import { Sun, Moon, Map as MapIcon, Plus, Flag, Loader2, Search as SearchIcon, LogIn } from 'lucide-react';
 import { Button } from './components/ui/button';
+
+const ArtistSearchMockup = () => (
+    <div className="relative">
+        <SearchIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+        <input 
+            type="text" 
+            placeholder="아티스트 검색..." 
+            className="w-full pl-9 pr-4 py-2 bg-background border border-input rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all"
+        />
+    </div>
+);
+
+const VenueListMockup = () => (
+    <div className="p-4 space-y-3">
+        {[1, 2, 3, 4, 5].map((i) => (
+            <div key={i} className="p-3 rounded-lg border border-border bg-background hover:bg-muted/50 cursor-pointer transition-colors">
+                <h4 className="font-semibold text-sm text-primary">예시 공연장 {i}</h4>
+                <p className="text-xs text-muted-foreground mt-1">서울특별시 어딘가로 {i}길</p>
+            </div>
+        ))}
+    </div>
+);
 
 const GOOGLE_MAPS_LIBRARIES: ("places")[] = ['places'];
 
 export default function AppContent() {
     const { t } = useTranslation();
-    const [selectedDate, setSelectedDate] = useState<string>(format(new Date(), 'yyyy-MM-dd'));
+    const location = useLocation();
+    const navigate = useNavigate();
+    const [searchParams, setSearchParams] = useSearchParams();
+
+    const view = location.pathname === '/performers' ? 'performers' : 
+                 location.pathname === '/places' ? 'places' : 'map';
+
+    const today = format(new Date(), 'yyyy-MM-dd');
+    const startDate = searchParams.get('start') ?? today;
+    const endDate = searchParams.get('end') ?? today;
+    const showFlagsOnly = searchParams.get('flags') === 'true';
+
     const { theme, toggleTheme } = useTheme();
     const { language, changeLanguage } = useLanguage();
     const { isAuthenticated, isLoading } = useAuth();
-    const [showFlagsOnly, setShowFlagsOnly] = useState<boolean>(false);
-    const [view, setView] = useState<'map' | 'performers' | 'places'>('map');
+    const [isFormOpen, setIsFormOpen] = useState(false);
+    const [isAuthPanelOpen, setIsAuthPanelOpen] = useState(false);
+    
+    // 개발 환경이거나 로그인 상태일 때 '새 이벤트 등록' 버튼 표시
+    const showNewEventButton = isAuthenticated || process.env.NODE_ENV === 'development';
 
     const eventData = {
         filteredEvents: [],
@@ -35,41 +74,53 @@ export default function AppContent() {
     };
     
     const eventForm = {
-        isFormOpen: false,
-        openNew: () => {},
-        openEdit: () => {},
+        isFormOpen,
+        openNew: () => setIsFormOpen(true),
+        openEdit: () => setIsFormOpen(true),
         deleteEvent: () => {},
         submit: () => {},
-        close: () => {},
+        close: () => setIsFormOpen(false),
         formEvent: null,
         switchToEdit: () => {}
     };
 
     const clearSelection = useEventStore((state) => state.clearSelection);
+    const selectedEvent = useEventStore((state) => state.selectedEvent);
 
     const apiKey = process.env.REACT_APP_GOOGLE_MAPS_API_KEY || '';
 
-    const handleLogin = () => {
-        const apiBase = process.env.REACT_APP_API_URL;
-        if (apiBase) {
-            window.location.href = `${apiBase}/auth/google/login`;
-        } else {
-            window.location.href = `/api/auth/google/login`;
-        }
+    const updateQueryParams = (updates: Record<string, string | null>) => {
+        const newParams = new URLSearchParams(searchParams);
+        Object.entries(updates).forEach(([key, value]) => {
+            if (value === null) {
+                newParams.delete(key);
+            } else {
+                newParams.set(key, value);
+            }
+        });
+        setSearchParams(newParams, { replace: true });
     };
 
-    const handleDateChange = (newDate: string) => {
-        setSelectedDate(newDate);
+    const handleStartDateChange = (newDate: string) => {
+        updateQueryParams({
+            start: newDate,
+            end: newDate > endDate ? newDate : endDate
+        });
+        clearSelection();
+    };
+
+    const handleEndDateChange = (date: string) => {
+        updateQueryParams({ end: date });
         clearSelection();
     };
 
     const handleFlagsToggle = () => {
-        setShowFlagsOnly(prev => !prev);
-        if (!showFlagsOnly) {
-            setSelectedDate('');
-            eventData.setSelectedPerformer(null);
+        const nextFlags = !showFlagsOnly;
+        if (nextFlags) {
+            updateQueryParams({ flags: 'true', start: today, end: today });
         } else {
-            setSelectedDate(format(new Date(), 'yyyy-MM-dd'));
+            updateQueryParams({ flags: null, start: null, end: null });
+            eventData.setSelectedPerformer(null);
         }
         clearSelection();
     };
@@ -93,7 +144,7 @@ export default function AppContent() {
                             <h1 className="text-xl md:text-2xl font-bold text-primary tracking-tight">
                                 {t('header.title')}
                             </h1>
-                            <span className="px-2 py-0.5 rounded-full bg-primary/10 text-primary text-[10px] font-bold uppercase tracking-wider mx-2 animate-pulse">
+                            <span className="px-2 py-0.5 rounded-full bg-primary/10 text-primary text-[10px] font-bold uppercase tracking-wider mx-2 animate-pulse hidden md:inline-block">
                                 Preview
                             </span>
                         </div>
@@ -105,7 +156,7 @@ export default function AppContent() {
                             <Button
                                 variant={view === 'map' ? "default" : "ghost"}
                                 size="sm"
-                                onClick={() => setView('map')}
+                                onClick={() => navigate(`/${location.search}`)}
                                 className="rounded-full h-8 px-4"
                             >
                                 <MapIcon className="w-4 h-4 mr-2" />
@@ -114,7 +165,7 @@ export default function AppContent() {
                             <Button
                                 variant={view === 'performers' ? "default" : "ghost"}
                                 size="sm"
-                                onClick={() => setView('performers')}
+                                onClick={() => navigate(`/performers${location.search}`)}
                                 className="rounded-full h-8 px-4"
                             >
                                 {t('nav.performers', '출연자')}
@@ -122,7 +173,7 @@ export default function AppContent() {
                             <Button
                                 variant={view === 'places' ? "default" : "ghost"}
                                 size="sm"
-                                onClick={() => setView('places')}
+                                onClick={() => navigate(`/places${location.search}`)}
                                 className="rounded-full h-8 px-4"
                             >
                                 {t('nav.places', '장소')}
@@ -164,18 +215,37 @@ export default function AppContent() {
                         ) : isAuthenticated ? (
                             <UserProfile />
                         ) : (
-                            <LoginButton onClick={handleLogin} />
+                            <Button 
+                                variant={isAuthPanelOpen ? "default" : "outline"} 
+                                size="sm" 
+                                className="rounded-full h-9 px-4" 
+                                onClick={() => setIsAuthPanelOpen(!isAuthPanelOpen)}
+                            >
+                                <LogIn className="w-4 h-4 mr-2" />
+                                로그인
+                            </Button>
                         )}
                     </div>
                 </header>
 
-                <div className="flex-1 flex flex-col md:flex-row gap-4 p-4 md:p-6 w-full max-w-[2400px] mx-auto md:overflow-hidden md:h-[calc(100vh-73px)]">
-                    {view === 'map' ? (
-                        <>
-                            <aside className="w-full md:w-[350px] lg:w-[400px] shrink-0 bg-card/50 backdrop-blur-sm border border-border rounded-xl shadow-md overflow-hidden flex flex-col transition-all duration-300">
+                {isAuthPanelOpen && !isAuthenticated && (
+                    <AuthPanel onClose={() => setIsAuthPanelOpen(false)} />
+                )}
+
+                <div className="flex-1 flex flex-col md:flex-row gap-4 p-4 md:p-6 w-full max-w-[2400px] mx-auto md:overflow-hidden md:h-[calc(100vh-73px)] relative overflow-x-hidden">
+                    {/* Left Sidebar: 20% on desktop (Common across all views) */}
+                    <aside className={`w-full ${selectedEvent && view === 'map' ? 'hidden md:flex' : 'flex'} md:w-[20%] shrink-0 bg-card/50 backdrop-blur-sm border border-border rounded-xl shadow-md flex-col transition-all duration-500 overflow-hidden`}>
+                        {view === 'map' && (
+                            <>
                                 <div className="p-4 flex flex-col gap-4 border-b border-border/50 shrink-0">
-                                    <DatePicker selectedDate={selectedDate} onDateChange={handleDateChange} />
-                                    {isAuthenticated && (
+                                    <DatePicker 
+                                        startDate={startDate} 
+                                        endDate={endDate} 
+                                        onStartDateChange={handleStartDateChange} 
+                                        onEndDateChange={handleEndDateChange} 
+                                    />
+                                    <ArtistSearchMockup />
+                                    {showNewEventButton && (
                                         <Button className="w-full bg-gradient-to-r from-primary to-orange-500 hover:from-primary/90 hover:to-orange-500/90 text-white shadow-md transition-all hover:-translate-y-0.5" onClick={eventForm.openNew}>
                                             <Plus className="w-4 h-4 mr-2" /> {t('buttons.newEvent')}
                                         </Button>
@@ -189,21 +259,50 @@ export default function AppContent() {
                                         onEventDelete={isAuthenticated ? eventForm.deleteEvent : undefined}
                                     />
                                 </div>
-                            </aside>
+                            </>
+                        )}
+                        {view === 'performers' && (
+                            <div className="p-4 flex flex-col gap-4 shrink-0">
+                                <ArtistSearchMockup />
+                                {showNewEventButton && (
+                                    <Button className="w-full bg-gradient-to-r from-primary to-orange-500 hover:from-primary/90 hover:to-orange-500/90 text-white shadow-md transition-all hover:-translate-y-0.5" onClick={eventForm.openNew}>
+                                        <Plus className="w-4 h-4 mr-2" /> {t('buttons.newEvent')}
+                                    </Button>
+                                )}
+                            </div>
+                        )}
+                        {view === 'places' && (
+                            <div className="flex-1 overflow-auto min-h-[300px]">
+                                <VenueListMockup />
+                            </div>
+                        )}
+                    </aside>
 
-                            <main className="flex-1 min-h-[400px] md:min-h-0 bg-card rounded-xl border border-border overflow-hidden shadow-md relative z-0">
-                                <EventMap events={eventData.filteredEvents} />
-                            </main>
-                        </>
-                    ) : view === 'performers' ? (
-                        <div className="flex-1 bg-card rounded-xl border border-border overflow-hidden shadow-md p-6 flex items-center justify-center">
-                            <p className="text-muted-foreground">Performers Mockup View</p>
+                    {/* Middle Main Content: 80% or 60% on desktop */}
+                    <main className={`flex-1 min-h-[400px] md:min-h-0 bg-card rounded-xl border border-border overflow-hidden shadow-md relative z-0 transition-all duration-500 ${(selectedEvent && view === 'map') || isFormOpen ? 'w-full md:w-[60%]' : 'w-full md:w-[80%]'}`}>
+                        {view === 'map' && <EventMap events={eventData.filteredEvents} />}
+                        {view === 'performers' && (
+                            <div className="flex items-center justify-center h-full">
+                                <p className="text-muted-foreground">Performers Main View</p>
+                            </div>
+                        )}
+                        {view === 'places' && (
+                            <div className="flex items-center justify-center h-full">
+                                <p className="text-muted-foreground">Places Main View</p>
+                            </div>
+                        )}
+                    </main>
+
+                    {/* Right Panel: 20% on desktop */}
+                    {isFormOpen ? (
+                        <div className="absolute inset-0 md:static md:w-[20%] h-full shrink-0 z-20 md:z-auto transition-all duration-500">
+                            <EventFormPane onClose={eventForm.close} />
                         </div>
-                    ) : (
-                        <div className="flex-1 bg-card rounded-xl border border-border overflow-hidden shadow-md p-6 flex items-center justify-center">
-                            <p className="text-muted-foreground">Places Mockup View</p>
+                    ) : selectedEvent && view === 'map' ? (
+                        <div className="absolute inset-0 md:static md:w-[20%] h-full shrink-0 z-20 md:z-auto transition-all duration-500">
+                            <EventDetailPane />
                         </div>
-                    )}
+                    ) : null}
                 </div>
 
                 <div className="fixed bottom-4 right-4 z-50 pointer-events-none">
