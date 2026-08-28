@@ -4,12 +4,18 @@ export const AXIOS_INSTANCE = Axios.create({
   baseURL: process.env.REACT_APP_API_URL || 'http://localhost:8080',
 });
 
+// In-memory storage for access token
+let accessToken: string | null = null;
+
+export const setAccessToken = (token: string | null) => {
+  accessToken = token;
+};
+
 // Request interceptor to add the bearer token
 AXIOS_INSTANCE.interceptors.request.use(
   (config) => {
-    const token = localStorage.getItem('token');
-    if (token && config.headers) {
-      config.headers.Authorization = `Bearer ${token}`;
+    if (accessToken && config.headers) {
+      config.headers.Authorization = `Bearer ${accessToken}`;
     }
     return config;
   },
@@ -25,9 +31,9 @@ AXIOS_INSTANCE.interceptors.response.use(
   },
   (error: AxiosError) => {
     if (error.response?.status === 401) {
-      // Clear token and redirect to login if unauthorized
-      localStorage.removeItem('token');
-      // window.location.href = '/login';
+      // Clear in-memory token on unauthorized
+      setAccessToken(null);
+      // Optional: Trigger a token refresh logic here or redirect to login
     }
     return Promise.reject(error);
   }
