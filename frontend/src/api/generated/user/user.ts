@@ -5,21 +5,89 @@
  * OpenAPI spec version: 1.0.0
  */
 import {
-  useMutation
+  useMutation,
+  useQuery
 } from '@tanstack/react-query'
 import type {
   MutationFunction,
+  QueryFunction,
+  QueryKey,
   UseMutationOptions,
-  UseMutationResult
+  UseMutationResult,
+  UseQueryOptions,
+  UseQueryResult
 } from '@tanstack/react-query'
 import type {
   LinkGoogleRequest,
-  PostUsersMeLinkGoogle200
+  PostUsersMeLinkGoogle200,
+  UserProfile
 } from '.././model'
 import { customInstance } from '../../../lib/axios';
 
 
 type SecondParameter<T extends (...args: any) => any> = Parameters<T>[1];
+
+
+/**
+ * JWT 토큰에서 사용자 ID를 추출하여 현재 로그인된 사용자의 프로필 정보를 반환
+ * @summary 현재 사용자 프로필 조회
+ */
+export const getUsersMe = (
+    
+ options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
+) => {
+      
+      
+      return customInstance<UserProfile>(
+      {url: `/users/me`, method: 'GET', signal
+    },
+      options);
+    }
+  
+
+export const getGetUsersMeQueryKey = () => {
+    return [`/users/me`] as const;
+    }
+
+    
+export const getGetUsersMeQueryOptions = <TData = Awaited<ReturnType<typeof getUsersMe>>, TError = void>( options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getUsersMe>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetUsersMeQueryKey();
+
+  
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getUsersMe>>> = ({ signal }) => getUsersMe(requestOptions, signal);
+
+      
+
+      
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getUsersMe>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetUsersMeQueryResult = NonNullable<Awaited<ReturnType<typeof getUsersMe>>>
+export type GetUsersMeQueryError = void
+
+/**
+ * @summary 현재 사용자 프로필 조회
+ */
+export const useGetUsersMe = <TData = Awaited<ReturnType<typeof getUsersMe>>, TError = void>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getUsersMe>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+
+  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } => {
+
+  const queryOptions = getGetUsersMeQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  query.queryKey = queryOptions.queryKey ;
+
+  return query;
+}
+
 
 
 /**

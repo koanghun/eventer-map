@@ -9,13 +9,15 @@ import (
 
 	"eventer-map-backend/internal/repository"
 	"github.com/golang-jwt/jwt/v5"
+	"github.com/google/uuid"
 	"golang.org/x/crypto/bcrypt"
 )
 
 const (
 	// JWTSecret should ideally be loaded from environment variables
 	JWTSecret = "super-secret-key-for-development"
-	TokenExp  = time.Hour * 24 * 7 // 7 days
+	TokenExp  = time.Hour * 1 // 1 hour for access token
+	RefreshExp = time.Hour * 24 * 7 // 7 days for refresh token
 )
 
 // AuthService handles authentication logic
@@ -36,10 +38,40 @@ var (
 )
 
 type TokenResponse struct {
-	Token string
+	AccessToken  string `json:"accessToken"`
+	RefreshToken string `json:"-"` // Not exposed in JSON, only used for setting cookie
 }
 
-func (s *AuthService) Signup(ctx context.Context, email, displayName, password string) (*repository.User, error) {
+func (s *AuthService) generateTokens(userID string) (*TokenResponse, error) {
+	// Access Token
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
+		"user_id": userID,
+		"type":    "access",
+		"exp":     time.Now().Add(TokenExp).Unix(),
+	})
+	accessToken, err := token.SignedString([]byte(JWTSecret))
+	if err != nil {
+		return nil, err
+	}
+
+	// Refresh Token
+	rt := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
+		"user_id": userID,
+		"type":    "refresh",
+		"exp":     time.Now().Add(RefreshExp).Unix(),
+	})
+	refreshToken, err := rt.SignedString([]byte(JWTSecret))
+	if err != nil {
+		return nil, err
+	}
+
+	return &TokenResponse{
+		AccessToken:  accessToken,
+		RefreshToken: refreshToken,
+	}, nil
+}
+
+func (s *AuthService) Signup(ctx context.Context, email, displayName, password string) (*TokenResponse, error) {
 	// 1. Validate password complexity (at least 8 chars, letters + numbers)
 	if len(password) < 8 {
 		return nil, ErrInvalidPassword
@@ -84,7 +116,7 @@ func (s *AuthService) Signup(ctx context.Context, email, displayName, password s
 		return nil, err
 	}
 
-	return &user, nil
+	return s.generateTokens(user.ID.String())
 }
 
 func (s *AuthService) Login(ctx context.Context, email, password string) (*TokenResponse, error) {
@@ -105,16 +137,43 @@ func (s *AuthService) Login(ctx context.Context, email, password string) (*Token
 		return nil, ErrInvalidLogin
 	}
 
-	// Generate JWT
-	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
-		"user_id": user.ID.String(),
-		"exp":     time.Now().Add(TokenExp).Unix(),
+	return s.generateTokens(user.ID.String())
+}
+
+func (s *AuthService) Refresh(ctx context.Context, refreshToken string) (*TokenResponse, error) {
+	token, err := jwt.Parse(refreshToken, func(token *jwt.Token) (interface{}, error) {
+		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
+			return nil, errors.New("unexpected signing method")
+		}
+		return []byte(JWTSecret), nil
 	})
 
-	tokenString, err := token.SignedString([]byte(JWTSecret))
+	if err != nil || !token.Valid {
+		return nil, errors.New("invalid refresh token")
+	}
+
+	claims, ok := token.Claims.(jwt.MapClaims)
+	if !ok {
+		return nil, errors.New("invalid token claims")
+	}
+
+	tokenType, ok := claims["type"].(string)
+	if !ok || tokenType != "refresh" {
+		return nil, errors.New("invalid token type")
+	}
+
+	userID, ok := claims["user_id"].(string)
+	if !ok {
+		return nil, errors.New("missing user_id in token")
+	}
+
+	return s.generateTokens(userID)
+}
+
+func (s *AuthService) GetUserByID(ctx context.Context, id uuid.UUID) (*repository.User, error) {
+	user, err := s.repo.GetUserByID(ctx, id)
 	if err != nil {
 		return nil, err
 	}
-
-	return &TokenResponse{Token: tokenString}, nil
+	return &user, nil
 }

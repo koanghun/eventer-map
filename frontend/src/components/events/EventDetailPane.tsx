@@ -38,20 +38,18 @@ export default function EventDetailPane() {
                     
                     <div className="space-y-2 text-sm text-muted-foreground">
                         <div className="flex items-start gap-2">
-                            <Calendar className="w-4 h-4 mt-0.5 shrink-0 text-primary/70" />
-                            <span>{selectedEvent.event_date || 'Date TBD'}</span>
+                            <Calendar className="w-4 h-4 text-primary shrink-0" />
+                            <span className="truncate">{(selectedEvent as any).event_date || (selectedEvent as any).startTime || '날짜 미정'}</span>
                         </div>
                         <div className="flex items-start gap-2">
-                            <MapPin className="w-4 h-4 mt-0.5 shrink-0 text-primary/70" />
-                            <span>
-                                {selectedEvent.place?.canonical_name || selectedEvent.location || 'Location TBD'}
-                            </span>
+                            <MapPin className="w-4 h-4 text-primary shrink-0" />
+                            <span className="truncate">{(selectedEvent as any).place?.canonical_name || (selectedEvent as any).location || '장소 미정'}</span>
                         </div>
-                        {selectedEvent.related_link && (
+                        {(selectedEvent as any).related_link && (
                             <div className="flex items-center gap-2 mt-2">
                                 <ExternalLink className="w-4 h-4 shrink-0 text-primary/70" />
                                 <a 
-                                    href={selectedEvent.related_link} 
+                                    href={(selectedEvent as any).related_link} 
                                     target="_blank" 
                                     rel="noopener noreferrer"
                                     className="text-primary hover:underline hover:text-primary/80 transition-colors truncate"
@@ -64,16 +62,14 @@ export default function EventDetailPane() {
                 </div>
 
                 {/* Description Box */}
-                {selectedEvent.description && (
+                {(selectedEvent as any).description && (
                     <div className="bg-muted/30 rounded-xl p-4 border border-border/50">
                         <div className="flex items-center gap-2 mb-2">
                             <Info className="w-4 h-4 text-primary" />
-                            <h3 className="font-semibold text-foreground text-sm uppercase tracking-wider">
-                                {t('eventDetail.labels.description', '상세 설명')}
-                            </h3>
+                            <h3 className="font-bold text-sm text-foreground">상세 정보</h3>
                         </div>
                         <p className="text-sm leading-relaxed whitespace-pre-wrap text-foreground/80">
-                            {selectedEvent.description}
+                            {(selectedEvent as any).description}
                         </p>
                     </div>
                 )}

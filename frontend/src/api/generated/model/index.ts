@@ -38,6 +38,7 @@ export * from './postUsersMeLinkGoogle200';
 export * from './ratingInput';
 export * from './signupRequest';
 export * from './tokenResponse';
+export * from './userProfile';
 export * from './venue';
 export * from './venueInput';
 export * from './venueListResponse';

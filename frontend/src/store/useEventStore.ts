@@ -1,8 +1,9 @@
 import { create } from 'zustand';
+import type { EventSummary } from '../api/generated/model';
 
 interface EventState {
-    selectedEvent: any | null;
-    selectEvent: (event: any | null) => void;
+    selectedEvent: EventSummary | null;
+    selectEvent: (event: EventSummary | null) => void;
     clearSelection: () => void;
 }
 

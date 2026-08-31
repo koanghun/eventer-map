@@ -1,9 +1,8 @@
 import { OverlayView } from '@react-google-maps/api';
 
 import { useTranslation } from 'react-i18next';
-import { useAuth } from '../../context/AuthContext';
-import { useQueryClient } from '@tanstack/react-query';
-import { MapPin, Calendar, Clock, Mic2, ExternalLink, Flag, X } from 'lucide-react';
+
+import { MapPin, Calendar, Clock, Mic2, ExternalLink, X } from 'lucide-react';
 
 interface SingleEventInfoWindowProps {
     event: any;
@@ -17,9 +16,6 @@ export default function SingleEventInfoWindow({
     onClose
 }: SingleEventInfoWindowProps) {
     const { t } = useTranslation();
-    const { isAuthenticated, flaggedEventIds, toggleFlag } = useAuth();
-    const queryClient = useQueryClient();
-    const isFlagged = flaggedEventIds.includes(event.id || 0);
 
     return (
         <>
@@ -128,27 +124,6 @@ export default function SingleEventInfoWindow({
                                     {t('eventMap.infoWindow.link')}
                                     <ExternalLink className="w-3.5 h-3.5" />
                                 </a>
-                            </div>
-                        )}
-
-                        {isAuthenticated && (
-                            <div className="mt-4 pt-4 border-t border-border/50">
-                                <button
-                                    className={`w-full flex items-center justify-center gap-2 py-2.5 rounded-xl font-bold text-sm transition-all focus:outline-none focus:ring-2 focus:ring-offset-2 hover:scale-[1.01] active:scale-[0.99] ${
-                                        !isFlagged 
-                                        ? 'bg-orange-500 text-white hover:bg-orange-600 focus:ring-orange-400 shadow-orange-500/20 shadow-md' 
-                                        : 'bg-secondary hover:bg-secondary/80 text-secondary-foreground border border-border/50 focus:ring-secondary/50'
-                                    }`}
-                                    onClick={async () => {
-                                        if (event.id) {
-                                            await toggleFlag(event.id);
-                                            queryClient.invalidateQueries({ queryKey: ['events'] });
-                                        }
-                                    }}
-                                >
-                                    <Flag className={`w-4 h-4 ${isFlagged ? 'fill-current' : ''}`} />
-                                    <span>{isFlagged ? t('eventDetail.flags.cancel') : t('eventDetail.flags.attend')}</span>
-                                </button>
                             </div>
                         )}
                     </div>

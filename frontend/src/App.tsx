@@ -4,6 +4,7 @@ import { AuthProvider } from './context/AuthContext';
 import { BrowserRouter } from 'react-router-dom';
 import AppContent from './AppContent';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import ToastContainer from './components/ui/ToastContainer';
 
 // QueryClient 인스턴스 생성
 const queryClient = new QueryClient({
@@ -17,6 +18,7 @@ const queryClient = new QueryClient({
 
 function App() {
     return (
+        <>
         <QueryClientProvider client={queryClient}>
             <ThemeProvider>
                 <LanguageProvider>
@@ -28,6 +30,8 @@ function App() {
                 </LanguageProvider>
             </ThemeProvider>
         </QueryClientProvider>
+        <ToastContainer />
+        </>
     );
 }
 

@@ -490,6 +490,21 @@ type TokenResponse struct {
 	AccessToken string `json:"accessToken"`
 }
 
+// UserProfile defines model for UserProfile.
+type UserProfile struct {
+	// CreatedAt 가입일시
+	CreatedAt *time.Time `json:"createdAt,omitempty"`
+
+	// DisplayName 표시 이름 (닉네임)
+	DisplayName *string `json:"displayName,omitempty"`
+
+	// Email 사용자 이메일
+	Email *openapi_types.Email `json:"email,omitempty"`
+
+	// Id 사용자 고유 식별자
+	Id *openapi_types.UUID `json:"id,omitempty"`
+}
+
 // Venue defines model for Venue.
 type Venue struct {
 	Address  *string `json:"address,omitempty"`
@@ -724,6 +739,9 @@ type ServerInterface interface {
 	// GetPing 서버 상태 확인
 	// (GET /ping)
 	GetPing(w http.ResponseWriter, r *http.Request)
+	// GetUsersMe 현재 사용자 프로필 조회
+	// (GET /users/me)
+	GetUsersMe(w http.ResponseWriter, r *http.Request)
 	// PostUsersMeLinkGoogle 구글 계정 연동
 	// (POST /users/me/link-google)
 	PostUsersMeLinkGoogle(w http.ResponseWriter, r *http.Request)
@@ -1398,6 +1416,20 @@ func (siw *ServerInterfaceWrapper) GetPing(w http.ResponseWriter, r *http.Reques
 	handler.ServeHTTP(w, r)
 }
 
+// GetUsersMe operation middleware
+func (siw *ServerInterfaceWrapper) GetUsersMe(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetUsersMe(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
 // PostUsersMeLinkGoogle operation middleware
 func (siw *ServerInterfaceWrapper) PostUsersMeLinkGoogle(w http.ResponseWriter, r *http.Request) {
 
@@ -1753,6 +1785,7 @@ func HandlerWithOptions(si ServerInterface, options StdHTTPServerOptions) http.H
 	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/auth/refresh", wrapper.PostAuthRefresh)
 	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/auth/signup", wrapper.PostAuthSignup)
 	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/auth/login", wrapper.PostAuthLogin)
+	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/users/me", wrapper.GetUsersMe)
 	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/users/me/link-google", wrapper.PostUsersMeLinkGoogle)
 	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/auth/logout", wrapper.PostAuthLogout)
 	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/artists", wrapper.GetArtists)

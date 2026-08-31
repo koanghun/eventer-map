@@ -1,7 +1,7 @@
 import { useTranslation } from 'react-i18next';
 import { useEventStore } from '../../store/useEventStore';
 import { Button } from '../ui/button';
-import { Edit2, Trash2, MapPin, Clock, Mic2 } from 'lucide-react';
+import { Edit2, Trash2, MapPin, Clock } from 'lucide-react';
 import { ScrollArea } from '../ui/scroll-area';
 
 interface EventListProps {
@@ -96,29 +96,18 @@ function EventList({ events, loading, onEventEdit, onEventDelete }: EventListPro
                                 <div className="space-y-1.5 text-sm">
                                     <div className="flex items-start gap-2 text-muted-foreground">
                                         <MapPin className="h-4 w-4 shrink-0 mt-0.5 text-primary/70" />
-                                        <span className="truncate">{event.place?.canonical_name || event.location}</span>
+                                        <span className="truncate">{event.venueId ? 'Venue: ' + event.venueId.split('-')[0] + '...' : 'Location TBD'}</span>
                                     </div>
                                     
                                     <div className="flex items-start gap-2 text-muted-foreground">
                                         <Clock className="h-4 w-4 shrink-0 mt-0.5 text-primary/70" />
                                         <span>
-                                            {event.door_time && <span className="mr-1"><span className="text-[10px] font-semibold uppercase tracking-wider opacity-70 border border-border rounded px-1">{t('eventList.timePrefix.door')}</span> {event.door_time}</span>}
-                                            {event.door_time && event.start_time && <span className="mx-1 text-border">|</span>}
-                                            {event.start_time && <span className="mr-1"><span className="text-[10px] font-semibold uppercase tracking-wider opacity-70 border border-border rounded px-1">{t('eventList.timePrefix.start')}</span> {event.start_time}</span>}
-                                            {(event.door_time || event.start_time) && event.end_time && <span className="mx-1 text-border">|</span>}
-                                            {event.end_time && <span><span className="text-[10px] font-semibold uppercase tracking-wider opacity-70 border border-border rounded px-1">{t('eventList.timePrefix.end')}</span> {event.end_time}</span>}
-                                            {!event.door_time && !event.start_time && !event.end_time && <span className="text-[10px] font-semibold uppercase tracking-wider opacity-70 border border-border rounded px-1">{t('eventList.timePrefix.tbd')}</span>}
+                                            {event.startTime && <span className="mr-1"><span className="text-[10px] font-semibold uppercase tracking-wider opacity-70 border border-border rounded px-1">{t('eventList.timePrefix.start')}</span> {new Date(event.startTime).toLocaleString('ko-KR', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}</span>}
+                                            {event.startTime && event.endTime && <span className="mx-1 text-border">|</span>}
+                                            {event.endTime && <span><span className="text-[10px] font-semibold uppercase tracking-wider opacity-70 border border-border rounded px-1">{t('eventList.timePrefix.end')}</span> {new Date(event.endTime).toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' })}</span>}
+                                            {!event.startTime && !event.endTime && <span className="text-[10px] font-semibold uppercase tracking-wider opacity-70 border border-border rounded px-1">{t('eventList.timePrefix.tbd')}</span>}
                                         </span>
                                     </div>
-
-                                    {event.performers_list && event.performers_list.length > 0 && (
-                                        <div className="flex items-start gap-2 text-muted-foreground mt-2 pt-2 border-t border-border/50">
-                                            <Mic2 className="h-4 w-4 shrink-0 mt-0.5 text-primary/70" />
-                                            <span className="line-clamp-2">
-                                                {event.performers_list.map((p: any) => p.canonical_name).join(', ')}
-                                            </span>
-                                        </div>
-                                    )}
                                 </div>
                             </div>
                         );

@@ -131,8 +131,9 @@ function EventMap({ events }: EventMapProps) {
 
     useEffect(() => {
         if (selectedEvent && mapRef.current) {
-            const lat = selectedEvent.place?.latitude ?? selectedEvent.latitude;
-            const lng = selectedEvent.place?.longitude ?? selectedEvent.longitude;
+            const ev = selectedEvent as any;
+            const lat = ev.place?.latitude ?? ev.latitude;
+            const lng = ev.place?.longitude ?? ev.longitude;
             if (lat !== undefined && lng !== undefined) {
                 mapRef.current.panTo({ lat, lng });
             }
@@ -245,8 +246,8 @@ function EventMap({ events }: EventMapProps) {
             <SingleEventInfoWindow
                 event={selectedEvent}
                 position={{
-                    lat: selectedEvent.place?.latitude ?? selectedEvent.latitude ?? 0,
-                    lng: selectedEvent.place?.longitude ?? selectedEvent.longitude ?? 0
+                    lat: (selectedEvent as any).place?.latitude ?? (selectedEvent as any).latitude ?? 0,
+                    lng: (selectedEvent as any).place?.longitude ?? (selectedEvent as any).longitude ?? 0
                 }}
                 onClose={handleInfoWindowClose}
             />

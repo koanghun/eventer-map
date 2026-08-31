@@ -14,33 +14,13 @@ import UserProfile from './components/common/UserProfile';
 import { useEventStore } from './store/useEventStore';
 import DailyVisitCounter from './components/common/DailyVisitCounter';
 import EventFormPane from './components/events/EventFormPane';
+import { useGetEvents } from './api/generated/events/events';
 import AuthPanel from './components/auth/AuthPanel';
 import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
-import { Sun, Moon, Map as MapIcon, Plus, Flag, Loader2, Search as SearchIcon, LogIn } from 'lucide-react';
+import { Sun, Moon, Map as MapIcon, Plus, Flag, Loader2, LogIn } from 'lucide-react';
 import { Button } from './components/ui/button';
-
-const ArtistSearchMockup = () => (
-    <div className="relative">
-        <SearchIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-        <input 
-            type="text" 
-            placeholder="아티스트 검색..." 
-            className="w-full pl-9 pr-4 py-2 bg-background border border-input rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all"
-        />
-    </div>
-);
-
-const VenueListMockup = () => (
-    <div className="p-4 space-y-3">
-        {[1, 2, 3, 4, 5].map((i) => (
-            <div key={i} className="p-3 rounded-lg border border-border bg-background hover:bg-muted/50 cursor-pointer transition-colors">
-                <h4 className="font-semibold text-sm text-primary">예시 공연장 {i}</h4>
-                <p className="text-xs text-muted-foreground mt-1">서울특별시 어딘가로 {i}길</p>
-            </div>
-        ))}
-    </div>
-);
-
+import ArtistSearch from './components/events/ArtistSearch';
+import VenueList from './components/events/VenueList';
 const GOOGLE_MAPS_LIBRARIES: ("places")[] = ['places'];
 
 export default function AppContent() {
@@ -66,12 +46,24 @@ export default function AppContent() {
     // 개발 환경이거나 로그인 상태일 때 '새 이벤트 등록' 버튼 표시
     const showNewEventButton = isAuthenticated || process.env.NODE_ENV === 'development';
 
-    const eventData = {
-        filteredEvents: [],
-        loading: false,
-        events: [],
-        setSelectedPerformer: (_: any) => {}
-    };
+    const { data: eventsData, isLoading: isEventsLoading } = useGetEvents();
+    const allEvents = eventsData?.events || [];
+    
+    // Client-side filtering
+    const filteredEvents = allEvents.filter((event) => {
+        const eventStart = event.startTime ? new Date(event.startTime).toISOString().split('T')[0] : '';
+        const eventEnd = event.endTime ? new Date(event.endTime).toISOString().split('T')[0] : '';
+        
+        // 날짜 필터링 로직: 이벤트 기간이 선택된 기간(startDate ~ endDate)과 겹치는지 확인
+        if (eventStart && eventEnd) {
+            const isOverlap = eventStart <= endDate && eventEnd >= startDate;
+            if (!isOverlap) return false;
+        }
+        
+        // TODO: showFlagsOnly 등 다른 조건 추가
+        
+        return true;
+    });
     
     const eventForm = {
         isFormOpen,
@@ -120,7 +112,6 @@ export default function AppContent() {
             updateQueryParams({ flags: 'true', start: today, end: today });
         } else {
             updateQueryParams({ flags: null, start: null, end: null });
-            eventData.setSelectedPerformer(null);
         }
         clearSelection();
     };
@@ -244,7 +235,7 @@ export default function AppContent() {
                                         onStartDateChange={handleStartDateChange} 
                                         onEndDateChange={handleEndDateChange} 
                                     />
-                                    <ArtistSearchMockup />
+                                    <ArtistSearch />
                                     {showNewEventButton && (
                                         <Button className="w-full bg-gradient-to-r from-primary to-orange-500 hover:from-primary/90 hover:to-orange-500/90 text-white shadow-md transition-all hover:-translate-y-0.5" onClick={eventForm.openNew}>
                                             <Plus className="w-4 h-4 mr-2" /> {t('buttons.newEvent')}
@@ -253,8 +244,8 @@ export default function AppContent() {
                                 </div>
                                 <div className="flex-1 overflow-auto min-h-[300px]">
                                     <EventList
-                                        events={eventData.filteredEvents}
-                                        loading={eventData.loading}
+                                        events={filteredEvents}
+                                        loading={isEventsLoading}
                                         onEventEdit={isAuthenticated ? eventForm.openEdit : undefined}
                                         onEventDelete={isAuthenticated ? eventForm.deleteEvent : undefined}
                                     />
@@ -263,7 +254,7 @@ export default function AppContent() {
                         )}
                         {view === 'performers' && (
                             <div className="p-4 flex flex-col gap-4 shrink-0">
-                                <ArtistSearchMockup />
+                                <ArtistSearch />
                                 {showNewEventButton && (
                                     <Button className="w-full bg-gradient-to-r from-primary to-orange-500 hover:from-primary/90 hover:to-orange-500/90 text-white shadow-md transition-all hover:-translate-y-0.5" onClick={eventForm.openNew}>
                                         <Plus className="w-4 h-4 mr-2" /> {t('buttons.newEvent')}
@@ -273,14 +264,14 @@ export default function AppContent() {
                         )}
                         {view === 'places' && (
                             <div className="flex-1 overflow-auto min-h-[300px]">
-                                <VenueListMockup />
+                                <VenueList />
                             </div>
                         )}
                     </aside>
 
                     {/* Middle Main Content: 80% or 60% on desktop */}
                     <main className={`flex-1 min-h-[400px] md:min-h-0 bg-card rounded-xl border border-border overflow-hidden shadow-md relative z-0 transition-all duration-500 ${(selectedEvent && view === 'map') || isFormOpen ? 'w-full md:w-[60%]' : 'w-full md:w-[80%]'}`}>
-                        {view === 'map' && <EventMap events={eventData.filteredEvents} />}
+                        {view === 'map' && <EventMap events={filteredEvents} />}
                         {view === 'performers' && (
                             <div className="flex items-center justify-center h-full">
                                 <p className="text-muted-foreground">Performers Main View</p>

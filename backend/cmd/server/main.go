@@ -58,8 +58,9 @@ func main() {
 	// 6. Register oapi-codegen Handlers
 	handler.HandlerFromMux(apiHandler, mux)
 
-	// 7. Wrap with Middlewares (e.g., Logger)
+	// 7. Wrap with Middlewares
 	var h http.Handler = mux
+	h = middleware.CORS(h)
 	h = middleware.Logger(h)
 
 	// 8. Start Server (Local vs Lambda)

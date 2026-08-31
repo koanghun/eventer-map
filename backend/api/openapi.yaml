@@ -123,7 +123,25 @@ paths:
                 $ref: "#/components/schemas/TokenResponse"
         "401":
           description: 인증 실패 (잘못된 자격 증명)
+  /users/me:
+    get:
+      tags:
+        - User
+      summary: 현재 사용자 프로필 조회
+      description: JWT 토큰에서 사용자 ID를 추출하여 현재 로그인된 사용자의 프로필 정보를 반환
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: 사용자 프로필 조회 성공
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserProfile"
+        "401":
+          description: 인증 실패 (유효하지 않은 JWT)
   /users/me/link-google:
+
     post:
       tags:
         - User
@@ -986,7 +1004,26 @@ components:
           type: string
           format: password
           description: 사용자의 비밀번호
+    UserProfile:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: 사용자 고유 식별자
+        email:
+          type: string
+          format: email
+          description: 사용자 이메일
+        displayName:
+          type: string
+          description: 표시 이름 (닉네임)
+        createdAt:
+          type: string
+          format: date-time
+          description: 가입일시
     LinkGoogleRequest:
+
       type: object
       required:
         - idToken
