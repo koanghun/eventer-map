@@ -23,3 +23,7 @@ WHERE id = $1;
 -- name: CheckNicknameExists :one
 SELECT EXISTS(SELECT 1 FROM users WHERE display_name = $1);
 
+-- name: UpdateUserEmailVerifiedByEmail :exec
+UPDATE users
+SET is_email_verified = $2, updated_at = NOW()
+WHERE email = $1;

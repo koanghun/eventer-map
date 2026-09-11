@@ -87,14 +87,15 @@ type ThreadRecommendation struct {
 }
 
 type User struct {
-	ID           uuid.UUID
-	Email        sql.NullString
-	DisplayName  string
-	PasswordHash sql.NullString
-	GoogleID     sql.NullString
-	IsBanned     bool
-	CreatedAt    time.Time
-	UpdatedAt    time.Time
+	ID              uuid.UUID
+	Email           sql.NullString
+	DisplayName     string
+	PasswordHash    sql.NullString
+	GoogleID        sql.NullString
+	IsBanned        bool
+	CreatedAt       time.Time
+	UpdatedAt       time.Time
+	IsEmailVerified bool
 }
 
 type UserEventRating struct {
@@ -118,4 +119,10 @@ type Venue struct {
 	AuthorID     uuid.NullUUID
 	CreatedAt    time.Time
 	UpdatedAt    time.Time
+}
+
+type VerificationToken struct {
+	Email     string
+	Code      string
+	ExpiresAt time.Time
 }

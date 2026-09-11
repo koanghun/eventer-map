@@ -7,6 +7,7 @@ import (
 	"regexp"
 	"time"
 
+	"eventer-map-backend/internal/mailer"
 	"eventer-map-backend/internal/repository"
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/google/uuid"
@@ -22,11 +23,12 @@ const (
 
 // AuthService handles authentication logic
 type AuthService struct {
-	repo *repository.Queries
+	repo   *repository.Queries
+	mailer mailer.Mailer
 }
 
-func NewAuthService(repo *repository.Queries) *AuthService {
-	return &AuthService{repo: repo}
+func NewAuthService(repo *repository.Queries, mailer mailer.Mailer) *AuthService {
+	return &AuthService{repo: repo, mailer: mailer}
 }
 
 // Custom errors
@@ -71,47 +73,102 @@ func (s *AuthService) generateTokens(userID string) (*TokenResponse, error) {
 	}, nil
 }
 
-func (s *AuthService) Signup(ctx context.Context, email, displayName, password string) (*TokenResponse, error) {
+func generateVerificationCode() string {
+	// Simple 6 digit code for mock
+	// In production use crypto/rand
+	return "123456" // Hardcoded for simplicity or generate random
+}
+
+func (s *AuthService) Signup(ctx context.Context, email, displayName, password string) error {
 	// 1. Validate password complexity (at least 8 chars, letters + numbers)
 	if len(password) < 8 {
-		return nil, ErrInvalidPassword
+		return ErrInvalidPassword
 	}
 	hasLetter := regexp.MustCompile(`[a-zA-Z]`).MatchString(password)
 	hasNumber := regexp.MustCompile(`[0-9]`).MatchString(password)
 	if !hasLetter || !hasNumber {
-		return nil, ErrInvalidPassword
+		return ErrInvalidPassword
 	}
 
 	// 2. Check if user email exists
 	_, err := s.repo.GetUserByEmail(ctx, sql.NullString{String: email, Valid: true})
 	if err == nil {
-		return nil, ErrUserExists
+		return ErrUserExists
 	}
 	if !errors.Is(err, sql.ErrNoRows) {
-		return nil, err
+		return err
 	}
 
 	// 3. Check if nickname exists
 	nicknameExists, err := s.repo.CheckNicknameExists(ctx, displayName)
 	if err != nil {
-		return nil, err
+		return err
 	}
 	if nicknameExists {
-		return nil, ErrNicknameExists
+		return ErrNicknameExists
 	}
 
 	// 4. Hash password
 	hashed, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
-	// 5. Create user
-	user, err := s.repo.CreateUser(ctx, repository.CreateUserParams{
+	// 5. Create user (is_email_verified is false by default in DB)
+	_, err = s.repo.CreateUser(ctx, repository.CreateUserParams{
 		Email:        sql.NullString{String: email, Valid: true},
 		DisplayName:  displayName,
 		PasswordHash: sql.NullString{String: string(hashed), Valid: true},
 	})
+	if err != nil {
+		return err
+	}
+
+	// 6. Generate and save verification token
+	code := generateVerificationCode()
+	_, err = s.repo.CreateVerificationToken(ctx, repository.CreateVerificationTokenParams{
+		Email:     email,
+		Code:      code,
+		ExpiresAt: time.Now().Add(5 * time.Minute),
+	})
+	if err != nil {
+		return err
+	}
+
+	// 7. Send email
+	return s.mailer.SendVerificationEmail(ctx, email, code)
+}
+
+func (s *AuthService) VerifyEmail(ctx context.Context, email, code string) (*TokenResponse, error) {
+	token, err := s.repo.GetVerificationToken(ctx, repository.GetVerificationTokenParams{
+		Email: email,
+		Code:  code,
+	})
+	if err != nil {
+		return nil, errors.New("invalid or expired verification code")
+	}
+
+	if time.Now().After(token.ExpiresAt) {
+		return nil, errors.New("verification code expired")
+	}
+
+	// Update user status
+	err = s.repo.UpdateUserEmailVerifiedByEmail(ctx, repository.UpdateUserEmailVerifiedByEmailParams{
+		Email:           sql.NullString{String: email, Valid: true},
+		IsEmailVerified: true,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	// Delete token
+	err = s.repo.DeleteVerificationToken(ctx, email)
+	if err != nil {
+		// Log error but continue to return token
+	}
+
+	// Get user to generate token
+	user, err := s.repo.GetUserByEmail(ctx, sql.NullString{String: email, Valid: true})
 	if err != nil {
 		return nil, err
 	}

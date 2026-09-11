@@ -28,7 +28,7 @@ func (s *Server) PostAuthSignup(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	tokenResp, err := s.services.Auth.Signup(r.Context(), string(req.Email), req.Nickname, req.Password)
+	err := s.services.Auth.Signup(r.Context(), string(req.Email), req.Nickname, req.Password)
 	if err != nil {
 		if err == service.ErrUserExists || err == service.ErrNicknameExists {
 			RespondError(w, http.StatusConflict, err.Error())
@@ -42,8 +42,27 @@ func (s *Server) PostAuthSignup(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	RespondJSON(w, http.StatusOK, map[string]string{
+		"message": "인증 코드가 이메일로 발송되었습니다.",
+	})
+}
+
+// PostAuthSignupVerify implements the email verification endpoint
+func (s *Server) PostAuthSignupVerify(w http.ResponseWriter, r *http.Request) {
+	var req PostAuthSignupVerifyJSONRequestBody
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		RespondError(w, http.StatusBadRequest, "Invalid request body")
+		return
+	}
+
+	tokenResp, err := s.services.Auth.VerifyEmail(r.Context(), string(req.Email), req.Code)
+	if err != nil {
+		RespondError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+
 	setRefreshTokenCookie(w, tokenResp.RefreshToken)
-	RespondJSON(w, http.StatusCreated, tokenResp)
+	RespondJSON(w, http.StatusOK, tokenResp)
 }
 
 // PostAuthLogin implements the local login endpoint

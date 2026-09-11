@@ -1,6 +1,7 @@
 package service
 
 import (
+	"eventer-map-backend/internal/mailer"
 	"eventer-map-backend/internal/repository"
 )
 
@@ -15,8 +16,11 @@ type Services struct {
 
 // NewServices initializes all domain services with the database repository
 func NewServices(repo *repository.Queries) *Services {
+	// Use MockMailer for development
+	m := mailer.NewMockMailer()
+	
 	return &Services{
-		Auth:   NewAuthService(repo),
+		Auth:   NewAuthService(repo, m),
 		Event:  NewEventService(repo),
 		User:   NewUserService(repo),
 		Artist: NewArtistService(repo),

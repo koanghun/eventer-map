@@ -26,7 +26,7 @@ func (q *Queries) CheckNicknameExists(ctx context.Context, displayName string) (
 const createUser = `-- name: CreateUser :one
 INSERT INTO users (email, display_name, password_hash, google_id)
 VALUES ($1, $2, $3, $4)
-RETURNING id, email, display_name, password_hash, google_id, is_banned, created_at, updated_at
+RETURNING id, email, display_name, password_hash, google_id, is_banned, created_at, updated_at, is_email_verified
 `
 
 type CreateUserParams struct {
@@ -53,12 +53,13 @@ func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (User, e
 		&i.IsBanned,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.IsEmailVerified,
 	)
 	return i, err
 }
 
 const getUserByEmail = `-- name: GetUserByEmail :one
-SELECT id, email, display_name, password_hash, google_id, is_banned, created_at, updated_at FROM users
+SELECT id, email, display_name, password_hash, google_id, is_banned, created_at, updated_at, is_email_verified FROM users
 WHERE email = $1 LIMIT 1
 `
 
@@ -74,12 +75,13 @@ func (q *Queries) GetUserByEmail(ctx context.Context, email sql.NullString) (Use
 		&i.IsBanned,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.IsEmailVerified,
 	)
 	return i, err
 }
 
 const getUserByGoogleID = `-- name: GetUserByGoogleID :one
-SELECT id, email, display_name, password_hash, google_id, is_banned, created_at, updated_at FROM users
+SELECT id, email, display_name, password_hash, google_id, is_banned, created_at, updated_at, is_email_verified FROM users
 WHERE google_id = $1 LIMIT 1
 `
 
@@ -95,12 +97,13 @@ func (q *Queries) GetUserByGoogleID(ctx context.Context, googleID sql.NullString
 		&i.IsBanned,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.IsEmailVerified,
 	)
 	return i, err
 }
 
 const getUserByID = `-- name: GetUserByID :one
-SELECT id, email, display_name, password_hash, google_id, is_banned, created_at, updated_at FROM users
+SELECT id, email, display_name, password_hash, google_id, is_banned, created_at, updated_at, is_email_verified FROM users
 WHERE id = $1 LIMIT 1
 `
 
@@ -116,6 +119,7 @@ func (q *Queries) GetUserByID(ctx context.Context, id uuid.UUID) (User, error) {
 		&i.IsBanned,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.IsEmailVerified,
 	)
 	return i, err
 }
@@ -133,5 +137,21 @@ type UpdateUserBanStatusParams struct {
 
 func (q *Queries) UpdateUserBanStatus(ctx context.Context, arg UpdateUserBanStatusParams) error {
 	_, err := q.db.ExecContext(ctx, updateUserBanStatus, arg.ID, arg.IsBanned)
+	return err
+}
+
+const updateUserEmailVerifiedByEmail = `-- name: UpdateUserEmailVerifiedByEmail :exec
+UPDATE users
+SET is_email_verified = $2, updated_at = NOW()
+WHERE email = $1
+`
+
+type UpdateUserEmailVerifiedByEmailParams struct {
+	Email           sql.NullString
+	IsEmailVerified bool
+}
+
+func (q *Queries) UpdateUserEmailVerifiedByEmail(ctx context.Context, arg UpdateUserEmailVerifiedByEmailParams) error {
+	_, err := q.db.ExecContext(ctx, updateUserEmailVerifiedByEmail, arg.Email, arg.IsEmailVerified)
 	return err
 }
