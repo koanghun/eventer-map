@@ -1,6 +1,6 @@
 import { createContext, useContext, useState, useCallback, useEffect, ReactNode } from 'react';
 import { setAccessToken } from '../lib/axios';
-import { postAuthLogin, postAuthSignup, postAuthGoogle, postAuthLogout, postAuthRefresh } from '../api/generated/auth/auth';
+import { postAuthLogin, postAuthSignup, postAuthSignupVerify, postAuthGoogle, postAuthLogout, postAuthRefresh } from '../api/generated/auth/auth';
 import { getUsersMe } from '../api/generated/user/user';
 import { toast } from '../store/useToastStore';
 import type { UserProfile } from '../api/generated/model';
@@ -11,6 +11,7 @@ interface AuthContextType {
     isLoading: boolean;
     login: (email: string, password: string) => Promise<void>;
     signup: (email: string, password: string, nickname: string) => Promise<void>;
+    verifyEmail: (email: string, code: string) => Promise<void>;
     googleLogin: (idToken: string) => Promise<void>;
     logout: () => Promise<void>;
 }
@@ -55,9 +56,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     const signup = useCallback(async (email: string, password: string, nickname: string) => {
         const res = await postAuthSignup({ email, password, nickname });
+        toast.success(res.message || '인증 코드가 이메일로 발송되었습니다.');
+    }, []);
+
+    const verifyEmail = useCallback(async (email: string, code: string) => {
+        const res = await postAuthSignupVerify({ email, code });
         setAccessToken(res.accessToken);
         await fetchUser();
-        toast.success('회원가입이 완료되었습니다.');
+        toast.success('이메일 인증이 완료되었습니다.');
     }, [fetchUser]);
 
     const googleLogin = useCallback(async (idToken: string) => {
@@ -85,6 +91,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             isLoading,
             login,
             signup,
+            verifyEmail,
             googleLogin,
             logout,
         }}>

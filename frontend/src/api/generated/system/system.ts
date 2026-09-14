@@ -5,16 +5,22 @@
  * OpenAPI spec version: 1.0.0
  */
 import {
+  useMutation,
   useQuery
 } from '@tanstack/react-query'
 import type {
+  MutationFunction,
   QueryFunction,
   QueryKey,
+  UseMutationOptions,
+  UseMutationResult,
   UseQueryOptions,
   UseQueryResult
 } from '@tanstack/react-query'
 import type {
-  GetPing200
+  GetPing200,
+  GetVisits200,
+  PostVisits200
 } from '.././model'
 import { customInstance } from '../../../lib/axios';
 
@@ -83,3 +89,122 @@ export const useGetPing = <TData = Awaited<ReturnType<typeof getPing>>, TError =
 
 
 
+/**
+ * 오늘 날짜의 방문자 수를 반환합니다.
+ * @summary 오늘 방문자 수 조회
+ */
+export const getVisits = (
+    
+ options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
+) => {
+      
+      
+      return customInstance<GetVisits200>(
+      {url: `/visits`, method: 'GET', signal
+    },
+      options);
+    }
+  
+
+export const getGetVisitsQueryKey = () => {
+    return [`/visits`] as const;
+    }
+
+    
+export const getGetVisitsQueryOptions = <TData = Awaited<ReturnType<typeof getVisits>>, TError = unknown>( options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getVisits>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetVisitsQueryKey();
+
+  
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getVisits>>> = ({ signal }) => getVisits(requestOptions, signal);
+
+      
+
+      
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getVisits>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetVisitsQueryResult = NonNullable<Awaited<ReturnType<typeof getVisits>>>
+export type GetVisitsQueryError = unknown
+
+/**
+ * @summary 오늘 방문자 수 조회
+ */
+export const useGetVisits = <TData = Awaited<ReturnType<typeof getVisits>>, TError = unknown>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getVisits>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+
+  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } => {
+
+  const queryOptions = getGetVisitsQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  query.queryKey = queryOptions.queryKey ;
+
+  return query;
+}
+
+
+
+/**
+ * 오늘 날짜의 방문자 수를 1 증가시키고 현재까지의 총 일일 방문자 수를 반환합니다.
+ * @summary 오늘 방문자 수 증가 및 반환
+ */
+export const postVisits = (
+    
+ options?: SecondParameter<typeof customInstance>,) => {
+      
+      
+      return customInstance<PostVisits200>(
+      {url: `/visits`, method: 'POST'
+    },
+      options);
+    }
+  
+
+
+export const getPostVisitsMutationOptions = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postVisits>>, TError,void, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationOptions<Awaited<ReturnType<typeof postVisits>>, TError,void, TContext> => {
+const {mutation: mutationOptions, request: requestOptions} = options ?? {};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof postVisits>>, void> = () => {
+          
+
+          return  postVisits(requestOptions)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type PostVisitsMutationResult = NonNullable<Awaited<ReturnType<typeof postVisits>>>
+    
+    export type PostVisitsMutationError = unknown
+
+    /**
+ * @summary 오늘 방문자 수 증가 및 반환
+ */
+export const usePostVisits = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postVisits>>, TError,void, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationResult<
+        Awaited<ReturnType<typeof postVisits>>,
+        TError,
+        void,
+        TContext
+      > => {
+
+      const mutationOptions = getPostVisitsMutationOptions(options);
+
+      return useMutation(mutationOptions);
+    }
+    

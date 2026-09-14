@@ -12,6 +12,7 @@ type Services struct {
 	User   *UserService
 	Artist *ArtistService
 	Venue  *VenueService
+	Stats  *StatsService
 }
 
 // NewServices initializes all domain services with the database repository
@@ -25,6 +26,7 @@ func NewServices(repo *repository.Queries) *Services {
 		User:   NewUserService(repo),
 		Artist: NewArtistService(repo),
 		Venue:  NewVenueService(repo),
+		Stats:  NewStatsService(repo),
 	}
 }
 

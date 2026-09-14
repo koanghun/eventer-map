@@ -1,0 +1,354 @@
+{
+    "header": {
+        "title": "Eventer Map",
+        "subtitle": "日付を選択してイベントを確認してください",
+        "themeToggle": "テーマ変更"
+    },
+    "nav": {
+        "map": "地図",
+        "performers": "出演者",
+        "places": "会場"
+    },
+    "language": {
+        "ko": "韓国語",
+        "ja": "日本語"
+    },
+    "datePicker": {
+        "label": "日付選択"
+    },
+    "performerFilter": {
+        "label": "出演者検索",
+        "placeholder": "出演者名または別名を入力",
+        "clearFilter": "フィルター解除"
+    },
+    "auth": {
+        "loginWithGoogle": "Googleでログイン",
+        "logout": "ログアウト",
+        "loginRequired": "ログインが必要です",
+        "loginToCreate": "イベントを登録するにはログインしてください",
+        "processingLogin": "ログイン処理中",
+        "loginFailed": "ログインに失敗しました"
+    },
+    "buttons": {
+        "newEvent": "新規イベント登録",
+        "edit": "編集",
+        "delete": "削除",
+        "cancel": "キャンセル",
+        "submit": "登録",
+        "update": "更新",
+        "search": "検索",
+        "close": "閉じる",
+        "proceed": "このまま登録する"
+    },
+    "eventList": {
+        "title": "イベント一覧",
+        "loading": "読み込み中...",
+        "empty": {
+            "line1": "選択した日付に登録されたイベントがありません。",
+            "line2": "新しいイベントを登録してみましょう！ 🎉"
+        },
+        "timePrefix": {
+            "door": "開場",
+            "start": "開演",
+            "end": "終演",
+            "tbd": "時間未定"
+        }
+    },
+    "eventForm": {
+        "titleNew": "新規イベント登録",
+        "titleEdit": "イベント編集",
+        "labels": {
+            "title": "タイトル",
+            "description": "説明",
+            "date": "日付",
+            "doorTime": "開場時間",
+            "startTime": "開演時間",
+            "endTime": "終演時間",
+            "location": "会場検索",
+            "address": "住所",
+            "performers": "出演者",
+            "relatedLink": "関連リンク"
+        },
+        "placeholders": {
+            "title": "イベントタイトル",
+            "description": "イベント説明",
+            "location": "例：横浜アリーナ",
+            "address": "自動入力されます",
+            "performers": "出演者を選択または直接入力",
+            "relatedLink": "https://example.com"
+        },
+        "hints": {
+            "location": "会場名を入力して検索すると、住所と座標が自動的に入力されます"
+        },
+        "buttons": {
+            "searchPlace": "会場検索",
+            "submitting": "処理中..."
+        },
+        "alerts": {
+            "placeNameRequired": "会場名を入力してください。",
+            "placeFoundDb": "会場情報が自動的に入力されました！（DBキャッシュ）",
+            "placeFoundGoogle": "会場情報が自動的に入力されました！（Google API）",
+            "placeNotFound": "会場が見つかりませんでした。別の検索語をお試しください。",
+            "placeFound": "会場情報を自動的に取得しました。",
+            "placeCreateFailed": "会場の登録処理に失敗しました。",
+
+            "requiredFields": "必須項目をすべて入力してください。",
+            "duplicateCheckError": "重複確認中にエラーが発生しました。しばらくしてから再度お試しください。"
+        }
+    },
+    "eventMap": {
+        "groupModal": {
+            "title": "この場所に{{count}}個のイベント"
+        },
+        "infoWindow": {
+            "date": "日付",
+            "time": "時間",
+            "performers": "出演者",
+            "link": "詳細情報",
+            "attendance": "参加"
+        }
+    },
+    "eventDetail": {
+        "flags": {
+            "add": "フラグを追加",
+            "remove": "フラグを解除",
+            "attend": "参加する",
+            "cancel": "参加をキャンセル"
+        },
+        "history": {
+            "title": "イベント履歴",
+            "viewButton": "履歴を表示",
+            "loading": "履歴を読み込み中...",
+            "error": "履歴の読み込みに失敗しました",
+            "noHistory": "このイベントの履歴がありません",
+            "actions": {
+                "created": "作成",
+                "updated": "更新",
+                "deleted": "削除"
+            },
+            "hideDetails": "詳細を隠す ▲",
+            "viewDetails": "詳細を表示 ▼",
+            "createdSummary": "作成",
+            "changedPrefix": "変更",
+            "noChanges": "フィールドの変更なし",
+            "before": "変更前",
+            "after": "変更後",
+            "empty": "(空)",
+            "fields": {
+                "title": "タイトル",
+                "event_date": "日付",
+                "location": "会場",
+                "address": "住所",
+                "door_time": "開場時間",
+                "start_time": "開演時間",
+                "end_time": "終演時間",
+                "performers": "出演者",
+                "description": "説明",
+                "related_link": "関連リンク"
+            }
+        },
+        "report": {
+            "title": "イベント報告",
+            "button": "報告する",
+            "reasonLabel": "報告理由を選択してください",
+            "reasons": {
+                "spam": "スパム",
+                "spamDesc": "スパムまたは広告性イベント",
+                "inappropriate": "不適切なコンテンツ",
+                "inappropriateDesc": "不快または不適切な内容を含む",
+                "wrong_info": "誤った情報",
+                "wrong_infoDesc": "イベント情報が誤っているか誤解を招く",
+                "other": "その他",
+                "otherDesc": "その他の理由"
+            },
+            "descriptionLabel": "追加説明（オプション）",
+            "descriptionPlaceholder": "追加情報を入力してください...",
+            "charCount": "{{current}}/{{max}}",
+            "submit": "報告を送信",
+            "submitting": "送信中...",
+            "success": "報告が送信されました",
+            "successMessage": "報告ありがとうございます！",
+            "alreadyReported": "既に報告済みのイベントです",
+            "error": "報告の送信に失敗しました。もう一度お試しください。",
+            "eventLabel": "イベント"
+        },
+        "labels": {
+            "location": "会場",
+            "address": "住所",
+            "date": "日付",
+            "doorTime": "開場",
+            "startTime": "開演",
+            "endTime": "終演",
+            "performers": "出演者",
+            "description": "説明"
+        },
+        "mapLink": "Google Mapsで表示"
+    },
+    "filter": {
+        "flags": {
+            "showAll": "全てのイベントを表示",
+            "showFlagsOnly": "フラグしたイベントのみ表示"
+        }
+    },
+    "duplicateModal": {
+        "title": "重複イベント発見",
+        "message": "<strong>{{count}}個</strong>の類似イベントが見つかりました。",
+        "labels": {
+            "date": "日付",
+            "location": "会場",
+            "performers": "出演者"
+        },
+        "buttons": {
+            "editExisting": "このイベントを編集する"
+        }
+    },
+    "eventDuplicateModal": {
+        "title": "⚠️ 重複の可能性を検出",
+        "warningMessage": "<strong>{{count}}個</strong>の類似イベントが見つかりました。",
+        "similarity": "類似度",
+        "labels": {
+            "location": "会場",
+            "date": "日付",
+            "time": "時間",
+            "performers": "出演者",
+            "title": "タイトル",
+            "distance": "距離",
+            "detailInfo": "詳細一致情報",
+            "distanceDiff": "{{distance}}m 差"
+        },
+        "buttons": {
+            "editExisting": "このイベントを編集する",
+            "cancel": "キャンセル",
+            "proceedAnyway": "このまま登録する"
+        }
+    },
+    "performerDuplicateModal": {
+        "exactTitle": "⚠️ 重複した出演者",
+        "similarTitle": "🔍 類似の出演者を発見",
+        "exactMessage": "\"{{name}}\"は既に登録されている出演者です。",
+        "similarMessage": "\"{{name}}\"と似ている出演者があります。",
+        "labels": {
+            "aliases": "別名"
+        },
+        "divider": "または",
+        "buttons": {
+            "useExisting": "この出演者を使用",
+            "select": "選択",
+            "createNew": "\"{{name}}\"を新規登録",
+            "cancel": "キャンセル"
+        }
+    },
+    "performerModal": {
+        "title": "新規出演者登録",
+        "labels": {
+            "name": "公式表記名",
+            "aliases": "別名（オプション）",
+            "aliasesRegistered": "登録された別名"
+        },
+        "placeholders": {
+            "name": "例：Perfume",
+            "aliases": "例：パフューム、ぱふゅーむ、電子音楽"
+        },
+        "hints": {
+            "name": "出演者の公式表記名を入力してください",
+            "aliases": "他の表記、検索キーワードなどを追加してください（Enterで追加可能）"
+        },
+        "buttons": {
+            "add": "追加",
+            "cancel": "キャンセル",
+            "register": "登録"
+        }
+    },
+    "multiSelect": {
+        "alerts": {
+            "performerCreateFailed": "出演者の登録に失敗しました。"
+        }
+    },
+    "hooks": {
+        "eventForm": {
+            "saveFailed": "イベントの保存に失敗しました。",
+            "deleteConfirm": "イベントを削除しますか？",
+            "deleteFailed": "イベントの削除に失敗しました。"
+        }
+    },
+    "admin": {
+        "manageReports": "報告管理",
+        "reports": {
+            "title": "イベント報告管理",
+            "eventList": "報告されたイベント",
+            "reportCount": "{{count}}件の報告",
+            "noReports": "報告されたイベントがありません",
+            "reportDetails": "報告詳細",
+            "reporter": "報告者",
+            "reason": "理由",
+            "description": "説明",
+            "status": "ステータス",
+            "reportedAt": "報告時刻",
+            "anonymous": "匿名",
+            "loading": "読み込み中...",
+            "loadingReports": "報告履歴を読み込み中...",
+            "errorLoadingEvents": "イベントの読み込みに失敗しました",
+            "errorLoadingReports": "報告履歴の読み込みに失敗しました",
+            "accessDenied": "アクセス権限がありません",
+            "noReportsForEvent": "このイベントの報告はありません",
+            "backToList": "リストに戻る",
+            "statuses": {
+                "pending": "保留中",
+                "reviewed": "確認済み",
+                "resolved": "解決済み"
+            }
+        }
+    },
+    "management": {
+        "performer": {
+            "title": "出演者管理",
+            "description": "公演に出演するアーティストおよびグループ情報を管理します。",
+            "new": "新規出演者",
+            "edit": "出演者情報修正",
+            "noAliases": "別名なし",
+            "deleteConfirm": "'{{name}}' 出演者を削除しますか？",
+            "saveSuccess": "保存されました。",
+            "saveError": "保存に失敗しました。",
+            "deleteError": "削除に失敗しました。",
+            "labels": {
+                "name": "名前 (公式名称)",
+                "aliases": "別名 (Aliases)",
+                "newAlias": "新しい別名を追加...",
+                "save": "保存",
+                "saving": "保存中...",
+                "cancel": "キャンセル"
+            }
+        },
+        "place": {
+            "title": "会場管理",
+            "description": "公演が行われる会場および場所の情報を管理します。",
+            "new": "新規会場",
+            "edit": "会場情報修正",
+            "addressInfoNone": "住所情報なし",
+            "deleteConfirm": "'{{name}}' 会場を削除しますか？ 関連するすべてのイベントにも影響が出る可能性があります。",
+            "saveSuccess": "保存されました。",
+            "saveError": "保存に失敗しました。",
+            "deleteError": "削除に失敗しました。",
+            "labels": {
+                "name": "名前 (公式名称)",
+                "address": "住所",
+                "lat": "緯度 (Latitude)",
+                "lng": "経度 (Longitude)",
+                "aliases": "別名 (Aliases)",
+                "newAlias": "新しい別名を追加...",
+                "save": "保存",
+                "saving": "保存中...",
+                "cancel": "キャンセル"
+            }
+        },
+        "searchPlaceholder": "検索語を入力してください...",
+        "noResults": "検索結果がありません。"
+    },
+    "footer": {
+        "dailyVisits": "本日の訪問"
+    },
+    "seo": {
+        "title": "Event Map - イベントマップ",
+        "description": "イベントマップアプリケーション"
+    }
+}

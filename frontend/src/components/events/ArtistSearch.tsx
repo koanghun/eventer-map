@@ -3,7 +3,10 @@ import { Search as SearchIcon, Loader2 } from 'lucide-react';
 import { useGetArtists } from '../../api/generated/artists/artists';
 import { useDebounce } from 'use-debounce';
 
+import { useTranslation } from 'react-i18next';
+
 export default function ArtistSearch() {
+    const { t } = useTranslation();
     const [searchTerm, setSearchTerm] = useState('');
     const [debouncedTerm] = useDebounce(searchTerm, 300);
 
@@ -20,7 +23,7 @@ export default function ArtistSearch() {
                 type="text" 
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                placeholder="아티스트 검색..." 
+                placeholder={t('performerFilter.placeholder', 'Search artists...')}
                 className="w-full pl-9 pr-4 py-2 bg-background border border-input rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all"
             />
             {isLoading && (
@@ -40,7 +43,7 @@ export default function ArtistSearch() {
             )}
             {debouncedTerm.length > 0 && artists?.length === 0 && !isLoading && (
                 <div className="absolute top-full left-0 right-0 mt-1 bg-card border border-border rounded-md shadow-lg z-50 p-3 text-center text-sm text-muted-foreground">
-                    결과가 없습니다.
+                    {t('performerFilter.noResults', 'No results found.')}
                 </div>
             )}
         </div>

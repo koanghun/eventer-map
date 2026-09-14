@@ -1,7 +1,9 @@
 import { useGetVenues } from '../../api/generated/venues/venues';
 import { Loader2 } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 
 export default function VenueList() {
+    const { t } = useTranslation();
     const { data, isLoading, error } = useGetVenues({
         minLat: 35.0,
         maxLat: 36.0,
@@ -21,7 +23,7 @@ export default function VenueList() {
     if (error || venues.length === 0) {
         return (
             <div className="p-8 text-center text-muted-foreground text-sm">
-                등록된 공연장이 없습니다.
+                {t('venueList.noVenues', 'No venues registered.')}
             </div>
         );
     }

@@ -1,41 +1,41 @@
 import { useState, useEffect } from 'react';
-
-interface VisitData {
-    date: string;
-    count: number;
-}
+import { useGetVisits, usePostVisits } from '../api/generated/system/system';
 
 export const useDailyVisitCounter = () => {
     const [visitCount, setVisitCount] = useState<number>(0);
+    const { refetch: getVisits } = useGetVisits({
+        query: {
+            enabled: false,
+        }
+    });
+    const { mutateAsync: postVisits } = usePostVisits();
 
     useEffect(() => {
-        const updateVisitCount = () => {
-            const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
-            const storedData = localStorage.getItem('dailyVisitData');
+        const updateVisitCount = async () => {
+            const today = new Date().toISOString().split('T')[0];
+            const sessionKey = `hasVisited_${today}`;
+            const hasVisitedToday = sessionStorage.getItem(sessionKey);
 
-            let visitData: VisitData;
-
-            if (storedData) {
-                visitData = JSON.parse(storedData);
-
-                // 날짜가 바뀌었으면 카운터 리셋
-                if (visitData.date !== today) {
-                    visitData = { date: today, count: 1 };
+            try {
+                if (!hasVisitedToday) {
+                    // Send request to increment count
+                    const res = await postVisits();
+                    setVisitCount(res.count || 0);
+                    sessionStorage.setItem(sessionKey, 'true');
                 } else {
-                    // 같은 날이면 카운트 증가
-                    visitData.count += 1;
+                    // Just fetch current count
+                    const { data } = await getVisits();
+                    if (data) {
+                        setVisitCount(data.count || 0);
+                    }
                 }
-            } else {
-                // 첫 방문
-                visitData = { date: today, count: 1 };
+            } catch (err) {
+                console.error('Failed to sync visit count', err);
             }
-
-            localStorage.setItem('dailyVisitData', JSON.stringify(visitData));
-            setVisitCount(visitData.count);
         };
 
         updateVisitCount();
-    }, []);
+    }, [postVisits, getVisits]);
 
     return visitCount;
 };

@@ -1,26 +1,21 @@
 import { useEffect, useState } from 'react';
 import { LoadScript } from '@react-google-maps/api';
 import { useTranslation } from 'react-i18next';
-import EventMap from './components/map/EventMap';
-import EventList from './components/events/EventList';
-import EventDetailPane from './components/events/EventDetailPane';
-import DatePicker from './components/common/DatePicker';
-import { format } from 'date-fns';
-
 import { useTheme } from './context/ThemeContext';
 import { useLanguage } from './context/LanguageContext';
 import { useAuth } from './context/AuthContext';
 import UserProfile from './components/common/UserProfile';
-import { useEventStore } from './store/useEventStore';
 import DailyVisitCounter from './components/common/DailyVisitCounter';
-import EventFormPane from './components/events/EventFormPane';
-import { useGetEvents } from './api/generated/events/events';
 import AuthPanel from './components/auth/AuthPanel';
-import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
-import { Sun, Moon, Map as MapIcon, Plus, Flag, Loader2, LogIn } from 'lucide-react';
+import { useLocation, useNavigate, Routes, Route, useSearchParams } from 'react-router-dom';
+import { Sun, Moon, Map as MapIcon, Flag, Loader2, LogIn } from 'lucide-react';
 import { Button } from './components/ui/button';
-import ArtistSearch from './components/events/ArtistSearch';
-import VenueList from './components/events/VenueList';
+import { format } from 'date-fns';
+
+import MapPage from './pages/MapPage';
+import PerformersPage from './pages/PerformersPage';
+import PlacesPage from './pages/PlacesPage';
+
 const GOOGLE_MAPS_LIBRARIES: ("places")[] = ['places'];
 
 export default function AppContent() {
@@ -33,51 +28,12 @@ export default function AppContent() {
                  location.pathname === '/places' ? 'places' : 'map';
 
     const today = format(new Date(), 'yyyy-MM-dd');
-    const startDate = searchParams.get('start') ?? today;
-    const endDate = searchParams.get('end') ?? today;
     const showFlagsOnly = searchParams.get('flags') === 'true';
 
     const { theme, toggleTheme } = useTheme();
     const { language, changeLanguage } = useLanguage();
     const { isAuthenticated, isLoading } = useAuth();
-    const [isFormOpen, setIsFormOpen] = useState(false);
     const [isAuthPanelOpen, setIsAuthPanelOpen] = useState(false);
-    
-    // 개발 환경이거나 로그인 상태일 때 '새 이벤트 등록' 버튼 표시
-    const showNewEventButton = isAuthenticated || process.env.NODE_ENV === 'development';
-
-    const { data: eventsData, isLoading: isEventsLoading } = useGetEvents();
-    const allEvents = eventsData?.events || [];
-    
-    // Client-side filtering
-    const filteredEvents = allEvents.filter((event) => {
-        const eventStart = event.startTime ? new Date(event.startTime).toISOString().split('T')[0] : '';
-        const eventEnd = event.endTime ? new Date(event.endTime).toISOString().split('T')[0] : '';
-        
-        // 날짜 필터링 로직: 이벤트 기간이 선택된 기간(startDate ~ endDate)과 겹치는지 확인
-        if (eventStart && eventEnd) {
-            const isOverlap = eventStart <= endDate && eventEnd >= startDate;
-            if (!isOverlap) return false;
-        }
-        
-        // TODO: showFlagsOnly 등 다른 조건 추가
-        
-        return true;
-    });
-    
-    const eventForm = {
-        isFormOpen,
-        openNew: () => setIsFormOpen(true),
-        openEdit: () => setIsFormOpen(true),
-        deleteEvent: () => {},
-        submit: () => {},
-        close: () => setIsFormOpen(false),
-        formEvent: null,
-        switchToEdit: () => {}
-    };
-
-    const clearSelection = useEventStore((state) => state.clearSelection);
-    const selectedEvent = useEventStore((state) => state.selectedEvent);
 
     const apiKey = process.env.REACT_APP_GOOGLE_MAPS_API_KEY || '';
 
@@ -93,19 +49,6 @@ export default function AppContent() {
         setSearchParams(newParams, { replace: true });
     };
 
-    const handleStartDateChange = (newDate: string) => {
-        updateQueryParams({
-            start: newDate,
-            end: newDate > endDate ? newDate : endDate
-        });
-        clearSelection();
-    };
-
-    const handleEndDateChange = (date: string) => {
-        updateQueryParams({ end: date });
-        clearSelection();
-    };
-
     const handleFlagsToggle = () => {
         const nextFlags = !showFlagsOnly;
         if (nextFlags) {
@@ -113,7 +56,6 @@ export default function AppContent() {
         } else {
             updateQueryParams({ flags: null, start: null, end: null });
         }
-        clearSelection();
     };
 
     useEffect(() => {
@@ -175,11 +117,13 @@ export default function AppContent() {
                     <div className="flex-1 flex items-center justify-end gap-3">
                         <select
                             value={language}
-                            onChange={(e) => changeLanguage(e.target.value as 'ko' | 'ja')}
+                            onChange={(e) => changeLanguage(e.target.value as 'ko' | 'ja' | 'en' | 'zh')}
                             className="h-9 px-3 py-1 bg-background border border-input rounded-md text-sm shadow-sm hover:bg-muted focus:outline-none focus:ring-1 focus:ring-ring transition-colors cursor-pointer"
                         >
                             <option value="ja">{t('language.ja')}</option>
                             <option value="ko">{t('language.ko')}</option>
+                            <option value="en">{t('language.en', 'English')}</option>
+                            <option value="zh">{t('language.zh', '中文')}</option>
                         </select>
                         
                         <Button variant="outline" size="icon" onClick={toggleTheme} className="rounded-full w-9 h-9" title={t('header.themeToggle')}>
@@ -213,7 +157,7 @@ export default function AppContent() {
                                 onClick={() => setIsAuthPanelOpen(!isAuthPanelOpen)}
                             >
                                 <LogIn className="w-4 h-4 mr-2" />
-                                로그인
+                                {t('auth.login', 'Login')}
                             </Button>
                         )}
                     </div>
@@ -223,78 +167,11 @@ export default function AppContent() {
                     <AuthPanel onClose={() => setIsAuthPanelOpen(false)} />
                 )}
 
-                <div className="flex-1 flex flex-col md:flex-row gap-4 p-4 md:p-6 w-full max-w-[2400px] mx-auto md:overflow-hidden md:h-[calc(100vh-73px)] relative overflow-x-hidden">
-                    {/* Left Sidebar: 20% on desktop (Common across all views) */}
-                    <aside className={`w-full ${selectedEvent && view === 'map' ? 'hidden md:flex' : 'flex'} md:w-[20%] shrink-0 bg-card/50 backdrop-blur-sm border border-border rounded-xl shadow-md flex-col transition-all duration-500 overflow-hidden`}>
-                        {view === 'map' && (
-                            <>
-                                <div className="p-4 flex flex-col gap-4 border-b border-border/50 shrink-0">
-                                    <DatePicker 
-                                        startDate={startDate} 
-                                        endDate={endDate} 
-                                        onStartDateChange={handleStartDateChange} 
-                                        onEndDateChange={handleEndDateChange} 
-                                    />
-                                    <ArtistSearch />
-                                    {showNewEventButton && (
-                                        <Button className="w-full bg-gradient-to-r from-primary to-orange-500 hover:from-primary/90 hover:to-orange-500/90 text-white shadow-md transition-all hover:-translate-y-0.5" onClick={eventForm.openNew}>
-                                            <Plus className="w-4 h-4 mr-2" /> {t('buttons.newEvent')}
-                                        </Button>
-                                    )}
-                                </div>
-                                <div className="flex-1 overflow-auto min-h-[300px]">
-                                    <EventList
-                                        events={filteredEvents}
-                                        loading={isEventsLoading}
-                                        onEventEdit={isAuthenticated ? eventForm.openEdit : undefined}
-                                        onEventDelete={isAuthenticated ? eventForm.deleteEvent : undefined}
-                                    />
-                                </div>
-                            </>
-                        )}
-                        {view === 'performers' && (
-                            <div className="p-4 flex flex-col gap-4 shrink-0">
-                                <ArtistSearch />
-                                {showNewEventButton && (
-                                    <Button className="w-full bg-gradient-to-r from-primary to-orange-500 hover:from-primary/90 hover:to-orange-500/90 text-white shadow-md transition-all hover:-translate-y-0.5" onClick={eventForm.openNew}>
-                                        <Plus className="w-4 h-4 mr-2" /> {t('buttons.newEvent')}
-                                    </Button>
-                                )}
-                            </div>
-                        )}
-                        {view === 'places' && (
-                            <div className="flex-1 overflow-auto min-h-[300px]">
-                                <VenueList />
-                            </div>
-                        )}
-                    </aside>
-
-                    {/* Middle Main Content: 80% or 60% on desktop */}
-                    <main className={`flex-1 min-h-[400px] md:min-h-0 bg-card rounded-xl border border-border overflow-hidden shadow-md relative z-0 transition-all duration-500 ${(selectedEvent && view === 'map') || isFormOpen ? 'w-full md:w-[60%]' : 'w-full md:w-[80%]'}`}>
-                        {view === 'map' && <EventMap events={filteredEvents} />}
-                        {view === 'performers' && (
-                            <div className="flex items-center justify-center h-full">
-                                <p className="text-muted-foreground">Performers Main View</p>
-                            </div>
-                        )}
-                        {view === 'places' && (
-                            <div className="flex items-center justify-center h-full">
-                                <p className="text-muted-foreground">Places Main View</p>
-                            </div>
-                        )}
-                    </main>
-
-                    {/* Right Panel: 20% on desktop */}
-                    {isFormOpen ? (
-                        <div className="absolute inset-0 md:static md:w-[20%] h-full shrink-0 z-20 md:z-auto transition-all duration-500">
-                            <EventFormPane onClose={eventForm.close} />
-                        </div>
-                    ) : selectedEvent && view === 'map' ? (
-                        <div className="absolute inset-0 md:static md:w-[20%] h-full shrink-0 z-20 md:z-auto transition-all duration-500">
-                            <EventDetailPane />
-                        </div>
-                    ) : null}
-                </div>
+                <Routes>
+                    <Route path="/" element={<MapPage />} />
+                    <Route path="/performers" element={<PerformersPage />} />
+                    <Route path="/places" element={<PlacesPage />} />
+                </Routes>
 
                 <div className="fixed bottom-4 right-4 z-50 pointer-events-none">
                     <DailyVisitCounter />

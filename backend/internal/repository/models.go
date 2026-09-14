@@ -28,6 +28,11 @@ type Artist struct {
 	UpdatedAt       time.Time
 }
 
+type DailyVisit struct {
+	VisitDate  time.Time
+	VisitCount int32
+}
+
 type Event struct {
 	ID             uuid.UUID
 	Title          string

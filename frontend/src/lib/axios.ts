@@ -38,13 +38,13 @@ AXIOS_INSTANCE.interceptors.response.use(
     if (status === 401) {
       setAccessToken(null);
     } else if (status === 403) {
-      toast.error(message || '권한이 없습니다.');
+      toast.error(message || 'Access Denied.');
     } else if (status === 404) {
       // Silently ignore 404s — handled by individual components
     } else if (status && status >= 500) {
-      toast.error('서버 오류가 발생했습니다. 잠시 후 다시 시도해 주세요.');
+      toast.error('A server error occurred. Please try again later.');
     } else if (!error.response && error.message !== 'Query was cancelled') {
-      toast.error('네트워크 연결을 확인해 주세요.');
+      toast.error('Please check your network connection.');
     }
 
     return Promise.reject(error);
