@@ -26,7 +26,7 @@ func (q *Queries) CheckNicknameExists(ctx context.Context, displayName string) (
 const createUser = `-- name: CreateUser :one
 INSERT INTO users (email, display_name, password_hash, google_id)
 VALUES ($1, $2, $3, $4)
-RETURNING id, email, display_name, password_hash, google_id, is_banned, created_at, updated_at, is_email_verified
+RETURNING id, email, display_name, password_hash, google_id, is_banned, created_at, updated_at, is_email_verified, last_artist_feed_checked_at
 `
 
 type CreateUserParams struct {
@@ -54,12 +54,13 @@ func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (User, e
 		&i.CreatedAt,
 		&i.UpdatedAt,
 		&i.IsEmailVerified,
+		&i.LastArtistFeedCheckedAt,
 	)
 	return i, err
 }
 
 const getUserByEmail = `-- name: GetUserByEmail :one
-SELECT id, email, display_name, password_hash, google_id, is_banned, created_at, updated_at, is_email_verified FROM users
+SELECT id, email, display_name, password_hash, google_id, is_banned, created_at, updated_at, is_email_verified, last_artist_feed_checked_at FROM users
 WHERE email = $1 LIMIT 1
 `
 
@@ -76,12 +77,13 @@ func (q *Queries) GetUserByEmail(ctx context.Context, email sql.NullString) (Use
 		&i.CreatedAt,
 		&i.UpdatedAt,
 		&i.IsEmailVerified,
+		&i.LastArtistFeedCheckedAt,
 	)
 	return i, err
 }
 
 const getUserByGoogleID = `-- name: GetUserByGoogleID :one
-SELECT id, email, display_name, password_hash, google_id, is_banned, created_at, updated_at, is_email_verified FROM users
+SELECT id, email, display_name, password_hash, google_id, is_banned, created_at, updated_at, is_email_verified, last_artist_feed_checked_at FROM users
 WHERE google_id = $1 LIMIT 1
 `
 
@@ -98,12 +100,13 @@ func (q *Queries) GetUserByGoogleID(ctx context.Context, googleID sql.NullString
 		&i.CreatedAt,
 		&i.UpdatedAt,
 		&i.IsEmailVerified,
+		&i.LastArtistFeedCheckedAt,
 	)
 	return i, err
 }
 
 const getUserByID = `-- name: GetUserByID :one
-SELECT id, email, display_name, password_hash, google_id, is_banned, created_at, updated_at, is_email_verified FROM users
+SELECT id, email, display_name, password_hash, google_id, is_banned, created_at, updated_at, is_email_verified, last_artist_feed_checked_at FROM users
 WHERE id = $1 LIMIT 1
 `
 
@@ -120,6 +123,7 @@ func (q *Queries) GetUserByID(ctx context.Context, id uuid.UUID) (User, error) {
 		&i.CreatedAt,
 		&i.UpdatedAt,
 		&i.IsEmailVerified,
+		&i.LastArtistFeedCheckedAt,
 	)
 	return i, err
 }

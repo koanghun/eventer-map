@@ -21,7 +21,9 @@ import type {
   Artist,
   ArtistInput,
   ArtistSummary,
-  GetArtistsParams
+  GetArtistsArtistIdFollowersParams,
+  GetArtistsParams,
+  UserProfile
 } from '.././model'
 import { customInstance } from '../../../lib/axios';
 
@@ -413,4 +415,179 @@ export const usePostArtistsArtistIdApprove = <TError = unknown,
 
       return useMutation(mutationOptions);
     }
+    /**
+ * @summary 아티스트 팔로우
+ */
+export const postArtistsArtistIdFollow = (
+    artistId: string,
+ options?: SecondParameter<typeof customInstance>,) => {
+      
+      
+      return customInstance<void>(
+      {url: `/artists/${artistId}/follow`, method: 'POST'
+    },
+      options);
+    }
+  
+
+
+export const getPostArtistsArtistIdFollowMutationOptions = <TError = void,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postArtistsArtistIdFollow>>, TError,{artistId: string}, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationOptions<Awaited<ReturnType<typeof postArtistsArtistIdFollow>>, TError,{artistId: string}, TContext> => {
+const {mutation: mutationOptions, request: requestOptions} = options ?? {};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof postArtistsArtistIdFollow>>, {artistId: string}> = (props) => {
+          const {artistId} = props ?? {};
+
+          return  postArtistsArtistIdFollow(artistId,requestOptions)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type PostArtistsArtistIdFollowMutationResult = NonNullable<Awaited<ReturnType<typeof postArtistsArtistIdFollow>>>
     
+    export type PostArtistsArtistIdFollowMutationError = void
+
+    /**
+ * @summary 아티스트 팔로우
+ */
+export const usePostArtistsArtistIdFollow = <TError = void,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postArtistsArtistIdFollow>>, TError,{artistId: string}, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationResult<
+        Awaited<ReturnType<typeof postArtistsArtistIdFollow>>,
+        TError,
+        {artistId: string},
+        TContext
+      > => {
+
+      const mutationOptions = getPostArtistsArtistIdFollowMutationOptions(options);
+
+      return useMutation(mutationOptions);
+    }
+    /**
+ * @summary 아티스트 언팔로우
+ */
+export const deleteArtistsArtistIdFollow = (
+    artistId: string,
+ options?: SecondParameter<typeof customInstance>,) => {
+      
+      
+      return customInstance<void>(
+      {url: `/artists/${artistId}/follow`, method: 'DELETE'
+    },
+      options);
+    }
+  
+
+
+export const getDeleteArtistsArtistIdFollowMutationOptions = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteArtistsArtistIdFollow>>, TError,{artistId: string}, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationOptions<Awaited<ReturnType<typeof deleteArtistsArtistIdFollow>>, TError,{artistId: string}, TContext> => {
+const {mutation: mutationOptions, request: requestOptions} = options ?? {};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof deleteArtistsArtistIdFollow>>, {artistId: string}> = (props) => {
+          const {artistId} = props ?? {};
+
+          return  deleteArtistsArtistIdFollow(artistId,requestOptions)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type DeleteArtistsArtistIdFollowMutationResult = NonNullable<Awaited<ReturnType<typeof deleteArtistsArtistIdFollow>>>
+    
+    export type DeleteArtistsArtistIdFollowMutationError = unknown
+
+    /**
+ * @summary 아티스트 언팔로우
+ */
+export const useDeleteArtistsArtistIdFollow = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteArtistsArtistIdFollow>>, TError,{artistId: string}, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationResult<
+        Awaited<ReturnType<typeof deleteArtistsArtistIdFollow>>,
+        TError,
+        {artistId: string},
+        TContext
+      > => {
+
+      const mutationOptions = getDeleteArtistsArtistIdFollowMutationOptions(options);
+
+      return useMutation(mutationOptions);
+    }
+    /**
+ * @summary 아티스트의 팔로워 목록 조회
+ */
+export const getArtistsArtistIdFollowers = (
+    artistId: string,
+    params?: GetArtistsArtistIdFollowersParams,
+ options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
+) => {
+      
+      
+      return customInstance<UserProfile[]>(
+      {url: `/artists/${artistId}/followers`, method: 'GET',
+        params, signal
+    },
+      options);
+    }
+  
+
+export const getGetArtistsArtistIdFollowersQueryKey = (artistId: string,
+    params?: GetArtistsArtistIdFollowersParams,) => {
+    return [`/artists/${artistId}/followers`, ...(params ? [params]: [])] as const;
+    }
+
+    
+export const getGetArtistsArtistIdFollowersQueryOptions = <TData = Awaited<ReturnType<typeof getArtistsArtistIdFollowers>>, TError = unknown>(artistId: string,
+    params?: GetArtistsArtistIdFollowersParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getArtistsArtistIdFollowers>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetArtistsArtistIdFollowersQueryKey(artistId,params);
+
+  
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getArtistsArtistIdFollowers>>> = ({ signal }) => getArtistsArtistIdFollowers(artistId,params, requestOptions, signal);
+
+      
+
+      
+
+   return  { queryKey, queryFn, enabled: !!(artistId), ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getArtistsArtistIdFollowers>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetArtistsArtistIdFollowersQueryResult = NonNullable<Awaited<ReturnType<typeof getArtistsArtistIdFollowers>>>
+export type GetArtistsArtistIdFollowersQueryError = unknown
+
+/**
+ * @summary 아티스트의 팔로워 목록 조회
+ */
+export const useGetArtistsArtistIdFollowers = <TData = Awaited<ReturnType<typeof getArtistsArtistIdFollowers>>, TError = unknown>(
+ artistId: string,
+    params?: GetArtistsArtistIdFollowersParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getArtistsArtistIdFollowers>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+
+  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } => {
+
+  const queryOptions = getGetArtistsArtistIdFollowersQueryOptions(artistId,params,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  query.queryKey = queryOptions.queryKey ;
+
+  return query;
+}
+
+
+

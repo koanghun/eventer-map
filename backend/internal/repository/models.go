@@ -88,15 +88,22 @@ type ThreadRecommendation struct {
 }
 
 type User struct {
-	ID              uuid.UUID
-	Email           sql.NullString
-	DisplayName     string
-	PasswordHash    sql.NullString
-	GoogleID        sql.NullString
-	IsBanned        bool
-	CreatedAt       time.Time
-	UpdatedAt       time.Time
-	IsEmailVerified bool
+	ID                      uuid.UUID
+	Email                   sql.NullString
+	DisplayName             string
+	PasswordHash            sql.NullString
+	GoogleID                sql.NullString
+	IsBanned                bool
+	CreatedAt               time.Time
+	UpdatedAt               time.Time
+	IsEmailVerified         bool
+	LastArtistFeedCheckedAt time.Time
+}
+
+type UserArtistFollow struct {
+	UserID    uuid.UUID
+	ArtistID  uuid.UUID
+	CreatedAt time.Time
 }
 
 type UserBlock struct {

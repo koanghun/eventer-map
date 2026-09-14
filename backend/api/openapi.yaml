@@ -211,6 +211,77 @@ paths:
           description: 잘못된 요청이거나 이미 연동됨
         "401":
           description: 인증 실패 (유효하지 않은 JWT 또는 구글 토큰)
+  /users/me/following-artists:
+    get:
+      tags:
+        - User
+      summary: 내가 팔로우하는 아티스트 목록 조회
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            default: 20
+        - in: query
+          name: offset
+          schema:
+            type: integer
+            default: 0
+      responses:
+        "200":
+          description: 조회 성공
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Artist"
+  /users/me/following-artists/events:
+    get:
+      tags:
+        - User
+      summary: 아티스트 피드 (팔로우한 아티스트가 참가하는 이벤트 목록)
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            default: 20
+        - in: query
+          name: offset
+          schema:
+            type: integer
+            default: 0
+      responses:
+        "200":
+          description: 조회 성공
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  events:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/EventSummary"
+                  unreadCount:
+                    type: integer
+                    description: "조회하지 않은(새로운) 이벤트 개수"
+  /users/me/following-artists/events/read:
+    post:
+      tags:
+        - User
+      summary: 아티스트 피드 새 이벤트 읽음 처리
+      description: 마지막 피드 확인 시간을 현재로 갱신하여 새 이벤트 알림을 초기화합니다.
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: 성공
   /users/{userId}/follow:
     post:
       tags:
@@ -539,6 +610,72 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Artist"
+  /artists/{artistId}/follow:
+    post:
+      tags:
+        - Artists
+      summary: 아티스트 팔로우
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: artistId
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          description: 팔로우 성공
+        "400":
+          description: 잘못된 요청
+    delete:
+      tags:
+        - Artists
+      summary: 아티스트 언팔로우
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: artistId
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          description: 언팔로우 성공
+  /artists/{artistId}/followers:
+    get:
+      tags:
+        - Artists
+      summary: 아티스트의 팔로워 목록 조회
+      parameters:
+        - in: path
+          name: artistId
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            default: 20
+        - in: query
+          name: offset
+          schema:
+            type: integer
+            default: 0
+      responses:
+        "200":
+          description: 조회 성공
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/UserProfile"
   /venues:
     get:
       tags:

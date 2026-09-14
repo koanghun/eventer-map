@@ -18,7 +18,11 @@ import type {
   UseQueryResult
 } from '@tanstack/react-query'
 import type {
+  Artist,
   EventSummary,
+  GetUsersMeFollowingArtistsEvents200,
+  GetUsersMeFollowingArtistsEventsParams,
+  GetUsersMeFollowingArtistsParams,
   GetUsersMeFollowingEventsParams,
   GetUsersMeFollowingParams,
   GetUsersUserIdFollowersParams,
@@ -212,6 +216,186 @@ export const usePostUsersMeLinkGoogle = <TError = void,
       > => {
 
       const mutationOptions = getPostUsersMeLinkGoogleMutationOptions(options);
+
+      return useMutation(mutationOptions);
+    }
+    /**
+ * @summary 내가 팔로우하는 아티스트 목록 조회
+ */
+export const getUsersMeFollowingArtists = (
+    params?: GetUsersMeFollowingArtistsParams,
+ options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
+) => {
+      
+      
+      return customInstance<Artist[]>(
+      {url: `/users/me/following-artists`, method: 'GET',
+        params, signal
+    },
+      options);
+    }
+  
+
+export const getGetUsersMeFollowingArtistsQueryKey = (params?: GetUsersMeFollowingArtistsParams,) => {
+    return [`/users/me/following-artists`, ...(params ? [params]: [])] as const;
+    }
+
+    
+export const getGetUsersMeFollowingArtistsQueryOptions = <TData = Awaited<ReturnType<typeof getUsersMeFollowingArtists>>, TError = unknown>(params?: GetUsersMeFollowingArtistsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getUsersMeFollowingArtists>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetUsersMeFollowingArtistsQueryKey(params);
+
+  
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getUsersMeFollowingArtists>>> = ({ signal }) => getUsersMeFollowingArtists(params, requestOptions, signal);
+
+      
+
+      
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getUsersMeFollowingArtists>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetUsersMeFollowingArtistsQueryResult = NonNullable<Awaited<ReturnType<typeof getUsersMeFollowingArtists>>>
+export type GetUsersMeFollowingArtistsQueryError = unknown
+
+/**
+ * @summary 내가 팔로우하는 아티스트 목록 조회
+ */
+export const useGetUsersMeFollowingArtists = <TData = Awaited<ReturnType<typeof getUsersMeFollowingArtists>>, TError = unknown>(
+ params?: GetUsersMeFollowingArtistsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getUsersMeFollowingArtists>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+
+  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } => {
+
+  const queryOptions = getGetUsersMeFollowingArtistsQueryOptions(params,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  query.queryKey = queryOptions.queryKey ;
+
+  return query;
+}
+
+
+
+/**
+ * @summary 아티스트 피드 (팔로우한 아티스트가 참가하는 이벤트 목록)
+ */
+export const getUsersMeFollowingArtistsEvents = (
+    params?: GetUsersMeFollowingArtistsEventsParams,
+ options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
+) => {
+      
+      
+      return customInstance<GetUsersMeFollowingArtistsEvents200>(
+      {url: `/users/me/following-artists/events`, method: 'GET',
+        params, signal
+    },
+      options);
+    }
+  
+
+export const getGetUsersMeFollowingArtistsEventsQueryKey = (params?: GetUsersMeFollowingArtistsEventsParams,) => {
+    return [`/users/me/following-artists/events`, ...(params ? [params]: [])] as const;
+    }
+
+    
+export const getGetUsersMeFollowingArtistsEventsQueryOptions = <TData = Awaited<ReturnType<typeof getUsersMeFollowingArtistsEvents>>, TError = unknown>(params?: GetUsersMeFollowingArtistsEventsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getUsersMeFollowingArtistsEvents>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetUsersMeFollowingArtistsEventsQueryKey(params);
+
+  
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getUsersMeFollowingArtistsEvents>>> = ({ signal }) => getUsersMeFollowingArtistsEvents(params, requestOptions, signal);
+
+      
+
+      
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getUsersMeFollowingArtistsEvents>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetUsersMeFollowingArtistsEventsQueryResult = NonNullable<Awaited<ReturnType<typeof getUsersMeFollowingArtistsEvents>>>
+export type GetUsersMeFollowingArtistsEventsQueryError = unknown
+
+/**
+ * @summary 아티스트 피드 (팔로우한 아티스트가 참가하는 이벤트 목록)
+ */
+export const useGetUsersMeFollowingArtistsEvents = <TData = Awaited<ReturnType<typeof getUsersMeFollowingArtistsEvents>>, TError = unknown>(
+ params?: GetUsersMeFollowingArtistsEventsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getUsersMeFollowingArtistsEvents>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+
+  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } => {
+
+  const queryOptions = getGetUsersMeFollowingArtistsEventsQueryOptions(params,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  query.queryKey = queryOptions.queryKey ;
+
+  return query;
+}
+
+
+
+/**
+ * 마지막 피드 확인 시간을 현재로 갱신하여 새 이벤트 알림을 초기화합니다.
+ * @summary 아티스트 피드 새 이벤트 읽음 처리
+ */
+export const postUsersMeFollowingArtistsEventsRead = (
+    
+ options?: SecondParameter<typeof customInstance>,) => {
+      
+      
+      return customInstance<void>(
+      {url: `/users/me/following-artists/events/read`, method: 'POST'
+    },
+      options);
+    }
+  
+
+
+export const getPostUsersMeFollowingArtistsEventsReadMutationOptions = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postUsersMeFollowingArtistsEventsRead>>, TError,void, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationOptions<Awaited<ReturnType<typeof postUsersMeFollowingArtistsEventsRead>>, TError,void, TContext> => {
+const {mutation: mutationOptions, request: requestOptions} = options ?? {};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof postUsersMeFollowingArtistsEventsRead>>, void> = () => {
+          
+
+          return  postUsersMeFollowingArtistsEventsRead(requestOptions)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type PostUsersMeFollowingArtistsEventsReadMutationResult = NonNullable<Awaited<ReturnType<typeof postUsersMeFollowingArtistsEventsRead>>>
+    
+    export type PostUsersMeFollowingArtistsEventsReadMutationError = unknown
+
+    /**
+ * @summary 아티스트 피드 새 이벤트 읽음 처리
+ */
+export const usePostUsersMeFollowingArtistsEventsRead = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postUsersMeFollowingArtistsEventsRead>>, TError,void, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationResult<
+        Awaited<ReturnType<typeof postUsersMeFollowingArtistsEventsRead>>,
+        TError,
+        void,
+        TContext
+      > => {
+
+      const mutationOptions = getPostUsersMeFollowingArtistsEventsReadMutationOptions(options);
 
       return useMutation(mutationOptions);
     }
