@@ -50,19 +50,24 @@ SELECT a.* FROM artists a
 JOIN event_artists ea ON a.id = ea.artist_id
 WHERE ea.event_id = $1;
 
--- name: AttendEvent :exec
-INSERT INTO event_attendances (user_id, event_id)
-VALUES ($1, $2) ON CONFLICT DO NOTHING;
+-- name: UpsertUserEventAction :exec
+INSERT INTO event_user_actions (user_id, event_id, status)
+VALUES ($1, $2, $3)
+ON CONFLICT (user_id, event_id)
+DO UPDATE SET status = EXCLUDED.status;
 
--- name: CancelAttendance :exec
-DELETE FROM event_attendances
+-- name: DeleteUserEventAction :exec
+DELETE FROM event_user_actions
 WHERE user_id = $1 AND event_id = $2;
 
--- name: HasUserAttended :one
-SELECT EXISTS(
-    SELECT 1 FROM event_attendances
-    WHERE user_id = $1 AND event_id = $2
-);
+-- name: GetUserEventAction :one
+SELECT status FROM event_user_actions
+WHERE user_id = $1 AND event_id = $2 LIMIT 1;
+
+-- name: ListUserEventActions :many
+SELECT * FROM event_user_actions
+WHERE user_id = $1
+ORDER BY event_id;
 
 -- name: RateEvent :exec
 INSERT INTO user_event_ratings (user_id, event_id, score)

@@ -1,8 +1,10 @@
 package handler
 
 import (
+	"encoding/json"
 	"net/http"
 
+	"eventer-map-backend/internal/middleware"
 	"github.com/google/uuid"
 )
 
@@ -58,4 +60,27 @@ func (s *Server) PostEventsEventIdRate(w http.ResponseWriter, r *http.Request, e
 	// userID := r.Context().Value(middleware.UserIDKey).(uuid.UUID)
 	
 	RespondJSON(w, http.StatusOK, map[string]string{"message": "Rating submitted"})
+}
+
+// PutEventsEventIdAction implements the PUT /events/{eventId}/action endpoint
+func (s *Server) PutEventsEventIdAction(w http.ResponseWriter, r *http.Request, eventId uuid.UUID) {
+	userID, ok := r.Context().Value(middleware.UserIDKey).(uuid.UUID)
+	if !ok {
+		RespondError(w, http.StatusUnauthorized, "user not authenticated")
+		return
+	}
+	
+	var reqBody PutEventsEventIdActionJSONRequestBody
+	if err := json.NewDecoder(r.Body).Decode(&reqBody); err != nil {
+		RespondError(w, http.StatusBadRequest, "Invalid request body")
+		return
+	}
+
+	err := s.services.Event.PutEventAction(r.Context(), userID, eventId, int32(reqBody.Status))
+	if err != nil {
+		RespondError(w, http.StatusInternalServerError, "Failed to update action")
+		return
+	}
+
+	RespondJSON(w, http.StatusOK, map[string]string{"message": "Action updated"})
 }

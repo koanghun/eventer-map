@@ -29,36 +29,6 @@ func (q *Queries) AddArtistToEvent(ctx context.Context, arg AddArtistToEventPara
 	return err
 }
 
-const attendEvent = `-- name: AttendEvent :exec
-INSERT INTO event_attendances (user_id, event_id)
-VALUES ($1, $2) ON CONFLICT DO NOTHING
-`
-
-type AttendEventParams struct {
-	UserID  uuid.UUID
-	EventID uuid.UUID
-}
-
-func (q *Queries) AttendEvent(ctx context.Context, arg AttendEventParams) error {
-	_, err := q.db.ExecContext(ctx, attendEvent, arg.UserID, arg.EventID)
-	return err
-}
-
-const cancelAttendance = `-- name: CancelAttendance :exec
-DELETE FROM event_attendances
-WHERE user_id = $1 AND event_id = $2
-`
-
-type CancelAttendanceParams struct {
-	UserID  uuid.UUID
-	EventID uuid.UUID
-}
-
-func (q *Queries) CancelAttendance(ctx context.Context, arg CancelAttendanceParams) error {
-	_, err := q.db.ExecContext(ctx, cancelAttendance, arg.UserID, arg.EventID)
-	return err
-}
-
 const clearArtistsFromEvent = `-- name: ClearArtistsFromEvent :exec
 DELETE FROM event_artists
 WHERE event_id = $1
@@ -117,6 +87,21 @@ func (q *Queries) CreateEvent(ctx context.Context, arg CreateEventParams) (Event
 		&i.UpdatedAt,
 	)
 	return i, err
+}
+
+const deleteUserEventAction = `-- name: DeleteUserEventAction :exec
+DELETE FROM event_user_actions
+WHERE user_id = $1 AND event_id = $2
+`
+
+type DeleteUserEventActionParams struct {
+	UserID  uuid.UUID
+	EventID uuid.UUID
+}
+
+func (q *Queries) DeleteUserEventAction(ctx context.Context, arg DeleteUserEventActionParams) error {
+	_, err := q.db.ExecContext(ctx, deleteUserEventAction, arg.UserID, arg.EventID)
+	return err
 }
 
 const getArtistsForEvent = `-- name: GetArtistsForEvent :many
@@ -189,6 +174,23 @@ func (q *Queries) GetEvent(ctx context.Context, id uuid.UUID) (Event, error) {
 	return i, err
 }
 
+const getUserEventAction = `-- name: GetUserEventAction :one
+SELECT status FROM event_user_actions
+WHERE user_id = $1 AND event_id = $2 LIMIT 1
+`
+
+type GetUserEventActionParams struct {
+	UserID  uuid.UUID
+	EventID uuid.UUID
+}
+
+func (q *Queries) GetUserEventAction(ctx context.Context, arg GetUserEventActionParams) (int32, error) {
+	row := q.db.QueryRowContext(ctx, getUserEventAction, arg.UserID, arg.EventID)
+	var status int32
+	err := row.Scan(&status)
+	return status, err
+}
+
 const getUserRatingForEvent = `-- name: GetUserRatingForEvent :one
 SELECT user_id, event_id, score FROM user_event_ratings
 WHERE user_id = $1 AND event_id = $2 LIMIT 1
@@ -204,25 +206,6 @@ func (q *Queries) GetUserRatingForEvent(ctx context.Context, arg GetUserRatingFo
 	var i UserEventRating
 	err := row.Scan(&i.UserID, &i.EventID, &i.Score)
 	return i, err
-}
-
-const hasUserAttended = `-- name: HasUserAttended :one
-SELECT EXISTS(
-    SELECT 1 FROM event_attendances
-    WHERE user_id = $1 AND event_id = $2
-)
-`
-
-type HasUserAttendedParams struct {
-	UserID  uuid.UUID
-	EventID uuid.UUID
-}
-
-func (q *Queries) HasUserAttended(ctx context.Context, arg HasUserAttendedParams) (bool, error) {
-	row := q.db.QueryRowContext(ctx, hasUserAttended, arg.UserID, arg.EventID)
-	var exists bool
-	err := row.Scan(&exists)
-	return exists, err
 }
 
 const listEvents = `-- name: ListEvents :many
@@ -275,6 +258,35 @@ func (q *Queries) ListEvents(ctx context.Context, arg ListEventsParams) ([]Event
 			&i.CreatedAt,
 			&i.UpdatedAt,
 		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listUserEventActions = `-- name: ListUserEventActions :many
+SELECT user_id, event_id, status FROM event_user_actions
+WHERE user_id = $1
+ORDER BY event_id
+`
+
+func (q *Queries) ListUserEventActions(ctx context.Context, userID uuid.UUID) ([]EventUserAction, error) {
+	rows, err := q.db.QueryContext(ctx, listUserEventActions, userID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []EventUserAction
+	for rows.Next() {
+		var i EventUserAction
+		if err := rows.Scan(&i.UserID, &i.EventID, &i.Status); err != nil {
 			return nil, err
 		}
 		items = append(items, i)
@@ -379,5 +391,23 @@ type UpdateEventRatingParams struct {
 
 func (q *Queries) UpdateEventRating(ctx context.Context, arg UpdateEventRatingParams) error {
 	_, err := q.db.ExecContext(ctx, updateEventRating, arg.ScoreDelta, arg.CountDelta, arg.ID)
+	return err
+}
+
+const upsertUserEventAction = `-- name: UpsertUserEventAction :exec
+INSERT INTO event_user_actions (user_id, event_id, status)
+VALUES ($1, $2, $3)
+ON CONFLICT (user_id, event_id)
+DO UPDATE SET status = EXCLUDED.status
+`
+
+type UpsertUserEventActionParams struct {
+	UserID  uuid.UUID
+	EventID uuid.UUID
+	Status  int32
+}
+
+func (q *Queries) UpsertUserEventAction(ctx context.Context, arg UpsertUserEventActionParams) error {
+	_, err := q.db.ExecContext(ctx, upsertUserEventAction, arg.UserID, arg.EventID, arg.Status)
 	return err
 }

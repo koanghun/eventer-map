@@ -16,8 +16,10 @@ import type {
   GoogleLoginRequest,
   LocalLoginRequest,
   PostAuthLogout200,
+  PostAuthSignup200,
   SignupRequest,
-  TokenResponse
+  TokenResponse,
+  VerifyEmailRequest
 } from '.././model'
 import { customInstance } from '../../../lib/axios';
 
@@ -148,7 +150,7 @@ export const postAuthSignup = (
  options?: SecondParameter<typeof customInstance>,) => {
       
       
-      return customInstance<TokenResponse>(
+      return customInstance<PostAuthSignup200>(
       {url: `/auth/signup`, method: 'POST',
       headers: {'Content-Type': 'application/json', },
       data: signupRequest
@@ -194,6 +196,64 @@ export const usePostAuthSignup = <TError = void,
       > => {
 
       const mutationOptions = getPostAuthSignupMutationOptions(options);
+
+      return useMutation(mutationOptions);
+    }
+    /**
+ * 이메일로 발송된 6자리 코드를 확인하고 인증을 완료하여 토큰 발급
+ * @summary 이메일 인증
+ */
+export const postAuthSignupVerify = (
+    verifyEmailRequest: VerifyEmailRequest,
+ options?: SecondParameter<typeof customInstance>,) => {
+      
+      
+      return customInstance<TokenResponse>(
+      {url: `/auth/signup/verify`, method: 'POST',
+      headers: {'Content-Type': 'application/json', },
+      data: verifyEmailRequest
+    },
+      options);
+    }
+  
+
+
+export const getPostAuthSignupVerifyMutationOptions = <TError = void,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postAuthSignupVerify>>, TError,{data: VerifyEmailRequest}, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationOptions<Awaited<ReturnType<typeof postAuthSignupVerify>>, TError,{data: VerifyEmailRequest}, TContext> => {
+const {mutation: mutationOptions, request: requestOptions} = options ?? {};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof postAuthSignupVerify>>, {data: VerifyEmailRequest}> = (props) => {
+          const {data} = props ?? {};
+
+          return  postAuthSignupVerify(data,requestOptions)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type PostAuthSignupVerifyMutationResult = NonNullable<Awaited<ReturnType<typeof postAuthSignupVerify>>>
+    export type PostAuthSignupVerifyMutationBody = VerifyEmailRequest
+    export type PostAuthSignupVerifyMutationError = void
+
+    /**
+ * @summary 이메일 인증
+ */
+export const usePostAuthSignupVerify = <TError = void,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postAuthSignupVerify>>, TError,{data: VerifyEmailRequest}, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationResult<
+        Awaited<ReturnType<typeof postAuthSignupVerify>>,
+        TError,
+        {data: VerifyEmailRequest},
+        TContext
+      > => {
+
+      const mutationOptions = getPostAuthSignupVerifyMutationOptions(options);
 
       return useMutation(mutationOptions);
     }

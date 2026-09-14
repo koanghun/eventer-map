@@ -20,6 +20,7 @@ import type {
 import type {
   LinkGoogleRequest,
   PostUsersMeLinkGoogle200,
+  UserEventAction,
   UserProfile
 } from '.././model'
 import { customInstance } from '../../../lib/axios';
@@ -80,6 +81,68 @@ export const useGetUsersMe = <TData = Awaited<ReturnType<typeof getUsersMe>>, TE
   ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } => {
 
   const queryOptions = getGetUsersMeQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  query.queryKey = queryOptions.queryKey ;
+
+  return query;
+}
+
+
+
+/**
+ * 유저가 참가하거나 체크한 이벤트들의 목록과 상태를 조회합니다.
+ * @summary 내 이벤트 액션(참가/체크) 목록 조회
+ */
+export const getUsersMeEvents = (
+    
+ options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
+) => {
+      
+      
+      return customInstance<UserEventAction[]>(
+      {url: `/users/me/events`, method: 'GET', signal
+    },
+      options);
+    }
+  
+
+export const getGetUsersMeEventsQueryKey = () => {
+    return [`/users/me/events`] as const;
+    }
+
+    
+export const getGetUsersMeEventsQueryOptions = <TData = Awaited<ReturnType<typeof getUsersMeEvents>>, TError = unknown>( options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getUsersMeEvents>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetUsersMeEventsQueryKey();
+
+  
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getUsersMeEvents>>> = ({ signal }) => getUsersMeEvents(requestOptions, signal);
+
+      
+
+      
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getUsersMeEvents>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetUsersMeEventsQueryResult = NonNullable<Awaited<ReturnType<typeof getUsersMeEvents>>>
+export type GetUsersMeEventsQueryError = unknown
+
+/**
+ * @summary 내 이벤트 액션(참가/체크) 목록 조회
+ */
+export const useGetUsersMeEvents = <TData = Awaited<ReturnType<typeof getUsersMeEvents>>, TError = unknown>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getUsersMeEvents>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+
+  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } => {
+
+  const queryOptions = getGetUsersMeEventsQueryOptions(options)
 
   const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
 

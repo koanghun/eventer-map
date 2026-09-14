@@ -50,11 +50,6 @@ type EventArtist struct {
 	ArtistID uuid.UUID
 }
 
-type EventAttendance struct {
-	UserID  uuid.UUID
-	EventID uuid.UUID
-}
-
 type EventHistory struct {
 	ID          uuid.UUID
 	EventID     uuid.UUID
@@ -73,6 +68,12 @@ type EventThread struct {
 	RecommendCount int32
 	CreatedAt      time.Time
 	UpdatedAt      time.Time
+}
+
+type EventUserAction struct {
+	UserID  uuid.UUID
+	EventID uuid.UUID
+	Status  int32
 }
 
 type HistoryReport struct {

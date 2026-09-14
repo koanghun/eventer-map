@@ -28,3 +28,32 @@ func (s *Server) GetUsersMe(w http.ResponseWriter, r *http.Request) {
 		"createdAt":   user.CreatedAt,
 	})
 }
+
+// GetUsersMeEvents implements the GET /users/me/events endpoint
+func (s *Server) GetUsersMeEvents(w http.ResponseWriter, r *http.Request) {
+	userID, ok := r.Context().Value(middleware.UserIDKey).(uuid.UUID)
+	if !ok {
+		RespondError(w, http.StatusUnauthorized, "user not authenticated")
+		return
+	}
+
+	actions, err := s.services.User.ListUserEventActions(r.Context(), userID)
+	if err != nil {
+		RespondError(w, http.StatusInternalServerError, "Failed to retrieve events")
+		return
+	}
+
+	// Map to API response
+	var response []UserEventAction
+	for _, a := range actions {
+		response = append(response, UserEventAction{
+			EventId: a.EventID,
+			Status:  UserEventActionStatus(a.Status),
+		})
+	}
+	if response == nil {
+		response = []UserEventAction{}
+	}
+
+	RespondJSON(w, http.StatusOK, response)
+}

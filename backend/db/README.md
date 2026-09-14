@@ -53,6 +53,25 @@ DB에 새로운 테이블을 추가하거나 쿼리를 수정해야 할 때는 �
 ### Step 1. 마이그레이션(스키마) 수정
 새로운 테이블이나 컬럼이 필요하면 `db/migration/` 폴더 하위에 새 버전을 만듭니다. (또는 개발 초기라면 `000001_init_schema.up.sql`을 직접 수정합니다.)
 
+**마이그레이션 실행 (수동)**
+작성한 스키마를 실제 데이터베이스에 반영하려면 `golang-migrate` 도구를 사용해야 합니다.
+사용 편의성을 위해 프로젝트의 `Makefile`에 관련 명령어를 등록해 두었습니다. `.env` 파일에 작성된 `DATABASE_URL`을 자동으로 읽어와 실행합니다.
+
+```bash
+# backend 폴더 내에서 터미널에 아래 명령어 중 하나를 입력하세요.
+
+# 1. 마이그레이션 적용 (Up)
+make migrateup
+
+# 2. 현재 버전 조회 (Version)
+make migrateversion
+
+# 3. 마이그레이션 롤백 (Down - 전체 롤백 주의)
+make migratedown
+```
+
+*(참고: 에러 해결을 위한 `force` 명령어나 특정 개수만큼의 롤백(`down 1`) 등 커스텀 명령어가 필요하다면 `Makefile` 안의 명령어 구조를 참고하여 직접 터미널에 응용하시면 됩니다.)*
+
 ### Step 2. SQL 쿼리 작성
 원하는 CRUD 로직에 맞춰 `db/query/{domain}.sql` 파일에 SQL 구문을 작성합니다.
 * 쿼리 위에 반드시 주석으로 `sqlc` 어노테이션(`-- name: MethodName :one` 또는 `:many`, `:exec`)을 붙여야 합니다.

@@ -47,3 +47,17 @@ func (s *EventService) RateEvent(ctx context.Context, eventID, userID uuid.UUID,
 		Score:   score,
 	})
 }
+
+func (s *EventService) PutEventAction(ctx context.Context, userID, eventID uuid.UUID, status int32) error {
+	if status == 0 {
+		return s.repo.DeleteUserEventAction(ctx, repository.DeleteUserEventActionParams{
+			UserID:  userID,
+			EventID: eventID,
+		})
+	}
+	return s.repo.UpsertUserEventAction(ctx, repository.UpsertUserEventActionParams{
+		UserID:  userID,
+		EventID: eventID,
+		Status:  status,
+	})
+}

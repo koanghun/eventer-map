@@ -22,6 +22,7 @@ import type {
   EventInput,
   EventListResponse,
   GetEventsParams,
+  PutEventsEventIdActionBody,
   RatingInput
 } from '.././model'
 import { customInstance } from '../../../lib/axios';
@@ -360,33 +361,37 @@ export const usePostEventsEventIdDeleteRequest = <TError = unknown,
       return useMutation(mutationOptions);
     }
     /**
- * @summary 참가/취소 토글
+ * 이벤트에 대한 유저의 상태(0:없음, 1:체크, 2:참가)를 명시적으로 변경합니다.
+ * @summary 이벤트 액션(상태) 변경
  */
-export const postEventsEventIdAttend = (
+export const putEventsEventIdAction = (
     eventId: string,
+    putEventsEventIdActionBody: PutEventsEventIdActionBody,
  options?: SecondParameter<typeof customInstance>,) => {
       
       
       return customInstance<void>(
-      {url: `/events/${eventId}/attend`, method: 'POST'
+      {url: `/events/${eventId}/action`, method: 'PUT',
+      headers: {'Content-Type': 'application/json', },
+      data: putEventsEventIdActionBody
     },
       options);
     }
   
 
 
-export const getPostEventsEventIdAttendMutationOptions = <TError = unknown,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postEventsEventIdAttend>>, TError,{eventId: string}, TContext>, request?: SecondParameter<typeof customInstance>}
-): UseMutationOptions<Awaited<ReturnType<typeof postEventsEventIdAttend>>, TError,{eventId: string}, TContext> => {
+export const getPutEventsEventIdActionMutationOptions = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof putEventsEventIdAction>>, TError,{eventId: string;data: PutEventsEventIdActionBody}, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationOptions<Awaited<ReturnType<typeof putEventsEventIdAction>>, TError,{eventId: string;data: PutEventsEventIdActionBody}, TContext> => {
 const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
       
 
 
-      const mutationFn: MutationFunction<Awaited<ReturnType<typeof postEventsEventIdAttend>>, {eventId: string}> = (props) => {
-          const {eventId} = props ?? {};
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof putEventsEventIdAction>>, {eventId: string;data: PutEventsEventIdActionBody}> = (props) => {
+          const {eventId,data} = props ?? {};
 
-          return  postEventsEventIdAttend(eventId,requestOptions)
+          return  putEventsEventIdAction(eventId,data,requestOptions)
         }
 
         
@@ -394,23 +399,23 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
   return  { mutationFn, ...mutationOptions }}
 
-    export type PostEventsEventIdAttendMutationResult = NonNullable<Awaited<ReturnType<typeof postEventsEventIdAttend>>>
-    
-    export type PostEventsEventIdAttendMutationError = unknown
+    export type PutEventsEventIdActionMutationResult = NonNullable<Awaited<ReturnType<typeof putEventsEventIdAction>>>
+    export type PutEventsEventIdActionMutationBody = PutEventsEventIdActionBody
+    export type PutEventsEventIdActionMutationError = unknown
 
     /**
- * @summary 참가/취소 토글
+ * @summary 이벤트 액션(상태) 변경
  */
-export const usePostEventsEventIdAttend = <TError = unknown,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postEventsEventIdAttend>>, TError,{eventId: string}, TContext>, request?: SecondParameter<typeof customInstance>}
+export const usePutEventsEventIdAction = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof putEventsEventIdAction>>, TError,{eventId: string;data: PutEventsEventIdActionBody}, TContext>, request?: SecondParameter<typeof customInstance>}
 ): UseMutationResult<
-        Awaited<ReturnType<typeof postEventsEventIdAttend>>,
+        Awaited<ReturnType<typeof putEventsEventIdAction>>,
         TError,
-        {eventId: string},
+        {eventId: string;data: PutEventsEventIdActionBody},
         TContext
       > => {
 
-      const mutationOptions = getPostEventsEventIdAttendMutationOptions(options);
+      const mutationOptions = getPutEventsEventIdActionMutationOptions(options);
 
       return useMutation(mutationOptions);
     }
