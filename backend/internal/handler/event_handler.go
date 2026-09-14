@@ -6,6 +6,7 @@ import (
 
 	"eventer-map-backend/internal/middleware"
 	"github.com/google/uuid"
+	openapi_types "github.com/oapi-codegen/runtime/types"
 )
 
 // GetEvents implements the GET /events endpoint
@@ -83,4 +84,41 @@ func (s *Server) PutEventsEventIdAction(w http.ResponseWriter, r *http.Request, 
 	}
 
 	RespondJSON(w, http.StatusOK, map[string]string{"message": "Action updated"})
+}
+
+// GetEventsEventIdAttendees implements the GET /events/{eventId}/attendees endpoint
+func (s *Server) GetEventsEventIdAttendees(w http.ResponseWriter, r *http.Request, eventId uuid.UUID, params GetEventsEventIdAttendeesParams) {
+	myID, ok := r.Context().Value(middleware.UserIDKey).(uuid.UUID)
+	if !ok {
+		RespondError(w, http.StatusUnauthorized, "user not authenticated")
+		return
+	}
+
+	limit := int32(20)
+	if params.Limit != nil {
+		limit = int32(*params.Limit)
+	}
+	offset := int32(0)
+	if params.Offset != nil {
+		offset = int32(*params.Offset)
+	}
+
+	attendees, err := s.services.Event.GetEventAttendees(r.Context(), myID, eventId, limit, offset)
+	if err != nil {
+		RespondError(w, http.StatusInternalServerError, "Failed to retrieve attendees")
+		return
+	}
+
+	response := make([]UserProfile, 0)
+	for _, a := range attendees {
+		id := openapi_types.UUID(a.ID)
+		name := a.DisplayName
+		t := a.CreatedAt
+		response = append(response, UserProfile{
+			Id:          &id,
+			DisplayName: &name,
+			CreatedAt:   &t,
+		})
+	}
+	RespondJSON(w, http.StatusOK, response)
 }

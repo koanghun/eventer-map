@@ -78,3 +78,16 @@ ON CONFLICT (user_id, event_id) DO UPDATE SET score = EXCLUDED.score;
 -- name: GetUserRatingForEvent :one
 SELECT * FROM user_event_ratings
 WHERE user_id = $1 AND event_id = $2 LIMIT 1;
+
+-- name: GetEventAttendees :many
+SELECT u.id, u.email, u.display_name, u.created_at
+FROM users u
+JOIN event_user_actions eua ON u.id = eua.user_id
+WHERE eua.event_id = $1 AND eua.status = 2
+  AND NOT EXISTS (
+      SELECT 1 FROM user_blocks ub
+      WHERE (ub.blocker_id = $2 AND ub.blocked_id = u.id)
+         OR (ub.blocker_id = u.id AND ub.blocked_id = $2)
+  )
+ORDER BY u.created_at DESC
+LIMIT $3 OFFSET $4;

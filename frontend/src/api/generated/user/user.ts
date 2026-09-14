@@ -18,6 +18,10 @@ import type {
   UseQueryResult
 } from '@tanstack/react-query'
 import type {
+  EventSummary,
+  GetUsersMeFollowingEventsParams,
+  GetUsersMeFollowingParams,
+  GetUsersUserIdFollowersParams,
   LinkGoogleRequest,
   PostUsersMeLinkGoogle200,
   UserEventAction,
@@ -211,4 +215,413 @@ export const usePostUsersMeLinkGoogle = <TError = void,
 
       return useMutation(mutationOptions);
     }
+    /**
+ * @summary 유저 팔로우
+ */
+export const postUsersUserIdFollow = (
+    userId: string,
+ options?: SecondParameter<typeof customInstance>,) => {
+      
+      
+      return customInstance<void>(
+      {url: `/users/${userId}/follow`, method: 'POST'
+    },
+      options);
+    }
+  
+
+
+export const getPostUsersUserIdFollowMutationOptions = <TError = void,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postUsersUserIdFollow>>, TError,{userId: string}, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationOptions<Awaited<ReturnType<typeof postUsersUserIdFollow>>, TError,{userId: string}, TContext> => {
+const {mutation: mutationOptions, request: requestOptions} = options ?? {};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof postUsersUserIdFollow>>, {userId: string}> = (props) => {
+          const {userId} = props ?? {};
+
+          return  postUsersUserIdFollow(userId,requestOptions)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type PostUsersUserIdFollowMutationResult = NonNullable<Awaited<ReturnType<typeof postUsersUserIdFollow>>>
     
+    export type PostUsersUserIdFollowMutationError = void
+
+    /**
+ * @summary 유저 팔로우
+ */
+export const usePostUsersUserIdFollow = <TError = void,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postUsersUserIdFollow>>, TError,{userId: string}, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationResult<
+        Awaited<ReturnType<typeof postUsersUserIdFollow>>,
+        TError,
+        {userId: string},
+        TContext
+      > => {
+
+      const mutationOptions = getPostUsersUserIdFollowMutationOptions(options);
+
+      return useMutation(mutationOptions);
+    }
+    /**
+ * @summary 유저 언팔로우
+ */
+export const deleteUsersUserIdFollow = (
+    userId: string,
+ options?: SecondParameter<typeof customInstance>,) => {
+      
+      
+      return customInstance<void>(
+      {url: `/users/${userId}/follow`, method: 'DELETE'
+    },
+      options);
+    }
+  
+
+
+export const getDeleteUsersUserIdFollowMutationOptions = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteUsersUserIdFollow>>, TError,{userId: string}, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationOptions<Awaited<ReturnType<typeof deleteUsersUserIdFollow>>, TError,{userId: string}, TContext> => {
+const {mutation: mutationOptions, request: requestOptions} = options ?? {};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof deleteUsersUserIdFollow>>, {userId: string}> = (props) => {
+          const {userId} = props ?? {};
+
+          return  deleteUsersUserIdFollow(userId,requestOptions)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type DeleteUsersUserIdFollowMutationResult = NonNullable<Awaited<ReturnType<typeof deleteUsersUserIdFollow>>>
+    
+    export type DeleteUsersUserIdFollowMutationError = unknown
+
+    /**
+ * @summary 유저 언팔로우
+ */
+export const useDeleteUsersUserIdFollow = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteUsersUserIdFollow>>, TError,{userId: string}, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationResult<
+        Awaited<ReturnType<typeof deleteUsersUserIdFollow>>,
+        TError,
+        {userId: string},
+        TContext
+      > => {
+
+      const mutationOptions = getDeleteUsersUserIdFollowMutationOptions(options);
+
+      return useMutation(mutationOptions);
+    }
+    /**
+ * @summary 유저 차단
+ */
+export const postUsersUserIdBlock = (
+    userId: string,
+ options?: SecondParameter<typeof customInstance>,) => {
+      
+      
+      return customInstance<void>(
+      {url: `/users/${userId}/block`, method: 'POST'
+    },
+      options);
+    }
+  
+
+
+export const getPostUsersUserIdBlockMutationOptions = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postUsersUserIdBlock>>, TError,{userId: string}, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationOptions<Awaited<ReturnType<typeof postUsersUserIdBlock>>, TError,{userId: string}, TContext> => {
+const {mutation: mutationOptions, request: requestOptions} = options ?? {};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof postUsersUserIdBlock>>, {userId: string}> = (props) => {
+          const {userId} = props ?? {};
+
+          return  postUsersUserIdBlock(userId,requestOptions)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type PostUsersUserIdBlockMutationResult = NonNullable<Awaited<ReturnType<typeof postUsersUserIdBlock>>>
+    
+    export type PostUsersUserIdBlockMutationError = unknown
+
+    /**
+ * @summary 유저 차단
+ */
+export const usePostUsersUserIdBlock = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postUsersUserIdBlock>>, TError,{userId: string}, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationResult<
+        Awaited<ReturnType<typeof postUsersUserIdBlock>>,
+        TError,
+        {userId: string},
+        TContext
+      > => {
+
+      const mutationOptions = getPostUsersUserIdBlockMutationOptions(options);
+
+      return useMutation(mutationOptions);
+    }
+    /**
+ * @summary 유저 차단 해제
+ */
+export const deleteUsersUserIdBlock = (
+    userId: string,
+ options?: SecondParameter<typeof customInstance>,) => {
+      
+      
+      return customInstance<void>(
+      {url: `/users/${userId}/block`, method: 'DELETE'
+    },
+      options);
+    }
+  
+
+
+export const getDeleteUsersUserIdBlockMutationOptions = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteUsersUserIdBlock>>, TError,{userId: string}, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationOptions<Awaited<ReturnType<typeof deleteUsersUserIdBlock>>, TError,{userId: string}, TContext> => {
+const {mutation: mutationOptions, request: requestOptions} = options ?? {};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof deleteUsersUserIdBlock>>, {userId: string}> = (props) => {
+          const {userId} = props ?? {};
+
+          return  deleteUsersUserIdBlock(userId,requestOptions)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type DeleteUsersUserIdBlockMutationResult = NonNullable<Awaited<ReturnType<typeof deleteUsersUserIdBlock>>>
+    
+    export type DeleteUsersUserIdBlockMutationError = unknown
+
+    /**
+ * @summary 유저 차단 해제
+ */
+export const useDeleteUsersUserIdBlock = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteUsersUserIdBlock>>, TError,{userId: string}, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationResult<
+        Awaited<ReturnType<typeof deleteUsersUserIdBlock>>,
+        TError,
+        {userId: string},
+        TContext
+      > => {
+
+      const mutationOptions = getDeleteUsersUserIdBlockMutationOptions(options);
+
+      return useMutation(mutationOptions);
+    }
+    /**
+ * @summary 특정 유저의 팔로워 목록 조회
+ */
+export const getUsersUserIdFollowers = (
+    userId: string,
+    params?: GetUsersUserIdFollowersParams,
+ options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
+) => {
+      
+      
+      return customInstance<UserProfile[]>(
+      {url: `/users/${userId}/followers`, method: 'GET',
+        params, signal
+    },
+      options);
+    }
+  
+
+export const getGetUsersUserIdFollowersQueryKey = (userId: string,
+    params?: GetUsersUserIdFollowersParams,) => {
+    return [`/users/${userId}/followers`, ...(params ? [params]: [])] as const;
+    }
+
+    
+export const getGetUsersUserIdFollowersQueryOptions = <TData = Awaited<ReturnType<typeof getUsersUserIdFollowers>>, TError = unknown>(userId: string,
+    params?: GetUsersUserIdFollowersParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getUsersUserIdFollowers>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetUsersUserIdFollowersQueryKey(userId,params);
+
+  
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getUsersUserIdFollowers>>> = ({ signal }) => getUsersUserIdFollowers(userId,params, requestOptions, signal);
+
+      
+
+      
+
+   return  { queryKey, queryFn, enabled: !!(userId), ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getUsersUserIdFollowers>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetUsersUserIdFollowersQueryResult = NonNullable<Awaited<ReturnType<typeof getUsersUserIdFollowers>>>
+export type GetUsersUserIdFollowersQueryError = unknown
+
+/**
+ * @summary 특정 유저의 팔로워 목록 조회
+ */
+export const useGetUsersUserIdFollowers = <TData = Awaited<ReturnType<typeof getUsersUserIdFollowers>>, TError = unknown>(
+ userId: string,
+    params?: GetUsersUserIdFollowersParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getUsersUserIdFollowers>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+
+  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } => {
+
+  const queryOptions = getGetUsersUserIdFollowersQueryOptions(userId,params,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  query.queryKey = queryOptions.queryKey ;
+
+  return query;
+}
+
+
+
+/**
+ * @summary 내가 팔로우하는 유저 목록 조회
+ */
+export const getUsersMeFollowing = (
+    params?: GetUsersMeFollowingParams,
+ options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
+) => {
+      
+      
+      return customInstance<UserProfile[]>(
+      {url: `/users/me/following`, method: 'GET',
+        params, signal
+    },
+      options);
+    }
+  
+
+export const getGetUsersMeFollowingQueryKey = (params?: GetUsersMeFollowingParams,) => {
+    return [`/users/me/following`, ...(params ? [params]: [])] as const;
+    }
+
+    
+export const getGetUsersMeFollowingQueryOptions = <TData = Awaited<ReturnType<typeof getUsersMeFollowing>>, TError = unknown>(params?: GetUsersMeFollowingParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getUsersMeFollowing>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetUsersMeFollowingQueryKey(params);
+
+  
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getUsersMeFollowing>>> = ({ signal }) => getUsersMeFollowing(params, requestOptions, signal);
+
+      
+
+      
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getUsersMeFollowing>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetUsersMeFollowingQueryResult = NonNullable<Awaited<ReturnType<typeof getUsersMeFollowing>>>
+export type GetUsersMeFollowingQueryError = unknown
+
+/**
+ * @summary 내가 팔로우하는 유저 목록 조회
+ */
+export const useGetUsersMeFollowing = <TData = Awaited<ReturnType<typeof getUsersMeFollowing>>, TError = unknown>(
+ params?: GetUsersMeFollowingParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getUsersMeFollowing>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+
+  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } => {
+
+  const queryOptions = getGetUsersMeFollowingQueryOptions(params,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  query.queryKey = queryOptions.queryKey ;
+
+  return query;
+}
+
+
+
+/**
+ * @summary 팔로우 피드 (팔로우한 유저가 참가하는 이벤트 목록)
+ */
+export const getUsersMeFollowingEvents = (
+    params?: GetUsersMeFollowingEventsParams,
+ options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
+) => {
+      
+      
+      return customInstance<EventSummary[]>(
+      {url: `/users/me/following-events`, method: 'GET',
+        params, signal
+    },
+      options);
+    }
+  
+
+export const getGetUsersMeFollowingEventsQueryKey = (params?: GetUsersMeFollowingEventsParams,) => {
+    return [`/users/me/following-events`, ...(params ? [params]: [])] as const;
+    }
+
+    
+export const getGetUsersMeFollowingEventsQueryOptions = <TData = Awaited<ReturnType<typeof getUsersMeFollowingEvents>>, TError = unknown>(params?: GetUsersMeFollowingEventsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getUsersMeFollowingEvents>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetUsersMeFollowingEventsQueryKey(params);
+
+  
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getUsersMeFollowingEvents>>> = ({ signal }) => getUsersMeFollowingEvents(params, requestOptions, signal);
+
+      
+
+      
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getUsersMeFollowingEvents>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetUsersMeFollowingEventsQueryResult = NonNullable<Awaited<ReturnType<typeof getUsersMeFollowingEvents>>>
+export type GetUsersMeFollowingEventsQueryError = unknown
+
+/**
+ * @summary 팔로우 피드 (팔로우한 유저가 참가하는 이벤트 목록)
+ */
+export const useGetUsersMeFollowingEvents = <TData = Awaited<ReturnType<typeof getUsersMeFollowingEvents>>, TError = unknown>(
+ params?: GetUsersMeFollowingEventsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getUsersMeFollowingEvents>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+
+  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } => {
+
+  const queryOptions = getGetUsersMeFollowingEventsQueryOptions(params,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  query.queryKey = queryOptions.queryKey ;
+
+  return query;
+}
+
+
+

@@ -174,6 +174,67 @@ func (q *Queries) GetEvent(ctx context.Context, id uuid.UUID) (Event, error) {
 	return i, err
 }
 
+const getEventAttendees = `-- name: GetEventAttendees :many
+SELECT u.id, u.email, u.display_name, u.created_at
+FROM users u
+JOIN event_user_actions eua ON u.id = eua.user_id
+WHERE eua.event_id = $1 AND eua.status = 2
+  AND NOT EXISTS (
+      SELECT 1 FROM user_blocks ub
+      WHERE (ub.blocker_id = $2 AND ub.blocked_id = u.id)
+         OR (ub.blocker_id = u.id AND ub.blocked_id = $2)
+  )
+ORDER BY u.created_at DESC
+LIMIT $3 OFFSET $4
+`
+
+type GetEventAttendeesParams struct {
+	EventID   uuid.UUID
+	BlockerID uuid.UUID
+	Limit     int32
+	Offset    int32
+}
+
+type GetEventAttendeesRow struct {
+	ID          uuid.UUID
+	Email       sql.NullString
+	DisplayName string
+	CreatedAt   time.Time
+}
+
+func (q *Queries) GetEventAttendees(ctx context.Context, arg GetEventAttendeesParams) ([]GetEventAttendeesRow, error) {
+	rows, err := q.db.QueryContext(ctx, getEventAttendees,
+		arg.EventID,
+		arg.BlockerID,
+		arg.Limit,
+		arg.Offset,
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GetEventAttendeesRow
+	for rows.Next() {
+		var i GetEventAttendeesRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.Email,
+			&i.DisplayName,
+			&i.CreatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const getUserEventAction = `-- name: GetUserEventAction :one
 SELECT status FROM event_user_actions
 WHERE user_id = $1 AND event_id = $2 LIMIT 1

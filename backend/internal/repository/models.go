@@ -99,10 +99,22 @@ type User struct {
 	IsEmailVerified bool
 }
 
+type UserBlock struct {
+	BlockerID uuid.UUID
+	BlockedID uuid.UUID
+	CreatedAt time.Time
+}
+
 type UserEventRating struct {
 	UserID  uuid.UUID
 	EventID uuid.UUID
 	Score   int32
+}
+
+type UserFollow struct {
+	FollowerID uuid.UUID
+	FolloweeID uuid.UUID
+	CreatedAt  time.Time
 }
 
 type Venue struct {

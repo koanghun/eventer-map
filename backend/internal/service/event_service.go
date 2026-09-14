@@ -61,3 +61,12 @@ func (s *EventService) PutEventAction(ctx context.Context, userID, eventID uuid.
 		Status:  status,
 	})
 }
+
+func (s *EventService) GetEventAttendees(ctx context.Context, viewerID, eventID uuid.UUID, limit, offset int32) ([]repository.GetEventAttendeesRow, error) {
+	return s.repo.GetEventAttendees(ctx, repository.GetEventAttendeesParams{
+		EventID:   eventID,
+		BlockerID: viewerID,
+		Limit:     limit,
+		Offset:    offset,
+	})
+}

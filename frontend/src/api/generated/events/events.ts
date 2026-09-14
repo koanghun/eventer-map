@@ -21,9 +21,11 @@ import type {
   Event,
   EventInput,
   EventListResponse,
+  GetEventsEventIdAttendeesParams,
   GetEventsParams,
   PutEventsEventIdActionBody,
-  RatingInput
+  RatingInput,
+  UserProfile
 } from '.././model'
 import { customInstance } from '../../../lib/axios';
 
@@ -361,6 +363,73 @@ export const usePostEventsEventIdDeleteRequest = <TError = unknown,
       return useMutation(mutationOptions);
     }
     /**
+ * 이벤트에 참가(status=2)한 유저 목록을 반환하며, 차단된 유저는 필터링됩니다.
+ * @summary 이벤트 참가자 목록 조회
+ */
+export const getEventsEventIdAttendees = (
+    eventId: string,
+    params?: GetEventsEventIdAttendeesParams,
+ options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
+) => {
+      
+      
+      return customInstance<UserProfile[]>(
+      {url: `/events/${eventId}/attendees`, method: 'GET',
+        params, signal
+    },
+      options);
+    }
+  
+
+export const getGetEventsEventIdAttendeesQueryKey = (eventId: string,
+    params?: GetEventsEventIdAttendeesParams,) => {
+    return [`/events/${eventId}/attendees`, ...(params ? [params]: [])] as const;
+    }
+
+    
+export const getGetEventsEventIdAttendeesQueryOptions = <TData = Awaited<ReturnType<typeof getEventsEventIdAttendees>>, TError = unknown>(eventId: string,
+    params?: GetEventsEventIdAttendeesParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getEventsEventIdAttendees>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetEventsEventIdAttendeesQueryKey(eventId,params);
+
+  
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getEventsEventIdAttendees>>> = ({ signal }) => getEventsEventIdAttendees(eventId,params, requestOptions, signal);
+
+      
+
+      
+
+   return  { queryKey, queryFn, enabled: !!(eventId), ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getEventsEventIdAttendees>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetEventsEventIdAttendeesQueryResult = NonNullable<Awaited<ReturnType<typeof getEventsEventIdAttendees>>>
+export type GetEventsEventIdAttendeesQueryError = unknown
+
+/**
+ * @summary 이벤트 참가자 목록 조회
+ */
+export const useGetEventsEventIdAttendees = <TData = Awaited<ReturnType<typeof getEventsEventIdAttendees>>, TError = unknown>(
+ eventId: string,
+    params?: GetEventsEventIdAttendeesParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getEventsEventIdAttendees>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+
+  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } => {
+
+  const queryOptions = getGetEventsEventIdAttendeesQueryOptions(eventId,params,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  query.queryKey = queryOptions.queryKey ;
+
+  return query;
+}
+
+
+
+/**
  * 이벤트에 대한 유저의 상태(0:없음, 1:체크, 2:참가)를 명시적으로 변경합니다.
  * @summary 이벤트 액션(상태) 변경
  */
