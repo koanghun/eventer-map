@@ -160,6 +160,22 @@ func (q *Queries) UpdateUserEmailVerifiedByEmail(ctx context.Context, arg Update
 	return err
 }
 
+const updateUserGoogleID = `-- name: UpdateUserGoogleID :exec
+UPDATE users
+SET google_id = $2, updated_at = NOW()
+WHERE id = $1
+`
+
+type UpdateUserGoogleIDParams struct {
+	ID       uuid.UUID
+	GoogleID sql.NullString
+}
+
+func (q *Queries) UpdateUserGoogleID(ctx context.Context, arg UpdateUserGoogleIDParams) error {
+	_, err := q.db.ExecContext(ctx, updateUserGoogleID, arg.ID, arg.GoogleID)
+	return err
+}
+
 const updateUserPassword = `-- name: UpdateUserPassword :exec
 UPDATE users
 SET password_hash = $2, updated_at = NOW()

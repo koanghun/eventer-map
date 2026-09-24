@@ -1513,6 +1513,9 @@ components:
           type: string
           format: date-time
           description: 가입일시
+        isGoogleLinked:
+          type: boolean
+          description: 구글 연동 여부
 
     UpdateProfileRequest:
       type: object

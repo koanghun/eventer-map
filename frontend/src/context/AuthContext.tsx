@@ -15,6 +15,7 @@ interface AuthContextType {
     verifyEmail: (email: string, code: string) => Promise<void>;
     googleLogin: (idToken: string) => Promise<void>;
     logout: () => Promise<void>;
+    refreshUser: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -96,6 +97,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             verifyEmail,
             googleLogin,
             logout,
+            refreshUser: fetchUser,
         }}>
             {children}
         </AuthContext.Provider>

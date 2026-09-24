@@ -14,4 +14,6 @@ export interface UserProfile {
   email?: string;
   /** 사용자 고유 식별자 */
   id?: string;
+  /** 구글 연동 여부 */
+  isGoogleLinked?: boolean;
 }

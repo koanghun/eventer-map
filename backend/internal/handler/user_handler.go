@@ -24,10 +24,11 @@ func (s *Server) GetUsersMe(w http.ResponseWriter, r *http.Request) {
 	}
 
 	RespondJSON(w, http.StatusOK, map[string]interface{}{
-		"id":          user.ID,
-		"email":       user.Email.String,
-		"displayName": user.DisplayName,
-		"createdAt":   user.CreatedAt,
+		"id":             user.ID,
+		"email":          user.Email.String,
+		"displayName":    user.DisplayName,
+		"createdAt":      user.CreatedAt,
+		"isGoogleLinked": user.GoogleID.Valid,
 	})
 }
 
@@ -384,10 +385,11 @@ func (s *Server) PatchUsersMe(w http.ResponseWriter, r *http.Request) {
 	}
 
 	RespondJSON(w, http.StatusOK, map[string]interface{}{
-		"id":          user.ID,
-		"email":       user.Email.String,
-		"displayName": user.DisplayName,
-		"createdAt":   user.CreatedAt,
+		"id":             user.ID,
+		"email":          user.Email.String,
+		"displayName":    user.DisplayName,
+		"createdAt":      user.CreatedAt,
+		"isGoogleLinked": user.GoogleID.Valid,
 	})
 }
 
@@ -417,5 +419,38 @@ func (s *Server) PutUsersMePassword(w http.ResponseWriter, r *http.Request) {
 
 	RespondJSON(w, http.StatusOK, map[string]string{
 		"message": "Password updated successfully",
+	})
+}
+
+// PostUsersMeLinkGoogle implements the POST /users/me/link-google endpoint
+func (s *Server) PostUsersMeLinkGoogle(w http.ResponseWriter, r *http.Request) {
+	userID, ok := r.Context().Value(middleware.UserIDKey).(uuid.UUID)
+	if !ok {
+		RespondError(w, http.StatusUnauthorized, "user not authenticated")
+		return
+	}
+
+	var req LinkGoogleRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		RespondError(w, http.StatusBadRequest, "Invalid JSON payload")
+		return
+	}
+
+	err := s.services.Auth.LinkGoogleAccount(r.Context(), userID, req.IdToken, true)
+	if err != nil {
+		if err.Error() == "this google account is already linked to another user" {
+			RespondError(w, http.StatusConflict, err.Error())
+			return
+		}
+		if err.Error() == "invalid google token" {
+			RespondError(w, http.StatusUnauthorized, err.Error())
+			return
+		}
+		RespondError(w, http.StatusInternalServerError, "Failed to link Google account")
+		return
+	}
+
+	RespondJSON(w, http.StatusOK, map[string]string{
+		"message": "Google account linked successfully",
 	})
 }

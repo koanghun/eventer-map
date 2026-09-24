@@ -9,9 +9,13 @@ import (
 
 	"eventer-map-backend/internal/mailer"
 	"eventer-map-backend/internal/repository"
+	"encoding/json"
+	"net/http"
+
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/google/uuid"
 	"golang.org/x/crypto/bcrypt"
+	"google.golang.org/api/idtoken"
 )
 
 const (
@@ -233,4 +237,82 @@ func (s *AuthService) GetUserByID(ctx context.Context, id uuid.UUID) (*repositor
 		return nil, err
 	}
 	return &user, nil
+}
+
+func (s *AuthService) VerifyGoogleAccessToken(ctx context.Context, accessToken string) (string, string, error) {
+	req, err := http.NewRequestWithContext(ctx, "GET", "https://www.googleapis.com/oauth2/v3/userinfo", nil)
+	if err != nil {
+		return "", "", err
+	}
+	req.Header.Add("Authorization", "Bearer "+accessToken)
+
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return "", "", err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return "", "", errors.New("failed to fetch user info from google")
+	}
+
+	var userInfo struct {
+		Sub   string `json:"sub"`
+		Email string `json:"email"`
+	}
+	if err := json.NewDecoder(resp.Body).Decode(&userInfo); err != nil {
+		return "", "", err
+	}
+
+	if userInfo.Sub == "" {
+		return "", "", errors.New("invalid google user info")
+	}
+
+	return userInfo.Sub, userInfo.Email, nil
+}
+
+func (s *AuthService) VerifyGoogleIDToken(ctx context.Context, token string) (string, string, error) {
+	// Usually you pass the Google Client ID here, but if not provided, you can just validate the signature
+	payload, err := idtoken.Validate(ctx, token, "") // "" skips audience validation if you don't enforce a single client ID here
+	if err != nil {
+		return "", "", err
+	}
+
+	googleID, ok := payload.Claims["sub"].(string)
+	if !ok {
+		return "", "", errors.New("invalid google id in token")
+	}
+
+	email, ok := payload.Claims["email"].(string)
+	if !ok {
+		return "", "", errors.New("invalid email in token")
+	}
+
+	return googleID, email, nil
+}
+
+func (s *AuthService) LinkGoogleAccount(ctx context.Context, userID uuid.UUID, token string, isAccessToken bool) error {
+	var googleID string
+	var err error
+	if isAccessToken {
+		googleID, _, err = s.VerifyGoogleAccessToken(ctx, token)
+	} else {
+		googleID, _, err = s.VerifyGoogleIDToken(ctx, token)
+	}
+	
+	if err != nil {
+		return errors.New("invalid google token")
+	}
+
+	// Check if this google account is already linked to another user
+	existingUser, err := s.repo.GetUserByGoogleID(ctx, sql.NullString{String: googleID, Valid: true})
+	if err == nil && existingUser.ID != userID {
+		return errors.New("this google account is already linked to another user")
+	}
+
+	// Link to current user
+	return s.repo.UpdateUserGoogleID(ctx, repository.UpdateUserGoogleIDParams{
+		ID:       userID,
+		GoogleID: sql.NullString{String: googleID, Valid: true},
+	})
 }

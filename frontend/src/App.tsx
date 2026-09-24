@@ -5,6 +5,7 @@ import { BrowserRouter } from 'react-router-dom';
 import AppContent from './AppContent';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import ToastContainer from './components/ui/ToastContainer';
+import { GoogleOAuthProvider } from '@react-oauth/google';
 
 // QueryClient 인스턴스 생성
 const queryClient = new QueryClient({
@@ -20,15 +21,17 @@ function App() {
     return (
         <>
         <QueryClientProvider client={queryClient}>
-            <ThemeProvider>
-                <LanguageProvider>
-                    <AuthProvider>
-                        <BrowserRouter>
-                            <AppContent />
-                        </BrowserRouter>
-                    </AuthProvider>
-                </LanguageProvider>
-            </ThemeProvider>
+            <GoogleOAuthProvider clientId={process.env.REACT_APP_GOOGLE_CLIENT_ID || '1047715011707-v6e29o0q2u9866846g0nchiv660k4hck.apps.googleusercontent.com'}>
+                <ThemeProvider>
+                    <LanguageProvider>
+                        <AuthProvider>
+                            <BrowserRouter>
+                                <AppContent />
+                            </BrowserRouter>
+                        </AuthProvider>
+                    </LanguageProvider>
+                </ThemeProvider>
+            </GoogleOAuthProvider>
         </QueryClientProvider>
         <ToastContainer />
         </>

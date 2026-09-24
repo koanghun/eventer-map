@@ -13,7 +13,8 @@ import { Button } from '../ui/button';
 import { Label } from '../ui/label';
 import { toast } from '../../store/useToastStore';
 import { User, Mail, Lock, CheckCircle, AlertCircle } from 'lucide-react';
-import { usePatchUsersMe, usePutUsersMePassword } from '../../api/generated/user/user';
+import { usePatchUsersMe, usePutUsersMePassword, usePostUsersMeLinkGoogle } from '../../api/generated/user/user';
+import { useGoogleLogin } from '@react-oauth/google';
 
 interface ProfileSettingsModalProps {
     isOpen: boolean;
@@ -22,7 +23,7 @@ interface ProfileSettingsModalProps {
 
 export default function ProfileSettingsModal({ isOpen, onClose }: ProfileSettingsModalProps) {
     const { t } = useTranslation();
-    const { user } = useAuth();
+    const { user, refreshUser } = useAuth();
     // Let's just refresh page on profile update or leave it if AuthContext re-fetches
     const { mutateAsync: updateProfile } = usePatchUsersMe();
     const { mutateAsync: updatePassword } = usePutUsersMePassword();
@@ -34,10 +35,29 @@ export default function ProfileSettingsModal({ isOpen, onClose }: ProfileSetting
     
     const [isSubmitting, setIsSubmitting] = useState(false);
 
+    const linkGoogleMutation = usePostUsersMeLinkGoogle();
+
+    const googleLogin = useGoogleLogin({
+        onSuccess: async (tokenResponse) => {
+            try {
+                await linkGoogleMutation.mutateAsync({
+                    data: { idToken: tokenResponse.access_token }
+                });
+                await refreshUser();
+                toast.success(t('profile.googleLinked', '구글 계정이 연동되었습니다.'));
+            } catch (error: any) {
+                const msg = error?.response?.data?.error || t('profile.googleLinkFailed', '구글 계정 연동에 실패했습니다.');
+                toast.error(msg);
+            }
+        },
+        onError: () => {
+            toast.error(t('profile.googleLinkFailed', '구글 계정 연동에 실패했습니다.'));
+        }
+    });
+
     if (!user) return null;
 
-    // Placeholder for Google link status (will come from user object in reality)
-    const isGoogleLinked = false; // TODO: get from user profile
+    const isGoogleLinked = user?.isGoogleLinked || false;
 
     const handleSaveProfile = async () => {
         setIsSubmitting(true);
@@ -73,13 +93,8 @@ export default function ProfileSettingsModal({ isOpen, onClose }: ProfileSetting
         }
     };
 
-    const handleGoogleLink = async () => {
-        try {
-            // TODO: Open Google OAuth popup or redirect
-            toast.success(t('profile.googleLinked', '구글 계정이 연동되었습니다.'));
-        } catch (error) {
-            toast.error(t('profile.googleLinkFailed', '구글 계정 연동에 실패했습니다.'));
-        }
+    const handleGoogleLink = () => {
+        googleLogin();
     };
 
     return (
