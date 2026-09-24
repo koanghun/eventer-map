@@ -16,8 +16,8 @@ import (
 
 const (
 	// JWTSecret should ideally be loaded from environment variables
-	JWTSecret = "super-secret-key-for-development"
-	TokenExp  = time.Hour * 1 // 1 hour for access token
+	JWTSecret  = "super-secret-key-for-development"
+	TokenExp   = time.Hour * 1      // 1 hour for access token
 	RefreshExp = time.Hour * 24 * 7 // 7 days for refresh token
 )
 

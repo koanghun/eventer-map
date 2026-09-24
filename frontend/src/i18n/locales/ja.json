@@ -27,7 +27,9 @@
         "loginRequired": "ログインが必要です",
         "loginToCreate": "イベントを登録するにはログインしてください",
         "processingLogin": "ログイン処理中",
-        "loginFailed": "ログインに失敗しました"
+        "loginFailed": "ログインに失敗しました",
+        "email": "メールアドレス",
+        "nickname": "ニックネーム"
     },
     "buttons": {
         "newEvent": "新規イベント登録",
@@ -346,6 +348,32 @@
     },
     "footer": {
         "dailyVisits": "本日の訪問"
+    },
+    "common": {
+        "save": "保存",
+        "manageReports": "報告管理"
+    },
+    "profile": {
+        "editTitle": "会員情報修正",
+        "editDescription": "プロフィールおよびアカウント設定を変更できます。",
+        "basicInfo": "基本情報",
+        "changePassword": "パスワード変更",
+        "currentPassword": "現在のパスワード",
+        "newPassword": "新しいパスワード",
+        "confirmPassword": "新しいパスワード（確認）",
+        "updatePassword": "パスワードを変更する",
+        "linkedAccounts": "連携済みアカウント",
+        "connected": "連携済み",
+        "notConnected": "未連携",
+        "disconnect": "解除",
+        "connect": "連携する",
+        "updateSuccess": "会員情報が修正されました。",
+        "updateFailed": "会員情報の修正に失敗しました。",
+        "passwordMismatch": "新しいパスワードが一致しません。",
+        "passwordChangeSuccess": "パスワードが変更されました。",
+        "passwordChangeFailed": "パスワードの変更に失敗しました。",
+        "googleLinked": "Googleアカウントが連携されました。",
+        "googleLinkFailed": "Googleアカウントの連携に失敗しました。"
     },
     "seo": {
         "title": "Event Map - イベントマップ",

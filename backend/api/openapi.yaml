@@ -198,6 +198,58 @@ paths:
                 $ref: "#/components/schemas/UserProfile"
         "401":
           description: 인증 실패 (유효하지 않은 JWT)
+    patch:
+      tags:
+        - User
+      summary: 사용자 프로필 수정
+      description: 현재 로그인된 사용자의 프로필(닉네임 등)을 수정합니다.
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateProfileRequest"
+      responses:
+        "200":
+          description: 프로필 수정 성공
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserProfile"
+        "400":
+          description: 잘못된 요청
+        "401":
+          description: 인증 실패
+  /users/me/password:
+    put:
+      tags:
+        - User
+      summary: 비밀번호 변경
+      description: 현재 로그인된 사용자의 비밀번호를 변경합니다.
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdatePasswordRequest"
+      responses:
+        "200":
+          description: 비밀번호 변경 성공
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+        "400":
+          description: 현재 비밀번호 불일치 또는 잘못된 요청
+        "401":
+          description: 인증 실패
   /users/me/events:
     get:
       tags:
@@ -1461,6 +1513,33 @@ components:
           type: string
           format: date-time
           description: 가입일시
+
+    UpdateProfileRequest:
+      type: object
+      properties:
+        displayName:
+          type: string
+          description: 변경할 닉네임
+          minLength: 2
+          maxLength: 30
+      required:
+        - displayName
+
+    UpdatePasswordRequest:
+      type: object
+      properties:
+        currentPassword:
+          type: string
+          format: password
+          description: 현재 비밀번호
+        newPassword:
+          type: string
+          format: password
+          description: 새 비밀번호
+          minLength: 8
+      required:
+        - currentPassword
+        - newPassword
     LinkGoogleRequest:
 
       type: object

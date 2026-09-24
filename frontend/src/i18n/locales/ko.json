@@ -27,7 +27,9 @@
         "loginRequired": "로그인이 필요합니다",
         "loginToCreate": "이벤트를 등록하려면 로그인하세요",
         "processingLogin": "로그인 처리 중",
-        "loginFailed": "로그인에 실패했습니다"
+        "loginFailed": "로그인에 실패했습니다",
+        "email": "이메일",
+        "nickname": "닉네임"
     },
     "buttons": {
         "newEvent": "새 이벤트 등록",
@@ -345,6 +347,32 @@
     },
     "footer": {
         "dailyVisits": "오늘 방문"
+    },
+    "common": {
+        "save": "저장",
+        "manageReports": "신고 관리"
+    },
+    "profile": {
+        "editTitle": "회원정보 수정",
+        "editDescription": "프로필 및 계정 설정을 변경할 수 있습니다.",
+        "basicInfo": "기본 정보",
+        "changePassword": "비밀번호 변경",
+        "currentPassword": "현재 비밀번호",
+        "newPassword": "새 비밀번호",
+        "confirmPassword": "새 비밀번호 확인",
+        "updatePassword": "비밀번호 변경하기",
+        "linkedAccounts": "연동된 계정",
+        "connected": "연동됨",
+        "notConnected": "연동 안됨",
+        "disconnect": "해제",
+        "connect": "연동하기",
+        "updateSuccess": "회원정보가 수정되었습니다.",
+        "updateFailed": "회원정보 수정에 실패했습니다.",
+        "passwordMismatch": "새 비밀번호가 일치하지 않습니다.",
+        "passwordChangeSuccess": "비밀번호가 변경되었습니다.",
+        "passwordChangeFailed": "비밀번호 변경에 실패했습니다.",
+        "googleLinked": "구글 계정이 연동되었습니다.",
+        "googleLinkFailed": "구글 계정 연동에 실패했습니다."
     },
     "seo": {
         "title": "Event Map - 이벤트 지도",

@@ -28,6 +28,9 @@ import type {
   GetUsersUserIdFollowersParams,
   LinkGoogleRequest,
   PostUsersMeLinkGoogle200,
+  PutUsersMePassword200,
+  UpdatePasswordRequest,
+  UpdateProfileRequest,
   UserEventAction,
   UserProfile
 } from '.././model'
@@ -100,6 +103,122 @@ export const useGetUsersMe = <TData = Awaited<ReturnType<typeof getUsersMe>>, TE
 
 
 /**
+ * 현재 로그인된 사용자의 프로필(닉네임 등)을 수정합니다.
+ * @summary 사용자 프로필 수정
+ */
+export const patchUsersMe = (
+    updateProfileRequest: UpdateProfileRequest,
+ options?: SecondParameter<typeof customInstance>,) => {
+      
+      
+      return customInstance<UserProfile>(
+      {url: `/users/me`, method: 'PATCH',
+      headers: {'Content-Type': 'application/json', },
+      data: updateProfileRequest
+    },
+      options);
+    }
+  
+
+
+export const getPatchUsersMeMutationOptions = <TError = void,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof patchUsersMe>>, TError,{data: UpdateProfileRequest}, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationOptions<Awaited<ReturnType<typeof patchUsersMe>>, TError,{data: UpdateProfileRequest}, TContext> => {
+const {mutation: mutationOptions, request: requestOptions} = options ?? {};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof patchUsersMe>>, {data: UpdateProfileRequest}> = (props) => {
+          const {data} = props ?? {};
+
+          return  patchUsersMe(data,requestOptions)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type PatchUsersMeMutationResult = NonNullable<Awaited<ReturnType<typeof patchUsersMe>>>
+    export type PatchUsersMeMutationBody = UpdateProfileRequest
+    export type PatchUsersMeMutationError = void
+
+    /**
+ * @summary 사용자 프로필 수정
+ */
+export const usePatchUsersMe = <TError = void,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof patchUsersMe>>, TError,{data: UpdateProfileRequest}, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationResult<
+        Awaited<ReturnType<typeof patchUsersMe>>,
+        TError,
+        {data: UpdateProfileRequest},
+        TContext
+      > => {
+
+      const mutationOptions = getPatchUsersMeMutationOptions(options);
+
+      return useMutation(mutationOptions);
+    }
+    /**
+ * 현재 로그인된 사용자의 비밀번호를 변경합니다.
+ * @summary 비밀번호 변경
+ */
+export const putUsersMePassword = (
+    updatePasswordRequest: UpdatePasswordRequest,
+ options?: SecondParameter<typeof customInstance>,) => {
+      
+      
+      return customInstance<PutUsersMePassword200>(
+      {url: `/users/me/password`, method: 'PUT',
+      headers: {'Content-Type': 'application/json', },
+      data: updatePasswordRequest
+    },
+      options);
+    }
+  
+
+
+export const getPutUsersMePasswordMutationOptions = <TError = void,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof putUsersMePassword>>, TError,{data: UpdatePasswordRequest}, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationOptions<Awaited<ReturnType<typeof putUsersMePassword>>, TError,{data: UpdatePasswordRequest}, TContext> => {
+const {mutation: mutationOptions, request: requestOptions} = options ?? {};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof putUsersMePassword>>, {data: UpdatePasswordRequest}> = (props) => {
+          const {data} = props ?? {};
+
+          return  putUsersMePassword(data,requestOptions)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type PutUsersMePasswordMutationResult = NonNullable<Awaited<ReturnType<typeof putUsersMePassword>>>
+    export type PutUsersMePasswordMutationBody = UpdatePasswordRequest
+    export type PutUsersMePasswordMutationError = void
+
+    /**
+ * @summary 비밀번호 변경
+ */
+export const usePutUsersMePassword = <TError = void,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof putUsersMePassword>>, TError,{data: UpdatePasswordRequest}, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationResult<
+        Awaited<ReturnType<typeof putUsersMePassword>>,
+        TError,
+        {data: UpdatePasswordRequest},
+        TContext
+      > => {
+
+      const mutationOptions = getPutUsersMePasswordMutationOptions(options);
+
+      return useMutation(mutationOptions);
+    }
+    /**
  * 유저가 참가하거나 체크한 이벤트들의 목록과 상태를 조회합니다.
  * @summary 내 이벤트 액션(참가/체크) 목록 조회
  */

@@ -3,6 +3,7 @@ import { setAccessToken } from '../lib/axios';
 import { postAuthLogin, postAuthSignup, postAuthSignupVerify, postAuthGoogle, postAuthLogout, postAuthRefresh } from '../api/generated/auth/auth';
 import { getUsersMe } from '../api/generated/user/user';
 import { toast } from '../store/useToastStore';
+import { useTranslation } from 'react-i18next';
 import type { UserProfile } from '../api/generated/model';
 
 interface AuthContextType {
@@ -19,6 +20,7 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
+    const { t } = useTranslation();
     const [user, setUser] = useState<UserProfile | null>(null);
     const [isLoading, setIsLoading] = useState(true);
 
@@ -51,27 +53,27 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         const res = await postAuthLogin({ email, password });
         setAccessToken(res.accessToken);
         await fetchUser();
-        toast.success('로그인되었습니다.');
-    }, [fetchUser]);
+        toast.success(t('auth.loginSuccess', '로그인되었습니다.'));
+    }, [fetchUser, t]);
 
     const signup = useCallback(async (email: string, password: string, nickname: string) => {
-        const res = await postAuthSignup({ email, password, nickname });
-        toast.success(res.message || '인증 코드가 이메일로 발송되었습니다.');
-    }, []);
+        await postAuthSignup({ email, password, nickname });
+        toast.success(t('auth.signupSuccess', '인증 코드가 이메일로 발송되었습니다.'));
+    }, [t]);
 
     const verifyEmail = useCallback(async (email: string, code: string) => {
         const res = await postAuthSignupVerify({ email, code });
         setAccessToken(res.accessToken);
         await fetchUser();
-        toast.success('이메일 인증이 완료되었습니다.');
-    }, [fetchUser]);
+        toast.success(t('auth.verifySuccess', '이메일 인증이 완료되었습니다.'));
+    }, [fetchUser, t]);
 
     const googleLogin = useCallback(async (idToken: string) => {
         const res = await postAuthGoogle({ idToken });
         setAccessToken(res.accessToken);
         await fetchUser();
-        toast.success('구글 로그인 성공!');
-    }, [fetchUser]);
+        toast.success(t('auth.googleLoginSuccess', '구글 로그인 성공!'));
+    }, [fetchUser, t]);
 
     const logout = useCallback(async () => {
         try {
@@ -81,8 +83,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         }
         setAccessToken(null);
         setUser(null);
-        toast.info('로그아웃되었습니다.');
-    }, []);
+        toast.info(t('auth.logoutSuccess', '로그아웃되었습니다.'));
+    }, [t]);
 
     return (
         <AuthContext.Provider value={{

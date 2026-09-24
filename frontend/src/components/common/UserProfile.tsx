@@ -3,17 +3,24 @@ import { useTranslation } from 'react-i18next';
 import { useAuth } from '../../context/AuthContext';
 import { Popover, PopoverContent, PopoverTrigger } from '../ui/popover';
 import { Button } from '../ui/button';
-import { LogOut, LayoutDashboard } from 'lucide-react';
+import { LogOut, LayoutDashboard, UserCog } from 'lucide-react';
+import ProfileSettingsModal from './ProfileSettingsModal';
 
 export default function UserProfile() {
     const { t } = useTranslation();
     const { user, logout } = useAuth();
     const [isOpen, setIsOpen] = useState(false);
+    const [isSettingsOpen, setIsSettingsOpen] = useState(false);
 
     if (!user) return null;
 
     const handleManageReports = () => {
         setIsOpen(false);
+    };
+
+    const handleOpenSettings = () => {
+        setIsOpen(false);
+        setIsSettingsOpen(true);
     };
 
     return (
@@ -38,6 +45,10 @@ export default function UserProfile() {
                         </div>
                         
                         <div className="flex flex-col gap-1">
+                            <Button variant="ghost" className="w-full justify-start text-sm h-9 px-2 text-foreground" onClick={handleOpenSettings}>
+                                <UserCog className="mr-2 h-4 w-4" />
+                                {t('profile.editTitle', '회원정보 수정')}
+                            </Button>
                             {(user as any).is_admin && (
                                 <Button variant="ghost" className="w-full justify-start text-sm h-9 px-2 text-primary" onClick={handleManageReports}>
                                     <LayoutDashboard className="mr-2 h-4 w-4" />
@@ -53,6 +64,10 @@ export default function UserProfile() {
                 </PopoverContent>
             </Popover>
 
+            <ProfileSettingsModal 
+                isOpen={isSettingsOpen} 
+                onClose={() => setIsSettingsOpen(false)} 
+            />
         </div>
     );
 }

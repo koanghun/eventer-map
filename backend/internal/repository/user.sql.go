@@ -159,3 +159,49 @@ func (q *Queries) UpdateUserEmailVerifiedByEmail(ctx context.Context, arg Update
 	_, err := q.db.ExecContext(ctx, updateUserEmailVerifiedByEmail, arg.Email, arg.IsEmailVerified)
 	return err
 }
+
+const updateUserPassword = `-- name: UpdateUserPassword :exec
+UPDATE users
+SET password_hash = $2, updated_at = NOW()
+WHERE id = $1
+`
+
+type UpdateUserPasswordParams struct {
+	ID           uuid.UUID
+	PasswordHash sql.NullString
+}
+
+func (q *Queries) UpdateUserPassword(ctx context.Context, arg UpdateUserPasswordParams) error {
+	_, err := q.db.ExecContext(ctx, updateUserPassword, arg.ID, arg.PasswordHash)
+	return err
+}
+
+const updateUserProfile = `-- name: UpdateUserProfile :one
+UPDATE users
+SET display_name = $2, updated_at = NOW()
+WHERE id = $1
+RETURNING id, email, display_name, password_hash, google_id, is_banned, created_at, updated_at, is_email_verified, last_artist_feed_checked_at
+`
+
+type UpdateUserProfileParams struct {
+	ID          uuid.UUID
+	DisplayName string
+}
+
+func (q *Queries) UpdateUserProfile(ctx context.Context, arg UpdateUserProfileParams) (User, error) {
+	row := q.db.QueryRowContext(ctx, updateUserProfile, arg.ID, arg.DisplayName)
+	var i User
+	err := row.Scan(
+		&i.ID,
+		&i.Email,
+		&i.DisplayName,
+		&i.PasswordHash,
+		&i.GoogleID,
+		&i.IsBanned,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.IsEmailVerified,
+		&i.LastArtistFeedCheckedAt,
+	)
+	return i, err
+}

@@ -54,12 +54,13 @@ func main() {
 
 	// 5. Setup Router (ServeMux)
 	mux := http.NewServeMux()
-	
+
 	// 6. Register oapi-codegen Handlers
 	handler.HandlerFromMux(apiHandler, mux)
 
 	// 7. Wrap with Middlewares
 	var h http.Handler = mux
+	h = middleware.AuthMiddleware(h)
 	h = middleware.CORS(h)
 	h = middleware.Logger(h)
 

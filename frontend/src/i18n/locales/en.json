@@ -26,8 +26,10 @@
         "logout": "ログアウト",
         "loginRequired": "ログインが必要です",
         "loginToCreate": "イベントを登録するにはログインしてください",
-        "processingLogin": "ログイン処理中",
-        "loginFailed": "ログインに失敗しました"
+        "processingLogin": "Processing login",
+        "loginFailed": "Login failed",
+        "email": "Email",
+        "nickname": "Nickname"
     },
     "buttons": {
         "newEvent": "新規イベント登録",
@@ -346,6 +348,32 @@
     },
     "footer": {
         "dailyVisits": "本日の訪問"
+    },
+    "common": {
+        "save": "Save",
+        "manageReports": "Manage Reports"
+    },
+    "profile": {
+        "editTitle": "Edit Profile",
+        "editDescription": "You can change your profile and account settings.",
+        "basicInfo": "Basic Info",
+        "changePassword": "Change Password",
+        "currentPassword": "Current Password",
+        "newPassword": "New Password",
+        "confirmPassword": "Confirm New Password",
+        "updatePassword": "Update Password",
+        "linkedAccounts": "Linked Accounts",
+        "connected": "Connected",
+        "notConnected": "Not Connected",
+        "disconnect": "Disconnect",
+        "connect": "Connect",
+        "updateSuccess": "Profile updated successfully.",
+        "updateFailed": "Failed to update profile.",
+        "passwordMismatch": "New passwords do not match.",
+        "passwordChangeSuccess": "Password changed successfully.",
+        "passwordChangeFailed": "Failed to change password.",
+        "googleLinked": "Google account linked successfully.",
+        "googleLinkFailed": "Failed to link Google account."
     },
     "seo": {
         "title": "Event Map - イベントマップ",

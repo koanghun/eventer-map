@@ -47,7 +47,7 @@ export default function EventFormPane({ onClose }: EventFormPaneProps) {
         e.preventDefault();
         
         if (!title || !date || !startTime || !endTime || !venueId) {
-            toast.error('타이틀, 개최일, 시작/종료 시간, 공연장 ID는 필수입니다.');
+            toast.error(t('event.createMissingFields', '타이틀, 시작/종료 시간, 공연장 ID는 필수입니다.'));
             return;
         }
 
@@ -64,11 +64,11 @@ export default function EventFormPane({ onClose }: EventFormPaneProps) {
 
         try {
             await createEvent({ data: payload });
-            toast.success('이벤트가 성공적으로 등록되었습니다.');
+            toast.success(t('event.createSuccess', '이벤트가 성공적으로 등록되었습니다.'));
             queryClient.invalidateQueries({ queryKey: ['getEvents'] });
             onClose();
         } catch (error: any) {
-            toast.error(error?.response?.data?.error || '이벤트 등록에 실패했습니다.');
+            toast.error(error?.response?.data?.error || t('event.createFail', '이벤트 등록에 실패했습니다.'));
         }
     };
 

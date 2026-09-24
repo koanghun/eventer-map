@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"encoding/json"
 	"net/http"
 
 	"eventer-map-backend/internal/middleware"
@@ -311,7 +312,7 @@ func (s *Server) GetUsersMeFollowingArtistsEvents(w http.ResponseWriter, r *http
 	// We'll set it to 0.
 	unreadCount := 0
 	_ = lastCheckedAtStr
-	
+
 	responseEvents := make([]EventSummary, 0)
 	for _, e := range events {
 		id := openapi_types.UUID(e.ID)
@@ -330,7 +331,7 @@ func (s *Server) GetUsersMeFollowingArtistsEvents(w http.ResponseWriter, r *http
 			PosterImageUrl: nil,
 		})
 	}
-	
+
 	response := struct {
 		Events      []EventSummary `json:"events"`
 		UnreadCount int            `json:"unreadCount"`
@@ -349,11 +350,72 @@ func (s *Server) PostUsersMeFollowingArtistsEventsRead(w http.ResponseWriter, r 
 		RespondError(w, http.StatusUnauthorized, "user not authenticated")
 		return
 	}
-	
+
 	if err := s.services.Artist.UpdateLastArtistFeedCheckedAt(r.Context(), myID); err != nil {
 		RespondError(w, http.StatusInternalServerError, "Failed to update read timestamp")
 		return
 	}
 
 	RespondJSON(w, http.StatusOK, map[string]string{"message": "Feed marked as read"})
+}
+
+// PatchUsersMe implements the PATCH /users/me endpoint
+func (s *Server) PatchUsersMe(w http.ResponseWriter, r *http.Request) {
+	userID, ok := r.Context().Value(middleware.UserIDKey).(uuid.UUID)
+	if !ok {
+		RespondError(w, http.StatusUnauthorized, "user not authenticated")
+		return
+	}
+
+	var req UpdateProfileRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		RespondError(w, http.StatusBadRequest, "Invalid JSON payload")
+		return
+	}
+
+	user, err := s.services.User.UpdateProfile(r.Context(), userID, req.DisplayName)
+	if err != nil {
+		if err.Error() == "nickname already exists" { // assuming ErrNicknameExists is not easily imported if it was not exported, wait it is in same package
+			RespondError(w, http.StatusBadRequest, "Nickname already exists")
+			return
+		}
+		RespondError(w, http.StatusInternalServerError, "Failed to update profile")
+		return
+	}
+
+	RespondJSON(w, http.StatusOK, map[string]interface{}{
+		"id":          user.ID,
+		"email":       user.Email.String,
+		"displayName": user.DisplayName,
+		"createdAt":   user.CreatedAt,
+	})
+}
+
+// PutUsersMePassword implements the PUT /users/me/password endpoint
+func (s *Server) PutUsersMePassword(w http.ResponseWriter, r *http.Request) {
+	userID, ok := r.Context().Value(middleware.UserIDKey).(uuid.UUID)
+	if !ok {
+		RespondError(w, http.StatusUnauthorized, "user not authenticated")
+		return
+	}
+
+	var req UpdatePasswordRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		RespondError(w, http.StatusBadRequest, "Invalid JSON payload")
+		return
+	}
+
+	err := s.services.User.UpdatePassword(r.Context(), userID, req.CurrentPassword, req.NewPassword)
+	if err != nil {
+		if err.Error() == "invalid current password" {
+			RespondError(w, http.StatusBadRequest, "Invalid current password")
+			return
+		}
+		RespondError(w, http.StatusInternalServerError, "Failed to update password")
+		return
+	}
+
+	RespondJSON(w, http.StatusOK, map[string]string{
+		"message": "Password updated successfully",
+	})
 }

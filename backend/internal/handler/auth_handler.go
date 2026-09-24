@@ -2,6 +2,7 @@ package handler
 
 import (
 	"encoding/json"
+	"log"
 	"net/http"
 	"time"
 
@@ -30,6 +31,7 @@ func (s *Server) PostAuthSignup(w http.ResponseWriter, r *http.Request) {
 
 	err := s.services.Auth.Signup(r.Context(), string(req.Email), req.Nickname, req.Password)
 	if err != nil {
+		log.Printf("Signup error: %v", err)
 		if err == service.ErrUserExists || err == service.ErrNicknameExists {
 			RespondError(w, http.StatusConflict, err.Error())
 			return

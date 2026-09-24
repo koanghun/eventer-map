@@ -59,7 +59,7 @@ func (s *Server) PostEvents(w http.ResponseWriter, r *http.Request) {
 func (s *Server) PostEventsEventIdRate(w http.ResponseWriter, r *http.Request, eventId uuid.UUID) {
 	// In a real scenario we extract userID from middleware ctx
 	// userID := r.Context().Value(middleware.UserIDKey).(uuid.UUID)
-	
+
 	RespondJSON(w, http.StatusOK, map[string]string{"message": "Rating submitted"})
 }
 
@@ -70,7 +70,7 @@ func (s *Server) PutEventsEventIdAction(w http.ResponseWriter, r *http.Request, 
 		RespondError(w, http.StatusUnauthorized, "user not authenticated")
 		return
 	}
-	
+
 	var reqBody PutEventsEventIdActionJSONRequestBody
 	if err := json.NewDecoder(r.Body).Decode(&reqBody); err != nil {
 		RespondError(w, http.StatusBadRequest, "Invalid request body")

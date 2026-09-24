@@ -26,8 +26,6 @@ export default function MapPage() {
     const { isAuthenticated } = useAuth();
     const [isFormOpen, setIsFormOpen] = useState(false);
     
-    const showNewEventButton = isAuthenticated || process.env.NODE_ENV === 'development';
-    
     const { data: eventsData, isLoading: isEventsLoading } = useGetEvents();
     const allEvents = eventsData?.events || [];
     
@@ -80,7 +78,7 @@ export default function MapPage() {
                         onEndDateChange={handleEndDateChange} 
                     />
                     <ArtistSearch />
-                    {showNewEventButton && (
+                    {isAuthenticated && (
                         <Button className="w-full bg-gradient-to-r from-primary to-orange-500 hover:from-primary/90 hover:to-orange-500/90 text-white shadow-md transition-all hover:-translate-y-0.5" onClick={() => setIsFormOpen(true)}>
                             <Plus className="w-4 h-4 mr-2" /> {t('buttons.newEvent')}
                         </Button>

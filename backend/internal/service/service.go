@@ -19,7 +19,7 @@ type Services struct {
 func NewServices(repo *repository.Queries) *Services {
 	// Use MockMailer for development
 	m := mailer.NewMockMailer()
-	
+
 	return &Services{
 		Auth:   NewAuthService(repo, m),
 		Event:  NewEventService(repo),
@@ -29,5 +29,3 @@ func NewServices(repo *repository.Queries) *Services {
 		Stats:  NewStatsService(repo),
 	}
 }
-
-

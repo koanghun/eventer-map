@@ -27,3 +27,14 @@ SELECT EXISTS(SELECT 1 FROM users WHERE display_name = $1);
 UPDATE users
 SET is_email_verified = $2, updated_at = NOW()
 WHERE email = $1;
+
+-- name: UpdateUserProfile :one
+UPDATE users
+SET display_name = $2, updated_at = NOW()
+WHERE id = $1
+RETURNING *;
+
+-- name: UpdateUserPassword :exec
+UPDATE users
+SET password_hash = $2, updated_at = NOW()
+WHERE id = $1;
