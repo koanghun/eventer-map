@@ -22,12 +22,15 @@
         "clearFilter": "フィルター解除"
     },
     "auth": {
-        "loginWithGoogle": "Googleでログイン",
-        "logout": "ログアウト",
-        "loginRequired": "ログインが必要です",
-        "loginToCreate": "イベントを登録するにはログインしてください",
+        "loginWithGoogle": "Log in with Google",
+        "logout": "Log out",
+        "loginRequired": "Login is required",
+        "loginToCreate": "Please log in to register an event",
         "processingLogin": "Processing login",
         "loginFailed": "Login failed",
+        "loginSuccess": "Logged in successfully.",
+        "logoutSuccess": "Logged out successfully.",
+        "googleLoginSuccess": "Logged in with Google successfully.",
         "email": "Email",
         "nickname": "Nickname"
     },
@@ -373,7 +376,9 @@
         "passwordChangeSuccess": "Password changed successfully.",
         "passwordChangeFailed": "Failed to change password.",
         "googleLinked": "Google account linked successfully.",
-        "googleLinkFailed": "Failed to link Google account."
+        "googleLinkFailed": "Failed to link Google account.",
+        "googleUnlinked": "Google account unlinked successfully.",
+        "googleUnlinkFailed": "Failed to unlink Google account."
     },
     "seo": {
         "title": "Event Map - イベントマップ",

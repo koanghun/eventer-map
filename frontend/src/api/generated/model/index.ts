@@ -45,6 +45,7 @@ export * from './localLoginRequest';
 export * from './postAuthLogout200';
 export * from './postAuthSignup200';
 export * from './postUsersMeLinkGoogle200';
+export * from './postUsersMeUnlinkGoogle200';
 export * from './postVisits200';
 export * from './putEventsEventIdActionBody';
 export * from './putEventsEventIdActionBodyStatus';

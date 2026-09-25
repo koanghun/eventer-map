@@ -100,3 +100,42 @@ func (s *Server) PostAuthRefresh(w http.ResponseWriter, r *http.Request, params 
 	setRefreshTokenCookie(w, tokenResp.RefreshToken)
 	RespondJSON(w, http.StatusOK, tokenResp)
 }
+
+// PostAuthGoogle implements the POST /auth/google endpoint
+func (s *Server) PostAuthGoogle(w http.ResponseWriter, r *http.Request) {
+	var req PostAuthGoogleJSONRequestBody
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		RespondError(w, http.StatusBadRequest, "Invalid request body")
+		return
+	}
+
+	tokenResp, err := s.services.Auth.GoogleLogin(r.Context(), req.IdToken, true)
+	if err != nil {
+		RespondError(w, http.StatusUnauthorized, "Invalid Google token")
+		return
+	}
+
+	setRefreshTokenCookie(w, tokenResp.RefreshToken)
+	RespondJSON(w, http.StatusOK, tokenResp)
+}
+
+// PostAuthLogout implements the POST /auth/logout endpoint
+func (s *Server) PostAuthLogout(w http.ResponseWriter, r *http.Request, params PostAuthLogoutParams) {
+	// Clear the refresh token cookie
+	http.SetCookie(w, &http.Cookie{
+		Name:     "refreshToken",
+		Value:    "",
+		HttpOnly: true,
+		Secure:   false,
+		SameSite: http.SameSiteLaxMode,
+		Path:     "/",
+		Expires:  time.Unix(0, 0),
+		MaxAge:   -1,
+	})
+
+	// We don't have server-side logout currently, just clear the cookie.
+
+	RespondJSON(w, http.StatusOK, map[string]string{
+		"message": "Logged out successfully",
+	})
+}

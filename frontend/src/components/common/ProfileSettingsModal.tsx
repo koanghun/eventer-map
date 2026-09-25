@@ -13,7 +13,7 @@ import { Button } from '../ui/button';
 import { Label } from '../ui/label';
 import { toast } from '../../store/useToastStore';
 import { User, Mail, Lock, CheckCircle, AlertCircle } from 'lucide-react';
-import { usePatchUsersMe, usePutUsersMePassword, usePostUsersMeLinkGoogle } from '../../api/generated/user/user';
+import { usePatchUsersMe, usePutUsersMePassword, usePostUsersMeLinkGoogle, usePostUsersMeUnlinkGoogle } from '../../api/generated/user/user';
 import { useGoogleLogin } from '@react-oauth/google';
 
 interface ProfileSettingsModalProps {
@@ -36,6 +36,7 @@ export default function ProfileSettingsModal({ isOpen, onClose }: ProfileSetting
     const [isSubmitting, setIsSubmitting] = useState(false);
 
     const linkGoogleMutation = usePostUsersMeLinkGoogle();
+    const unlinkGoogleMutation = usePostUsersMeUnlinkGoogle();
 
     const googleLogin = useGoogleLogin({
         onSuccess: async (tokenResponse) => {
@@ -80,8 +81,13 @@ export default function ProfileSettingsModal({ isOpen, onClose }: ProfileSetting
         }
         setIsSubmitting(true);
         try {
-            await updatePassword({ data: { currentPassword, newPassword } });
-            toast.success(t('profile.passwordChangeSuccess', '비밀번호가 변경되었습니다.'));
+            const data: any = { newPassword };
+            if (currentPassword) {
+                data.currentPassword = currentPassword;
+            }
+            await updatePassword({ data });
+            await refreshUser();
+            toast.success(t('profile.passwordChangeSuccess', '비밀번호가 설정되었습니다.'));
             setCurrentPassword('');
             setNewPassword('');
             setConfirmPassword('');
@@ -93,8 +99,20 @@ export default function ProfileSettingsModal({ isOpen, onClose }: ProfileSetting
         }
     };
 
-    const handleGoogleLink = () => {
-        googleLogin();
+    const handleGoogleLink = async () => {
+        if (isGoogleLinked) {
+            // Unlink logic
+            try {
+                await unlinkGoogleMutation.mutateAsync();
+                await refreshUser();
+                toast.success(t('profile.googleUnlinked', '구글 계정 연동이 해제되었습니다.'));
+            } catch (error: any) {
+                const msg = error?.response?.data?.error || t('profile.googleUnlinkFailed', '구글 계정 연동 해제에 실패했습니다.');
+                toast.error(msg);
+            }
+        } else {
+            googleLogin();
+        }
     };
 
     return (
@@ -157,15 +175,17 @@ export default function ProfileSettingsModal({ isOpen, onClose }: ProfileSetting
                         </h4>
                         
                         <div className="space-y-3">
-                            <div className="space-y-2">
-                                <Label htmlFor="current-password">{t('profile.currentPassword', '현재 비밀번호')}</Label>
-                                <Input
-                                    id="current-password"
-                                    type="password"
-                                    value={currentPassword}
-                                    onChange={(e) => setCurrentPassword(e.target.value)}
-                                />
-                            </div>
+                            {user.hasPassword && (
+                                <div className="space-y-2">
+                                    <Label htmlFor="current-password">{t('profile.currentPassword', '현재 비밀번호')}</Label>
+                                    <Input
+                                        id="current-password"
+                                        type="password"
+                                        value={currentPassword}
+                                        onChange={(e) => setCurrentPassword(e.target.value)}
+                                    />
+                                </div>
+                            )}
                             <div className="space-y-2">
                                 <Label htmlFor="new-password">{t('profile.newPassword', '새 비밀번호')}</Label>
                                 <Input
@@ -188,9 +208,9 @@ export default function ProfileSettingsModal({ isOpen, onClose }: ProfileSetting
                                 className="w-full"
                                 variant="outline"
                                 onClick={handleChangePassword}
-                                disabled={isSubmitting || !currentPassword || !newPassword || !confirmPassword}
+                                disabled={isSubmitting || !newPassword || !confirmPassword || (user.hasPassword && !currentPassword)}
                             >
-                                {t('profile.updatePassword', '비밀번호 변경하기')}
+                                {user.hasPassword ? t('profile.updatePassword', '비밀번호 변경하기') : t('profile.setPassword', '비밀번호 설정하기')}
                             </Button>
                         </div>
                     </div>

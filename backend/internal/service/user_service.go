@@ -123,12 +123,10 @@ func (s *UserService) UpdatePassword(ctx context.Context, userID uuid.UUID, curr
 		return err
 	}
 
-	if !user.PasswordHash.Valid {
-		return errors.New("user does not have a password set")
-	}
-
-	if err := bcrypt.CompareHashAndPassword([]byte(user.PasswordHash.String), []byte(currentPassword)); err != nil {
-		return errors.New("invalid current password")
+	if user.PasswordHash.Valid {
+		if err := bcrypt.CompareHashAndPassword([]byte(user.PasswordHash.String), []byte(currentPassword)); err != nil {
+			return errors.New("invalid current password")
+		}
 	}
 
 	newHash, err := bcrypt.GenerateFromPassword([]byte(newPassword), bcrypt.DefaultCost)

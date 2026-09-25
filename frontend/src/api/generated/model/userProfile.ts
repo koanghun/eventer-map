@@ -12,6 +12,8 @@ export interface UserProfile {
   displayName?: string;
   /** 사용자 이메일 */
   email?: string;
+  /** 비밀번호 설정 여부 */
+  hasPassword?: boolean;
   /** 사용자 고유 식별자 */
   id?: string;
   /** 구글 연동 여부 */

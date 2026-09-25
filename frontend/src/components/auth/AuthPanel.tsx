@@ -7,6 +7,7 @@ import LoginButton from '../common/LoginButton';
 import { useAuth } from '../../context/AuthContext';
 import { toast } from '../../store/useToastStore';
 import { useTranslation } from 'react-i18next';
+import { useGoogleLogin } from '@react-oauth/google';
 
 interface AuthPanelProps {
     onClose: () => void;
@@ -15,7 +16,7 @@ interface AuthPanelProps {
 type AuthView = 'login' | 'signup' | 'verifyEmail' | 'findId' | 'findPassword';
 
 export default function AuthPanel({ onClose }: AuthPanelProps) {
-    const { login, signup, verifyEmail } = useAuth();
+    const { login, signup, verifyEmail, googleLogin: contextGoogleLogin } = useAuth();
     const { t } = useTranslation();
     const [view, setView] = useState<AuthView>('login');
     const [email, setEmail] = useState('');
@@ -28,6 +29,21 @@ export default function AuthPanel({ onClose }: AuthPanelProps) {
     const [signupPasswordConfirm, setSignupPasswordConfirm] = useState('');
     const [signupNickname, setSignupNickname] = useState('');
     const [verificationCode, setVerificationCode] = useState('');
+
+    const googleLogin = useGoogleLogin({
+        onSuccess: async (tokenResponse) => {
+            try {
+                await contextGoogleLogin(tokenResponse.access_token);
+                onClose();
+            } catch (err: any) {
+                const msg = err?.response?.data?.error || t('auth.loginFailed', 'Login failed.');
+                toast.error(msg);
+            }
+        },
+        onError: () => {
+            toast.error(t('auth.loginFailed', 'Login failed.'));
+        }
+    });
 
     const handleLogin = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -118,14 +134,7 @@ export default function AuthPanel({ onClose }: AuthPanelProps) {
             </div>
 
             <div className="flex justify-center w-full">
-                <LoginButton onClick={() => {
-                    const apiBase = process.env.REACT_APP_API_URL;
-                    if (apiBase) {
-                        window.location.href = `${apiBase}/auth/google/login`;
-                    } else {
-                        window.location.href = `/api/auth/google/login`;
-                    }
-                }} />
+                <LoginButton onClick={() => googleLogin()} />
             </div>
 
             <div className="flex items-center justify-center gap-4 text-xs font-medium mt-2">

@@ -28,6 +28,9 @@
         "loginToCreate": "イベントを登録するにはログインしてください",
         "processingLogin": "ログイン処理中",
         "loginFailed": "ログインに失敗しました",
+        "loginSuccess": "ログインしました。",
+        "logoutSuccess": "ログアウトしました。",
+        "googleLoginSuccess": "Googleでログインしました。",
         "email": "メールアドレス",
         "nickname": "ニックネーム"
     },
@@ -373,7 +376,9 @@
         "passwordChangeSuccess": "パスワードが変更されました。",
         "passwordChangeFailed": "パスワードの変更に失敗しました。",
         "googleLinked": "Googleアカウントが連携されました。",
-        "googleLinkFailed": "Googleアカウントの連携に失敗しました。"
+        "googleLinkFailed": "Googleアカウントの連携に失敗しました。",
+        "googleUnlinked": "Googleアカウントの連携が解除されました。",
+        "googleUnlinkFailed": "Googleアカウントの連携解除に失敗しました。"
     },
     "seo": {
         "title": "Event Map - イベントマップ",

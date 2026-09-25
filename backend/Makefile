@@ -5,9 +5,9 @@ export
 
 generate:
 	@echo "Generating OpenAPI code..."
-	# oapi-codegen -generate types,server,spec -package handler api/openapi.yaml > internal/handler/api.gen.go
+	go run github.com/oapi-codegen/oapi-codegen/v2/cmd/oapi-codegen@latest -generate types,std-http,spec -package handler api/openapi.yaml > internal/handler/openapi.gen.go
 	@echo "Generating SQL code..."
-	# sqlc generate
+	go run github.com/sqlc-dev/sqlc/cmd/sqlc@latest generate
 	@echo "Done."
 
 build:

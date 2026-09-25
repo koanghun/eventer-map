@@ -28,6 +28,7 @@ import type {
   GetUsersUserIdFollowersParams,
   LinkGoogleRequest,
   PostUsersMeLinkGoogle200,
+  PostUsersMeUnlinkGoogle200,
   PutUsersMePassword200,
   UpdatePasswordRequest,
   UpdateProfileRequest,
@@ -335,6 +336,62 @@ export const usePostUsersMeLinkGoogle = <TError = void,
       > => {
 
       const mutationOptions = getPostUsersMeLinkGoogleMutationOptions(options);
+
+      return useMutation(mutationOptions);
+    }
+    /**
+ * 현재 로그인된 사용자의 계정에 구글 계정 연동 해제
+ * @summary 구글 계정 연동 해제
+ */
+export const postUsersMeUnlinkGoogle = (
+    
+ options?: SecondParameter<typeof customInstance>,) => {
+      
+      
+      return customInstance<PostUsersMeUnlinkGoogle200>(
+      {url: `/users/me/unlink-google`, method: 'POST'
+    },
+      options);
+    }
+  
+
+
+export const getPostUsersMeUnlinkGoogleMutationOptions = <TError = void,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postUsersMeUnlinkGoogle>>, TError,void, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationOptions<Awaited<ReturnType<typeof postUsersMeUnlinkGoogle>>, TError,void, TContext> => {
+const {mutation: mutationOptions, request: requestOptions} = options ?? {};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof postUsersMeUnlinkGoogle>>, void> = () => {
+          
+
+          return  postUsersMeUnlinkGoogle(requestOptions)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type PostUsersMeUnlinkGoogleMutationResult = NonNullable<Awaited<ReturnType<typeof postUsersMeUnlinkGoogle>>>
+    
+    export type PostUsersMeUnlinkGoogleMutationError = void
+
+    /**
+ * @summary 구글 계정 연동 해제
+ */
+export const usePostUsersMeUnlinkGoogle = <TError = void,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postUsersMeUnlinkGoogle>>, TError,void, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationResult<
+        Awaited<ReturnType<typeof postUsersMeUnlinkGoogle>>,
+        TError,
+        void,
+        TContext
+      > => {
+
+      const mutationOptions = getPostUsersMeUnlinkGoogleMutationOptions(options);
 
       return useMutation(mutationOptions);
     }

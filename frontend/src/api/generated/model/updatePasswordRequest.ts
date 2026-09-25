@@ -7,7 +7,7 @@
 
 export interface UpdatePasswordRequest {
   /** 현재 비밀번호 */
-  currentPassword: string;
+  currentPassword?: string;
   /**
    * 새 비밀번호
    * @minLength 8

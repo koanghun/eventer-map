@@ -7,9 +7,9 @@ import (
 	"regexp"
 	"time"
 
+	"encoding/json"
 	"eventer-map-backend/internal/mailer"
 	"eventer-map-backend/internal/repository"
-	"encoding/json"
 	"net/http"
 
 	"github.com/golang-jwt/jwt/v5"
@@ -299,7 +299,7 @@ func (s *AuthService) LinkGoogleAccount(ctx context.Context, userID uuid.UUID, t
 	} else {
 		googleID, _, err = s.VerifyGoogleIDToken(ctx, token)
 	}
-	
+
 	if err != nil {
 		return errors.New("invalid google token")
 	}
@@ -315,4 +315,51 @@ func (s *AuthService) LinkGoogleAccount(ctx context.Context, userID uuid.UUID, t
 		ID:       userID,
 		GoogleID: sql.NullString{String: googleID, Valid: true},
 	})
+}
+
+func (s *AuthService) UnlinkGoogleAccount(ctx context.Context, userID uuid.UUID) error {
+	return s.repo.UpdateUserGoogleID(ctx, repository.UpdateUserGoogleIDParams{
+		ID:       userID,
+		GoogleID: sql.NullString{Valid: false},
+	})
+}
+
+func (s *AuthService) GoogleLogin(ctx context.Context, token string, isAccessToken bool) (*TokenResponse, error) {
+	var googleID, email string
+	var err error
+	if isAccessToken {
+		googleID, email, err = s.VerifyGoogleAccessToken(ctx, token)
+	} else {
+		googleID, email, err = s.VerifyGoogleIDToken(ctx, token)
+	}
+
+	if err != nil {
+		return nil, errors.New("invalid google token")
+	}
+
+	// Try to find by Google ID
+	user, err := s.repo.GetUserByGoogleID(ctx, sql.NullString{String: googleID, Valid: true})
+	if err == nil {
+		return s.generateTokens(user.ID.String())
+	}
+
+	// Try to find by Email
+	_, err = s.repo.GetUserByEmail(ctx, sql.NullString{String: email, Valid: true})
+	if err == nil {
+		// Found by email but Google ID is not linked!
+		return nil, errors.New("this email is already registered. please login with your password and link your google account in settings")
+	}
+
+	// Create new user
+	newUser, err := s.repo.CreateUser(ctx, repository.CreateUserParams{
+		Email:        sql.NullString{String: email, Valid: true},
+		DisplayName:  email, // Use email as default display name
+		PasswordHash: sql.NullString{Valid: false},
+		GoogleID:     sql.NullString{String: googleID, Valid: true},
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	return s.generateTokens(newUser.ID.String())
 }

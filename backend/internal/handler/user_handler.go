@@ -29,6 +29,7 @@ func (s *Server) GetUsersMe(w http.ResponseWriter, r *http.Request) {
 		"displayName":    user.DisplayName,
 		"createdAt":      user.CreatedAt,
 		"isGoogleLinked": user.GoogleID.Valid,
+		"hasPassword":    user.PasswordHash.Valid,
 	})
 }
 
@@ -407,7 +408,12 @@ func (s *Server) PutUsersMePassword(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err := s.services.User.UpdatePassword(r.Context(), userID, req.CurrentPassword, req.NewPassword)
+	currentPassword := ""
+	if req.CurrentPassword != nil {
+		currentPassword = *req.CurrentPassword
+	}
+
+	err := s.services.User.UpdatePassword(r.Context(), userID, currentPassword, req.NewPassword)
 	if err != nil {
 		if err.Error() == "invalid current password" {
 			RespondError(w, http.StatusBadRequest, "Invalid current password")
@@ -452,5 +458,24 @@ func (s *Server) PostUsersMeLinkGoogle(w http.ResponseWriter, r *http.Request) {
 
 	RespondJSON(w, http.StatusOK, map[string]string{
 		"message": "Google account linked successfully",
+	})
+}
+
+// PostUsersMeUnlinkGoogle implements the POST /users/me/unlink-google endpoint
+func (s *Server) PostUsersMeUnlinkGoogle(w http.ResponseWriter, r *http.Request) {
+	userID, ok := r.Context().Value(middleware.UserIDKey).(uuid.UUID)
+	if !ok {
+		RespondError(w, http.StatusUnauthorized, "user not authenticated")
+		return
+	}
+
+	err := s.services.Auth.UnlinkGoogleAccount(r.Context(), userID)
+	if err != nil {
+		RespondError(w, http.StatusInternalServerError, "Failed to unlink Google account")
+		return
+	}
+
+	RespondJSON(w, http.StatusOK, map[string]string{
+		"message": "Google account unlinked successfully",
 	})
 }
