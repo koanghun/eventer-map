@@ -36,3 +36,21 @@ UPDATE venues
 SET rating_sum = rating_sum + sqlc.arg('score_delta'),
     rating_count = rating_count + sqlc.arg('count_delta')
 WHERE id = sqlc.arg('id');
+
+-- name: CheckVenueInEvent :one
+SELECT EXISTS(
+    SELECT 1 FROM events WHERE venue_id = $1
+);
+
+-- name: GetUserVenueRating :one
+SELECT score FROM user_venue_ratings
+WHERE user_id = $1 AND venue_id = $2 LIMIT 1;
+
+-- name: InsertUserVenueRating :exec
+INSERT INTO user_venue_ratings (user_id, venue_id, score)
+VALUES ($1, $2, $3);
+
+-- name: UpdateUserVenueRating :exec
+UPDATE user_venue_ratings
+SET score = $3
+WHERE user_id = $1 AND venue_id = $2;

@@ -3,6 +3,7 @@ package handler
 import (
 	"net/http"
 
+	"eventer-map-backend/internal/middleware"
 	"github.com/google/uuid"
 )
 
@@ -43,4 +44,34 @@ func (s *Server) GetVenuesVenueId(w http.ResponseWriter, r *http.Request, venueI
 	}
 
 	RespondJSON(w, http.StatusOK, venue)
+}
+
+// PostVenuesVenueIdRate implements the POST /venues/{venueId}/rate endpoint
+func (s *Server) PostVenuesVenueIdRate(w http.ResponseWriter, r *http.Request, venueId uuid.UUID) {
+	myID, ok := r.Context().Value(middleware.UserIDKey).(uuid.UUID)
+	if !ok {
+		RespondError(w, http.StatusUnauthorized, "user not authenticated")
+		return
+	}
+
+	var reqBody struct {
+		Score int32 `json:"score"`
+	}
+	if err := ParseJSON(r, &reqBody); err != nil {
+		RespondError(w, http.StatusBadRequest, "Invalid request body")
+		return
+	}
+
+	if reqBody.Score != 1 && reqBody.Score != -1 {
+		RespondError(w, http.StatusBadRequest, "score must be 1 or -1")
+		return
+	}
+
+	updatedVenue, err := s.services.Venue.RateVenue(r.Context(), myID, venueId, reqBody.Score)
+	if err != nil {
+		RespondError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	RespondJSON(w, http.StatusOK, updatedVenue)
 }

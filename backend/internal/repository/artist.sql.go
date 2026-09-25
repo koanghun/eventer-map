@@ -12,6 +12,19 @@ import (
 	"github.com/google/uuid"
 )
 
+const checkArtistInEvent = `-- name: CheckArtistInEvent :one
+SELECT EXISTS(
+    SELECT 1 FROM event_artists WHERE artist_id = $1
+)
+`
+
+func (q *Queries) CheckArtistInEvent(ctx context.Context, artistID uuid.UUID) (bool, error) {
+	row := q.db.QueryRowContext(ctx, checkArtistInEvent, artistID)
+	var exists bool
+	err := row.Scan(&exists)
+	return exists, err
+}
+
 const createArtist = `-- name: CreateArtist :one
 INSERT INTO artists (official_name, hiragana, gender, profile_image_url, birth_date, debut_date, status, author_id)
 VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
@@ -83,6 +96,39 @@ func (q *Queries) GetArtist(ctx context.Context, id uuid.UUID) (Artist, error) {
 		&i.UpdatedAt,
 	)
 	return i, err
+}
+
+const getUserArtistRating = `-- name: GetUserArtistRating :one
+SELECT score FROM user_artist_ratings
+WHERE user_id = $1 AND artist_id = $2 LIMIT 1
+`
+
+type GetUserArtistRatingParams struct {
+	UserID   uuid.UUID
+	ArtistID uuid.UUID
+}
+
+func (q *Queries) GetUserArtistRating(ctx context.Context, arg GetUserArtistRatingParams) (int32, error) {
+	row := q.db.QueryRowContext(ctx, getUserArtistRating, arg.UserID, arg.ArtistID)
+	var score int32
+	err := row.Scan(&score)
+	return score, err
+}
+
+const insertUserArtistRating = `-- name: InsertUserArtistRating :exec
+INSERT INTO user_artist_ratings (user_id, artist_id, score)
+VALUES ($1, $2, $3)
+`
+
+type InsertUserArtistRatingParams struct {
+	UserID   uuid.UUID
+	ArtistID uuid.UUID
+	Score    int32
+}
+
+func (q *Queries) InsertUserArtistRating(ctx context.Context, arg InsertUserArtistRatingParams) error {
+	_, err := q.db.ExecContext(ctx, insertUserArtistRating, arg.UserID, arg.ArtistID, arg.Score)
+	return err
 }
 
 const listArtists = `-- name: ListArtists :many
@@ -214,5 +260,22 @@ type UpdateArtistRatingParams struct {
 
 func (q *Queries) UpdateArtistRating(ctx context.Context, arg UpdateArtistRatingParams) error {
 	_, err := q.db.ExecContext(ctx, updateArtistRating, arg.ScoreDelta, arg.CountDelta, arg.ID)
+	return err
+}
+
+const updateUserArtistRating = `-- name: UpdateUserArtistRating :exec
+UPDATE user_artist_ratings
+SET score = $3
+WHERE user_id = $1 AND artist_id = $2
+`
+
+type UpdateUserArtistRatingParams struct {
+	UserID   uuid.UUID
+	ArtistID uuid.UUID
+	Score    int32
+}
+
+func (q *Queries) UpdateUserArtistRating(ctx context.Context, arg UpdateUserArtistRatingParams) error {
+	_, err := q.db.ExecContext(ctx, updateUserArtistRating, arg.UserID, arg.ArtistID, arg.Score)
 	return err
 }

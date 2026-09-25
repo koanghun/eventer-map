@@ -103,12 +103,19 @@ type User struct {
 	UpdatedAt               time.Time
 	IsEmailVerified         bool
 	LastArtistFeedCheckedAt time.Time
+	Role                    string
 }
 
 type UserArtistFollow struct {
 	UserID    uuid.UUID
 	ArtistID  uuid.UUID
 	CreatedAt time.Time
+}
+
+type UserArtistRating struct {
+	UserID   uuid.UUID
+	ArtistID uuid.UUID
+	Score    int32
 }
 
 type UserBlock struct {
@@ -127,6 +134,12 @@ type UserFollow struct {
 	FollowerID uuid.UUID
 	FolloweeID uuid.UUID
 	CreatedAt  time.Time
+}
+
+type UserVenueRating struct {
+	UserID  uuid.UUID
+	VenueID uuid.UUID
+	Score   int32
 }
 
 type Venue struct {

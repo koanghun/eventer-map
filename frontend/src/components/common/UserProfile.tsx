@@ -55,7 +55,7 @@ export default function UserProfile() {
                                     {t('common.manageReports')}
                                 </Button>
                             )}
-                            <Button variant="ghost" className="w-full justify-start text-sm h-9 text-destructive hover:text-destructive hover:bg-destructive/10" onClick={logout}>
+                            <Button variant="ghost" className="w-full justify-start text-sm h-9 px-2 text-red-500 dark:text-red-400 hover:text-red-600 dark:hover:text-red-300 hover:bg-red-500/10 dark:hover:bg-red-400/20" onClick={logout}>
                                 <LogOut className="mr-2 h-4 w-4" />
                                 {t('auth.logout')}
                             </Button>

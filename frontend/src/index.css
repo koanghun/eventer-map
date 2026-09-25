@@ -33,6 +33,7 @@
     --ring: 24.6 95% 53.1%;
 
     --radius: 0.5rem;
+    color-scheme: light;
   }
 
   [data-theme='dark'],
@@ -64,6 +65,7 @@
     --border: 217.2 32.6% 17.5%;
     --input: 217.2 32.6% 17.5%;
     --ring: 24.6 95% 53.1%;
+    color-scheme: dark;
   }
 }
 

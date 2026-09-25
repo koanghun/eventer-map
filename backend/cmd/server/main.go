@@ -47,7 +47,7 @@ func main() {
 	repo := repository.New(db)
 
 	// 3. Initialize Services
-	services := service.NewServices(repo)
+	services := service.NewServices(repo, db)
 
 	// 4. Initialize Handler (implements ServerInterface)
 	apiHandler := handler.NewServer(services)

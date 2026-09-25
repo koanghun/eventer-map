@@ -13,6 +13,19 @@ import (
 	"github.com/lib/pq"
 )
 
+const checkVenueInEvent = `-- name: CheckVenueInEvent :one
+SELECT EXISTS(
+    SELECT 1 FROM events WHERE venue_id = $1
+)
+`
+
+func (q *Queries) CheckVenueInEvent(ctx context.Context, venueID uuid.NullUUID) (bool, error) {
+	row := q.db.QueryRowContext(ctx, checkVenueInEvent, venueID)
+	var exists bool
+	err := row.Scan(&exists)
+	return exists, err
+}
+
 const createVenue = `-- name: CreateVenue :one
 INSERT INTO venues (official_name, google_map_id, address, latitude, longitude, related_links, capacity, status, author_id)
 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
@@ -63,6 +76,23 @@ func (q *Queries) CreateVenue(ctx context.Context, arg CreateVenueParams) (Venue
 	return i, err
 }
 
+const getUserVenueRating = `-- name: GetUserVenueRating :one
+SELECT score FROM user_venue_ratings
+WHERE user_id = $1 AND venue_id = $2 LIMIT 1
+`
+
+type GetUserVenueRatingParams struct {
+	UserID  uuid.UUID
+	VenueID uuid.UUID
+}
+
+func (q *Queries) GetUserVenueRating(ctx context.Context, arg GetUserVenueRatingParams) (int32, error) {
+	row := q.db.QueryRowContext(ctx, getUserVenueRating, arg.UserID, arg.VenueID)
+	var score int32
+	err := row.Scan(&score)
+	return score, err
+}
+
 const getVenue = `-- name: GetVenue :one
 SELECT id, official_name, google_map_id, address, latitude, longitude, related_links, capacity, rating_sum, rating_count, status, author_id, created_at, updated_at FROM venues
 WHERE id = $1 LIMIT 1
@@ -88,6 +118,22 @@ func (q *Queries) GetVenue(ctx context.Context, id uuid.UUID) (Venue, error) {
 		&i.UpdatedAt,
 	)
 	return i, err
+}
+
+const insertUserVenueRating = `-- name: InsertUserVenueRating :exec
+INSERT INTO user_venue_ratings (user_id, venue_id, score)
+VALUES ($1, $2, $3)
+`
+
+type InsertUserVenueRatingParams struct {
+	UserID  uuid.UUID
+	VenueID uuid.UUID
+	Score   int32
+}
+
+func (q *Queries) InsertUserVenueRating(ctx context.Context, arg InsertUserVenueRatingParams) error {
+	_, err := q.db.ExecContext(ctx, insertUserVenueRating, arg.UserID, arg.VenueID, arg.Score)
+	return err
 }
 
 const listVenuesByBoundingBox = `-- name: ListVenuesByBoundingBox :many
@@ -155,6 +201,23 @@ func (q *Queries) ListVenuesByBoundingBox(ctx context.Context, arg ListVenuesByB
 		return nil, err
 	}
 	return items, nil
+}
+
+const updateUserVenueRating = `-- name: UpdateUserVenueRating :exec
+UPDATE user_venue_ratings
+SET score = $3
+WHERE user_id = $1 AND venue_id = $2
+`
+
+type UpdateUserVenueRatingParams struct {
+	UserID  uuid.UUID
+	VenueID uuid.UUID
+	Score   int32
+}
+
+func (q *Queries) UpdateUserVenueRating(ctx context.Context, arg UpdateUserVenueRatingParams) error {
+	_, err := q.db.ExecContext(ctx, updateUserVenueRating, arg.UserID, arg.VenueID, arg.Score)
+	return err
 }
 
 const updateVenue = `-- name: UpdateVenue :one

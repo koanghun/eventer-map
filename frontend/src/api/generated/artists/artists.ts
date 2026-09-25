@@ -23,6 +23,7 @@ import type {
   ArtistSummary,
   GetArtistsArtistIdFollowersParams,
   GetArtistsParams,
+  PostArtistsArtistIdRateBody,
   UserProfile
 } from '.././model'
 import { customInstance } from '../../../lib/axios';
@@ -412,6 +413,65 @@ export const usePostArtistsArtistIdApprove = <TError = unknown,
       > => {
 
       const mutationOptions = getPostArtistsArtistIdApproveMutationOptions(options);
+
+      return useMutation(mutationOptions);
+    }
+    /**
+ * 심사 중인 아티스트에 대해 +1 또는 -1의 점수를 부여합니다. 10명 이상 평가 및 80% 이상 긍정 시 자동 승인됩니다.
+ * @summary 아티스트 신용점수 평가
+ */
+export const postArtistsArtistIdRate = (
+    artistId: string,
+    postArtistsArtistIdRateBody: PostArtistsArtistIdRateBody,
+ options?: SecondParameter<typeof customInstance>,) => {
+      
+      
+      return customInstance<Artist>(
+      {url: `/artists/${artistId}/rate`, method: 'POST',
+      headers: {'Content-Type': 'application/json', },
+      data: postArtistsArtistIdRateBody
+    },
+      options);
+    }
+  
+
+
+export const getPostArtistsArtistIdRateMutationOptions = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postArtistsArtistIdRate>>, TError,{artistId: string;data: PostArtistsArtistIdRateBody}, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationOptions<Awaited<ReturnType<typeof postArtistsArtistIdRate>>, TError,{artistId: string;data: PostArtistsArtistIdRateBody}, TContext> => {
+const {mutation: mutationOptions, request: requestOptions} = options ?? {};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof postArtistsArtistIdRate>>, {artistId: string;data: PostArtistsArtistIdRateBody}> = (props) => {
+          const {artistId,data} = props ?? {};
+
+          return  postArtistsArtistIdRate(artistId,data,requestOptions)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type PostArtistsArtistIdRateMutationResult = NonNullable<Awaited<ReturnType<typeof postArtistsArtistIdRate>>>
+    export type PostArtistsArtistIdRateMutationBody = PostArtistsArtistIdRateBody
+    export type PostArtistsArtistIdRateMutationError = unknown
+
+    /**
+ * @summary 아티스트 신용점수 평가
+ */
+export const usePostArtistsArtistIdRate = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postArtistsArtistIdRate>>, TError,{artistId: string;data: PostArtistsArtistIdRateBody}, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationResult<
+        Awaited<ReturnType<typeof postArtistsArtistIdRate>>,
+        TError,
+        {artistId: string;data: PostArtistsArtistIdRateBody},
+        TContext
+      > => {
+
+      const mutationOptions = getPostArtistsArtistIdRateMutationOptions(options);
 
       return useMutation(mutationOptions);
     }

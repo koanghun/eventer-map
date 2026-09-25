@@ -19,6 +19,7 @@ import type {
 } from '@tanstack/react-query'
 import type {
   GetVenuesParams,
+  PostVenuesVenueIdRateBody,
   Venue,
   VenueInput,
   VenueListResponse
@@ -377,6 +378,65 @@ export const usePostVenuesVenueIdApprove = <TError = unknown,
       > => {
 
       const mutationOptions = getPostVenuesVenueIdApproveMutationOptions(options);
+
+      return useMutation(mutationOptions);
+    }
+    /**
+ * 심사 중인 공연장에 대해 +1 또는 -1의 점수를 부여합니다. 10명 이상 평가 및 80% 이상 긍정 시 자동 승인됩니다.
+ * @summary 공연장 신용점수 평가
+ */
+export const postVenuesVenueIdRate = (
+    venueId: string,
+    postVenuesVenueIdRateBody: PostVenuesVenueIdRateBody,
+ options?: SecondParameter<typeof customInstance>,) => {
+      
+      
+      return customInstance<Venue>(
+      {url: `/venues/${venueId}/rate`, method: 'POST',
+      headers: {'Content-Type': 'application/json', },
+      data: postVenuesVenueIdRateBody
+    },
+      options);
+    }
+  
+
+
+export const getPostVenuesVenueIdRateMutationOptions = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postVenuesVenueIdRate>>, TError,{venueId: string;data: PostVenuesVenueIdRateBody}, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationOptions<Awaited<ReturnType<typeof postVenuesVenueIdRate>>, TError,{venueId: string;data: PostVenuesVenueIdRateBody}, TContext> => {
+const {mutation: mutationOptions, request: requestOptions} = options ?? {};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof postVenuesVenueIdRate>>, {venueId: string;data: PostVenuesVenueIdRateBody}> = (props) => {
+          const {venueId,data} = props ?? {};
+
+          return  postVenuesVenueIdRate(venueId,data,requestOptions)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type PostVenuesVenueIdRateMutationResult = NonNullable<Awaited<ReturnType<typeof postVenuesVenueIdRate>>>
+    export type PostVenuesVenueIdRateMutationBody = PostVenuesVenueIdRateBody
+    export type PostVenuesVenueIdRateMutationError = unknown
+
+    /**
+ * @summary 공연장 신용점수 평가
+ */
+export const usePostVenuesVenueIdRate = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postVenuesVenueIdRate>>, TError,{venueId: string;data: PostVenuesVenueIdRateBody}, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationResult<
+        Awaited<ReturnType<typeof postVenuesVenueIdRate>>,
+        TError,
+        {venueId: string;data: PostVenuesVenueIdRateBody},
+        TContext
+      > => {
+
+      const mutationOptions = getPostVenuesVenueIdRateMutationOptions(options);
 
       return useMutation(mutationOptions);
     }

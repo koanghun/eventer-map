@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { X, Save, Plus, Trash2, Loader2 } from 'lucide-react';
+import { X, Save, Plus, Trash2, Loader2, Calendar as CalendarIcon } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
@@ -8,6 +8,10 @@ import { ScrollArea } from '../ui/scroll-area';
 import { usePostEvents } from '../../api/generated/events/events';
 import { useQueryClient } from '@tanstack/react-query';
 import { toast } from '../../store/useToastStore';
+import { format, parseISO } from 'date-fns';
+import { Popover, PopoverContent, PopoverTrigger } from '../ui/popover';
+import { Calendar } from '../ui/calendar';
+import { cn } from '../../lib/utils';
 import type { EventInput } from '../../api/generated/model';
 
 interface EventFormPaneProps {
@@ -87,37 +91,59 @@ export default function EventFormPane({ onClose }: EventFormPaneProps) {
                     {/* Event Form */}
                     <div className="flex flex-col gap-3">
                         <div className="space-y-1">
-                            <Label htmlFor="title" className="text-xs font-bold text-muted-foreground">타이틀</Label>
-                            <Input id="title" value={title} onChange={(e) => setTitle(e.target.value)} placeholder="이벤트 타이틀" className="h-8 text-xs bg-background border-input" disabled={isPending} />
+                            <Label htmlFor="title" className="text-xs font-bold text-muted-foreground">{t('event.fields.title', '타이틀')}</Label>
+                            <Input id="title" value={title} onChange={(e) => setTitle(e.target.value)} placeholder={t('event.fields.titlePlaceholder', '이벤트 타이틀')} className="h-8 text-xs bg-background border-input" disabled={isPending} />
                         </div>
 
                         <div className="space-y-1">
-                            <Label htmlFor="date" className="text-xs font-bold text-muted-foreground">개최일</Label>
-                            <Input type="date" id="date" value={date} onChange={(e) => setDate(e.target.value)} className="h-8 text-xs bg-background border-input" disabled={isPending} />
+                            <Label htmlFor="date" className="text-xs font-bold text-muted-foreground">{t('event.fields.date', '개최일')}</Label>
+                            <Popover>
+                                <PopoverTrigger asChild>
+                                    <Button
+                                        id="date"
+                                        variant={"outline"}
+                                        className={cn(
+                                            "w-full justify-start text-left font-normal h-8 text-xs bg-background border-input",
+                                            !date && "text-muted-foreground"
+                                        )}
+                                        disabled={isPending}
+                                    >
+                                        <CalendarIcon className="mr-2 h-3.5 w-3.5" />
+                                        {date ? format(parseISO(date), 'yyyy-MM-dd') : t('event.fields.date', '개최일')}
+                                    </Button>
+                                </PopoverTrigger>
+                                <PopoverContent className="w-auto p-0 bg-card border-border" align="start">
+                                    <Calendar
+                                        mode="single"
+                                        selected={date ? parseISO(date) : undefined}
+                                        onSelect={(d) => setDate(d ? format(d, 'yyyy-MM-dd') : '')}
+                                    />
+                                </PopoverContent>
+                            </Popover>
                         </div>
 
                         <div className="grid grid-cols-3 gap-2">
                             <div className="space-y-1">
-                                <Label htmlFor="doorsOpen" className="text-xs font-bold text-muted-foreground">개장 시간</Label>
+                                <Label htmlFor="doorsOpen" className="text-xs font-bold text-muted-foreground">{t('event.fields.doorsOpen', '개장 시간')}</Label>
                                 <Input type="time" id="doorsOpen" value={doorsOpen} onChange={(e) => setDoorsOpen(e.target.value)} className="h-8 text-xs px-2 bg-background border-input" disabled={isPending} />
                             </div>
                             <div className="space-y-1">
-                                <Label htmlFor="startTime" className="text-xs font-bold text-muted-foreground">개연 시간</Label>
+                                <Label htmlFor="startTime" className="text-xs font-bold text-muted-foreground">{t('event.fields.startTime', '개연 시간')}</Label>
                                 <Input type="time" id="startTime" value={startTime} onChange={(e) => setStartTime(e.target.value)} className="h-8 text-xs px-2 bg-background border-input" disabled={isPending} />
                             </div>
                             <div className="space-y-1">
-                                <Label htmlFor="endTime" className="text-xs font-bold text-muted-foreground">종료 시간</Label>
+                                <Label htmlFor="endTime" className="text-xs font-bold text-muted-foreground">{t('event.fields.endTime', '종료 시간')}</Label>
                                 <Input type="time" id="endTime" value={endTime} onChange={(e) => setEndTime(e.target.value)} className="h-8 text-xs px-2 bg-background border-input" disabled={isPending} />
                             </div>
                         </div>
 
                         <div className="space-y-1">
-                            <Label htmlFor="venue" className="text-xs font-bold text-muted-foreground">공연장 ID (임시)</Label>
-                            <Input id="venue" value={venueId} onChange={(e) => setVenueId(e.target.value)} placeholder="UUID 입력..." className="h-8 text-xs bg-background border-input" disabled={isPending} />
+                            <Label htmlFor="venue" className="text-xs font-bold text-muted-foreground">{t('event.fields.venueId', '공연장 ID (임시)')}</Label>
+                            <Input id="venue" value={venueId} onChange={(e) => setVenueId(e.target.value)} placeholder={t('event.fields.venuePlaceholder', 'UUID 입력...')} className="h-8 text-xs bg-background border-input" disabled={isPending} />
                         </div>
 
                         <div className="space-y-1.5">
-                            <Label className="text-xs font-bold text-muted-foreground">관련 링크</Label>
+                            <Label className="text-xs font-bold text-muted-foreground">{t('event.fields.relatedLinks', '관련 링크')}</Label>
                             {links.map((link, index) => (
                                 <div key={index} className="flex items-center gap-2">
                                     <Input 
@@ -142,14 +168,14 @@ export default function EventFormPane({ onClose }: EventFormPaneProps) {
                                 </div>
                             ))}
                             <Button type="button" variant="outline" size="sm" onClick={addLink} className="h-8 w-full border-dashed text-xs text-muted-foreground hover:text-primary" disabled={isPending}>
-                                <Plus className="w-3.5 h-3.5 mr-1" /> 링크 추가
+                                <Plus className="w-3.5 h-3.5 mr-1" /> {t('event.addLink', '링크 추가')}
                             </Button>
                         </div>
                     </div>
 
                     <Button type="submit" disabled={isPending} className="w-full font-bold shadow-sm h-9 bg-primary text-primary-foreground hover:bg-primary/90 mt-2">
                         {isPending ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Save className="w-4 h-4 mr-2" />}
-                        등록하기
+                        {t('buttons.register', '등록하기')}
                     </Button>
 
                     <hr className="border-border my-2" />
@@ -157,12 +183,12 @@ export default function EventFormPane({ onClose }: EventFormPaneProps) {
                     {/* Threads Section (Disabled during creation) */}
                     <div className="flex flex-col h-[200px] opacity-50 pointer-events-none">
                         <h3 className="font-bold text-sm text-primary mb-2 flex items-center gap-2">
-                            스레드
+                            {t('event.threads.title', '스레드')}
                             <span className="bg-primary/10 text-primary text-[10px] px-1.5 py-0.5 rounded-full">0</span>
                         </h3>
                         <div className="flex-1 rounded-md bg-muted/30 border border-border flex items-center justify-center">
                             <p className="text-xs text-muted-foreground text-center">
-                                이벤트를 등록한 후에 스레드를 작성할 수 있습니다.
+                                {t('event.threads.disabledDescription', '이벤트를 등록한 후에 스레드를 작성할 수 있습니다.')}
                             </p>
                         </div>
                     </div>

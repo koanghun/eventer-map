@@ -34,3 +34,21 @@ UPDATE artists
 SET rating_sum = rating_sum + sqlc.arg('score_delta'),
     rating_count = rating_count + sqlc.arg('count_delta')
 WHERE id = sqlc.arg('id');
+
+-- name: CheckArtistInEvent :one
+SELECT EXISTS(
+    SELECT 1 FROM event_artists WHERE artist_id = $1
+);
+
+-- name: GetUserArtistRating :one
+SELECT score FROM user_artist_ratings
+WHERE user_id = $1 AND artist_id = $2 LIMIT 1;
+
+-- name: InsertUserArtistRating :exec
+INSERT INTO user_artist_ratings (user_id, artist_id, score)
+VALUES ($1, $2, $3);
+
+-- name: UpdateUserArtistRating :exec
+UPDATE user_artist_ratings
+SET score = $3
+WHERE user_id = $1 AND artist_id = $2;

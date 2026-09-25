@@ -54,16 +54,8 @@ export default function MapPage() {
         setSearchParams(newParams, { replace: true });
     };
 
-    const handleStartDateChange = (newDate: string) => {
-        updateQueryParams({
-            start: newDate,
-            end: newDate > endDate ? newDate : endDate
-        });
-        clearSelection();
-    };
-
-    const handleEndDateChange = (date: string) => {
-        updateQueryParams({ end: date });
+    const handleDateChange = (start: string, end: string) => {
+        updateQueryParams({ start, end });
         clearSelection();
     };
 
@@ -74,8 +66,7 @@ export default function MapPage() {
                     <DatePicker 
                         startDate={startDate} 
                         endDate={endDate} 
-                        onStartDateChange={handleStartDateChange} 
-                        onEndDateChange={handleEndDateChange} 
+                        onDateChange={handleDateChange} 
                     />
                     <ArtistSearch />
                     {isAuthenticated && (

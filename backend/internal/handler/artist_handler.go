@@ -103,3 +103,33 @@ func (s *Server) GetArtistsArtistIdFollowers(w http.ResponseWriter, r *http.Requ
 	}
 	RespondJSON(w, http.StatusOK, response)
 }
+
+// PostArtistsArtistIdRate implements the POST /artists/{artistId}/rate endpoint
+func (s *Server) PostArtistsArtistIdRate(w http.ResponseWriter, r *http.Request, artistId uuid.UUID) {
+	myID, ok := r.Context().Value(middleware.UserIDKey).(uuid.UUID)
+	if !ok {
+		RespondError(w, http.StatusUnauthorized, "user not authenticated")
+		return
+	}
+
+	var reqBody struct {
+		Score int32 `json:"score"`
+	}
+	if err := ParseJSON(r, &reqBody); err != nil {
+		RespondError(w, http.StatusBadRequest, "Invalid request body")
+		return
+	}
+
+	if reqBody.Score != 1 && reqBody.Score != -1 {
+		RespondError(w, http.StatusBadRequest, "score must be 1 or -1")
+		return
+	}
+
+	updatedArtist, err := s.services.Artist.RateArtist(r.Context(), myID, artistId, reqBody.Score)
+	if err != nil {
+		RespondError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	RespondJSON(w, http.StatusOK, updatedArtist)
+}

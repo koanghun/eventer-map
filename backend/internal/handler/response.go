@@ -18,3 +18,9 @@ func RespondJSON(w http.ResponseWriter, status int, data interface{}) {
 func RespondError(w http.ResponseWriter, status int, message string) {
 	RespondJSON(w, status, map[string]string{"error": message})
 }
+
+// ParseJSON decodes JSON from the request body.
+func ParseJSON(r *http.Request, v interface{}) error {
+	defer r.Body.Close()
+	return json.NewDecoder(r.Body).Decode(v)
+}

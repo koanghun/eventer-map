@@ -14,7 +14,8 @@
         "ja": "日本語"
     },
     "datePicker": {
-        "label": "日付選択"
+        "label": "日付選択",
+        "isRange": "期間選択"
     },
     "performerFilter": {
         "label": "出演者検索",
@@ -43,7 +44,8 @@
         "update": "更新",
         "search": "検索",
         "close": "閉じる",
-        "proceed": "このまま登録する"
+        "proceed": "このまま登録する",
+        "register": "登録する"
     },
     "eventList": {
         "title": "イベント一覧",
@@ -96,7 +98,6 @@
             "placeNotFound": "会場が見つかりませんでした。別の検索語をお試しください。",
             "placeFound": "会場情報を自動的に取得しました。",
             "placeCreateFailed": "会場の登録処理に失敗しました。",
-
             "requiredFields": "必須項目をすべて入力してください。",
             "duplicateCheckError": "重複確認中にエラーが発生しました。しばらくしてから再度お試しください。"
         }
@@ -383,5 +384,27 @@
     "seo": {
         "title": "Event Map - イベントマップ",
         "description": "イベントマップアプリケーション"
+    },
+    "event": {
+        "fields": {
+            "title": "タイトル",
+            "titlePlaceholder": "イベントタイトル",
+            "date": "開催日",
+            "doorsOpen": "開場時間",
+            "startTime": "開演時間",
+            "endTime": "終演時間",
+            "venueId": "会場ID (一時)",
+            "venuePlaceholder": "UUIDを入力...",
+            "relatedLinks": "関連リンク",
+            "linkPlaceholder": "https://..."
+        },
+        "addLink": "リンク追加",
+        "createMissingFields": "タイトル、開始/終了時間、会場IDは必須です。",
+        "createSuccess": "イベントが正常に登録されました。",
+        "createFail": "イベントの登録に失敗しました。",
+        "threads": {
+            "title": "スレッド",
+            "disabledDescription": "イベントを登録した後にスレッドを作成できます。"
+        }
     }
 }

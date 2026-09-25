@@ -4,6 +4,7 @@
  * Eventer Map API
  * OpenAPI spec version: 1.0.0
  */
+import type { UserProfileRole } from './userProfileRole';
 
 export interface UserProfile {
   /** 가입일시 */
@@ -18,4 +19,6 @@ export interface UserProfile {
   id?: string;
   /** 구글 연동 여부 */
   isGoogleLinked?: boolean;
+  /** 사용자 권한 */
+  role?: UserProfileRole;
 }
