@@ -26,6 +26,8 @@ type Artist struct {
 	AuthorID        uuid.NullUUID
 	CreatedAt       time.Time
 	UpdatedAt       time.Time
+	CreditScore     int32
+	CreditCount     int32
 }
 
 type DailyVisit struct {
@@ -157,6 +159,8 @@ type Venue struct {
 	AuthorID     uuid.NullUUID
 	CreatedAt    time.Time
 	UpdatedAt    time.Time
+	CreditScore  int32
+	CreditCount  int32
 }
 
 type VerificationToken struct {

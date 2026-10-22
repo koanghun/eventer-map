@@ -105,7 +105,7 @@ func (q *Queries) DeleteUserEventAction(ctx context.Context, arg DeleteUserEvent
 }
 
 const getArtistsForEvent = `-- name: GetArtistsForEvent :many
-SELECT a.id, a.official_name, a.hiragana, a.gender, a.profile_image_url, a.birth_date, a.debut_date, a.rating_sum, a.rating_count, a.status, a.author_id, a.created_at, a.updated_at FROM artists a
+SELECT a.id, a.official_name, a.hiragana, a.gender, a.profile_image_url, a.birth_date, a.debut_date, a.rating_sum, a.rating_count, a.status, a.author_id, a.created_at, a.updated_at, a.credit_score, a.credit_count FROM artists a
 JOIN event_artists ea ON a.id = ea.artist_id
 WHERE ea.event_id = $1
 `
@@ -133,6 +133,8 @@ func (q *Queries) GetArtistsForEvent(ctx context.Context, eventID uuid.UUID) ([]
 			&i.AuthorID,
 			&i.CreatedAt,
 			&i.UpdatedAt,
+			&i.CreditScore,
+			&i.CreditCount,
 		); err != nil {
 			return nil, err
 		}

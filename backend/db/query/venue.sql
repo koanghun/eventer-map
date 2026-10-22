@@ -7,6 +7,10 @@ RETURNING *;
 SELECT * FROM venues
 WHERE id = $1 LIMIT 1;
 
+-- name: GetVenueForUpdate :one
+SELECT * FROM venues
+WHERE id = $1 FOR UPDATE LIMIT 1;
+
 -- name: ListVenuesByBoundingBox :many
 SELECT * FROM venues
 WHERE 
@@ -31,10 +35,10 @@ SET official_name = COALESCE(sqlc.narg('official_name'), official_name),
 WHERE id = sqlc.arg('id')
 RETURNING *;
 
--- name: UpdateVenueRating :exec
+-- name: UpdateVenueCredit :exec
 UPDATE venues
-SET rating_sum = rating_sum + sqlc.arg('score_delta'),
-    rating_count = rating_count + sqlc.arg('count_delta')
+SET credit_score = credit_score + sqlc.arg('score_delta'),
+    credit_count = credit_count + sqlc.arg('count_delta')
 WHERE id = sqlc.arg('id');
 
 -- name: CheckVenueInEvent :one

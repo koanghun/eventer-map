@@ -28,7 +28,7 @@ func (q *Queries) CheckArtistInEvent(ctx context.Context, artistID uuid.UUID) (b
 const createArtist = `-- name: CreateArtist :one
 INSERT INTO artists (official_name, hiragana, gender, profile_image_url, birth_date, debut_date, status, author_id)
 VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
-RETURNING id, official_name, hiragana, gender, profile_image_url, birth_date, debut_date, rating_sum, rating_count, status, author_id, created_at, updated_at
+RETURNING id, official_name, hiragana, gender, profile_image_url, birth_date, debut_date, rating_sum, rating_count, status, author_id, created_at, updated_at, credit_score, credit_count
 `
 
 type CreateArtistParams struct {
@@ -68,12 +68,14 @@ func (q *Queries) CreateArtist(ctx context.Context, arg CreateArtistParams) (Art
 		&i.AuthorID,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.CreditScore,
+		&i.CreditCount,
 	)
 	return i, err
 }
 
 const getArtist = `-- name: GetArtist :one
-SELECT id, official_name, hiragana, gender, profile_image_url, birth_date, debut_date, rating_sum, rating_count, status, author_id, created_at, updated_at FROM artists
+SELECT id, official_name, hiragana, gender, profile_image_url, birth_date, debut_date, rating_sum, rating_count, status, author_id, created_at, updated_at, credit_score, credit_count FROM artists
 WHERE id = $1 LIMIT 1
 `
 
@@ -94,6 +96,36 @@ func (q *Queries) GetArtist(ctx context.Context, id uuid.UUID) (Artist, error) {
 		&i.AuthorID,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.CreditScore,
+		&i.CreditCount,
+	)
+	return i, err
+}
+
+const getArtistForUpdate = `-- name: GetArtistForUpdate :one
+SELECT id, official_name, hiragana, gender, profile_image_url, birth_date, debut_date, rating_sum, rating_count, status, author_id, created_at, updated_at, credit_score, credit_count FROM artists
+WHERE id = $1 FOR UPDATE LIMIT 1
+`
+
+func (q *Queries) GetArtistForUpdate(ctx context.Context, id uuid.UUID) (Artist, error) {
+	row := q.db.QueryRowContext(ctx, getArtistForUpdate, id)
+	var i Artist
+	err := row.Scan(
+		&i.ID,
+		&i.OfficialName,
+		&i.Hiragana,
+		&i.Gender,
+		&i.ProfileImageUrl,
+		&i.BirthDate,
+		&i.DebutDate,
+		&i.RatingSum,
+		&i.RatingCount,
+		&i.Status,
+		&i.AuthorID,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.CreditScore,
+		&i.CreditCount,
 	)
 	return i, err
 }
@@ -132,7 +164,7 @@ func (q *Queries) InsertUserArtistRating(ctx context.Context, arg InsertUserArti
 }
 
 const listArtists = `-- name: ListArtists :many
-SELECT id, official_name, hiragana, gender, profile_image_url, birth_date, debut_date, rating_sum, rating_count, status, author_id, created_at, updated_at FROM artists
+SELECT id, official_name, hiragana, gender, profile_image_url, birth_date, debut_date, rating_sum, rating_count, status, author_id, created_at, updated_at, credit_score, credit_count FROM artists
 WHERE 
     ($2::varchar IS NULL OR status = $2)
     AND ($3::varchar IS NULL OR official_name LIKE $3 || '%')
@@ -176,6 +208,8 @@ func (q *Queries) ListArtists(ctx context.Context, arg ListArtistsParams) ([]Art
 			&i.AuthorID,
 			&i.CreatedAt,
 			&i.UpdatedAt,
+			&i.CreditScore,
+			&i.CreditCount,
 		); err != nil {
 			return nil, err
 		}
@@ -201,7 +235,7 @@ SET official_name = COALESCE($1, official_name),
     status = COALESCE($7, status),
     updated_at = NOW()
 WHERE id = $8
-RETURNING id, official_name, hiragana, gender, profile_image_url, birth_date, debut_date, rating_sum, rating_count, status, author_id, created_at, updated_at
+RETURNING id, official_name, hiragana, gender, profile_image_url, birth_date, debut_date, rating_sum, rating_count, status, author_id, created_at, updated_at, credit_score, credit_count
 `
 
 type UpdateArtistParams struct {
@@ -241,25 +275,27 @@ func (q *Queries) UpdateArtist(ctx context.Context, arg UpdateArtistParams) (Art
 		&i.AuthorID,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.CreditScore,
+		&i.CreditCount,
 	)
 	return i, err
 }
 
-const updateArtistRating = `-- name: UpdateArtistRating :exec
+const updateArtistCredit = `-- name: UpdateArtistCredit :exec
 UPDATE artists
-SET rating_sum = rating_sum + $1,
-    rating_count = rating_count + $2
+SET credit_score = credit_score + $1,
+    credit_count = credit_count + $2
 WHERE id = $3
 `
 
-type UpdateArtistRatingParams struct {
-	ScoreDelta float64
+type UpdateArtistCreditParams struct {
+	ScoreDelta int32
 	CountDelta int32
 	ID         uuid.UUID
 }
 
-func (q *Queries) UpdateArtistRating(ctx context.Context, arg UpdateArtistRatingParams) error {
-	_, err := q.db.ExecContext(ctx, updateArtistRating, arg.ScoreDelta, arg.CountDelta, arg.ID)
+func (q *Queries) UpdateArtistCredit(ctx context.Context, arg UpdateArtistCreditParams) error {
+	_, err := q.db.ExecContext(ctx, updateArtistCredit, arg.ScoreDelta, arg.CountDelta, arg.ID)
 	return err
 }
 

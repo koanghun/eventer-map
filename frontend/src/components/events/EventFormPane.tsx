@@ -116,7 +116,7 @@ export default function EventFormPane({ onClose }: EventFormPaneProps) {
                                     <Calendar
                                         mode="single"
                                         selected={date ? parseISO(date) : undefined}
-                                        onSelect={(d) => setDate(d ? format(d, 'yyyy-MM-dd') : '')}
+                                        onSelect={(d: any) => setDate(d ? format(d, 'yyyy-MM-dd') : '')}
                                     />
                                 </PopoverContent>
                             </Popover>

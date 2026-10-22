@@ -38,14 +38,6 @@ func (s *VenueService) GetVenue(ctx context.Context, id uuid.UUID) (*repository.
 
 // RateVenue handles voting and auto-approval
 func (s *VenueService) RateVenue(ctx context.Context, userID, venueID uuid.UUID, score int32) (*repository.Venue, error) {
-	venue, err := s.repo.GetVenue(ctx, venueID)
-	if err != nil {
-		return nil, err
-	}
-	if venue.Status != "PENDING" {
-		return nil, errors.New("venue is not pending")
-	}
-
 	tx, err := s.db.BeginTx(ctx, nil)
 	if err != nil {
 		return nil, err
@@ -54,12 +46,18 @@ func (s *VenueService) RateVenue(ctx context.Context, userID, venueID uuid.UUID,
 
 	q := s.repo.WithTx(tx)
 
+	// 1. Get current venue inside transaction FOR UPDATE
+	venue, err := q.GetVenueForUpdate(ctx, venueID)
+	if err != nil {
+		return nil, err
+	}
+
 	oldScore, err := q.GetUserVenueRating(ctx, repository.GetUserVenueRatingParams{
 		UserID:  userID,
 		VenueID: venueID,
 	})
 
-	var scoreDelta float64
+	var scoreDelta int32
 	var countDelta int32
 
 	if err != nil {
@@ -72,7 +70,7 @@ func (s *VenueService) RateVenue(ctx context.Context, userID, venueID uuid.UUID,
 			if err != nil {
 				return nil, err
 			}
-			scoreDelta = float64(score)
+			scoreDelta = score
 			countDelta = 1
 		} else {
 			return nil, err
@@ -89,11 +87,11 @@ func (s *VenueService) RateVenue(ctx context.Context, userID, venueID uuid.UUID,
 		if err != nil {
 			return nil, err
 		}
-		scoreDelta = float64(score - oldScore)
+		scoreDelta = score - oldScore
 		countDelta = 0
 	}
 
-	err = q.UpdateVenueRating(ctx, repository.UpdateVenueRatingParams{
+	err = q.UpdateVenueCredit(ctx, repository.UpdateVenueCreditParams{
 		ScoreDelta: scoreDelta,
 		CountDelta: countDelta,
 		ID:         venueID,
@@ -102,12 +100,12 @@ func (s *VenueService) RateVenue(ctx context.Context, userID, venueID uuid.UUID,
 		return nil, err
 	}
 
-	newRatingSum := venue.RatingSum + scoreDelta
-	newRatingCount := venue.RatingCount + countDelta
+	newCreditSum := venue.CreditScore + scoreDelta
+	newCreditCount := venue.CreditCount + countDelta
 
 	newStatus := venue.Status
-	if newRatingCount >= 10 {
-		if newRatingSum >= 0.6*float64(newRatingCount) {
+	if newStatus == "PENDING" && newCreditCount >= 10 {
+		if newCreditSum > 0 {
 			newStatus = "APPROVED"
 			_, err = q.UpdateVenue(ctx, repository.UpdateVenueParams{
 				ID:     venueID,
@@ -123,35 +121,30 @@ func (s *VenueService) RateVenue(ctx context.Context, userID, venueID uuid.UUID,
 		return nil, err
 	}
 
-	venue.RatingSum = newRatingSum
-	venue.RatingCount = newRatingCount
+	venue.CreditScore = newCreditSum
+	venue.CreditCount = newCreditCount
 	venue.Status = newStatus
 
 	return &venue, nil
 }
 
 func (s *VenueService) CanUpdateVenue(ctx context.Context, venueID, userID uuid.UUID, userRole string) error {
+	// ADMIN can always update
+	if userRole == "ADMIN" {
+		return nil
+	}
+
 	venue, err := s.repo.GetVenue(ctx, venueID)
 	if err != nil {
 		return err
 	}
 
 	if venue.Status == "APPROVED" {
-		if userRole != "ADMIN" {
-			return errors.New("only admins can update approved venues")
-		}
-		return nil
+		return errors.New("only admins can update approved venues directly. Users should use modification proposals")
 	}
 
-	inEvent, err := s.repo.CheckVenueInEvent(ctx, uuid.NullUUID{UUID: venueID, Valid: true})
-	if err != nil {
-		return err
-	}
-	if inEvent {
-		return errors.New("cannot update venue that is already associated with an event")
-	}
-
-	if userRole != "ADMIN" && venue.AuthorID.UUID != userID {
+	// Only author can update their own PENDING venue
+	if venue.AuthorID.UUID != userID {
 		return errors.New("only the author or admin can update this venue")
 	}
 

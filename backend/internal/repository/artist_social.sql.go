@@ -160,15 +160,31 @@ type ListFollowingArtistsParams struct {
 	Offset int32
 }
 
-func (q *Queries) ListFollowingArtists(ctx context.Context, arg ListFollowingArtistsParams) ([]Artist, error) {
+type ListFollowingArtistsRow struct {
+	ID              uuid.UUID
+	OfficialName    string
+	Hiragana        sql.NullString
+	Gender          string
+	ProfileImageUrl sql.NullString
+	BirthDate       sql.NullTime
+	DebutDate       sql.NullTime
+	RatingSum       float64
+	RatingCount     int32
+	Status          string
+	AuthorID        uuid.NullUUID
+	CreatedAt       time.Time
+	UpdatedAt       time.Time
+}
+
+func (q *Queries) ListFollowingArtists(ctx context.Context, arg ListFollowingArtistsParams) ([]ListFollowingArtistsRow, error) {
 	rows, err := q.db.QueryContext(ctx, listFollowingArtists, arg.UserID, arg.Limit, arg.Offset)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	var items []Artist
+	var items []ListFollowingArtistsRow
 	for rows.Next() {
-		var i Artist
+		var i ListFollowingArtistsRow
 		if err := rows.Scan(
 			&i.ID,
 			&i.OfficialName,
