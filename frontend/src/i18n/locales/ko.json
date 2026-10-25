@@ -5,9 +5,7 @@
         "themeToggle": "테마 변경"
     },
     "nav": {
-        "map": "지도",
-        "performers": "출연자",
-        "places": "장소"
+        "map": "지도"
     },
     "language": {
         "ko": "한국어",

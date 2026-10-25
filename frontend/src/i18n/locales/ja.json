@@ -5,9 +5,7 @@
         "themeToggle": "テーマ変更"
     },
     "nav": {
-        "map": "地図",
-        "performers": "出演者",
-        "places": "会場"
+        "map": "地図"
     },
     "language": {
         "ko": "韓国語",

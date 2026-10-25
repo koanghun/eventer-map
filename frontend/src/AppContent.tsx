@@ -13,8 +13,6 @@ import { Button } from './components/ui/button';
 import { format } from 'date-fns';
 
 import MapPage from './pages/MapPage';
-import PerformersPage from './pages/PerformersPage';
-import PlacesPage from './pages/PlacesPage';
 
 const GOOGLE_MAPS_LIBRARIES: ("places")[] = ['places'];
 
@@ -23,9 +21,6 @@ export default function AppContent() {
     const location = useLocation();
     const navigate = useNavigate();
     const [searchParams, setSearchParams] = useSearchParams();
-
-    const view = location.pathname === '/performers' ? 'performers' : 
-                 location.pathname === '/places' ? 'places' : 'map';
 
     const today = format(new Date(), 'yyyy-MM-dd');
     const showFlagsOnly = searchParams.get('flags') === 'true';
@@ -87,29 +82,13 @@ export default function AppContent() {
                     <div className="flex-1 hidden lg:flex justify-center">
                         <div className="flex items-center gap-2">
                             <Button
-                                variant={view === 'map' ? "default" : "ghost"}
+                                variant="default"
                                 size="sm"
                                 onClick={() => navigate(`/${location.search}`)}
                                 className="rounded-full h-8 px-4"
                             >
                                 <MapIcon className="w-4 h-4 mr-2" />
                                 {t('nav.map', '지도')}
-                            </Button>
-                            <Button
-                                variant={view === 'performers' ? "default" : "ghost"}
-                                size="sm"
-                                onClick={() => navigate(`/performers${location.search}`)}
-                                className="rounded-full h-8 px-4"
-                            >
-                                {t('nav.performers', '출연자')}
-                            </Button>
-                            <Button
-                                variant={view === 'places' ? "default" : "ghost"}
-                                size="sm"
-                                onClick={() => navigate(`/places${location.search}`)}
-                                className="rounded-full h-8 px-4"
-                            >
-                                {t('nav.places', '장소')}
                             </Button>
                         </div>
                     </div>
@@ -169,8 +148,6 @@ export default function AppContent() {
 
                 <Routes>
                     <Route path="/" element={<MapPage />} />
-                    <Route path="/performers" element={<PerformersPage />} />
-                    <Route path="/places" element={<PlacesPage />} />
                 </Routes>
 
                 <div className="fixed bottom-4 right-4 z-50 pointer-events-none">

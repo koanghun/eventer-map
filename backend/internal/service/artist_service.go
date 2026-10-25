@@ -48,7 +48,7 @@ func (s *ArtistService) UnfollowArtist(ctx context.Context, userID, artistID uui
 	})
 }
 
-func (s *ArtistService) ListFollowingArtists(ctx context.Context, userID uuid.UUID, limit, offset int32) ([]repository.Artist, error) {
+func (s *ArtistService) ListFollowingArtists(ctx context.Context, userID uuid.UUID, limit, offset int32) ([]repository.ListFollowingArtistsRow, error) {
 	return s.repo.ListFollowingArtists(ctx, repository.ListFollowingArtistsParams{
 		UserID: userID,
 		Limit:  limit,

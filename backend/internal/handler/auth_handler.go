@@ -111,7 +111,8 @@ func (s *Server) PostAuthGoogle(w http.ResponseWriter, r *http.Request) {
 
 	tokenResp, err := s.services.Auth.GoogleLogin(r.Context(), req.IdToken, true)
 	if err != nil {
-		RespondError(w, http.StatusUnauthorized, "Invalid Google token")
+		log.Printf("Google login error: %v", err)
+		RespondError(w, http.StatusUnauthorized, err.Error())
 		return
 	}
 
