@@ -7,6 +7,11 @@
 import type { ArtistSummaryStatus } from './artistSummaryStatus';
 
 export interface ArtistSummary {
+  /**
+   * 동명이인 구분을 위한 한 줄 식별 설명 (소속 그룹, 분야 등)
+   * @maxLength 100
+   */
+  disambiguation?: string;
   /** 히라가나 */
   hiragana?: string;
   /** 아티스트 고유 식별자 */

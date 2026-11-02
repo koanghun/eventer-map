@@ -2,16 +2,20 @@ package handler
 
 import (
 	"net/http"
+	"strings"
 
 	"eventer-map-backend/internal/middleware"
+	"eventer-map-backend/internal/service"
 	"github.com/google/uuid"
 	openapi_types "github.com/oapi-codegen/runtime/types"
 )
 
 // GetArtists implements the GET /artists endpoint
 func (s *Server) GetArtists(w http.ResponseWriter, r *http.Request, params GetArtistsParams) {
-	// Extract query params (default values)
-	limit := int32(50)
+	limit := service.DefaultArtistLimit
+	if params.Limit != nil {
+		limit = int32(*params.Limit)
+	}
 	status := ""
 	if params.Status != nil {
 		status = string(*params.Status)
@@ -21,7 +25,6 @@ func (s *Server) GetArtists(w http.ResponseWriter, r *http.Request, params GetAr
 		nameKeyword = *params.Query
 	}
 
-	// For cursor, we'll use a nil UUID since it's not in the openapi spec yet
 	cursor := uuid.Nil
 
 	artists, err := s.services.Artist.ListArtists(r.Context(), limit, status, nameKeyword, cursor)
@@ -30,8 +33,118 @@ func (s *Server) GetArtists(w http.ResponseWriter, r *http.Request, params GetAr
 		return
 	}
 
-	// Map DB models to API models (if necessary, or just return as is for now)
-	RespondJSON(w, http.StatusOK, artists)
+	summaries := make([]ArtistSummary, 0, len(artists))
+	for _, a := range artists {
+		id := openapi_types.UUID(a.ID)
+		name := a.OfficialName
+		st := ArtistSummaryStatus(a.Status)
+		var hiragana *string
+		if a.Hiragana.Valid && a.Hiragana.String != "" {
+			h := a.Hiragana.String
+			hiragana = &h
+		}
+		var disambiguation *string
+		if a.Disambiguation.Valid && a.Disambiguation.String != "" {
+			d := a.Disambiguation.String
+			disambiguation = &d
+		}
+		summaries = append(summaries, ArtistSummary{
+			Id:             &id,
+			OfficialName:   &name,
+			Hiragana:       hiragana,
+			Disambiguation: disambiguation,
+			Status:         &st,
+		})
+	}
+
+	RespondJSON(w, http.StatusOK, summaries)
+}
+
+// PostArtists implements the POST /artists endpoint
+func (s *Server) PostArtists(w http.ResponseWriter, r *http.Request) {
+	myID, ok := r.Context().Value(middleware.UserIDKey).(uuid.UUID)
+	if !ok {
+		RespondError(w, http.StatusUnauthorized, "user not authenticated")
+		return
+	}
+
+	if err := r.ParseMultipartForm(5 << 20); err != nil {
+		RespondError(w, http.StatusBadRequest, "Invalid form data")
+		return
+	}
+
+	officialName := strings.TrimSpace(r.FormValue("officialName"))
+	gender := ArtistInputGender(strings.TrimSpace(r.FormValue("gender")))
+	if officialName == "" || !gender.Valid() {
+		RespondError(w, http.StatusBadRequest, "officialName and valid gender (MALE, FEMALE) are required")
+		return
+	}
+
+	if file, header, err := r.FormFile("profileImage"); err == nil {
+		defer file.Close()
+		if header.Size > 5<<20 {
+			RespondError(w, http.StatusBadRequest, "profileImage must be 5MB or smaller")
+			return
+		}
+		contentType := header.Header.Get("Content-Type")
+		if contentType != "image/jpeg" && contentType != "image/png" {
+			RespondError(w, http.StatusBadRequest, "profileImage must be JPG or PNG")
+			return
+		}
+	}
+
+	input := service.CreateArtistInput{
+		OfficialName: officialName,
+		Gender:       string(gender),
+		AuthorID:     myID,
+	}
+
+	if h := strings.TrimSpace(r.FormValue("hiragana")); h != "" {
+		input.Hiragana = &h
+	}
+	if d := strings.TrimSpace(r.FormValue("disambiguation")); d != "" {
+		if len([]rune(d)) > 100 {
+			RespondError(w, http.StatusBadRequest, "disambiguation must be 100 characters or fewer")
+			return
+		}
+		input.Disambiguation = &d
+	}
+
+	created, err := s.services.Artist.CreateArtist(r.Context(), input)
+	if err != nil {
+		RespondError(w, http.StatusInternalServerError, "Failed to create artist")
+		return
+	}
+
+	id := openapi_types.UUID(created.ID)
+	name := created.OfficialName
+	gen := ArtistGender(created.Gender)
+	st := ArtistStatus(created.Status)
+	var hiragana *string
+	if created.Hiragana.Valid && created.Hiragana.String != "" {
+		h := created.Hiragana.String
+		hiragana = &h
+	}
+	var disambiguation *string
+	if created.Disambiguation.Valid && created.Disambiguation.String != "" {
+		d := created.Disambiguation.String
+		disambiguation = &d
+	}
+	var authorID *openapi_types.UUID
+	if created.AuthorID.Valid {
+		aID := openapi_types.UUID(created.AuthorID.UUID)
+		authorID = &aID
+	}
+
+	RespondJSON(w, http.StatusCreated, Artist{
+		Id:             &id,
+		OfficialName:   &name,
+		Hiragana:       hiragana,
+		Disambiguation: disambiguation,
+		Gender:         &gen,
+		Status:         &st,
+		AuthorId:       authorID,
+	})
 }
 
 // GetArtistsArtistId implements the GET /artists/{artistId} endpoint

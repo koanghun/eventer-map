@@ -238,6 +238,74 @@ func (q *Queries) ListVenuesByBoundingBox(ctx context.Context, arg ListVenuesByB
 	return items, nil
 }
 
+const searchVenues = `-- name: SearchVenues :many
+SELECT
+    id,
+    official_name,
+    address,
+    latitude,
+    longitude,
+    rating_sum,
+    rating_count,
+    status
+FROM venues
+WHERE
+    status != 'REJECTED'
+    AND LOWER(official_name) LIKE LOWER($1::varchar) || '%'
+ORDER BY
+    CASE WHEN status = 'APPROVED' THEN 0 ELSE 1 END,
+    official_name ASC
+LIMIT $2
+`
+
+type SearchVenuesParams struct {
+	Query string
+	Limit int32
+}
+
+type SearchVenuesRow struct {
+	ID           uuid.UUID
+	OfficialName string
+	Address      string
+	Latitude     float64
+	Longitude    float64
+	RatingSum    float64
+	RatingCount  int32
+	Status       string
+}
+
+func (q *Queries) SearchVenues(ctx context.Context, arg SearchVenuesParams) ([]SearchVenuesRow, error) {
+	rows, err := q.db.QueryContext(ctx, searchVenues, arg.Query, arg.Limit)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []SearchVenuesRow
+	for rows.Next() {
+		var i SearchVenuesRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.OfficialName,
+			&i.Address,
+			&i.Latitude,
+			&i.Longitude,
+			&i.RatingSum,
+			&i.RatingCount,
+			&i.Status,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const updateUserVenueRating = `-- name: UpdateUserVenueRating :exec
 UPDATE user_venue_ratings
 SET score = $3

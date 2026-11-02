@@ -7,12 +7,20 @@
 import type { EventSummaryStatus } from './eventSummaryStatus';
 
 export interface EventSummary {
+  /** 이벤트 참가자 수 (status=2) */
+  attendeeCount?: number;
   endTime?: string;
   id?: string;
+  /** 공연장 위도 */
+  latitude?: number;
+  /** 공연장 경도 */
+  longitude?: number;
   posterImageUrl?: string;
   rating?: number;
   startTime?: string;
   status?: EventSummaryStatus;
   title?: string;
   venueId?: string;
+  /** 공연장 공식 이름 */
+  venueName?: string;
 }

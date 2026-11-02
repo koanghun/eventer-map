@@ -146,7 +146,7 @@ func (q *Queries) ListFollowingArtistEvents(ctx context.Context, arg ListFollowi
 }
 
 const listFollowingArtists = `-- name: ListFollowingArtists :many
-SELECT a.id, a.official_name, a.hiragana, a.gender, a.profile_image_url, a.birth_date, a.debut_date, a.rating_sum, a.rating_count, a.status, a.author_id, a.created_at, a.updated_at
+SELECT a.id, a.official_name, a.hiragana, a.disambiguation, a.gender, a.profile_image_url, a.rating_sum, a.rating_count, a.status, a.author_id, a.created_at, a.updated_at
 FROM artists a
 JOIN user_artist_follows uaf ON a.id = uaf.artist_id
 WHERE uaf.user_id = $1
@@ -164,10 +164,9 @@ type ListFollowingArtistsRow struct {
 	ID              uuid.UUID
 	OfficialName    string
 	Hiragana        sql.NullString
+	Disambiguation  sql.NullString
 	Gender          string
 	ProfileImageUrl sql.NullString
-	BirthDate       sql.NullTime
-	DebutDate       sql.NullTime
 	RatingSum       float64
 	RatingCount     int32
 	Status          string
@@ -189,10 +188,9 @@ func (q *Queries) ListFollowingArtists(ctx context.Context, arg ListFollowingArt
 			&i.ID,
 			&i.OfficialName,
 			&i.Hiragana,
+			&i.Disambiguation,
 			&i.Gender,
 			&i.ProfileImageUrl,
-			&i.BirthDate,
-			&i.DebutDate,
 			&i.RatingSum,
 			&i.RatingCount,
 			&i.Status,

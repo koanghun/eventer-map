@@ -15,4 +15,8 @@ query?: string;
  * 특정 상태의 아티스트만 필터링 (선택)
  */
 status?: GetArtistsStatus;
+/**
+ * 최대 반환 개수 (기본값 15, 최대 50)
+ */
+limit?: number;
 };

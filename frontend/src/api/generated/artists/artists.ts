@@ -108,15 +108,12 @@ formData.append('officialName', artistInput.officialName)
 if(artistInput.hiragana !== undefined) {
  formData.append('hiragana', artistInput.hiragana)
  }
+if(artistInput.disambiguation !== undefined) {
+ formData.append('disambiguation', artistInput.disambiguation)
+ }
 formData.append('gender', artistInput.gender)
 if(artistInput.profileImage !== undefined) {
  formData.append('profileImage', artistInput.profileImage)
- }
-if(artistInput.birthDate !== undefined) {
- formData.append('birthDate', artistInput.birthDate)
- }
-if(artistInput.debutDate !== undefined) {
- formData.append('debutDate', artistInput.debutDate)
  }
 
       return customInstance<Artist>(
@@ -244,15 +241,12 @@ formData.append('officialName', artistInput.officialName)
 if(artistInput.hiragana !== undefined) {
  formData.append('hiragana', artistInput.hiragana)
  }
+if(artistInput.disambiguation !== undefined) {
+ formData.append('disambiguation', artistInput.disambiguation)
+ }
 formData.append('gender', artistInput.gender)
 if(artistInput.profileImage !== undefined) {
  formData.append('profileImage', artistInput.profileImage)
- }
-if(artistInput.birthDate !== undefined) {
- formData.append('birthDate', artistInput.birthDate)
- }
-if(artistInput.debutDate !== undefined) {
- formData.append('debutDate', artistInput.debutDate)
  }
 
       return customInstance<Artist>(

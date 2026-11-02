@@ -39,6 +39,18 @@ func (q *Queries) ClearArtistsFromEvent(ctx context.Context, eventID uuid.UUID) 
 	return err
 }
 
+const countEventAttendees = `-- name: CountEventAttendees :one
+SELECT COUNT(*)::int FROM event_user_actions
+WHERE event_id = $1 AND status = 2
+`
+
+func (q *Queries) CountEventAttendees(ctx context.Context, eventID uuid.UUID) (int32, error) {
+	row := q.db.QueryRowContext(ctx, countEventAttendees, eventID)
+	var column_1 int32
+	err := row.Scan(&column_1)
+	return column_1, err
+}
+
 const createEvent = `-- name: CreateEvent :one
 INSERT INTO events (title, venue_id, opening_time, start_time, end_time, related_links, poster_image_url, status, author_id)
 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
@@ -105,7 +117,7 @@ func (q *Queries) DeleteUserEventAction(ctx context.Context, arg DeleteUserEvent
 }
 
 const getArtistsForEvent = `-- name: GetArtistsForEvent :many
-SELECT a.id, a.official_name, a.hiragana, a.gender, a.profile_image_url, a.birth_date, a.debut_date, a.rating_sum, a.rating_count, a.status, a.author_id, a.created_at, a.updated_at, a.credit_score, a.credit_count FROM artists a
+SELECT a.id, a.official_name, a.hiragana, a.gender, a.profile_image_url, a.rating_sum, a.rating_count, a.status, a.author_id, a.created_at, a.updated_at, a.credit_score, a.credit_count, a.disambiguation FROM artists a
 JOIN event_artists ea ON a.id = ea.artist_id
 WHERE ea.event_id = $1
 `
@@ -125,8 +137,6 @@ func (q *Queries) GetArtistsForEvent(ctx context.Context, eventID uuid.UUID) ([]
 			&i.Hiragana,
 			&i.Gender,
 			&i.ProfileImageUrl,
-			&i.BirthDate,
-			&i.DebutDate,
 			&i.RatingSum,
 			&i.RatingCount,
 			&i.Status,
@@ -135,6 +145,7 @@ func (q *Queries) GetArtistsForEvent(ctx context.Context, eventID uuid.UUID) ([]
 			&i.UpdatedAt,
 			&i.CreditScore,
 			&i.CreditCount,
+			&i.Disambiguation,
 		); err != nil {
 			return nil, err
 		}
@@ -272,54 +283,102 @@ func (q *Queries) GetUserRatingForEvent(ctx context.Context, arg GetUserRatingFo
 }
 
 const listEvents = `-- name: ListEvents :many
-SELECT id, title, venue_id, opening_time, start_time, end_time, related_links, poster_image_url, rating_sum, rating_count, status, author_id, created_at, updated_at FROM events
-WHERE 
-    start_time >= $2
-    AND start_time <= $3
-    AND ($4::uuid IS NULL OR venue_id = $4)
-    AND ($5::timestamptz IS NULL OR start_time > $5)
-ORDER BY start_time ASC
-LIMIT $1
+SELECT
+    e.id,
+    e.title,
+    e.venue_id,
+    COALESCE(v.official_name, '')::varchar AS venue_name,
+    COALESCE(v.latitude, 0)::double precision AS latitude,
+    COALESCE(v.longitude, 0)::double precision AS longitude,
+    e.start_time,
+    e.end_time,
+    e.rating_sum,
+    e.rating_count,
+    (SELECT COUNT(*)::int FROM event_user_actions eua WHERE eua.event_id = e.id AND eua.status = 2) AS attendee_count,
+    e.poster_image_url,
+    e.status
+FROM events e
+LEFT JOIN venues v ON e.venue_id = v.id
+WHERE
+    ($1::double precision IS NULL OR v.latitude >= $1)
+    AND ($2::double precision IS NULL OR v.latitude <= $2)
+    AND ($3::double precision IS NULL OR v.longitude >= $3)
+    AND ($4::double precision IS NULL OR v.longitude <= $4)
+    AND ($5::timestamptz IS NULL OR e.end_time >= $5)
+    AND ($6::timestamptz IS NULL OR e.start_time <= $6)
+    AND ($7::uuid IS NULL OR e.venue_id = $7)
+    AND ($8::uuid IS NULL OR EXISTS (
+        SELECT 1 FROM event_artists ea
+        WHERE ea.event_id = e.id AND ea.artist_id = $8
+    ))
+    AND ($9::varchar IS NULL OR e.status = $9)
+ORDER BY attendee_count DESC, e.start_time ASC, e.id ASC
+LIMIT $10
 `
 
 type ListEventsParams struct {
-	Limit           int32
-	StartTimeFrom   time.Time
-	StartTimeTo     time.Time
-	VenueID         uuid.UUID
-	CursorStartTime time.Time
+	MinLat        sql.NullFloat64
+	MaxLat        sql.NullFloat64
+	MinLng        sql.NullFloat64
+	MaxLng        sql.NullFloat64
+	StartTimeFrom sql.NullTime
+	StartTimeTo   sql.NullTime
+	VenueID       uuid.NullUUID
+	ArtistID      uuid.NullUUID
+	Status        sql.NullString
+	Limit         int32
 }
 
-func (q *Queries) ListEvents(ctx context.Context, arg ListEventsParams) ([]Event, error) {
+type ListEventsRow struct {
+	ID             uuid.UUID
+	Title          string
+	VenueID        uuid.NullUUID
+	VenueName      string
+	Latitude       float64
+	Longitude      float64
+	StartTime      time.Time
+	EndTime        time.Time
+	RatingSum      float64
+	RatingCount    int32
+	AttendeeCount  int32
+	PosterImageUrl sql.NullString
+	Status         string
+}
+
+func (q *Queries) ListEvents(ctx context.Context, arg ListEventsParams) ([]ListEventsRow, error) {
 	rows, err := q.db.QueryContext(ctx, listEvents,
-		arg.Limit,
+		arg.MinLat,
+		arg.MaxLat,
+		arg.MinLng,
+		arg.MaxLng,
 		arg.StartTimeFrom,
 		arg.StartTimeTo,
 		arg.VenueID,
-		arg.CursorStartTime,
+		arg.ArtistID,
+		arg.Status,
+		arg.Limit,
 	)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	var items []Event
+	var items []ListEventsRow
 	for rows.Next() {
-		var i Event
+		var i ListEventsRow
 		if err := rows.Scan(
 			&i.ID,
 			&i.Title,
 			&i.VenueID,
-			&i.OpeningTime,
+			&i.VenueName,
+			&i.Latitude,
+			&i.Longitude,
 			&i.StartTime,
 			&i.EndTime,
-			pq.Array(&i.RelatedLinks),
-			&i.PosterImageUrl,
 			&i.RatingSum,
 			&i.RatingCount,
+			&i.AttendeeCount,
+			&i.PosterImageUrl,
 			&i.Status,
-			&i.AuthorID,
-			&i.CreatedAt,
-			&i.UpdatedAt,
 		); err != nil {
 			return nil, err
 		}

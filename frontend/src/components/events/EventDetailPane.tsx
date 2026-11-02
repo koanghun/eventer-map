@@ -1,4 +1,4 @@
-import { X, Calendar, MapPin, ExternalLink } from 'lucide-react';
+import { ArrowLeft, Calendar, MapPin, ExternalLink, Users, Mic2 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useEventStore } from '../../store/useEventStore';
 import { Button } from '../ui/button';
@@ -25,20 +25,22 @@ export default function EventDetailPane() {
 
 
     return (
-        <aside className="w-full h-full bg-card/80 backdrop-blur-md border-l border-border shadow-xl flex flex-col animate-in slide-in-from-right-8 duration-500 z-10">
-            {/* Header */}
-            <div className="flex items-center justify-between p-4 border-b border-border/50 shrink-0">
-                <h2 className="text-lg font-bold text-foreground truncate">
-                    {t('eventDetail.title', 'Event Details')}
-                </h2>
+        <div className="w-full h-full flex flex-col animate-in fade-in slide-in-from-left-4 duration-300 overflow-hidden">
+            {/* Header (좌측 상단 뒤로가기 버튼) */}
+            <div className="flex items-center gap-2 p-4 border-b border-border/50 shrink-0">
                 <Button 
                     variant="ghost" 
                     size="icon" 
                     onClick={clearSelection} 
-                    className="rounded-full hover:bg-muted"
+                    className="rounded-full w-8 h-8 hover:bg-muted shrink-0"
+                    title={t('buttons.back', '뒤로가기')}
+                    aria-label={t('buttons.back', '뒤로가기')}
                 >
-                    <X className="w-5 h-5 text-muted-foreground" />
+                    <ArrowLeft className="w-4 h-4 text-foreground" />
                 </Button>
+                <h2 className="text-lg font-bold text-foreground truncate">
+                    {t('eventDetail.title', 'Event Details')}
+                </h2>
             </div>
 
             {/* Content Scrollable Area */}
@@ -60,9 +62,34 @@ export default function EventDetailPane() {
                             <span className="truncate">
                                 {isLoading 
                                     ? t('eventDetail.loading', 'Loading...') 
-                                    : ('venue' in displayEvent && displayEvent.venue?.officialName) || t('eventDetail.venueUnknown', 'Venue TBD')}
+                                    : ('venue' in displayEvent && displayEvent.venue?.officialName)
+                                        || ('venueName' in displayEvent && displayEvent.venueName)
+                                        || t('eventDetail.venueUnknown', 'Venue TBD')}
                             </span>
                         </div>
+                        {typeof displayEvent.attendeeCount === 'number' && (
+                            <div className="flex items-center gap-2">
+                                <Users className="w-4 h-4 text-primary shrink-0" />
+                                <span>{displayEvent.attendeeCount}</span>
+                            </div>
+                        )}
+                        {('artists' in displayEvent) && displayEvent.artists && displayEvent.artists.length > 0 && (
+                            <div className="flex items-start gap-2">
+                                <Mic2 className="w-4 h-4 text-primary shrink-0 mt-0.5" />
+                                <span className="break-words">
+                                    {displayEvent.artists
+                                        .map((a) =>
+                                            a.officialName
+                                                ? a.disambiguation
+                                                    ? `${a.officialName} (${a.disambiguation})`
+                                                    : a.officialName
+                                                : ''
+                                        )
+                                        .filter(Boolean)
+                                        .join(', ')}
+                                </span>
+                            </div>
+                        )}
                         {('relatedLinks' in displayEvent) && displayEvent.relatedLinks && displayEvent.relatedLinks.length > 0 && (
                             <div className="flex items-center gap-2 mt-2">
                                 <ExternalLink className="w-4 h-4 shrink-0 text-primary/70" />
@@ -94,6 +121,6 @@ export default function EventDetailPane() {
                 </div>
 
             </div>
-        </aside>
+        </div>
     );
 }

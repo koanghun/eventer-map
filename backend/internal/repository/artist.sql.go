@@ -26,18 +26,17 @@ func (q *Queries) CheckArtistInEvent(ctx context.Context, artistID uuid.UUID) (b
 }
 
 const createArtist = `-- name: CreateArtist :one
-INSERT INTO artists (official_name, hiragana, gender, profile_image_url, birth_date, debut_date, status, author_id)
-VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
-RETURNING id, official_name, hiragana, gender, profile_image_url, birth_date, debut_date, rating_sum, rating_count, status, author_id, created_at, updated_at, credit_score, credit_count
+INSERT INTO artists (official_name, hiragana, disambiguation, gender, profile_image_url, status, author_id)
+VALUES ($1, $2, $3, $4, $5, $6, $7)
+RETURNING id, official_name, hiragana, gender, profile_image_url, rating_sum, rating_count, status, author_id, created_at, updated_at, credit_score, credit_count, disambiguation
 `
 
 type CreateArtistParams struct {
 	OfficialName    string
 	Hiragana        sql.NullString
+	Disambiguation  sql.NullString
 	Gender          string
 	ProfileImageUrl sql.NullString
-	BirthDate       sql.NullTime
-	DebutDate       sql.NullTime
 	Status          string
 	AuthorID        uuid.NullUUID
 }
@@ -46,10 +45,9 @@ func (q *Queries) CreateArtist(ctx context.Context, arg CreateArtistParams) (Art
 	row := q.db.QueryRowContext(ctx, createArtist,
 		arg.OfficialName,
 		arg.Hiragana,
+		arg.Disambiguation,
 		arg.Gender,
 		arg.ProfileImageUrl,
-		arg.BirthDate,
-		arg.DebutDate,
 		arg.Status,
 		arg.AuthorID,
 	)
@@ -60,8 +58,6 @@ func (q *Queries) CreateArtist(ctx context.Context, arg CreateArtistParams) (Art
 		&i.Hiragana,
 		&i.Gender,
 		&i.ProfileImageUrl,
-		&i.BirthDate,
-		&i.DebutDate,
 		&i.RatingSum,
 		&i.RatingCount,
 		&i.Status,
@@ -70,12 +66,13 @@ func (q *Queries) CreateArtist(ctx context.Context, arg CreateArtistParams) (Art
 		&i.UpdatedAt,
 		&i.CreditScore,
 		&i.CreditCount,
+		&i.Disambiguation,
 	)
 	return i, err
 }
 
 const getArtist = `-- name: GetArtist :one
-SELECT id, official_name, hiragana, gender, profile_image_url, birth_date, debut_date, rating_sum, rating_count, status, author_id, created_at, updated_at, credit_score, credit_count FROM artists
+SELECT id, official_name, hiragana, gender, profile_image_url, rating_sum, rating_count, status, author_id, created_at, updated_at, credit_score, credit_count, disambiguation FROM artists
 WHERE id = $1 LIMIT 1
 `
 
@@ -88,8 +85,6 @@ func (q *Queries) GetArtist(ctx context.Context, id uuid.UUID) (Artist, error) {
 		&i.Hiragana,
 		&i.Gender,
 		&i.ProfileImageUrl,
-		&i.BirthDate,
-		&i.DebutDate,
 		&i.RatingSum,
 		&i.RatingCount,
 		&i.Status,
@@ -98,12 +93,13 @@ func (q *Queries) GetArtist(ctx context.Context, id uuid.UUID) (Artist, error) {
 		&i.UpdatedAt,
 		&i.CreditScore,
 		&i.CreditCount,
+		&i.Disambiguation,
 	)
 	return i, err
 }
 
 const getArtistForUpdate = `-- name: GetArtistForUpdate :one
-SELECT id, official_name, hiragana, gender, profile_image_url, birth_date, debut_date, rating_sum, rating_count, status, author_id, created_at, updated_at, credit_score, credit_count FROM artists
+SELECT id, official_name, hiragana, gender, profile_image_url, rating_sum, rating_count, status, author_id, created_at, updated_at, credit_score, credit_count, disambiguation FROM artists
 WHERE id = $1 FOR UPDATE LIMIT 1
 `
 
@@ -116,8 +112,6 @@ func (q *Queries) GetArtistForUpdate(ctx context.Context, id uuid.UUID) (Artist,
 		&i.Hiragana,
 		&i.Gender,
 		&i.ProfileImageUrl,
-		&i.BirthDate,
-		&i.DebutDate,
 		&i.RatingSum,
 		&i.RatingCount,
 		&i.Status,
@@ -126,6 +120,7 @@ func (q *Queries) GetArtistForUpdate(ctx context.Context, id uuid.UUID) (Artist,
 		&i.UpdatedAt,
 		&i.CreditScore,
 		&i.CreditCount,
+		&i.Disambiguation,
 	)
 	return i, err
 }
@@ -164,12 +159,19 @@ func (q *Queries) InsertUserArtistRating(ctx context.Context, arg InsertUserArti
 }
 
 const listArtists = `-- name: ListArtists :many
-SELECT id, official_name, hiragana, gender, profile_image_url, birth_date, debut_date, rating_sum, rating_count, status, author_id, created_at, updated_at, credit_score, credit_count FROM artists
+SELECT id, official_name, hiragana, gender, profile_image_url, rating_sum, rating_count, status, author_id, created_at, updated_at, credit_score, credit_count, disambiguation FROM artists
 WHERE 
-    ($2::varchar IS NULL OR status = $2)
-    AND ($3::varchar IS NULL OR official_name LIKE $3 || '%')
-    AND ($4::uuid IS NULL OR id > $4)
-ORDER BY id ASC
+    status != 'REJECTED'
+    AND ($2::varchar = '' OR status = $2)
+    AND (
+        $3::varchar = ''
+        OR LOWER(official_name) LIKE LOWER($3) || '%'
+        OR hiragana LIKE $3 || '%'
+    )
+    AND ($4::uuid = '00000000-0000-0000-0000-000000000000'::uuid OR id > $4)
+ORDER BY
+    CASE WHEN status = 'APPROVED' THEN 0 ELSE 1 END,
+    official_name ASC
 LIMIT $1
 `
 
@@ -200,8 +202,6 @@ func (q *Queries) ListArtists(ctx context.Context, arg ListArtistsParams) ([]Art
 			&i.Hiragana,
 			&i.Gender,
 			&i.ProfileImageUrl,
-			&i.BirthDate,
-			&i.DebutDate,
 			&i.RatingSum,
 			&i.RatingCount,
 			&i.Status,
@@ -210,6 +210,7 @@ func (q *Queries) ListArtists(ctx context.Context, arg ListArtistsParams) ([]Art
 			&i.UpdatedAt,
 			&i.CreditScore,
 			&i.CreditCount,
+			&i.Disambiguation,
 		); err != nil {
 			return nil, err
 		}
@@ -228,23 +229,21 @@ const updateArtist = `-- name: UpdateArtist :one
 UPDATE artists
 SET official_name = COALESCE($1, official_name),
     hiragana = COALESCE($2, hiragana),
-    gender = COALESCE($3, gender),
-    profile_image_url = COALESCE($4, profile_image_url),
-    birth_date = COALESCE($5, birth_date),
-    debut_date = COALESCE($6, debut_date),
-    status = COALESCE($7, status),
+    disambiguation = COALESCE($3, disambiguation),
+    gender = COALESCE($4, gender),
+    profile_image_url = COALESCE($5, profile_image_url),
+    status = COALESCE($6, status),
     updated_at = NOW()
-WHERE id = $8
-RETURNING id, official_name, hiragana, gender, profile_image_url, birth_date, debut_date, rating_sum, rating_count, status, author_id, created_at, updated_at, credit_score, credit_count
+WHERE id = $7
+RETURNING id, official_name, hiragana, gender, profile_image_url, rating_sum, rating_count, status, author_id, created_at, updated_at, credit_score, credit_count, disambiguation
 `
 
 type UpdateArtistParams struct {
 	OfficialName    sql.NullString
 	Hiragana        sql.NullString
+	Disambiguation  sql.NullString
 	Gender          sql.NullString
 	ProfileImageUrl sql.NullString
-	BirthDate       sql.NullTime
-	DebutDate       sql.NullTime
 	Status          sql.NullString
 	ID              uuid.UUID
 }
@@ -253,10 +252,9 @@ func (q *Queries) UpdateArtist(ctx context.Context, arg UpdateArtistParams) (Art
 	row := q.db.QueryRowContext(ctx, updateArtist,
 		arg.OfficialName,
 		arg.Hiragana,
+		arg.Disambiguation,
 		arg.Gender,
 		arg.ProfileImageUrl,
-		arg.BirthDate,
-		arg.DebutDate,
 		arg.Status,
 		arg.ID,
 	)
@@ -267,8 +265,6 @@ func (q *Queries) UpdateArtist(ctx context.Context, arg UpdateArtistParams) (Art
 		&i.Hiragana,
 		&i.Gender,
 		&i.ProfileImageUrl,
-		&i.BirthDate,
-		&i.DebutDate,
 		&i.RatingSum,
 		&i.RatingCount,
 		&i.Status,
@@ -277,6 +273,7 @@ func (q *Queries) UpdateArtist(ctx context.Context, arg UpdateArtistParams) (Art
 		&i.UpdatedAt,
 		&i.CreditScore,
 		&i.CreditCount,
+		&i.Disambiguation,
 	)
 	return i, err
 }

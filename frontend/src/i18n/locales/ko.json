@@ -34,6 +34,7 @@
         "nickname": "닉네임"
     },
     "buttons": {
+        "back": "뒤로가기",
         "newEvent": "새 이벤트 등록",
         "edit": "수정",
         "delete": "삭제",
@@ -391,18 +392,71 @@
             "doorsOpen": "개장 시간",
             "startTime": "개연 시간",
             "endTime": "종료 시간",
-            "venueId": "공연장 ID (임시)",
-            "venuePlaceholder": "UUID 입력...",
+            "venue": "회장",
+            "venueId": "회장",
+            "venuePlaceholder": "회장 이름 검색...",
+            "venueNoResults": "일치하는 회장이 없습니다.",
+            "venueSelectHint": "자동완성 목록에서 회장을 선택해주세요.",
+            "addVenue": "회장 추가",
+            "artists": "출연자",
+            "artistsPlaceholder": "출연자 이름 검색...",
+            "addArtist": "출연자 추가",
             "relatedLinks": "관련 링크",
             "linkPlaceholder": "https://..."
         },
         "addLink": "링크 추가",
-        "createMissingFields": "타이틀, 시작/종료 시간, 공연장 ID는 필수입니다.",
+        "createMissingFields": "타이틀, 시작/종료 시간, 회장은 필수입니다.",
         "createSuccess": "이벤트가 성공적으로 등록되었습니다.",
         "createFail": "이벤트 등록에 실패했습니다.",
         "threads": {
             "title": "스레드",
             "disabledDescription": "이벤트를 등록한 후에 스레드를 작성할 수 있습니다."
         }
+    },
+    "artistForm": {
+        "title": "신규 출연자 등록",
+        "fields": {
+            "officialName": "공식 이름",
+            "officialNamePlaceholder": "출연자 공식 표기명",
+            "hiragana": "히라가나 (읽는 법)",
+            "hiraganaPlaceholder": "예: ぱふゅーむ (선택)",
+            "disambiguation": "소속 / 식별 설명 (동명이인 구분, 선택)",
+            "disambiguationPlaceholder": "예: 솔로 가수, LE SSERAFIM, 성우 등",
+            "gender": "성별",
+            "genderOptions": {
+                "FEMALE": "여성",
+                "MALE": "남성"
+            },
+            "profileImage": "프로필 이미지 (선택)",
+            "profileImageHint": "JPG, PNG 형식 / 최대 5MB",
+            "selectImage": "이미지 선택"
+        },
+        "invalidImageType": "JPG 또는 PNG 형식의 이미지만 업로드할 수 있습니다.",
+        "imageTooLarge": "프로필 이미지는 최대 5MB까지 업로드할 수 있습니다.",
+        "missingFields": "출연자 공식 이름과 성별은 필수입니다.",
+        "createSuccess": "신규 출연자가 등록되어 목록에 추가되었습니다.",
+        "createFail": "출연자 등록에 실패했습니다."
+    },
+    "venueForm": {
+        "title": "신규 회장 등록",
+        "fields": {
+            "placeSearch": "Google 지도 장소 검색 (자동 입력)",
+            "placeSearchPlaceholder": "장소 검색 시 주소·좌표가 자동 입력됩니다...",
+            "officialName": "공식 이름",
+            "officialNamePlaceholder": "회장 공식 표기명",
+            "address": "주소",
+            "addressPlaceholder": "예: 東京都千代田区北の丸公園2-3",
+            "coordinates": "좌표 (위도 / 경도)",
+            "mapClickHint": "우측 지도 클릭으로 선택 가능",
+            "latitudePlaceholder": "위도 (예: 35.6933)",
+            "longitudePlaceholder": "경도 (예: 139.7498)",
+            "capacity": "수용 인원 (선택)",
+            "capacityPlaceholder": "예: 2000",
+            "relatedLinks": "관련 링크 (선택)"
+        },
+        "missingFields": "회장 공식 이름과 유효한 위도/경도는 필수입니다. (지도를 클릭하거나 장소를 검색해주세요)",
+        "invalidCapacity": "수용 인원은 1 이상의 숫자여야 합니다.",
+        "createSuccess": "신규 회장이 등록되어 선택되었습니다.",
+        "createFail": "회장 등록에 실패했습니다."
     }
 }

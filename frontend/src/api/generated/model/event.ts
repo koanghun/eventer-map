@@ -10,6 +10,8 @@ import type { VenueSummary } from './venueSummary';
 
 export interface Event {
   artists?: ArtistSummary[];
+  /** 이벤트 참가자 수 (status=2) */
+  attendeeCount?: number;
   endTime?: string;
   id?: string;
   openingTime?: string;

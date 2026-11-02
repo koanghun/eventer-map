@@ -42,13 +42,13 @@ export default function SingleEventInfoWindow({
                             <MapPin className="w-4 h-4 text-primary/70 mt-0.5" />
                             <div>
                                 <a
-                                    href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${event.place?.canonical_name || event.location}${event.address ? ` ${event.address}` : ''}`)}`}
+                                    href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${event.venueName || event.place?.canonical_name || event.location || ''}${event.address ? ` ${event.address}` : ''}`)}`}
                                     target="_blank"
                                     rel="noopener noreferrer"
                                     className="text-foreground hover:text-primary hover:underline underline-offset-2 transition-colors break-words font-medium"
                                     title={t('eventDetail.mapLink')}
                                 >
-                                    {event.place?.canonical_name || event.location}
+                                    {event.venueName || event.place?.canonical_name || event.location || 'Venue TBD'}
                                 </a>
                                 {event.address && (
                                     <a
@@ -64,7 +64,9 @@ export default function SingleEventInfoWindow({
                             </div>
 
                             <Calendar className="w-4 h-4 text-primary/70 mt-0.5" />
-                            <div className="text-foreground">{event.event_date}</div>
+                            <div className="text-foreground">
+                                {event.startTime ? new Date(event.startTime).toLocaleString('ko-KR') : event.event_date}
+                            </div>
 
                             {event.door_time && (
                                 <>

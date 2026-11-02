@@ -28,6 +28,7 @@
         "loginFailed": "ログインに失敗しました"
     },
     "buttons": {
+        "back": "返回",
         "newEvent": "新規イベント登録",
         "edit": "編集",
         "delete": "削除",
@@ -348,5 +349,80 @@
     "seo": {
         "title": "Event Map - イベントマップ",
         "description": "イベントマップアプリケーション"
+    },
+    "event": {
+        "fields": {
+            "title": "标题",
+            "titlePlaceholder": "活动标题",
+            "date": "举办日期",
+            "doorsOpen": "入场时间",
+            "startTime": "开演时间",
+            "endTime": "结束时间",
+            "venue": "会场",
+            "venueId": "会场",
+            "venuePlaceholder": "搜索会场名称...",
+            "venueNoResults": "未找到匹配的会场。",
+            "venueSelectHint": "请从自动完成列表中选择会场。",
+            "addVenue": "添加会场",
+            "artists": "出演者",
+            "artistsPlaceholder": "搜索出演者名称...",
+            "addArtist": "添加出演者",
+            "relatedLinks": "相关链接",
+            "linkPlaceholder": "https://..."
+        },
+        "addLink": "添加链接",
+        "createMissingFields": "标题、开始/结束时间和会场为必填项。",
+        "createSuccess": "活动已成功登录。",
+        "createFail": "活动登录失败。",
+        "threads": {
+            "title": "讨论串",
+            "disabledDescription": "登录活动后即可发表讨论串。"
+        }
+    },
+    "artistForm": {
+        "title": "新出演者登录",
+        "fields": {
+            "officialName": "官方名称",
+            "officialNamePlaceholder": "出演者官方名称",
+            "hiragana": "平假名（读音）",
+            "hiraganaPlaceholder": "例: ぱふゅーむ（选填）",
+            "disambiguation": "所属 / 区分说明（同名区分・选填）",
+            "disambiguationPlaceholder": "例: 独唱歌手、LE SSERAFIM、声优等",
+            "gender": "性别",
+            "genderOptions": {
+                "FEMALE": "女性",
+                "MALE": "男性"
+            },
+            "profileImage": "头像图片（选填）",
+            "profileImageHint": "仅限 JPG、PNG 格式 / 最大 5MB",
+            "selectImage": "选择图片"
+        },
+        "invalidImageType": "仅允许上传 JPG 或 PNG 格式的图片。",
+        "imageTooLarge": "头像图片大小不能超过 5MB。",
+        "missingFields": "官方名称和性别为必填项。",
+        "createSuccess": "新出演者已登录并添加到列表。",
+        "createFail": "出演者登录失败。"
+    },
+    "venueForm": {
+        "title": "新会场登录",
+        "fields": {
+            "placeSearch": "Google 地图地点搜索（自动填写）",
+            "placeSearchPlaceholder": "搜索地点可自动填写地址和坐标...",
+            "officialName": "官方名称",
+            "officialNamePlaceholder": "会场官方名称",
+            "address": "地址",
+            "addressPlaceholder": "例: 東京都千代田区北の丸公園2-3",
+            "coordinates": "坐标（纬度 / 经度）",
+            "mapClickHint": "可点击右侧地图选择",
+            "latitudePlaceholder": "纬度（例: 35.6933）",
+            "longitudePlaceholder": "经度（例: 139.7498）",
+            "capacity": "容纳人数（选填）",
+            "capacityPlaceholder": "例: 2000",
+            "relatedLinks": "相关链接（选填）"
+        },
+        "missingFields": "会场官方名称和有效的纬度/经度为必填项。（请点击地图或搜索地点）",
+        "invalidCapacity": "容纳人数必须为大于 0 的数字。",
+        "createSuccess": "新会场已登录并选中。",
+        "createFail": "会场登录失败。"
     }
 }

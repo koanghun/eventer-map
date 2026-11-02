@@ -34,7 +34,8 @@ type SecondParameter<T extends (...args: any) => any> = Parameters<T>[1];
 
 
 /**
- * @summary 이벤트 목록 조회
+ * 지정된 지도 Bounding Box(좌표 범위) 및 기간 내의 이벤트를 참가자 수(status=2) 내림차순으로 제한된 개수(기본 50개, 최대 100개)만 조회합니다.
+ * @summary 이벤트 목록 조회 (지도 좌표 범위 및 참가자 순 정렬 지원)
  */
 export const getEvents = (
     params?: GetEventsParams,
@@ -77,7 +78,7 @@ export type GetEventsQueryResult = NonNullable<Awaited<ReturnType<typeof getEven
 export type GetEventsQueryError = unknown
 
 /**
- * @summary 이벤트 목록 조회
+ * @summary 이벤트 목록 조회 (지도 좌표 범위 및 참가자 순 정렬 지원)
  */
 export const useGetEvents = <TData = Awaited<ReturnType<typeof getEvents>>, TError = unknown>(
  params?: GetEventsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getEvents>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}

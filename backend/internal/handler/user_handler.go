@@ -260,6 +260,11 @@ func (s *Server) GetUsersMeFollowingArtists(w http.ResponseWriter, r *http.Reque
 			h := a.Hiragana.String
 			hiragana = &h
 		}
+		var disambiguation *string
+		if a.Disambiguation.Valid && a.Disambiguation.String != "" {
+			d := a.Disambiguation.String
+			disambiguation = &d
+		}
 		var profileImageURL *string
 		if a.ProfileImageUrl.Valid {
 			p := a.ProfileImageUrl.String
@@ -270,6 +275,7 @@ func (s *Server) GetUsersMeFollowingArtists(w http.ResponseWriter, r *http.Reque
 			Id:              &id,
 			OfficialName:    &officialName,
 			Hiragana:        hiragana,
+			Disambiguation:  disambiguation,
 			Gender:          &gender,
 			ProfileImageUrl: profileImageURL,
 			Status:          &status,

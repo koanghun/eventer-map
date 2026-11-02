@@ -15,6 +15,4 @@ export type ArtistGender = typeof ArtistGender[keyof typeof ArtistGender];
 export const ArtistGender = {
   MALE: 'MALE',
   FEMALE: 'FEMALE',
-  MIXED: 'MIXED',
-  OTHER: 'OTHER',
 } as const;

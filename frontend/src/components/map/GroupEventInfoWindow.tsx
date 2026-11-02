@@ -58,7 +58,7 @@ export default function GroupEventInfoWindow({
                                 </h4>
                                 <div className="flex items-center gap-1.5 mt-1 text-xs text-muted-foreground">
                                     <Calendar className="w-3 h-3" />
-                                    <span>{event.event_date}</span>
+                                    <span>{event.startTime ? new Date(event.startTime).toLocaleString('ko-KR') : event.event_date}</span>
                                 </div>
                             </div>
                             <ChevronRight className="w-4 h-4 text-muted-foreground group-hover:text-primary shrink-0 transition-colors" />

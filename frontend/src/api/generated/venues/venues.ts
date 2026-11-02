@@ -19,10 +19,12 @@ import type {
 } from '@tanstack/react-query'
 import type {
   GetVenuesParams,
+  GetVenuesSearchParams,
   PostVenuesVenueIdRateBody,
   Venue,
   VenueInput,
-  VenueListResponse
+  VenueListResponse,
+  VenueSummary
 } from '.././model'
 import { customInstance } from '../../../lib/axios';
 
@@ -152,6 +154,69 @@ export const usePostVenues = <TError = void,
       return useMutation(mutationOptions);
     }
     /**
+ * 입력된 검색어로 전방 일치(Prefix)하는 공연장 요약 목록을 가볍게 조회합니다.
+ * @summary 공연장 자동완성 검색
+ */
+export const getVenuesSearch = (
+    params: GetVenuesSearchParams,
+ options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
+) => {
+      
+      
+      return customInstance<VenueSummary[]>(
+      {url: `/venues/search`, method: 'GET',
+        params, signal
+    },
+      options);
+    }
+  
+
+export const getGetVenuesSearchQueryKey = (params: GetVenuesSearchParams,) => {
+    return [`/venues/search`, ...(params ? [params]: [])] as const;
+    }
+
+    
+export const getGetVenuesSearchQueryOptions = <TData = Awaited<ReturnType<typeof getVenuesSearch>>, TError = unknown>(params: GetVenuesSearchParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getVenuesSearch>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetVenuesSearchQueryKey(params);
+
+  
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getVenuesSearch>>> = ({ signal }) => getVenuesSearch(params, requestOptions, signal);
+
+      
+
+      
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getVenuesSearch>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetVenuesSearchQueryResult = NonNullable<Awaited<ReturnType<typeof getVenuesSearch>>>
+export type GetVenuesSearchQueryError = unknown
+
+/**
+ * @summary 공연장 자동완성 검색
+ */
+export const useGetVenuesSearch = <TData = Awaited<ReturnType<typeof getVenuesSearch>>, TError = unknown>(
+ params: GetVenuesSearchParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getVenuesSearch>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+
+  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } => {
+
+  const queryOptions = getGetVenuesSearchQueryOptions(params,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  query.queryKey = queryOptions.queryKey ;
+
+  return query;
+}
+
+
+
+/**
  * @summary 공연장 상세 정보 조회
  */
 export const getVenuesVenueId = (

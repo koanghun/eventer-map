@@ -1,6 +1,6 @@
 -- name: CreateArtist :one
-INSERT INTO artists (official_name, hiragana, gender, profile_image_url, birth_date, debut_date, status, author_id)
-VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+INSERT INTO artists (official_name, hiragana, disambiguation, gender, profile_image_url, status, author_id)
+VALUES ($1, $2, $3, $4, $5, $6, $7)
 RETURNING *;
 
 -- name: GetArtist :one
@@ -14,20 +14,26 @@ WHERE id = $1 FOR UPDATE LIMIT 1;
 -- name: ListArtists :many
 SELECT * FROM artists
 WHERE 
-    (@status::varchar IS NULL OR status = @status)
-    AND (@name_keyword::varchar IS NULL OR official_name LIKE @name_keyword || '%')
-    AND (@cursor_id::uuid IS NULL OR id > @cursor_id)
-ORDER BY id ASC
+    status != 'REJECTED'
+    AND (@status::varchar = '' OR status = @status)
+    AND (
+        @name_keyword::varchar = ''
+        OR LOWER(official_name) LIKE LOWER(@name_keyword) || '%'
+        OR hiragana LIKE @name_keyword || '%'
+    )
+    AND (@cursor_id::uuid = '00000000-0000-0000-0000-000000000000'::uuid OR id > @cursor_id)
+ORDER BY
+    CASE WHEN status = 'APPROVED' THEN 0 ELSE 1 END,
+    official_name ASC
 LIMIT $1;
 
 -- name: UpdateArtist :one
 UPDATE artists
 SET official_name = COALESCE(sqlc.narg('official_name'), official_name),
     hiragana = COALESCE(sqlc.narg('hiragana'), hiragana),
+    disambiguation = COALESCE(sqlc.narg('disambiguation'), disambiguation),
     gender = COALESCE(sqlc.narg('gender'), gender),
     profile_image_url = COALESCE(sqlc.narg('profile_image_url'), profile_image_url),
-    birth_date = COALESCE(sqlc.narg('birth_date'), birth_date),
-    debut_date = COALESCE(sqlc.narg('debut_date'), debut_date),
     status = COALESCE(sqlc.narg('status'), status),
     updated_at = NOW()
 WHERE id = sqlc.arg('id')

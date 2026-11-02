@@ -120,13 +120,54 @@ function EventMap({ events }: EventMapProps) {
     const selectedEvent = useEventStore((state) => state.selectedEvent);
     const selectEvent = useEventStore((state) => state.selectEvent);
     const clearSelection = useEventStore((state) => state.clearSelection);
+    const setMapBounds = useEventStore((state) => state.setMapBounds);
+    const isPickingVenueLocation = useEventStore((state) => state.isPickingVenueLocation);
+    const venueDraftLocation = useEventStore((state) => state.venueDraftLocation);
+    const setVenueDraftLocation = useEventStore((state) => state.setVenueDraftLocation);
 
     const mapRef = useRef<google.maps.Map | null>(null);
+    const idleTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
     const [infoWindowStack, setInfoWindowStack] = useState<InfoWindowState | null>(null);
     const [center, setCenter] = useState<{ lat: number; lng: number }>(defaultCenter);
 
+    const updateBoundsFromMap = useCallback(() => {
+        if (!mapRef.current) return;
+        const bounds = mapRef.current.getBounds();
+        if (!bounds) return;
+
+        const sw = bounds.getSouthWest();
+        const ne = bounds.getNorthEast();
+
+        // 소수점 3자리(~110m 단위)로 반올림하여 미세한 지도 흔들림으로 인한 불필요한 API 재호출을 방지하고 캐시 적중률을 높임
+        const minLat = Math.floor(sw.lat() * 1000) / 1000;
+        const maxLat = Math.ceil(ne.lat() * 1000) / 1000;
+        const minLng = Math.floor(sw.lng() * 1000) / 1000;
+        const maxLng = Math.ceil(ne.lng() * 1000) / 1000;
+
+        setMapBounds({ minLat, maxLat, minLng, maxLng });
+    }, [setMapBounds]);
+
     const onMapLoad = useCallback((map: google.maps.Map) => {
         mapRef.current = map;
+        updateBoundsFromMap();
+    }, [updateBoundsFromMap]);
+
+    const onMapIdle = useCallback(() => {
+        if (idleTimerRef.current) {
+            clearTimeout(idleTimerRef.current);
+        }
+        // 드래그/줌 종료(Idle) 후 300ms 디바운스를 적용해 AWS Lambda 및 DS920+ NAS DB 호출 횟수를 최소화
+        idleTimerRef.current = setTimeout(() => {
+            updateBoundsFromMap();
+        }, 300);
+    }, [updateBoundsFromMap]);
+
+    useEffect(() => {
+        return () => {
+            if (idleTimerRef.current) {
+                clearTimeout(idleTimerRef.current);
+            }
+        };
     }, []);
 
     useEffect(() => {
@@ -141,8 +182,35 @@ function EventMap({ events }: EventMapProps) {
     }, [selectedEvent]);
 
     useEffect(() => {
-        setInfoWindowStack(null);
-    }, [events]);
+        if (venueDraftLocation && mapRef.current) {
+            mapRef.current.panTo({ lat: venueDraftLocation.lat, lng: venueDraftLocation.lng });
+        }
+    }, [venueDraftLocation]);
+
+    const handleMapClick = useCallback((e: google.maps.MapMouseEvent) => {
+        if (!isPickingVenueLocation || !e.latLng) return;
+
+        const lat = Number(e.latLng.lat().toFixed(6));
+        const lng = Number(e.latLng.lng().toFixed(6));
+
+        if (window.google?.maps?.Geocoder) {
+            const geocoder = new window.google.maps.Geocoder();
+            geocoder.geocode({ location: { lat, lng } }, (results, status) => {
+                if (status === 'OK' && results && results[0]) {
+                    setVenueDraftLocation({
+                        lat,
+                        lng,
+                        address: results[0].formatted_address,
+                        googleMapId: results[0].place_id,
+                    });
+                } else {
+                    setVenueDraftLocation({ lat, lng });
+                }
+            });
+        } else {
+            setVenueDraftLocation({ lat, lng });
+        }
+    }, [isPickingVenueLocation, setVenueDraftLocation]);
 
     useEffect(() => {
         const fetchLocation = async () => {
@@ -176,8 +244,11 @@ function EventMap({ events }: EventMapProps) {
         const groups = new Map<string, any[]>();
 
         events.forEach(event => {
-            const lat = event.place?.latitude ?? event.latitude;
-            const lng = event.place?.longitude ?? event.longitude;
+            const lat = event.latitude ?? event.place?.latitude;
+            const lng = event.longitude ?? event.place?.longitude;
+            if (lat === undefined || lng === undefined || (lat === 0 && lng === 0)) {
+                return;
+            }
             const key = `${lat},${lng}`;
             if (!groups.has(key)) {
                 groups.set(key, []);
@@ -188,21 +259,14 @@ function EventMap({ events }: EventMapProps) {
         return groups;
     }, [events]);
 
-    const mapCenter = useMemo(() => {
-        if (events.length === 0) return center;
-        const avgLat = events.reduce((sum, e) => sum + (e.place?.latitude ?? e.latitude ?? 0), 0) / events.length;
-        const avgLng = events.reduce((sum, e) => sum + (e.place?.longitude ?? e.longitude ?? 0), 0) / events.length;
-        return { lat: avgLat, lng: avgLng };
-    }, [events, center]);
-
     const handleMarkerClick = (eventsAtLocation: any[]) => {
         if (eventsAtLocation.length === 1) {
             selectEvent(eventsAtLocation[0]);
         } else {
             const firstEvent = eventsAtLocation[0];
             const location = {
-                lat: firstEvent.place?.latitude ?? firstEvent.latitude ?? 0,
-                lng: firstEvent.place?.longitude ?? firstEvent.longitude ?? 0
+                lat: firstEvent.latitude ?? firstEvent.place?.latitude ?? 0,
+                lng: firstEvent.longitude ?? firstEvent.place?.longitude ?? 0
             };
             setInfoWindowStack({ type: 'group', events: eventsAtLocation, location });
             clearSelection();
@@ -233,7 +297,7 @@ function EventMap({ events }: EventMapProps) {
                 <GroupEventInfoWindow
                     events={groupEvents}
                     location={location}
-                    locationName={groupEvents[0].place?.canonical_name ?? groupEvents[0].location ?? ''}
+                    locationName={groupEvents[0].venueName ?? groupEvents[0].place?.canonical_name ?? groupEvents[0].location ?? ''}
                     onClose={handleInfoWindowClose}
                     onEventSelect={handleEventSelectFromGroup}
                 />
@@ -242,13 +306,14 @@ function EventMap({ events }: EventMapProps) {
 
         if (!selectedEvent) return null;
 
+        const lat = (selectedEvent as any).latitude ?? (selectedEvent as any).place?.latitude;
+        const lng = (selectedEvent as any).longitude ?? (selectedEvent as any).place?.longitude;
+        if (lat === undefined || lng === undefined) return null;
+
         return (
             <SingleEventInfoWindow
                 event={selectedEvent}
-                position={{
-                    lat: (selectedEvent as any).place?.latitude ?? (selectedEvent as any).latitude ?? 0,
-                    lng: (selectedEvent as any).place?.longitude ?? (selectedEvent as any).longitude ?? 0
-                }}
+                position={{ lat, lng }}
                 onClose={handleInfoWindowClose}
             />
         );
@@ -258,20 +323,28 @@ function EventMap({ events }: EventMapProps) {
         <div className="w-full h-full relative z-0">
             <GoogleMap
                 mapContainerStyle={mapContainerStyle}
-                center={mapCenter}
-                zoom={events.length > 0 ? 12 : 11}
+                center={center}
+                zoom={12}
                 onLoad={onMapLoad}
+                onIdle={onMapIdle}
+                onClick={handleMapClick}
                 options={{
                     zoomControl: true,
                     streetViewControl: false,
                     mapTypeControl: false,
                     fullscreenControl: true,
+                    draggableCursor: isPickingVenueLocation ? 'crosshair' : undefined,
                     styles: [
                         ...baseMapStyles,
                         ...(theme === 'dark' ? mapStyles : [])
                     ],
                 }}
             >
+                {isPickingVenueLocation && venueDraftLocation && (
+                    <Marker
+                        position={{ lat: venueDraftLocation.lat, lng: venueDraftLocation.lng }}
+                    />
+                )}
                 {Array.from(eventGroups.entries()).map(([coordKey, eventsAtLocation]) => {
                     const firstEvent = eventsAtLocation[0];
                     const isGrouped = eventsAtLocation.length > 1;

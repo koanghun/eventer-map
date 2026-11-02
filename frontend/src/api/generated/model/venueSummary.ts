@@ -7,6 +7,8 @@
 import type { VenueSummaryStatus } from './venueSummaryStatus';
 
 export interface VenueSummary {
+  /** 주소 */
+  address?: string;
   /** 공연장 고유 식별자 */
   id?: string;
   /** 위도 */

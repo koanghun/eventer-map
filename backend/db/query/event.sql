@@ -7,15 +7,42 @@ RETURNING *;
 SELECT * FROM events
 WHERE id = $1 LIMIT 1;
 
+-- name: CountEventAttendees :one
+SELECT COUNT(*)::int FROM event_user_actions
+WHERE event_id = $1 AND status = 2;
+
 -- name: ListEvents :many
-SELECT * FROM events
-WHERE 
-    start_time >= @start_time_from
-    AND start_time <= @start_time_to
-    AND (@venue_id::uuid IS NULL OR venue_id = @venue_id)
-    AND (@cursor_start_time::timestamptz IS NULL OR start_time > @cursor_start_time)
-ORDER BY start_time ASC
-LIMIT $1;
+SELECT
+    e.id,
+    e.title,
+    e.venue_id,
+    COALESCE(v.official_name, '')::varchar AS venue_name,
+    COALESCE(v.latitude, 0)::double precision AS latitude,
+    COALESCE(v.longitude, 0)::double precision AS longitude,
+    e.start_time,
+    e.end_time,
+    e.rating_sum,
+    e.rating_count,
+    (SELECT COUNT(*)::int FROM event_user_actions eua WHERE eua.event_id = e.id AND eua.status = 2) AS attendee_count,
+    e.poster_image_url,
+    e.status
+FROM events e
+LEFT JOIN venues v ON e.venue_id = v.id
+WHERE
+    (sqlc.narg('min_lat')::double precision IS NULL OR v.latitude >= sqlc.narg('min_lat'))
+    AND (sqlc.narg('max_lat')::double precision IS NULL OR v.latitude <= sqlc.narg('max_lat'))
+    AND (sqlc.narg('min_lng')::double precision IS NULL OR v.longitude >= sqlc.narg('min_lng'))
+    AND (sqlc.narg('max_lng')::double precision IS NULL OR v.longitude <= sqlc.narg('max_lng'))
+    AND (sqlc.narg('start_time_from')::timestamptz IS NULL OR e.end_time >= sqlc.narg('start_time_from'))
+    AND (sqlc.narg('start_time_to')::timestamptz IS NULL OR e.start_time <= sqlc.narg('start_time_to'))
+    AND (sqlc.narg('venue_id')::uuid IS NULL OR e.venue_id = sqlc.narg('venue_id'))
+    AND (sqlc.narg('artist_id')::uuid IS NULL OR EXISTS (
+        SELECT 1 FROM event_artists ea
+        WHERE ea.event_id = e.id AND ea.artist_id = sqlc.narg('artist_id')
+    ))
+    AND (sqlc.narg('status')::varchar IS NULL OR e.status = sqlc.narg('status'))
+ORDER BY attendee_count DESC, e.start_time ASC, e.id ASC
+LIMIT sqlc.arg('limit');
 
 -- name: UpdateEvent :one
 UPDATE events

@@ -34,6 +34,7 @@
         "nickname": "ニックネーム"
     },
     "buttons": {
+        "back": "戻る",
         "newEvent": "新規イベント登録",
         "edit": "編集",
         "delete": "削除",
@@ -391,18 +392,71 @@
             "doorsOpen": "開場時間",
             "startTime": "開演時間",
             "endTime": "終演時間",
-            "venueId": "会場ID (一時)",
-            "venuePlaceholder": "UUIDを入力...",
+            "venue": "会場",
+            "venueId": "会場",
+            "venuePlaceholder": "会場名を検索...",
+            "venueNoResults": "一致する会場がありません。",
+            "venueSelectHint": "候補リストから会場を選択してください。",
+            "addVenue": "会場追加",
+            "artists": "出演者",
+            "artistsPlaceholder": "出演者名を検索...",
+            "addArtist": "出演者追加",
             "relatedLinks": "関連リンク",
             "linkPlaceholder": "https://..."
         },
         "addLink": "リンク追加",
-        "createMissingFields": "タイトル、開始/終了時間、会場IDは必須です。",
+        "createMissingFields": "タイトル、開始/終了時間、会場は必須です。",
         "createSuccess": "イベントが正常に登録されました。",
         "createFail": "イベントの登録に失敗しました。",
         "threads": {
             "title": "スレッド",
             "disabledDescription": "イベントを登録した後にスレッドを作成できます。"
         }
+    },
+    "artistForm": {
+        "title": "新規出演者登録",
+        "fields": {
+            "officialName": "公式名称",
+            "officialNamePlaceholder": "出演者の公式表記名",
+            "hiragana": "ひらがな（読み仮名）",
+            "hiraganaPlaceholder": "例: ぱふゅーむ（任意）",
+            "disambiguation": "所属・識別説明（同名区別・任意）",
+            "disambiguationPlaceholder": "例: ソロ歌手、LE SSERAFIM、声優など",
+            "gender": "性別",
+            "genderOptions": {
+                "FEMALE": "女性",
+                "MALE": "男性"
+            },
+            "profileImage": "プロフィール画像（任意）",
+            "profileImageHint": "JPG、PNG形式 / 最大5MB",
+            "selectImage": "画像を選択"
+        },
+        "invalidImageType": "JPGまたはPNG形式の画像のみアップロードできます。",
+        "imageTooLarge": "プロフィール画像は最大5MBまでアップロードできます。",
+        "missingFields": "公式名称と性別は必須です。",
+        "createSuccess": "新規出演者が登録され、リストに追加されました。",
+        "createFail": "出演者の登録に失敗しました。"
+    },
+    "venueForm": {
+        "title": "新規会場登録",
+        "fields": {
+            "placeSearch": "Google マップ場所検索（自動入力）",
+            "placeSearchPlaceholder": "場所を検索すると住所・座標が自動入力されます...",
+            "officialName": "公式名称",
+            "officialNamePlaceholder": "会場の公式表記名",
+            "address": "住所",
+            "addressPlaceholder": "例: 東京都千代田区北の丸公園2-3",
+            "coordinates": "座標（緯度 / 経度）",
+            "mapClickHint": "右の地図クリックで選択可能",
+            "latitudePlaceholder": "緯度（例: 35.6933）",
+            "longitudePlaceholder": "経度（例: 139.7498）",
+            "capacity": "収容人数（任意）",
+            "capacityPlaceholder": "例: 2000",
+            "relatedLinks": "関連リンク（任意）"
+        },
+        "missingFields": "会場の公式名称と有効な緯度・経度は必須です。（地図をクリックするか場所を検索してください）",
+        "invalidCapacity": "収容人数は1以上の数値で入力してください。",
+        "createSuccess": "新規会場が登録され、選択されました。",
+        "createFail": "会場の登録に失敗しました。"
     }
 }

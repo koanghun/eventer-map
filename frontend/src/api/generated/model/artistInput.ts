@@ -7,10 +7,11 @@
 import type { ArtistInputGender } from './artistInputGender';
 
 export interface ArtistInput {
-  /** 생년월일 (YYYY-MM-DD) */
-  birthDate?: string;
-  /** 데뷔일 (YYYY-MM-DD) */
-  debutDate?: string;
+  /**
+   * 동명이인 구분을 위한 한 줄 식별 설명 (소속 그룹, 분야 등)
+   * @maxLength 100
+   */
+  disambiguation?: string;
   /** 성별 */
   gender: ArtistInputGender;
   /** 히라가나 */

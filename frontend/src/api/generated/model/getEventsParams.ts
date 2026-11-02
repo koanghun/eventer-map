@@ -8,8 +8,36 @@ import type { GetEventsTimeRange } from './getEventsTimeRange';
 import type { GetEventsStatus } from './getEventsStatus';
 
 export type GetEventsParams = {
+/**
+ * 최소 위도 (남쪽 경계)
+ */
+minLat?: number;
+/**
+ * 최대 위도 (북쪽 경계)
+ */
+maxLat?: number;
+/**
+ * 최소 경도 (서쪽 경계)
+ */
+minLng?: number;
+/**
+ * 최대 경도 (동쪽 경계)
+ */
+maxLng?: number;
+/**
+ * 조회 시작일 (YYYY-MM-DD)
+ */
+startDate?: string;
+/**
+ * 조회 종료일 (YYYY-MM-DD)
+ */
+endDate?: string;
 artistId?: string;
 venueId?: string;
 timeRange?: GetEventsTimeRange;
 status?: GetEventsStatus;
+/**
+ * 최대 반환 이벤트 수 (기본값 50, 최대 100)
+ */
+limit?: number;
 };

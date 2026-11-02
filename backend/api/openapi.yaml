@@ -591,6 +591,15 @@ paths:
             type: string
             enum: [PENDING, APPROVED, REJECTED]
           description: "특정 상태의 아티스트만 필터링 (선택)"
+        - in: query
+          name: limit
+          required: false
+          schema:
+            type: integer
+            default: 15
+            minimum: 1
+            maximum: 50
+          description: "최대 반환 개수 (기본값 15, 최대 50)"
       responses:
         "200":
           description: 조회 성공
@@ -893,6 +902,38 @@ paths:
                 $ref: "#/components/schemas/Venue"
         "401":
           description: 인증 필요
+  /venues/search:
+    get:
+      tags:
+        - Venues
+      summary: 공연장 자동완성 검색
+      description: 입력된 검색어로 전방 일치(Prefix)하는 공연장 요약 목록을 가볍게 조회합니다.
+      parameters:
+        - in: query
+          name: query
+          required: true
+          schema:
+            type: string
+            minLength: 1
+          description: "공연장 이름 검색어 (전방 일치)"
+        - in: query
+          name: limit
+          required: false
+          schema:
+            type: integer
+            default: 10
+            minimum: 1
+            maximum: 20
+          description: "최대 반환 개수 (기본값 10, 최대 20)"
+      responses:
+        "200":
+          description: 조회 성공
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/VenueSummary"
   /venues/{venueId}:
     get:
       tags:
@@ -1020,8 +1061,51 @@ paths:
     get:
       tags:
         - Events
-      summary: 이벤트 목록 조회
+      summary: 이벤트 목록 조회 (지도 좌표 범위 및 참가자 순 정렬 지원)
+      description: 지정된 지도 Bounding Box(좌표 범위) 및 기간 내의 이벤트를 참가자 수(status=2) 내림차순으로 제한된 개수(기본 50개, 최대 100개)만 조회합니다.
       parameters:
+        - in: query
+          name: minLat
+          required: false
+          schema:
+            type: number
+            format: double
+          description: "최소 위도 (남쪽 경계)"
+        - in: query
+          name: maxLat
+          required: false
+          schema:
+            type: number
+            format: double
+          description: "최대 위도 (북쪽 경계)"
+        - in: query
+          name: minLng
+          required: false
+          schema:
+            type: number
+            format: double
+          description: "최소 경도 (서쪽 경계)"
+        - in: query
+          name: maxLng
+          required: false
+          schema:
+            type: number
+            format: double
+          description: "최대 경도 (동쪽 경계)"
+        - in: query
+          name: startDate
+          required: false
+          schema:
+            type: string
+            format: date
+          description: "조회 시작일 (YYYY-MM-DD)"
+        - in: query
+          name: endDate
+          required: false
+          schema:
+            type: string
+            format: date
+          description: "조회 종료일 (YYYY-MM-DD)"
         - in: query
           name: artistId
           required: false
@@ -1046,6 +1130,15 @@ paths:
           schema:
             type: string
             enum: [PENDING, APPROVED, REJECTED]
+        - in: query
+          name: limit
+          required: false
+          schema:
+            type: integer
+            default: 50
+            minimum: 1
+            maximum: 100
+          description: "최대 반환 이벤트 수 (기본값 50, 최대 100)"
       responses:
         "200":
           description: 조회 성공
@@ -1368,6 +1461,17 @@ components:
         venueId:
           type: string
           format: uuid
+        venueName:
+          type: string
+          description: 공연장 공식 이름
+        latitude:
+          type: number
+          format: double
+          description: 공연장 위도
+        longitude:
+          type: number
+          format: double
+          description: 공연장 경도
         startTime:
           type: string
           format: date-time
@@ -1377,6 +1481,9 @@ components:
         rating:
           type: number
           format: double
+        attendeeCount:
+          type: integer
+          description: 이벤트 참가자 수 (status=2)
         posterImageUrl:
           type: string
           format: uri
@@ -1428,6 +1535,9 @@ components:
           format: double
         ratingCount:
           type: integer
+        attendeeCount:
+          type: integer
+          description: 이벤트 참가자 수 (status=2)
         status:
           type: string
           enum: [PENDING, APPROVED, REJECTED]
@@ -1659,6 +1769,10 @@ components:
         hiragana:
           type: string
           description: 히라가나
+        disambiguation:
+          type: string
+          maxLength: 100
+          description: "동명이인 구분을 위한 한 줄 식별 설명 (소속 그룹, 분야 등)"
         status:
           type: string
           enum: [PENDING, APPROVED, REJECTED]
@@ -1676,22 +1790,18 @@ components:
         hiragana:
           type: string
           description: 히라가나
+        disambiguation:
+          type: string
+          maxLength: 100
+          description: "동명이인 구분을 위한 한 줄 식별 설명 (소속 그룹, 분야 등)"
         gender:
           type: string
-          enum: [MALE, FEMALE, MIXED, OTHER]
+          enum: [MALE, FEMALE]
           description: 성별
         profileImageUrl:
           type: string
           format: uri
           description: 프로필 이미지 URL
-        birthDate:
-          type: string
-          format: date
-          description: 생년월일 (YYYY-MM-DD)
-        debutDate:
-          type: string
-          format: date
-          description: 데뷔일 (YYYY-MM-DD)
         status:
           type: string
           enum: [PENDING, APPROVED, REJECTED]
@@ -1712,22 +1822,18 @@ components:
         hiragana:
           type: string
           description: 히라가나
+        disambiguation:
+          type: string
+          maxLength: 100
+          description: "동명이인 구분을 위한 한 줄 식별 설명 (소속 그룹, 분야 등)"
         gender:
           type: string
-          enum: [MALE, FEMALE, MIXED, OTHER]
+          enum: [MALE, FEMALE]
           description: 성별
         profileImage:
           type: string
           format: binary
           description: "프로필 이미지 업로드 파일 (최대 5MB, JPG/PNG 형식만 허용)"
-        birthDate:
-          type: string
-          format: date
-          description: 생년월일 (YYYY-MM-DD)
-        debutDate:
-          type: string
-          format: date
-          description: 데뷔일 (YYYY-MM-DD)
     VenueSummary:
       type: object
       properties:
@@ -1738,6 +1844,9 @@ components:
         officialName:
           type: string
           description: 공식 이름
+        address:
+          type: string
+          description: 주소
         latitude:
           type: number
           format: double

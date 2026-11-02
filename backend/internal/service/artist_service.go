@@ -4,9 +4,24 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"strings"
+
 	"eventer-map-backend/internal/repository"
 	"github.com/google/uuid"
 )
+
+const (
+	DefaultArtistLimit int32 = 15
+	MaxArtistLimit     int32 = 50
+)
+
+type CreateArtistInput struct {
+	OfficialName   string
+	Hiragana       *string
+	Disambiguation *string
+	Gender         string
+	AuthorID       uuid.UUID
+}
 
 type ArtistService struct {
 	repo *repository.Queries
@@ -18,12 +33,47 @@ func NewArtistService(repo *repository.Queries, db *sql.DB) *ArtistService {
 }
 
 func (s *ArtistService) ListArtists(ctx context.Context, limit int32, status string, nameKeyword string, cursorID uuid.UUID) ([]repository.Artist, error) {
+	if limit <= 0 {
+		limit = DefaultArtistLimit
+	} else if limit > MaxArtistLimit {
+		limit = MaxArtistLimit
+	}
+
+	trimmed := strings.TrimSpace(nameKeyword)
+
 	return s.repo.ListArtists(ctx, repository.ListArtistsParams{
 		Limit:       limit,
 		Status:      status,
-		NameKeyword: nameKeyword,
+		NameKeyword: likeEscaper.Replace(trimmed),
 		CursorID:    cursorID,
 	})
+}
+
+func (s *ArtistService) CreateArtist(ctx context.Context, input CreateArtistInput) (*repository.Artist, error) {
+	status := "PENDING"
+	if user, err := s.repo.GetUserByID(ctx, input.AuthorID); err == nil && user.Role == "ADMIN" {
+		status = "APPROVED"
+	}
+
+	params := repository.CreateArtistParams{
+		OfficialName: strings.TrimSpace(input.OfficialName),
+		Gender:       input.Gender,
+		Status:       status,
+		AuthorID:     uuid.NullUUID{UUID: input.AuthorID, Valid: input.AuthorID != uuid.Nil},
+	}
+
+	if input.Hiragana != nil && strings.TrimSpace(*input.Hiragana) != "" {
+		params.Hiragana = sql.NullString{String: strings.TrimSpace(*input.Hiragana), Valid: true}
+	}
+	if input.Disambiguation != nil && strings.TrimSpace(*input.Disambiguation) != "" {
+		params.Disambiguation = sql.NullString{String: strings.TrimSpace(*input.Disambiguation), Valid: true}
+	}
+
+	artist, err := s.repo.CreateArtist(ctx, params)
+	if err != nil {
+		return nil, err
+	}
+	return &artist, nil
 }
 
 func (s *ArtistService) GetArtist(ctx context.Context, id uuid.UUID) (*repository.Artist, error) {

@@ -3,39 +3,229 @@ package handler
 import (
 	"encoding/json"
 	"net/http"
+	"time"
 
 	"eventer-map-backend/internal/middleware"
+	"eventer-map-backend/internal/service"
 	"github.com/google/uuid"
 	openapi_types "github.com/oapi-codegen/runtime/types"
 )
 
 // GetEvents implements the GET /events endpoint
 func (s *Server) GetEvents(w http.ResponseWriter, r *http.Request, params GetEventsParams) {
-	limit := int32(50)
-
-	venueId := uuid.Nil
-	if params.VenueId != nil {
-		venueId = *params.VenueId
+	filter := service.ListEventsFilter{
+		MinLat:   params.MinLat,
+		MaxLat:   params.MaxLat,
+		MinLng:   params.MinLng,
+		MaxLng:   params.MaxLng,
+		Limit:    service.DefaultEventLimit,
+		VenueID:  params.VenueId,
+		ArtistID: params.ArtistId,
 	}
 
-	events, err := s.services.Event.ListEvents(r.Context(), limit, venueId)
+	if params.Limit != nil {
+		filter.Limit = int32(*params.Limit)
+	}
+
+	if params.Status != nil {
+		statusStr := string(*params.Status)
+		filter.Status = &statusStr
+	}
+
+	if params.StartDate != nil {
+		d := params.StartDate.Time
+		startFrom := time.Date(d.Year(), d.Month(), d.Day(), 0, 0, 0, 0, time.UTC)
+		filter.StartTimeFrom = &startFrom
+	}
+
+	if params.EndDate != nil {
+		d := params.EndDate.Time
+		endTo := time.Date(d.Year(), d.Month(), d.Day(), 23, 59, 59, 999999999, time.UTC)
+		filter.StartTimeTo = &endTo
+	}
+
+	if params.TimeRange != nil {
+		now := time.Now().UTC()
+		switch *params.TimeRange {
+		case Upcoming:
+			if filter.StartTimeFrom == nil {
+				filter.StartTimeFrom = &now
+			}
+		case Past:
+			if filter.StartTimeTo == nil {
+				filter.StartTimeTo = &now
+			}
+		}
+	}
+
+	rows, hasMore, err := s.services.Event.ListEvents(r.Context(), filter)
 	if err != nil {
 		RespondError(w, http.StatusInternalServerError, "Failed to retrieve events")
 		return
 	}
 
-	RespondJSON(w, http.StatusOK, events)
+	summaries := make([]EventSummary, 0, len(rows))
+	for _, row := range rows {
+		id := openapi_types.UUID(row.ID)
+		title := row.Title
+		startTime := row.StartTime
+		endTime := row.EndTime
+		attendeeCount := int(row.AttendeeCount)
+		status := EventSummaryStatus(row.Status)
+
+		var venueID *openapi_types.UUID
+		if row.VenueID.Valid {
+			vID := openapi_types.UUID(row.VenueID.UUID)
+			venueID = &vID
+		}
+
+		var venueName *string
+		if row.VenueName != "" {
+			vName := row.VenueName
+			venueName = &vName
+		}
+
+		var lat, lng *float64
+		if row.VenueID.Valid {
+			l1 := row.Latitude
+			l2 := row.Longitude
+			lat = &l1
+			lng = &l2
+		}
+
+		var rating *float64
+		if row.RatingCount > 0 {
+			avg := row.RatingSum / float64(row.RatingCount)
+			rating = &avg
+		}
+
+		var posterURL *string
+		if row.PosterImageUrl.Valid && row.PosterImageUrl.String != "" {
+			p := row.PosterImageUrl.String
+			posterURL = &p
+		}
+
+		summaries = append(summaries, EventSummary{
+			Id:             &id,
+			Title:          &title,
+			VenueId:        venueID,
+			VenueName:      venueName,
+			Latitude:       lat,
+			Longitude:      lng,
+			StartTime:      &startTime,
+			EndTime:        &endTime,
+			Rating:         rating,
+			AttendeeCount:  &attendeeCount,
+			PosterImageUrl: posterURL,
+			Status:         &status,
+		})
+	}
+
+	RespondJSON(w, http.StatusOK, EventListResponse{
+		Events:  &summaries,
+		HasMore: &hasMore,
+	})
 }
 
 // GetEventsEventId implements the GET /events/{eventId} endpoint
 func (s *Server) GetEventsEventId(w http.ResponseWriter, r *http.Request, eventId uuid.UUID) {
-	event, err := s.services.Event.GetEvent(r.Context(), eventId)
+	detail, err := s.services.Event.GetEventDetail(r.Context(), eventId)
 	if err != nil {
 		RespondError(w, http.StatusNotFound, "Event not found")
 		return
 	}
 
-	RespondJSON(w, http.StatusOK, event)
+	e := detail.Event
+	id := openapi_types.UUID(e.ID)
+	title := e.Title
+	startTime := e.StartTime
+	endTime := e.EndTime
+	ratingSum := e.RatingSum
+	ratingCount := int(e.RatingCount)
+	attendeeCount := int(detail.AttendeeCount)
+	status := EventStatus(e.Status)
+
+	var openingTime *time.Time
+	if e.OpeningTime.Valid {
+		t := e.OpeningTime.Time
+		openingTime = &t
+	}
+
+	var posterURL *string
+	if e.PosterImageUrl.Valid && e.PosterImageUrl.String != "" {
+		p := e.PosterImageUrl.String
+		posterURL = &p
+	}
+
+	relatedLinks := make([]string, 0)
+	if len(e.RelatedLinks) > 0 {
+		relatedLinks = e.RelatedLinks
+	}
+
+	var venueSummary *VenueSummary
+	if detail.Venue != nil {
+		v := detail.Venue
+		vID := openapi_types.UUID(v.ID)
+		vName := v.OfficialName
+		vAddr := v.Address
+		vLat := v.Latitude
+		vLng := v.Longitude
+		vStatus := VenueSummaryStatus(v.Status)
+		var vRating *float64
+		if v.RatingCount > 0 {
+			avg := v.RatingSum / float64(v.RatingCount)
+			vRating = &avg
+		}
+		venueSummary = &VenueSummary{
+			Id:           &vID,
+			OfficialName: &vName,
+			Address:      &vAddr,
+			Latitude:     &vLat,
+			Longitude:    &vLng,
+			Rating:       vRating,
+			Status:       &vStatus,
+		}
+	}
+
+	artistSummaries := make([]ArtistSummary, 0, len(detail.Artists))
+	for _, a := range detail.Artists {
+		aID := openapi_types.UUID(a.ID)
+		aName := a.OfficialName
+		aStatus := ArtistSummaryStatus(a.Status)
+		var hiragana *string
+		if a.Hiragana.Valid && a.Hiragana.String != "" {
+			h := a.Hiragana.String
+			hiragana = &h
+		}
+		var disambiguation *string
+		if a.Disambiguation.Valid && a.Disambiguation.String != "" {
+			d := a.Disambiguation.String
+			disambiguation = &d
+		}
+		artistSummaries = append(artistSummaries, ArtistSummary{
+			Id:             &aID,
+			OfficialName:   &aName,
+			Hiragana:       hiragana,
+			Disambiguation: disambiguation,
+			Status:         &aStatus,
+		})
+	}
+
+	RespondJSON(w, http.StatusOK, Event{
+		Id:             &id,
+		Title:          &title,
+		Venue:          venueSummary,
+		Artists:        &artistSummaries,
+		OpeningTime:    openingTime,
+		StartTime:      &startTime,
+		EndTime:        &endTime,
+		RelatedLinks:   &relatedLinks,
+		PosterImageUrl: posterURL,
+		RatingSum:      &ratingSum,
+		RatingCount:    &ratingCount,
+		AttendeeCount:  &attendeeCount,
+		Status:         &status,
+	})
 }
 
 // PostEvents implements the POST /events endpoint

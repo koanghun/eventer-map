@@ -1,7 +1,7 @@
 import { useTranslation } from 'react-i18next';
 import { useEventStore } from '../../store/useEventStore';
 import { Button } from '../ui/button';
-import { Edit2, Trash2, MapPin, Clock } from 'lucide-react';
+import { Edit2, Trash2, MapPin, Clock, Users } from 'lucide-react';
 import { ScrollArea } from '../ui/scroll-area';
 
 interface EventListProps {
@@ -94,9 +94,19 @@ function EventList({ events, loading, onEventEdit, onEventDelete }: EventListPro
                                 </div>
 
                                 <div className="space-y-1.5 text-sm">
-                                    <div className="flex items-start gap-2 text-muted-foreground">
-                                        <MapPin className="h-4 w-4 shrink-0 mt-0.5 text-primary/70" />
-                                        <span className="truncate">{event.venueId ? 'Venue: ' + event.venueId.split('-')[0] + '...' : 'Location TBD'}</span>
+                                    <div className="flex items-center justify-between gap-2 text-muted-foreground">
+                                        <div className="flex items-start gap-2 min-w-0">
+                                            <MapPin className="h-4 w-4 shrink-0 mt-0.5 text-primary/70" />
+                                            <span className="truncate">
+                                                {event.venueName || (event.venueId ? 'Venue: ' + event.venueId.split('-')[0] + '...' : 'Location TBD')}
+                                            </span>
+                                        </div>
+                                        {typeof event.attendeeCount === 'number' && (
+                                            <span className="inline-flex items-center gap-1 text-xs font-medium text-primary bg-primary/10 px-2 py-0.5 rounded-full shrink-0">
+                                                <Users className="h-3 w-3" />
+                                                {event.attendeeCount}
+                                            </span>
+                                        )}
                                     </div>
                                     
                                     <div className="flex items-start gap-2 text-muted-foreground">

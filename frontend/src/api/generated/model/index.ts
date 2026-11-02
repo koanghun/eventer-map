@@ -37,6 +37,7 @@ export * from './getUsersMeFollowingEventsParams';
 export * from './getUsersMeFollowingParams';
 export * from './getUsersUserIdFollowersParams';
 export * from './getVenuesParams';
+export * from './getVenuesSearchParams';
 export * from './getVenuesStatus';
 export * from './getVisits200';
 export * from './googleLoginRequest';

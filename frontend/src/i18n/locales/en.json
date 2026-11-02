@@ -34,6 +34,7 @@
         "nickname": "Nickname"
     },
     "buttons": {
+        "back": "Back",
         "newEvent": "新規イベント登録",
         "edit": "編集",
         "delete": "削除",
@@ -391,18 +392,71 @@
             "doorsOpen": "Doors Open",
             "startTime": "Start Time",
             "endTime": "End Time",
-            "venueId": "Venue ID (Temp)",
-            "venuePlaceholder": "Enter UUID...",
+            "venue": "Venue",
+            "venueId": "Venue",
+            "venuePlaceholder": "Search venue name...",
+            "venueNoResults": "No matching venues found.",
+            "venueSelectHint": "Please select a venue from the suggestions.",
+            "addVenue": "Add Venue",
+            "artists": "Performers",
+            "artistsPlaceholder": "Search performer name...",
+            "addArtist": "Add Performer",
             "relatedLinks": "Related Links",
             "linkPlaceholder": "https://..."
         },
         "addLink": "Add Link",
-        "createMissingFields": "Title, Start/End times, and Venue ID are required.",
+        "createMissingFields": "Title, Start/End times, and Venue are required.",
         "createSuccess": "Event successfully registered.",
         "createFail": "Failed to register event.",
         "threads": {
             "title": "Threads",
             "disabledDescription": "You can write threads after registering the event."
         }
+    },
+    "artistForm": {
+        "title": "Register New Performer",
+        "fields": {
+            "officialName": "Official Name",
+            "officialNamePlaceholder": "Official performer name",
+            "hiragana": "Hiragana (Reading)",
+            "hiraganaPlaceholder": "e.g., ぱふゅーむ (optional)",
+            "disambiguation": "Affiliation / Disambiguation (Optional)",
+            "disambiguationPlaceholder": "e.g., Solo singer, LE SSERAFIM, Voice actor",
+            "gender": "Gender",
+            "genderOptions": {
+                "FEMALE": "Female",
+                "MALE": "Male"
+            },
+            "profileImage": "Profile Image (Optional)",
+            "profileImageHint": "JPG, PNG only / Max 5MB",
+            "selectImage": "Choose Image"
+        },
+        "invalidImageType": "Only JPG or PNG images are allowed.",
+        "imageTooLarge": "Profile image must be 5MB or smaller.",
+        "missingFields": "Official name and gender are required.",
+        "createSuccess": "New performer registered and added to the list.",
+        "createFail": "Failed to register performer."
+    },
+    "venueForm": {
+        "title": "Register New Venue",
+        "fields": {
+            "placeSearch": "Google Maps Place Search (Auto-fill)",
+            "placeSearchPlaceholder": "Search a place to auto-fill address and coordinates...",
+            "officialName": "Official Name",
+            "officialNamePlaceholder": "Official venue name",
+            "address": "Address",
+            "addressPlaceholder": "e.g., 2-3 Kitanomarukoen, Chiyoda City, Tokyo",
+            "coordinates": "Coordinates (Lat / Lng)",
+            "mapClickHint": "Click on the map to pick",
+            "latitudePlaceholder": "Latitude (e.g., 35.6933)",
+            "longitudePlaceholder": "Longitude (e.g., 139.7498)",
+            "capacity": "Capacity (Optional)",
+            "capacityPlaceholder": "e.g., 2000",
+            "relatedLinks": "Related Links (Optional)"
+        },
+        "missingFields": "Official venue name and valid latitude/longitude are required. (Click on the map or search a place)",
+        "invalidCapacity": "Capacity must be a positive number.",
+        "createSuccess": "New venue registered and selected.",
+        "createFail": "Failed to register venue."
     }
 }

@@ -8,7 +8,7 @@ DELETE FROM user_artist_follows
 WHERE user_id = $1 AND artist_id = $2;
 
 -- name: ListFollowingArtists :many
-SELECT a.id, a.official_name, a.hiragana, a.gender, a.profile_image_url, a.birth_date, a.debut_date, a.rating_sum, a.rating_count, a.status, a.author_id, a.created_at, a.updated_at
+SELECT a.id, a.official_name, a.hiragana, a.disambiguation, a.gender, a.profile_image_url, a.rating_sum, a.rating_count, a.status, a.author_id, a.created_at, a.updated_at
 FROM artists a
 JOIN user_artist_follows uaf ON a.id = uaf.artist_id
 WHERE uaf.user_id = $1

@@ -18,8 +18,6 @@ type Artist struct {
 	Hiragana        sql.NullString
 	Gender          string
 	ProfileImageUrl sql.NullString
-	BirthDate       sql.NullTime
-	DebutDate       sql.NullTime
 	RatingSum       float64
 	RatingCount     int32
 	Status          string
@@ -28,6 +26,7 @@ type Artist struct {
 	UpdatedAt       time.Time
 	CreditScore     int32
 	CreditCount     int32
+	Disambiguation  sql.NullString
 }
 
 type DailyVisit struct {

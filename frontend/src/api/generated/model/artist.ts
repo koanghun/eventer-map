@@ -10,10 +10,11 @@ import type { ArtistStatus } from './artistStatus';
 export interface Artist {
   /** 등록한 유저 ID */
   authorId?: string;
-  /** 생년월일 (YYYY-MM-DD) */
-  birthDate?: string;
-  /** 데뷔일 (YYYY-MM-DD) */
-  debutDate?: string;
+  /**
+   * 동명이인 구분을 위한 한 줄 식별 설명 (소속 그룹, 분야 등)
+   * @maxLength 100
+   */
+  disambiguation?: string;
   /** 성별 */
   gender?: ArtistGender;
   /** 히라가나 */

@@ -21,6 +21,25 @@ WHERE
 ORDER BY id ASC
 LIMIT $1;
 
+-- name: SearchVenues :many
+SELECT
+    id,
+    official_name,
+    address,
+    latitude,
+    longitude,
+    rating_sum,
+    rating_count,
+    status
+FROM venues
+WHERE
+    status != 'REJECTED'
+    AND LOWER(official_name) LIKE LOWER(sqlc.arg('query')::varchar) || '%'
+ORDER BY
+    CASE WHEN status = 'APPROVED' THEN 0 ELSE 1 END,
+    official_name ASC
+LIMIT sqlc.arg('limit');
+
 -- name: UpdateVenue :one
 UPDATE venues
 SET official_name = COALESCE(sqlc.narg('official_name'), official_name),
