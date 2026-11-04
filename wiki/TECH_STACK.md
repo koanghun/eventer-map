@@ -1,44 +1,54 @@
-# 🛠️ 백엔드 기술 스택 명세서 (TECH STACK)
+# 🛠️ 기술 스택 명세서 (TECH STACK)
 
-[⬅️ 홈으로 돌아가기](./Home.md) | [관련 문서: 백엔드 아키텍처](./ARCHITECTURE.md)
+[⬅️ 홈으로 돌아가기](./Home.md) | [관련 문서: 시스템 아키텍처](./ARCHITECTURE.md)
 
-이 문서는 Eventer Map 프로젝트 백엔드 서비스의 아키텍처 및 확정된 기술 스택을 정의합니다.
-
-## 1. 아키텍처 개요 (Architecture Overview)
-- **접근 방식:** Serverless Architecture (서버리스 아키텍처)
-- **특징:** 트래픽에 따른 자동 확장, 사용한 만큼만 지불하는 비용 효율성, 인프라 관리 최소화.
-
-## 2. 인프라 및 배포 (Infrastructure & Deployment)
-- **클라우드 프로바이더:** AWS (Amazon Web Services)
-- **핵심 서비스:** AWS Lambda (컴퓨팅), Amazon API Gateway (API 라우팅)
-- **IaC (인프라 코드화) 도구:** **AWS SAM** (Serverless Application Model)
-  - 선택 이유: 서버리스 애플리케이션 구축 및 배포에 특화되어 있으며, 로컬 환경에서의 빠르고 간편한 API 테스트를 지원합니다.
-
-## 3. 백엔드 애플리케이션 (Backend Application)
-- **개발 언어:** **Go (Golang)**
-- **프레임워크 / 라우터:** **Go 표준 라이브러리 (`net/http`)**
-  - 선택 이유: Go의 기본기를 강화하고, 의존성을 최소화하여 AWS Lambda 환경에서의 콜드 스타트(Cold Start) 속도를 극대화하기 위함입니다. 외부 프레임워크(Echo, Gin 등) 대신 표준을 채택했습니다.
-
-## 4. API 개발 방식 (API Development)
-- **방식:** 스키마 퍼스트 (Schema-First) 개발
-- **명세 언어:** OpenAPI 3.0
-- **코드 생성 도구:** **`deepmap/oapi-codegen`**
-  - 선택 이유: OpenAPI 명세서(`openapi.yaml`)를 작성하면 Go 라우팅 인터페이스와 모델 코드를 자동 생성해주어, 명세와 구현의 불일치를 원천 차단합니다.
-
-## 5. 데이터베이스 (Database)
-- **DBMS:** PostgreSQL
-- **호스팅 서비스:** **NEON** (Serverless Postgres)
-- **DB 연동 및 쿼리 도구:** **`sqlc`**
-  - 선택 이유: SQL 쿼리문을 직접 작성하면 타입 세이프(Type-safe)한 Go 코드를 자동으로 생성해 줍니다. 런타임 에러를 줄이고 성능이 매우 뛰어납니다. (ORM의 복잡성 회피)
-
-## 6. 인증 및 보안 (Authentication)
-- **방식:** 자체 JWT 발급 (Access Token + Refresh Token)
-- **제공자:** 
-  1. **자체 이메일/비밀번호 로그인 (로컬 인증)**
-  2. **Google 소셜 로그인 및 기존 계정 연동**
-- **보안 처리:** 
-  - Access Token: JSON Body로 전달받아 클라이언트 메모리에서 관리 (CSRF 방어)
-  - Refresh Token: `HttpOnly` 쿠키를 통해 브라우저에 저장 (XSS 방어)
+이 문서는 Eventer Map 프로젝트의 풀스택(백엔드, 프론트엔드, 데이터베이스, 인프라) 기술 스택을 정의합니다.
 
 ---
-*문서 수정일: 2026-08-24*
+
+## 1. 백엔드 (Backend - Go)
+- **개발 언어:** **Go (Golang)**
+- **웹 서버 / 라우터:** **Go 표준 라이브러리 (`net/http`)**
+  - 외부 프레임워크(Echo, Gin, Fiber 등)를 사용하지 않고 표준 `http.ServeMux`와 미들웨어 체인을 사용하여 AWS Lambda 콜드 스타트를 최소화합니다.
+- **API 코드 생성:** **`oapi-codegen` (v2)**
+  - `backend/api/openapi.yaml`로부터 `internal/handler/openapi.gen.go`(`types`, `std-http`, `spec`)를 자동 생성합니다.
+- **인프라 & 서버리스:** **AWS Lambda + Amazon API Gateway (AWS SAM)**
+
+---
+
+## 2. 데이터베이스 (Database - PostgreSQL)
+- **DBMS:** **PostgreSQL (Neon Serverless Postgres / Synology NAS Postgres)**
+- **쿼리 컴파일러:** **`sqlc`**
+  - ORM(GORM 등)을 사용하지 않고 `db/migration/*.sql`과 `db/query/*.sql`로부터 타입 안전 Go 코드(`internal/repository/`)를 생성합니다.
+- **스키마 마이그레이션:** **`golang-migrate`**
+  - `backend/db/migration/` 하위의 버전별 `.up.sql` / `.down.sql` 파일로 스키마 이력을 관리합니다.
+- **인덱스 최적화:**
+  - 지도 바운딩 박스 조회용 공간/좌표 인덱스(`latitude`, `longitude`)
+  - 회장/출연자 저부하 전방 일치 자동완성용 `LOWER(official_name) varchar_pattern_ops` 및 `hiragana varchar_pattern_ops` B-Tree 인덱스
+
+---
+
+## 3. 프론트엔드 (Frontend - React + TypeScript)
+- **코어 프레임워크:** **React 18 + TypeScript**
+- **API 클라이언트 자동 생성:** **`Orval`**
+  - `backend/api/openapi.yaml`을 파싱하여 `src/api/generated/model`에 TypeScript 모델을, `src/api/generated/<tag>/`에 **TanStack Query v5** 커스텀 훅을 `tags-split` 모드로 자동 생성합니다.
+- **서버 상태 관리:** **TanStack Query (v5)**
+  - API 응답 캐싱(`staleTime`, `gcTime`), 자동완성 검색 결과 캐싱, 쿼리 무효화(`invalidateQueries`)를 전담합니다.
+- **클라이언트 전역 상태 관리:** **Zustand**
+  - 선택된 이벤트(`selectedEvent`), 지도 뷰포트(`mapBounds`), 신규 회장 등록 시 지도 클릭 좌표(`venueDraftLocation`) 등 순수 클라이언트 상태만 `src/store/`에서 관리합니다.
+- **지도 & 지오코딩:** **`@react-google-maps/api` + OpenStreetMap Nominatim 폴백**
+  - Google Maps 기반 이벤트 마커/클러스터 렌더링 및 신규 회장 등록 시 Google Places/Geocoder + OpenStreetMap Nominatim 다단계 장소 검색 및 역지오코딩을 지원합니다.
+- **UI & 스타일링:** **Tailwind CSS + Radix UI + Lucide Icons**
+- **다국어 지원 (i18n):** **`i18next` / `react-i18next`** (`ko`, `ja`, `en`, `zh` 4개 국어 지원)
+
+---
+
+## 4. 인증 및 보안 (Authentication & Security)
+- **방식:** 자체 JWT 이중 토큰 구조 (Access Token + Refresh Token)
+- **지원 방식:** 자체 이메일/비밀번호 인증(6자리 이메일 코드 검증) 및 Google OAuth(`idToken`) 로그인/계정 연동
+- **토큰 보관:**
+  - **Access Token:** JSON 응답 바디로 전달받아 클라이언트 메모리(`src/lib/axios.ts`)에만 보관 (XSS/CSRF 방어)
+  - **Refresh Token:** `HttpOnly`, `Secure` 쿠키에 저장 (`withCredentials: true`)
+
+---
+*문서 최종 업데이트: 2026-11-04*

@@ -1,8 +1,8 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import { ArrowLeft, Save, Loader2, MapPin, Plus, Trash2, Search } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useQueryClient } from '@tanstack/react-query';
-import { Autocomplete } from '@react-google-maps/api';
+import { useDebounce } from 'use-debounce';
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
 import { Label } from '../ui/label';
@@ -10,6 +10,7 @@ import { ScrollArea } from '../ui/scroll-area';
 import { usePostVenues } from '../../api/generated/venues/venues';
 import { useEventStore } from '../../store/useEventStore';
 import { toast } from '../../store/useToastStore';
+import { cn } from '../../lib/utils';
 import type { Venue, VenueInput } from '../../api/generated/model';
 
 interface VenueFormPaneProps {
@@ -18,13 +19,151 @@ interface VenueFormPaneProps {
     onCreated: (venue: Venue) => void;
 }
 
+interface PlaceSearchResult {
+    id: string;
+    name: string;
+    address: string;
+    lat: number;
+    lng: number;
+    googleMapId?: string;
+}
+
+async function searchPlacesWithGoogle(query: string): Promise<PlaceSearchResult[] | null> {
+    if (typeof window === 'undefined' || !window.google?.maps) {
+        return null;
+    }
+
+    // 1. Try Google PlacesService.textSearch if places library is available
+    if (window.google.maps.places?.PlacesService) {
+        const placesResults = await new Promise<PlaceSearchResult[] | null>((resolve) => {
+            try {
+                const service = new window.google.maps.places.PlacesService(document.createElement('div'));
+                service.textSearch({ query }, (results, status) => {
+                    if (
+                        status === window.google.maps.places.PlacesServiceStatus.OK &&
+                        Array.isArray(results) &&
+                        results.length > 0
+                    ) {
+                        const mapped: PlaceSearchResult[] = [];
+                        for (const r of results.slice(0, 6)) {
+                            const lat = r.geometry?.location?.lat();
+                            const lng = r.geometry?.location?.lng();
+                            if (typeof lat === 'number' && typeof lng === 'number') {
+                                mapped.push({
+                                    id: r.place_id || `${lat},${lng}`,
+                                    name: r.name || query,
+                                    address: r.formatted_address || '',
+                                    lat: Number(lat.toFixed(6)),
+                                    lng: Number(lng.toFixed(6)),
+                                    googleMapId: r.place_id,
+                                });
+                            }
+                        }
+                        resolve(mapped.length > 0 ? mapped : null);
+                    } else {
+                        resolve(null);
+                    }
+                });
+            } catch {
+                resolve(null);
+            }
+        });
+
+        if (placesResults && placesResults.length > 0) {
+            return placesResults;
+        }
+    }
+
+    // 2. Try Google Maps Geocoder
+    if (window.google.maps.Geocoder) {
+        const geocodeResults = await new Promise<PlaceSearchResult[] | null>((resolve) => {
+            try {
+                const geocoder = new window.google.maps.Geocoder();
+                geocoder.geocode({ address: query }, (results, status) => {
+                    if (status === 'OK' && Array.isArray(results) && results.length > 0) {
+                        const mapped: PlaceSearchResult[] = [];
+                        for (const r of results.slice(0, 6)) {
+                            const lat = r.geometry?.location?.lat();
+                            const lng = r.geometry?.location?.lng();
+                            if (typeof lat === 'number' && typeof lng === 'number') {
+                                const firstComponent = r.address_components?.[0]?.long_name;
+                                mapped.push({
+                                    id: r.place_id || `${lat},${lng}`,
+                                    name: firstComponent || query,
+                                    address: r.formatted_address || '',
+                                    lat: Number(lat.toFixed(6)),
+                                    lng: Number(lng.toFixed(6)),
+                                    googleMapId: r.place_id,
+                                });
+                            }
+                        }
+                        resolve(mapped.length > 0 ? mapped : null);
+                    } else {
+                        resolve(null);
+                    }
+                });
+            } catch {
+                resolve(null);
+            }
+        });
+
+        if (geocodeResults && geocodeResults.length > 0) {
+            return geocodeResults;
+        }
+    }
+
+    return null;
+}
+
+async function searchPlacesWithNominatim(query: string, lang: string, signal?: AbortSignal): Promise<PlaceSearchResult[]> {
+    const url = `https://nominatim.openstreetmap.org/search?format=jsonv2&addressdetails=1&limit=6&q=${encodeURIComponent(query)}`;
+    const res = await fetch(url, {
+        headers: {
+            'Accept-Language': `${lang},ja;q=0.9,ko;q=0.8,en;q=0.7`,
+        },
+        signal,
+    });
+    if (!res.ok) return [];
+    const data = await res.json();
+    if (!Array.isArray(data)) return [];
+
+    return data
+        .map((item: any) => {
+            const lat = Number.parseFloat(item.lat);
+            const lng = Number.parseFloat(item.lon);
+            if (Number.isNaN(lat) || Number.isNaN(lng)) return null;
+            const displayName = typeof item.display_name === 'string' ? item.display_name : '';
+            const shortName =
+                (typeof item.name === 'string' && item.name.trim()) ||
+                displayName.split(',')[0]?.trim() ||
+                query;
+
+            return {
+                id: String(item.place_id ?? `${lat},${lng}`),
+                name: shortName,
+                address: displayName,
+                lat: Number(lat.toFixed(6)),
+                lng: Number(lng.toFixed(6)),
+            } as PlaceSearchResult;
+        })
+        .filter((v): v is PlaceSearchResult => v !== null);
+}
+
 export default function VenueFormPane({ initialName, onBack, onCreated }: VenueFormPaneProps) {
-    const { t } = useTranslation();
+    const { t, i18n } = useTranslation();
     const queryClient = useQueryClient();
 
     const setIsPickingVenueLocation = useEventStore((state) => state.setIsPickingVenueLocation);
     const venueDraftLocation = useEventStore((state) => state.venueDraftLocation);
     const setVenueDraftLocation = useEventStore((state) => state.setVenueDraftLocation);
+
+    const [placeQuery, setPlaceQuery] = useState(initialName);
+    const [debouncedPlaceQuery] = useDebounce(placeQuery.trim(), 350);
+    const [placeResults, setPlaceResults] = useState<PlaceSearchResult[]>([]);
+    const [isSearchingPlaces, setIsSearchingPlaces] = useState(false);
+    const [isPlaceDropdownOpen, setIsPlaceDropdownOpen] = useState( Boolean(initialName.trim()) );
+    const [isPlaceComposing, setIsPlaceComposing] = useState(false);
+    const [placeHighlightedIndex, setPlaceHighlightedIndex] = useState(-1);
 
     const [officialName, setOfficialName] = useState(initialName);
     const [address, setAddress] = useState('');
@@ -34,7 +173,7 @@ export default function VenueFormPane({ initialName, onBack, onCreated }: VenueF
     const [capacity, setCapacity] = useState('');
     const [links, setLinks] = useState<string[]>(['']);
 
-    const autocompleteRef = useRef<google.maps.places.Autocomplete | null>(null);
+    const placeContainerRef = useRef<HTMLDivElement>(null);
 
     const { mutateAsync: createVenue, isPending } = usePostVenues();
 
@@ -60,32 +199,113 @@ export default function VenueFormPane({ initialName, onBack, onCreated }: VenueF
         }
     }, [venueDraftLocation]);
 
-    const handlePlaceChanged = () => {
-        const place = autocompleteRef.current?.getPlace();
-        if (!place) return;
+    useEffect(() => {
+        const handleClickOutside = (event: MouseEvent) => {
+            if (placeContainerRef.current && !placeContainerRef.current.contains(event.target as Node)) {
+                setIsPlaceDropdownOpen(false);
+            }
+        };
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => document.removeEventListener('mousedown', handleClickOutside);
+    }, []);
 
-        if (place.name && !officialName.trim()) {
+    const executePlaceSearch = useCallback(
+        async (query: string, signal?: AbortSignal) => {
+            const trimmed = query.trim();
+            if (!trimmed) {
+                setPlaceResults([]);
+                return;
+            }
+
+            setIsSearchingPlaces(true);
+            try {
+                // 1차: Google Places / Geocoder 시도
+                const googleItems = await searchPlacesWithGoogle(trimmed);
+                if (signal?.aborted) return;
+                if (googleItems && googleItems.length > 0) {
+                    setPlaceResults(googleItems);
+                    setPlaceHighlightedIndex(-1);
+                    return;
+                }
+
+                // 2차: Google Places API 미활성화/권한 없음 시 OpenStreetMap Nominatim 폴백
+                const fallbackItems = await searchPlacesWithNominatim(trimmed, i18n.language || 'ko', signal);
+                if (signal?.aborted) return;
+                setPlaceResults(fallbackItems);
+                setPlaceHighlightedIndex(-1);
+            } catch {
+                if (!signal?.aborted) {
+                    setPlaceResults([]);
+                }
+            } finally {
+                if (!signal?.aborted) {
+                    setIsSearchingPlaces(false);
+                }
+            }
+        },
+        [i18n.language]
+    );
+
+    useEffect(() => {
+        if (!isPlaceDropdownOpen || isPlaceComposing || debouncedPlaceQuery.length < 1) {
+            if (debouncedPlaceQuery.length < 1) {
+                setPlaceResults([]);
+            }
+            return;
+        }
+
+        const controller = new AbortController();
+        executePlaceSearch(debouncedPlaceQuery, controller.signal);
+        return () => controller.abort();
+    }, [debouncedPlaceQuery, isPlaceDropdownOpen, isPlaceComposing, executePlaceSearch]);
+
+    const handleSelectPlace = (place: PlaceSearchResult) => {
+        if (place.name) {
             setOfficialName(place.name);
         }
-        if (place.formatted_address) {
-            setAddress(place.formatted_address);
+        setAddress(place.address);
+        setLatitude(String(place.lat));
+        setLongitude(String(place.lng));
+        setGoogleMapId(place.googleMapId || '');
+        setPlaceQuery(place.name);
+        setIsPlaceDropdownOpen(false);
+        setPlaceHighlightedIndex(-1);
+
+        setVenueDraftLocation({
+            lat: place.lat,
+            lng: place.lng,
+            address: place.address,
+            googleMapId: place.googleMapId,
+        });
+    };
+
+    const handlePlaceKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            if (isPlaceDropdownOpen && placeHighlightedIndex >= 0 && placeHighlightedIndex < placeResults.length) {
+                handleSelectPlace(placeResults[placeHighlightedIndex]);
+            } else if (placeQuery.trim().length >= 1) {
+                setIsPlaceDropdownOpen(true);
+                executePlaceSearch(placeQuery);
+            }
+            return;
         }
-        if (place.place_id) {
-            setGoogleMapId(place.place_id);
+
+        if (!isPlaceDropdownOpen || placeResults.length === 0) {
+            if (e.key === 'Escape') {
+                setIsPlaceDropdownOpen(false);
+            }
+            return;
         }
-        const lat = place.geometry?.location?.lat();
-        const lng = place.geometry?.location?.lng();
-        if (typeof lat === 'number' && typeof lng === 'number') {
-            const roundedLat = Number(lat.toFixed(6));
-            const roundedLng = Number(lng.toFixed(6));
-            setLatitude(String(roundedLat));
-            setLongitude(String(roundedLng));
-            setVenueDraftLocation({
-                lat: roundedLat,
-                lng: roundedLng,
-                address: place.formatted_address,
-                googleMapId: place.place_id,
-            });
+
+        if (e.key === 'ArrowDown') {
+            e.preventDefault();
+            setPlaceHighlightedIndex((prev) => (prev < placeResults.length - 1 ? prev + 1 : 0));
+        } else if (e.key === 'ArrowUp') {
+            e.preventDefault();
+            setPlaceHighlightedIndex((prev) => (prev > 0 ? prev - 1 : placeResults.length - 1));
+        } else if (e.key === 'Escape') {
+            setIsPlaceDropdownOpen(false);
         }
     };
 
@@ -182,39 +402,77 @@ export default function VenueFormPane({ initialName, onBack, onCreated }: VenueF
             <ScrollArea className="flex-1">
                 <form onSubmit={handleSubmit} className="flex flex-col gap-4 p-3 px-4">
                     <div className="flex flex-col gap-3">
-                        {/* Google Maps 장소 검색으로 주소/좌표 자동 완성 */}
-                        {typeof window !== 'undefined' && window.google?.maps?.places && (
-                            <div className="space-y-1">
-                                <Label htmlFor="venue-place-search" className="text-xs font-bold text-muted-foreground">
-                                    {t('venueForm.fields.placeSearch', 'Google 지도 장소 검색 (자동 입력)')}
-                                </Label>
-                                <Autocomplete
-                                    onLoad={(auto) => {
-                                        autocompleteRef.current = auto;
-                                    }}
-                                    onPlaceChanged={handlePlaceChanged}
-                                >
-                                    <div className="relative">
-                                        <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground pointer-events-none" />
-                                        <Input
-                                            id="venue-place-search"
-                                            defaultValue={initialName}
-                                            placeholder={t(
-                                                'venueForm.fields.placeSearchPlaceholder',
-                                                '장소 검색 시 주소·좌표가 자동 입력됩니다...'
-                                            )}
-                                            className="h-8 text-xs pl-8 bg-background border-input"
-                                            disabled={isPending}
-                                            onKeyDown={(e) => {
-                                                if (e.key === 'Enter') {
-                                                    e.preventDefault();
-                                                }
-                                            }}
-                                        />
-                                    </div>
-                                </Autocomplete>
+                        {/* 장소 검색으로 공식 이름/주소/좌표 자동 완성 */}
+                        <div className="space-y-1 relative" ref={placeContainerRef}>
+                            <Label htmlFor="venue-place-search" className="text-xs font-bold text-muted-foreground">
+                                {t('venueForm.fields.placeSearch', 'Google 지도 장소 검색 (자동 입력)')}
+                            </Label>
+                            <div className="relative flex items-center gap-1.5">
+                                <div className="relative flex-1">
+                                    <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground pointer-events-none" />
+                                    <Input
+                                        id="venue-place-search"
+                                        value={placeQuery}
+                                        onChange={(e) => {
+                                            setPlaceQuery(e.target.value);
+                                            setIsPlaceDropdownOpen(true);
+                                        }}
+                                        onFocus={() => {
+                                            if (placeQuery.trim().length >= 1) {
+                                                setIsPlaceDropdownOpen(true);
+                                            }
+                                        }}
+                                        onCompositionStart={() => setIsPlaceComposing(true)}
+                                        onCompositionEnd={() => setIsPlaceComposing(false)}
+                                        onKeyDown={handlePlaceKeyDown}
+                                        placeholder={t(
+                                            'venueForm.fields.placeSearchPlaceholder',
+                                            '장소 검색 시 주소·좌표가 자동 입력됩니다...'
+                                        )}
+                                        autoComplete="off"
+                                        className="h-8 text-xs pl-8 pr-8 bg-background border-input"
+                                        disabled={isPending}
+                                    />
+                                    {isSearchingPlaces && (
+                                        <Loader2 className="absolute right-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 animate-spin text-muted-foreground" />
+                                    )}
+                                </div>
                             </div>
-                        )}
+
+                            {isPlaceDropdownOpen && !isPlaceComposing && debouncedPlaceQuery.length >= 1 && (
+                                <div className="absolute left-0 right-0 top-full mt-1 z-50 rounded-md border border-border bg-popover text-popover-foreground shadow-md max-h-52 overflow-y-auto">
+                                    {placeResults.length > 0 ? (
+                                        placeResults.map((place, idx) => (
+                                            <button
+                                                key={`${place.id}-${idx}`}
+                                                type="button"
+                                                onClick={() => handleSelectPlace(place)}
+                                                onMouseEnter={() => setPlaceHighlightedIndex(idx)}
+                                                className={cn(
+                                                    'w-full text-left px-2.5 py-1.5 text-xs flex items-start justify-between gap-2 border-b border-border/50 last:border-0 transition-colors',
+                                                    placeHighlightedIndex === idx
+                                                        ? 'bg-accent text-accent-foreground'
+                                                        : 'hover:bg-muted/60'
+                                                )}
+                                            >
+                                                <div className="min-w-0 flex-1">
+                                                    <div className="font-medium truncate">{place.name}</div>
+                                                    {place.address && (
+                                                        <div className="text-[10px] text-muted-foreground truncate">
+                                                            {place.address}
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            </button>
+                                        ))
+                                    ) : !isSearchingPlaces ? (
+                                        <div className="px-3 py-2 text-xs text-muted-foreground text-center">
+                                            {t('management.noResults', '검색 결과가 없습니다.')}
+                                        </div>
+                                    ) : null}
+                                </div>
+                            )}
+                        </div>
 
                         <div className="space-y-1">
                             <Label htmlFor="venue-official-name" className="text-xs font-bold text-muted-foreground">
@@ -227,7 +485,6 @@ export default function VenueFormPane({ initialName, onBack, onCreated }: VenueF
                                 placeholder={t('venueForm.fields.officialNamePlaceholder', '회장 공식 표기명')}
                                 className="h-8 text-xs bg-background border-input"
                                 disabled={isPending}
-                                autoFocus
                             />
                         </div>
 
@@ -351,4 +608,3 @@ export default function VenueFormPane({ initialName, onBack, onCreated }: VenueF
         </div>
     );
 }
-

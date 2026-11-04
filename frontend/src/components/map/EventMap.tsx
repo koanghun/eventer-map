@@ -193,6 +193,24 @@ function EventMap({ events }: EventMapProps) {
         const lat = Number(e.latLng.lat().toFixed(6));
         const lng = Number(e.latLng.lng().toFixed(6));
 
+        const fallbackReverseGeocode = async () => {
+            try {
+                const res = await fetch(
+                    `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lng}`
+                );
+                if (res.ok) {
+                    const data = await res.json();
+                    if (data && typeof data.display_name === 'string') {
+                        setVenueDraftLocation({ lat, lng, address: data.display_name });
+                        return;
+                    }
+                }
+            } catch {
+                // Ignore network errors
+            }
+            setVenueDraftLocation({ lat, lng });
+        };
+
         if (window.google?.maps?.Geocoder) {
             const geocoder = new window.google.maps.Geocoder();
             geocoder.geocode({ location: { lat, lng } }, (results, status) => {
@@ -204,11 +222,11 @@ function EventMap({ events }: EventMapProps) {
                         googleMapId: results[0].place_id,
                     });
                 } else {
-                    setVenueDraftLocation({ lat, lng });
+                    fallbackReverseGeocode();
                 }
             });
         } else {
-            setVenueDraftLocation({ lat, lng });
+            fallbackReverseGeocode();
         }
     }, [isPickingVenueLocation, setVenueDraftLocation]);
 

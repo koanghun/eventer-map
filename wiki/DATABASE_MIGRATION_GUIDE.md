@@ -8,55 +8,66 @@ Eventer Map 백엔드는 Go 생태계의 표준 도구인 [`golang-migrate/migra
 
 ---
 
-## 1. 🚀 Migrate CLI 설치
+## 1. 🚀 Makefile을 통한 간편 실행 (권장)
 
-마이그레이션 명령어를 실행하기 위해서는 `migrate` CLI 도구가 필요합니다.
+`backend/Makefile`에 마이그레이션 명령어가 정의되어 있어 별도의 전역 바이너리 설치 없이도 `backend/.env`의 `DATABASE_URL`을 읽어 바로 실행할 수 있습니다.
 
-**Go가 설치된 환경에서 설치하는 법:**
 ```bash
-go install -tags 'postgres' github.com/golang-migrate/migrate/v4/cmd/migrate@latest
-```
-> 설치 후 `migrate` 명령어가 실행되지 않는다면, Go bin 경로(`$(go env GOPATH)/bin`)가 환경 변수 `PATH`에 등록되어 있는지 확인하세요.
+cd backend
 
-**기타 환경 (Mac Homebrew 등):**
-```bash
-brew install golang-migrate
+# 미적용 마이그레이션 모두 적용 (Up)
+make migrateup
+
+# 마이그레이션 롤백 (Down)
+make migratedown
+
+# 현재 마이그레이션 버전 확인
+make migrateversion
 ```
 
 ---
 
-## 2. 🗂️ 마이그레이션 파일 구조
+## 2. 🗂️ 마이그레이션 파일 구조 및 이력
 
 DB의 스키마 변경 사항은 `backend/db/migration/` 폴더 안의 `.sql` 파일들로 관리됩니다.
+새로운 테이블이나 컬럼, 인덱스를 추가할 때는 **이미 적용된 기존 파일을 절대 수정하지 않고** 새로운 시퀀스 번호의 마이그레이션 파일(`.up.sql`, `.down.sql`)을 생성합니다.
 
-* `000001_init_schema.up.sql` : 스키마를 적용(Up)할 때 실행되는 SQL (테이블 생성 등)
-* `000001_init_schema.down.sql` : 스키마를 롤백(Down)할 때 실행되는 SQL (테이블 삭제 등)
+### 현재 마이그레이션 버전 이력 (`000001` ~ `000014`)
 
-새로운 테이블이나 칼럼을 추가하고 싶을 때는 **기존 파일을 수정하지 마시고** 새로운 마이그레이션 파일을 생성해야 합니다.
+| 버전 | 파일명 | 주요 변경 내용 |
+| :---: | :--- | :--- |
+| `000001` | `000001_init_schema` | 초기 테이블 생성 (`users`, `artists`, `venues`, `events`, `event_artists`, `event_threads`, `event_histories` 등) |
+| `000002` | `000002_add_nickname_unique` | `users.display_name` 고유(UNIQUE) 제약조건 추가 |
+| `000003` | `000003_add_email_verification` | 이메일 인증 코드 테이블 및 컬럼 추가 |
+| `000004` | `000004_add_event_user_actions` | 유저의 이벤트 체크(`1`) / 참가(`2`) 상태 테이블 생성 |
+| `000005` | `000005_add_user_social` | 유저 간 팔로우(`user_follows`) 테이블 생성 |
+| `000006` | `000006_add_artist_follows` | 아티스트 팔로우(`artist_follows`) 테이블 생성 |
+| `000007` | `000007_add_daily_visits` | 일일 방문자 수 집계(`daily_visits`) 테이블 생성 |
+| `000008` | `000008_add_roles_and_ratings` | 유저 권한(`role: USER/ADMIN`) 및 아티스트/공연장 평점 테이블 추가 |
+| `000009` | `000009_add_credit_scores` | 아티스트/공연장 자동 승인을 위한 신용점수(`credit_score`, `credit_count`) 추가 |
+| `000010` | `000010_add_event_performance_indexes` | 이벤트 날짜/공연장 복합 조회 성능 인덱스 추가 |
+| `000011` | `000011_add_venue_lower_name_pattern_index` | 공연장 자동완성 전방 일치 검색용 인덱스 (`LOWER(official_name) varchar_pattern_ops`) |
+| `000012` | `000012_add_artist_lower_name_pattern_index` | 출연자 자동완성 전방 일치 검색용 인덱스 (`LOWER(official_name) varchar_pattern_ops`, `hiragana varchar_pattern_ops`) |
+| `000013` | `000013_remove_artist_dates_and_restrict_gender` | `artists` 테이블에서 `birth_date`, `debut_date` 제거 및 `gender IN ('MALE', 'FEMALE')` 제약조건 적용 |
+| `000014` | `000014_add_artist_disambiguation` | 동명이인 출연자 구분을 위한 `artists.disambiguation VARCHAR(100)` 컬럼 추가 |
 
 ### 새 마이그레이션 파일 생성 명령어
 ```bash
-migrate create -ext sql -dir backend/db/migration -seq add_new_table
+migrate create -ext sql -dir backend/db/migration -seq <변경_설명>
 ```
-*결과: `000002_add_new_table.up.sql`, `000002_add_new_table.down.sql` 생성됨*
 
 ---
 
-## 3. ⚙️ 마이그레이션 실행 (Up / Down)
+## 3. ⚙️ Migrate CLI 직접 실행 (Up / Down)
 
-터미널에서 DB에 SQL을 실행하여 스키마를 최신 상태로 만들거나 롤백할 수 있습니다.
+`migrate` CLI가 설치된 환경에서는 아래와 같이 직접 실행할 수도 있습니다.
 
-### 스키마 적용 (Migration UP) - 테이블 생성
-현재 버전에 맞춰 적용되지 않은 모든 `.up.sql` 파일들을 순차적으로 실행합니다.
 ```bash
-migrate -path backend/db/migration -database "DATABASE_URL" up
-```
-*(예시: `migrate -path backend/db/migration -database "postgres://postgres:1234@ludwig1824.synology.me:6930/postgres?sslmode=disable" up`)*
+# 스키마 적용 (Migration UP)
+migrate -path backend/db/migration -database "$DATABASE_URL" up
 
-### 스키마 롤백 (Migration DOWN) - 테이블 삭제
-가장 최근에 적용한 마이그레이션 버전을 1단계 롤백(`.down.sql` 실행)합니다. (주의: 데이터가 삭제될 수 있습니다)
-```bash
-migrate -path backend/db/migration -database "DATABASE_URL" down 1
+# 스키마 1단계 롤백 (Migration DOWN)
+migrate -path backend/db/migration -database "$DATABASE_URL" down 1
 ```
 
 ---
@@ -65,14 +76,13 @@ migrate -path backend/db/migration -database "DATABASE_URL" down 1
 
 > [!WARNING]
 > **Dirty Database Error 해결법**
-> 
-> 마이그레이션을 실행하다가 SQL 문법 오류 등으로 인해 실패하면, 데이터베이스가 `dirty` 상태로 잠기게 됩니다. 이 상태에서는 추가 마이그레이션을 실행할 수 없습니다.
-> 
+>
+> 마이그레이션을 실행하다가 SQL 문법 오류 등으로 인해 실패하면 데이터베이스가 `dirty` 상태로 잠기게 됩니다.
+>
 > **해결 방법:**
-> 1. DB 툴이나 psql로 접속하여 실패한 테이블을 수동으로 정리(Drop)합니다.
-> 2. 터미널에서 `force` 명령어를 사용하여 버전을 강제로 되돌립니다.
+> 1. DB 툴이나 `psql`로 접속하여 실패한 변경사항을 수동으로 정리합니다.
+> 2. 터미널에서 `force` 명령어를 사용하여 직전 정상 버전 번호로 강제 복구합니다.
 > ```bash
-> migrate -path backend/db/migration -database "DATABASE_URL" force [직전 정상 버전 번호]
+> migrate -path backend/db/migration -database "$DATABASE_URL" force [직전_정상_버전_번호]
 > ```
-> *(예: `000002` 버전을 적용하다 실패했다면 `force 1` 실행)*
-> 3. SQL 스크립트의 오류를 수정한 후 다시 `up` 명령어를 실행합니다.
+> 3. SQL 스크립트의 오류를 수정한 후 다시 `make migrateup`을 실행합니다.
