@@ -23,6 +23,11 @@ yarn-error.log*
 frontend/build/
 frontend/dist/
 
+# Backend AWS SAM / Go build artifacts
+backend/.build/
+backend/.aws-sam/
+backend/bootstrap
+
 # Environment variables
 .env
 .env.local

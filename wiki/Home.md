@@ -7,6 +7,7 @@ Eventer Map 프로젝트의 통합 위키입니다. API-First 풀스택 아키�
 ### 🏗️ 아키텍처 및 기술 스택
 - [기술 스택 명세서 (Tech Stack)](./TECH_STACK.md)
 - [시스템 아키텍처 (System Architecture - 백엔드 4계층 & 프론트엔드 사이드바/지도 연동)](./ARCHITECTURE.md)
+- [AWS 서버리스 & 정적 배포 가이드 (AWS Deployment Guide - S3/CloudFront/Lambda/NAS DB)](./AWS_DEPLOYMENT_GUIDE.md)
 
 ### 🔌 API 및 인증
 - [API 상세 설계서 (API Specification)](./API_SPECIFICATION.md)

@@ -6,6 +6,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"time"
 
 	"github.com/joho/godotenv"
 	_ "github.com/lib/pq"
@@ -39,6 +40,12 @@ func main() {
 		if err != nil {
 			log.Fatalf("Failed to open DB: %v", err)
 		}
+		// Configure connection pool for serverless (AWS Lambda) & NAS DB stability
+		db.SetMaxOpenConns(2)
+		db.SetMaxIdleConns(1)
+		db.SetConnMaxLifetime(5 * time.Minute)
+		db.SetConnMaxIdleTime(1 * time.Minute)
+
 		if err = db.Ping(); err != nil {
 			log.Fatalf("Failed to ping DB: %v", err)
 		}

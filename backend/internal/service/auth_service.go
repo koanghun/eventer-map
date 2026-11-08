@@ -11,6 +11,7 @@ import (
 	"eventer-map-backend/internal/mailer"
 	"eventer-map-backend/internal/repository"
 	"net/http"
+	"os"
 
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/google/uuid"
@@ -19,11 +20,19 @@ import (
 )
 
 const (
-	// JWTSecret should ideally be loaded from environment variables
+	// JWTSecret is the default fallback secret for local development
 	JWTSecret  = "super-secret-key-for-development"
 	TokenExp   = time.Hour * 1      // 1 hour for access token
 	RefreshExp = time.Hour * 24 * 7 // 7 days for refresh token
 )
+
+// GetJWTSecret returns the JWT signing secret from environment or local fallback
+func GetJWTSecret() []byte {
+	if secret := os.Getenv("JWT_SECRET"); secret != "" {
+		return []byte(secret)
+	}
+	return []byte(JWTSecret)
+}
 
 // AuthService handles authentication logic
 type AuthService struct {
@@ -55,7 +64,7 @@ func (s *AuthService) generateTokens(userID string) (*TokenResponse, error) {
 		"type":    "access",
 		"exp":     time.Now().Add(TokenExp).Unix(),
 	})
-	accessToken, err := token.SignedString([]byte(JWTSecret))
+	accessToken, err := token.SignedString(GetJWTSecret())
 	if err != nil {
 		return nil, err
 	}
@@ -66,7 +75,7 @@ func (s *AuthService) generateTokens(userID string) (*TokenResponse, error) {
 		"type":    "refresh",
 		"exp":     time.Now().Add(RefreshExp).Unix(),
 	})
-	refreshToken, err := rt.SignedString([]byte(JWTSecret))
+	refreshToken, err := rt.SignedString(GetJWTSecret())
 	if err != nil {
 		return nil, err
 	}
@@ -206,7 +215,7 @@ func (s *AuthService) Refresh(ctx context.Context, refreshToken string) (*TokenR
 		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
 			return nil, errors.New("unexpected signing method")
 		}
-		return []byte(JWTSecret), nil
+		return GetJWTSecret(), nil
 	})
 
 	if err != nil || !token.Valid {

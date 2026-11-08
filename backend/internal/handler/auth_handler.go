@@ -4,21 +4,42 @@ import (
 	"encoding/json"
 	"log"
 	"net/http"
+	"os"
+	"strings"
 	"time"
 
 	"eventer-map-backend/internal/service"
 )
 
-func setRefreshTokenCookie(w http.ResponseWriter, token string) {
-	http.SetCookie(w, &http.Cookie{
+func buildRefreshTokenCookie(token string, expires time.Time, maxAge int) *http.Cookie {
+	env := os.Getenv("ENV")
+	isProd := env != "" && env != "local"
+
+	sameSite := http.SameSiteLaxMode
+	if strings.EqualFold(os.Getenv("COOKIE_SAMESITE"), "none") && isProd {
+		sameSite = http.SameSiteNoneMode
+	}
+
+	cookie := &http.Cookie{
 		Name:     "refreshToken",
 		Value:    token,
 		HttpOnly: true,
-		Secure:   false, // Set to true in production
-		SameSite: http.SameSiteLaxMode,
+		Secure:   isProd,
+		SameSite: sameSite,
 		Path:     "/",
-		Expires:  time.Now().Add(7 * 24 * time.Hour), // 7 days
-	})
+		Expires:  expires,
+	}
+	if maxAge != 0 {
+		cookie.MaxAge = maxAge
+	}
+	if domain := os.Getenv("COOKIE_DOMAIN"); domain != "" {
+		cookie.Domain = domain
+	}
+	return cookie
+}
+
+func setRefreshTokenCookie(w http.ResponseWriter, token string) {
+	http.SetCookie(w, buildRefreshTokenCookie(token, time.Now().Add(7*24*time.Hour), 0))
 }
 
 // PostAuthSignup implements the local signup endpoint
@@ -124,16 +145,7 @@ func (s *Server) PostAuthGoogle(w http.ResponseWriter, r *http.Request) {
 // PostAuthLogout implements the POST /auth/logout endpoint
 func (s *Server) PostAuthLogout(w http.ResponseWriter, r *http.Request, params PostAuthLogoutParams) {
 	// Clear the refresh token cookie
-	http.SetCookie(w, &http.Cookie{
-		Name:     "refreshToken",
-		Value:    "",
-		HttpOnly: true,
-		Secure:   false,
-		SameSite: http.SameSiteLaxMode,
-		Path:     "/",
-		Expires:  time.Unix(0, 0),
-		MaxAge:   -1,
-	})
+	http.SetCookie(w, buildRefreshTokenCookie("", time.Unix(0, 0), -1))
 
 	// We don't have server-side logout currently, just clear the cookie.
 

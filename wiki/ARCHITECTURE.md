@@ -1,6 +1,6 @@
 # 🏗️ Eventer Map 시스템 아키텍처 (System Architecture)
 
-[⬅️ 홈으로 돌아가기](./Home.md) | [관련 문서: 기술 스택](./TECH_STACK.md)
+[⬅️ 홈으로 돌아가기](./Home.md) | [관련 문서: 기술 스택](./TECH_STACK.md) | [AWS 배포 가이드](./AWS_DEPLOYMENT_GUIDE.md)
 
 이 문서는 Eventer Map의 **API-First 풀스택 아키텍처**, 백엔드 4계층 구조, 그리고 프론트엔드 상태·폼·지도 연동 설계를 설명합니다.
 
@@ -57,7 +57,7 @@ flowchart LR
 모든 의존성은 **Handler ➔ Service ➔ Repository** 단방향으로만 흐릅니다.
 
 ### 1) `cmd/server/` (진입점 & 의존성 주입)
-- 환경변수 로드, PostgreSQL 커넥션 풀 초기화, `Repository ➔ Service ➔ Handler` 조립 및 로컬(`net/http`)/AWS Lambda 프록시 실행을 담당합니다.
+- 환경변수 로드, 서버리스 환경에 최적화된 PostgreSQL 커넥션 풀 초기화(`MaxOpenConns=2`, `MaxIdleConns=1`, `ConnMaxLifetime=5m`, `ConnMaxIdleTime=1m`), `Repository ➔ Service ➔ Handler` 조립 및 로컬(`net/http`)/AWS Lambda 프록시 실행을 담당합니다.
 
 ### 2) `internal/middleware/` (공통 처리 계층)
 - 표준 `http.Handler` 래핑 패턴으로 구현되어 있습니다.

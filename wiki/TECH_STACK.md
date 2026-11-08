@@ -12,12 +12,14 @@
   - 외부 프레임워크(Echo, Gin, Fiber 등)를 사용하지 않고 표준 `http.ServeMux`와 미들웨어 체인을 사용하여 AWS Lambda 콜드 스타트를 최소화합니다.
 - **API 코드 생성:** **`oapi-codegen` (v2)**
   - `backend/api/openapi.yaml`로부터 `internal/handler/openapi.gen.go`(`types`, `std-http`, `spec`)를 자동 생성합니다.
-- **인프라 & 서버리스:** **AWS Lambda + Amazon API Gateway (AWS SAM)**
+- **인프라 & 서버리스:** **AWS Lambda (`provided.al2023`, `arm64`) + Amazon API Gateway + Amazon S3 + CloudFront OAC (AWS SAM 단일 스택 관리)**
+  - 상세 아키텍처 및 원클릭 배포/CI·CD 설정은 [AWS 서버리스 & 정적 배포 가이드](./AWS_DEPLOYMENT_GUIDE.md)를 참고하세요.
 
 ---
 
 ## 2. 데이터베이스 (Database - PostgreSQL)
-- **DBMS:** **PostgreSQL (Neon Serverless Postgres / Synology NAS Postgres)**
+- **DBMS:** **PostgreSQL (Synology NAS Docker PostgreSQL)**
+  - 서버리스(AWS Lambda) 스케일 아웃 시 커넥션 고갈 방지를 위해 인스턴스당 제한된 커넥션 풀(`MaxOpenConns=2`, `MaxIdleConns=1`)을 적용합니다.
 - **쿼리 컴파일러:** **`sqlc`**
   - ORM(GORM 등)을 사용하지 않고 `db/migration/*.sql`과 `db/query/*.sql`로부터 타입 안전 Go 코드(`internal/repository/`)를 생성합니다.
 - **스키마 마이그레이션:** **`golang-migrate`**
@@ -48,7 +50,7 @@
 - **지원 방식:** 자체 이메일/비밀번호 인증(6자리 이메일 코드 검증) 및 Google OAuth(`idToken`) 로그인/계정 연동
 - **토큰 보관:**
   - **Access Token:** JSON 응답 바디로 전달받아 클라이언트 메모리(`src/lib/axios.ts`)에만 보관 (XSS/CSRF 방어)
-  - **Refresh Token:** `HttpOnly`, `Secure` 쿠키에 저장 (`withCredentials: true`)
+  - **Refresh Token:** `HttpOnly`, `Secure`(배포 환경 자동 활성화) 쿠키에 저장 (`withCredentials: true`, 환경별 `SameSite`/`Domain` 분기 지원)
 
 ---
-*문서 최종 업데이트: 2026-11-04*
+*문서 최종 업데이트: 2026-11-08*

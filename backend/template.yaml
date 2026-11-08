@@ -1,9 +1,46 @@
 AWSTemplateFormatVersion: '2010-09-09'
 Transform: AWS::Serverless-2016-10-31
 Description: >
-  eventer-map-backend
-  
-  Sample SAM Template for Eventer Map Backend
+  eventer-map-stack
+  Serverless Backend (Lambda + API Gateway) & Frontend Static Hosting (S3 + CloudFront OAC)
+
+Parameters:
+  Stage:
+    Type: String
+    Default: prod
+    AllowedValues:
+      - dev
+      - prod
+    Description: Deployment environment stage
+
+  DatabaseUrl:
+    Type: String
+    NoEcho: true
+    Description: PostgreSQL connection string (e.g., postgres://user:pass@nas-host:port/dbname?sslmode=require&connect_timeout=5)
+
+  JwtSecret:
+    Type: String
+    NoEcho: true
+    Description: Secret key used to sign JWT access and refresh tokens
+
+  CorsOrigins:
+    Type: String
+    Default: ""
+    Description: Comma-separated allowed CORS origins (e.g., https://d12345.cloudfront.net,https://eventermap.com)
+
+  CookieDomain:
+    Type: String
+    Default: ""
+    Description: Optional cookie domain (e.g., .eventermap.com)
+
+  CookieSameSite:
+    Type: String
+    Default: "None"
+    AllowedValues:
+      - Lax
+      - None
+      - Strict
+    Description: SameSite attribute for refreshToken cookie (use None when CloudFront and API Gateway use separate domains, Lax when sharing root domain)
 
 Globals:
   Function:
@@ -14,14 +51,22 @@ Globals:
       - arm64
 
 Resources:
+  # ============================================================================
+  # 1. Backend: Go Serverless Function (Lambda + API Gateway)
+  # ============================================================================
   EventerMapApiFunction:
     Type: AWS::Serverless::Function
     Properties:
-      CodeUri: .
+      CodeUri: .build
       Handler: bootstrap
       Environment:
         Variables:
-          ENV: dev
+          ENV: !Ref Stage
+          DATABASE_URL: !Ref DatabaseUrl
+          JWT_SECRET: !Ref JwtSecret
+          CORS_ORIGINS: !Ref CorsOrigins
+          COOKIE_DOMAIN: !Ref CookieDomain
+          COOKIE_SAMESITE: !Ref CookieSameSite
       Events:
         CatchAll:
           Type: Api
@@ -33,11 +78,103 @@ Resources:
           Properties:
             Path: /
             Method: ANY
-
     Metadata:
-      BuildMethod: go1.x
+      BuildMethod: makefile
+
+  # ============================================================================
+  # 2. Frontend: S3 Bucket (Private) + CloudFront (OAC)
+  # ============================================================================
+  FrontendBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault:
+              SSEAlgorithm: AES256
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+
+  FrontendOriginAccessControl:
+    Type: AWS::CloudFront::OriginAccessControl
+    Properties:
+      OriginAccessControlConfig:
+        Name: !Sub "${AWS::StackName}-frontend-oac"
+        OriginAccessControlOriginType: s3
+        SigningBehavior: always
+        SigningProtocol: sigv4
+
+  FrontendDistribution:
+    Type: AWS::CloudFront::Distribution
+    Properties:
+      DistributionConfig:
+        Enabled: true
+        Comment: !Sub "Eventer Map Frontend (${Stage})"
+        DefaultRootObject: index.html
+        HttpVersion: http2and3
+        PriceClass: PriceClass_200
+        Origins:
+          - Id: S3Origin
+            DomainName: !GetAtt FrontendBucket.RegionalDomainName
+            OriginAccessControlId: !GetAtt FrontendOriginAccessControl.Id
+            S3OriginConfig:
+              OriginAccessIdentity: ""
+        DefaultCacheBehavior:
+          TargetOriginId: S3Origin
+          ViewerProtocolPolicy: redirect-to-https
+          AllowedMethods:
+            - GET
+            - HEAD
+            - OPTIONS
+          CachedMethods:
+            - GET
+            - HEAD
+          Compress: true
+          # Managed-CachingOptimized policy ID
+          CachePolicyId: 658327ea-f89d-4fab-a63d-7e88639e58f6
+        # SPA Routing: serve index.html on 403/404 from S3
+        CustomErrorResponses:
+          - ErrorCode: 403
+            ResponseCode: 200
+            ResponsePagePath: /index.html
+            ErrorCachingMinTTL: 0
+          - ErrorCode: 404
+            ResponseCode: 200
+            ResponsePagePath: /index.html
+            ErrorCachingMinTTL: 0
+
+  FrontendBucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket: !Ref FrontendBucket
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Sid: AllowCloudFrontServicePrincipalReadOnly
+            Effect: Allow
+            Principal:
+              Service: cloudfront.amazonaws.com
+            Action: s3:GetObject
+            Resource: !Sub "${FrontendBucket.Arn}/*"
+            Condition:
+              StringEquals:
+                AWS:SourceArn: !Sub "arn:aws:cloudfront::${AWS::AccountId}:distribution/${FrontendDistribution}"
 
 Outputs:
   EventerMapApi:
     Description: "API Gateway endpoint URL"
-    Value: !Sub "https://${ServerlessRestApi}.execute-api.${AWS::Region}.amazonaws.com/Prod/"
+    Value: !Sub "https://${ServerlessRestApi}.execute-api.${AWS::Region}.amazonaws.com/Prod"
+
+  FrontendBucketName:
+    Description: "S3 Bucket Name for Frontend Static Files"
+    Value: !Ref FrontendBucket
+
+  CloudFrontDistributionId:
+    Description: "CloudFront Distribution ID for Cache Invalidation"
+    Value: !Ref FrontendDistribution
+
+  FrontendUrl:
+    Description: "CloudFront Frontend URL"
+    Value: !Sub "https://${FrontendDistribution.DomainName}"
