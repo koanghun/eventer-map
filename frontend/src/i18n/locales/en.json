@@ -18,7 +18,9 @@
     "performerFilter": {
         "label": "出演者検索",
         "placeholder": "出演者名または別名を入力",
-        "clearFilter": "フィルター解除"
+        "clearFilter": "フィルター解除",
+        "noResults": "No matching registered performers found.",
+        "searchError": "An error occurred while searching for performers."
     },
     "auth": {
         "login": "Login",
@@ -42,7 +44,13 @@
     "errors": {
         "accessDenied": "Access denied.",
         "serverError": "A server error occurred. Please try again later.",
-        "networkError": "Please check your network connection."
+        "serverUnavailable": "Unable to connect to the server. Please try again later.",
+        "timeoutError": "The server request timed out. Please try again later.",
+        "networkError": "Please check your network connection.",
+        "venueSearchConnectionError": "Unable to connect to the venue search server. Please try again later.",
+        "venueSearchServerError": "A server error occurred while searching for venues. Please try again later.",
+        "artistSearchConnectionError": "Unable to connect to the performer search server. Please try again later.",
+        "artistSearchServerError": "A server error occurred while searching for performers. Please try again later."
     },
     "buttons": {
         "back": "Back",
@@ -55,7 +63,8 @@
         "search": "検索",
         "close": "閉じる",
         "proceed": "このまま登録する",
-        "register": "Register"
+        "register": "Register",
+        "retry": "Retry"
     },
     "eventList": {
         "title": "イベント一覧",
@@ -406,19 +415,26 @@
             "venue": "Venue",
             "venueId": "Venue",
             "venuePlaceholder": "Search venue name...",
-            "venueNoResults": "No matching venues found.",
+            "venueNoResults": "No matching registered venues found. You can add a new one below.",
+            "venueSearchError": "Failed to load venue search results.",
             "venueSelectHint": "Please select a venue from the suggestions.",
             "addVenue": "Add Venue",
             "artists": "Performers",
             "artistsPlaceholder": "Search performer name...",
+            "artistNoResults": "No matching registered performers found. You can add a new one below.",
+            "artistSearchError": "Failed to load performer search results.",
             "addArtist": "Add Performer",
             "relatedLinks": "Related Links",
             "linkPlaceholder": "https://..."
         },
         "addLink": "Add Link",
+        "editTitle": "Edit Event",
+        "updateButton": "Update",
         "createMissingFields": "Title, Start/End times, and Venue are required.",
         "createSuccess": "Event successfully registered.",
         "createFail": "Failed to register event.",
+        "updateSuccess": "Event successfully updated.",
+        "updateFail": "Failed to update event.",
         "threads": {
             "title": "Threads",
             "disabledDescription": "You can write threads after registering the event."
@@ -453,6 +469,8 @@
         "fields": {
             "placeSearch": "Google Maps Place Search (Auto-fill)",
             "placeSearchPlaceholder": "Search a place to auto-fill address and coordinates...",
+            "placeNoResults": "No matching places found. Please enter the official name manually and click on the map to pick a location.",
+            "placeSearchError": "An error occurred while searching for places. Please enter coordinates manually or click on the map.",
             "officialName": "Official Name",
             "officialNamePlaceholder": "Official venue name",
             "address": "Address",

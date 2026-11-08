@@ -123,7 +123,9 @@ async function searchPlacesWithNominatim(query: string, lang: string, signal?: A
         },
         signal,
     });
-    if (!res.ok) return [];
+    if (!res.ok) {
+        throw new Error(`Nominatim search failed with status ${res.status}`);
+    }
     const data = await res.json();
     if (!Array.isArray(data)) return [];
 
@@ -161,6 +163,7 @@ export default function VenueFormPane({ initialName, onBack, onCreated }: VenueF
     const [debouncedPlaceQuery] = useDebounce(placeQuery.trim(), 350);
     const [placeResults, setPlaceResults] = useState<PlaceSearchResult[]>([]);
     const [isSearchingPlaces, setIsSearchingPlaces] = useState(false);
+    const [isPlaceSearchError, setIsPlaceSearchError] = useState(false);
     const [isPlaceDropdownOpen, setIsPlaceDropdownOpen] = useState( Boolean(initialName.trim()) );
     const [isPlaceComposing, setIsPlaceComposing] = useState(false);
     const [placeHighlightedIndex, setPlaceHighlightedIndex] = useState(-1);
@@ -214,10 +217,12 @@ export default function VenueFormPane({ initialName, onBack, onCreated }: VenueF
             const trimmed = query.trim();
             if (!trimmed) {
                 setPlaceResults([]);
+                setIsPlaceSearchError(false);
                 return;
             }
 
             setIsSearchingPlaces(true);
+            setIsPlaceSearchError(false);
             try {
                 // 1차: Google Places / Geocoder 시도
                 const googleItems = await searchPlacesWithGoogle(trimmed);
@@ -236,6 +241,7 @@ export default function VenueFormPane({ initialName, onBack, onCreated }: VenueF
             } catch {
                 if (!signal?.aborted) {
                     setPlaceResults([]);
+                    setIsPlaceSearchError(true);
                 }
             } finally {
                 if (!signal?.aborted) {
@@ -465,9 +471,19 @@ export default function VenueFormPane({ initialName, onBack, onCreated }: VenueF
                                                 </div>
                                             </button>
                                         ))
+                                    ) : !isSearchingPlaces && isPlaceSearchError ? (
+                                        <div className="px-3 py-2 text-xs text-destructive text-center">
+                                            {t(
+                                                'venueForm.fields.placeSearchError',
+                                                '장소 검색 중 오류가 발생했습니다. 좌표를 직접 입력하거나 우측 지도를 클릭해 선택해주세요.'
+                                            )}
+                                        </div>
                                     ) : !isSearchingPlaces ? (
                                         <div className="px-3 py-2 text-xs text-muted-foreground text-center">
-                                            {t('management.noResults', '검색 결과가 없습니다.')}
+                                            {t(
+                                                'venueForm.fields.placeNoResults',
+                                                '일치하는 장소를 찾을 수 없습니다. 공식 이름을 직접 입력하고 우측 지도를 클릭해 위치를 선택해주세요.'
+                                            )}
                                         </div>
                                     ) : null}
                                 </div>

@@ -17,7 +17,9 @@
     "performerFilter": {
         "label": "出演者検索",
         "placeholder": "出演者名または別名を入力",
-        "clearFilter": "フィルター解除"
+        "clearFilter": "フィルター解除",
+        "noResults": "未找到匹配的已登录出演者。",
+        "searchError": "搜索出演者时发生错误。"
     },
     "auth": {
         "login": "登录",
@@ -41,7 +43,13 @@
     "errors": {
         "accessDenied": "没有访问权限。",
         "serverError": "发生服务器错误，请稍后重试。",
-        "networkError": "请检查您的网络连接。"
+        "serverUnavailable": "无法连接到服务器，请稍后重试。",
+        "timeoutError": "服务器响应超时，请稍后重试。",
+        "networkError": "请检查您的网络连接。",
+        "venueSearchConnectionError": "无法连接到会场搜索服务器，请稍后重试。",
+        "venueSearchServerError": "搜索会场时发生服务器错误，请稍后重试。",
+        "artistSearchConnectionError": "无法连接到出演者搜索服务器，请稍后重试。",
+        "artistSearchServerError": "搜索出演者时发生服务器错误，请稍后重试。"
     },
     "buttons": {
         "back": "返回",
@@ -53,7 +61,9 @@
         "update": "更新",
         "search": "検索",
         "close": "閉じる",
-        "proceed": "このまま登録する"
+        "proceed": "このまま登録する",
+        "register": "登录",
+        "retry": "重试"
     },
     "eventList": {
         "title": "イベント一覧",
@@ -377,19 +387,26 @@
             "venue": "会场",
             "venueId": "会场",
             "venuePlaceholder": "搜索会场名称...",
-            "venueNoResults": "未找到匹配的会场。",
+            "venueNoResults": "未找到匹配的已登录会场。可通过下方按钮新增。",
+            "venueSearchError": "无法获取会场搜索结果。",
             "venueSelectHint": "请从自动完成列表中选择会场。",
             "addVenue": "添加会场",
             "artists": "出演者",
             "artistsPlaceholder": "搜索出演者名称...",
+            "artistNoResults": "未找到匹配的已登录出演者。可通过下方按钮新增。",
+            "artistSearchError": "无法获取出演者搜索结果。",
             "addArtist": "添加出演者",
             "relatedLinks": "相关链接",
             "linkPlaceholder": "https://..."
         },
         "addLink": "添加链接",
+        "editTitle": "编辑活动",
+        "updateButton": "更新",
         "createMissingFields": "标题、开始/结束时间和会场为必填项。",
         "createSuccess": "活动已成功登录。",
         "createFail": "活动登录失败。",
+        "updateSuccess": "活动已成功更新。",
+        "updateFail": "活动更新失败。",
         "threads": {
             "title": "讨论串",
             "disabledDescription": "登录活动后即可发表讨论串。"
@@ -424,6 +441,8 @@
         "fields": {
             "placeSearch": "Google 地图地点搜索（自动填写）",
             "placeSearchPlaceholder": "搜索地点可自动填写地址和坐标...",
+            "placeNoResults": "未找到匹配的地点。请直接输入官方名称并点击右侧地图选择位置。",
+            "placeSearchError": "搜索地点时发生错误。请直接输入坐标或点击右侧地图选择。",
             "officialName": "官方名称",
             "officialNamePlaceholder": "会场官方名称",
             "address": "地址",

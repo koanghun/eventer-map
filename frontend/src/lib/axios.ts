@@ -34,12 +34,22 @@ AXIOS_INSTANCE.interceptors.response.use(
   },
   (error: AxiosError<{ error?: string }>) => {
     // Ignore requests cancelled via AbortSignal (TanStack Query v5) or CancelToken
-    if (Axios.isCancel(error) || error.code === 'ERR_CANCELED') {
+    if (
+      Axios.isCancel(error) ||
+      error.code === 'ERR_CANCELED' ||
+      error.name === 'CanceledError' ||
+      error.name === 'AbortError' ||
+      error.config?.signal?.aborted
+    ) {
       return Promise.reject(error);
     }
 
     const status = error.response?.status;
     const message = error.response?.data?.error;
+    const requestUrl = error.config?.url || '';
+    const requestMethod = (error.config?.method || 'get').toLowerCase();
+    const isVenueSearchRequest = requestMethod === 'get' && requestUrl.includes('/venues/search');
+    const isArtistSearchRequest = requestMethod === 'get' && requestUrl === '/artists';
 
     if (status === 401) {
       setAccessToken(null);
@@ -49,10 +59,29 @@ AXIOS_INSTANCE.interceptors.response.use(
     } else if (status === 404) {
       // Silently ignore 404s — handled by individual components
     } else if (status && status >= 500) {
-      toast.error(i18n.t('errors.serverError', '서버 오류가 발생했습니다. 잠시 후 다시 시도해주세요.'));
+      if (isVenueSearchRequest) {
+        toast.error(i18n.t('errors.venueSearchServerError', '회장 검색 중 서버 오류가 발생했습니다. 잠시 후 다시 시도해주세요.'));
+      } else if (isArtistSearchRequest) {
+        toast.error(i18n.t('errors.artistSearchServerError', '출연자 검색 중 서버 오류가 발생했습니다. 잠시 후 다시 시도해주세요.'));
+      } else {
+        toast.error(i18n.t('errors.serverError', '서버 오류가 발생했습니다. 잠시 후 다시 시도해주세요.'));
+      }
       (error as any)._toastShown = true;
     } else if (!error.response) {
-      toast.error(i18n.t('errors.networkError', '네트워크 연결을 확인해주세요.'));
+      const isOffline = typeof navigator !== 'undefined' && navigator.onLine === false;
+      const isTimeout = error.code === 'ECONNABORTED' || error.code === 'ETIMEDOUT';
+
+      if (isOffline) {
+        toast.error(i18n.t('errors.networkError', '네트워크 연결을 확인해주세요.'));
+      } else if (isTimeout) {
+        toast.error(i18n.t('errors.timeoutError', '서버 응답 시간이 초과되었습니다. 잠시 후 다시 시도해주세요.'));
+      } else if (isVenueSearchRequest) {
+        toast.error(i18n.t('errors.venueSearchConnectionError', '회장 검색 서버에 연결할 수 없습니다. 잠시 후 다시 시도해주세요.'));
+      } else if (isArtistSearchRequest) {
+        toast.error(i18n.t('errors.artistSearchConnectionError', '출연자 검색 서버에 연결할 수 없습니다. 잠시 후 다시 시도해주세요.'));
+      } else {
+        toast.error(i18n.t('errors.serverUnavailable', '서버에 연결할 수 없습니다. 잠시 후 다시 시도해주세요.'));
+      }
       (error as any)._toastShown = true;
     }
 

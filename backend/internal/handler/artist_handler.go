@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"log"
 	"net/http"
 	"strings"
 
@@ -29,6 +30,7 @@ func (s *Server) GetArtists(w http.ResponseWriter, r *http.Request, params GetAr
 
 	artists, err := s.services.Artist.ListArtists(r.Context(), limit, status, nameKeyword, cursor)
 	if err != nil {
+		log.Printf("[GetArtists] ListArtists error: %v", err)
 		RespondError(w, http.StatusInternalServerError, "Failed to retrieve artists")
 		return
 	}
@@ -112,6 +114,7 @@ func (s *Server) PostArtists(w http.ResponseWriter, r *http.Request) {
 
 	created, err := s.services.Artist.CreateArtist(r.Context(), input)
 	if err != nil {
+		log.Printf("[PostArtists] CreateArtist error (officialName=%q, authorID=%s): %v", input.OfficialName, input.AuthorID, err)
 		RespondError(w, http.StatusInternalServerError, "Failed to create artist")
 		return
 	}
@@ -166,6 +169,7 @@ func (s *Server) PostArtistsArtistIdFollow(w http.ResponseWriter, r *http.Reques
 		return
 	}
 	if err := s.services.Artist.FollowArtist(r.Context(), myID, artistId); err != nil {
+		log.Printf("[PostArtistsArtistIdFollow] FollowArtist error (userID=%s, artistID=%s): %v", myID, artistId, err)
 		RespondError(w, http.StatusInternalServerError, "Failed to follow artist")
 		return
 	}
@@ -180,6 +184,7 @@ func (s *Server) DeleteArtistsArtistIdFollow(w http.ResponseWriter, r *http.Requ
 		return
 	}
 	if err := s.services.Artist.UnfollowArtist(r.Context(), myID, artistId); err != nil {
+		log.Printf("[DeleteArtistsArtistIdFollow] UnfollowArtist error (userID=%s, artistID=%s): %v", myID, artistId, err)
 		RespondError(w, http.StatusInternalServerError, "Failed to unfollow artist")
 		return
 	}
@@ -199,6 +204,7 @@ func (s *Server) GetArtistsArtistIdFollowers(w http.ResponseWriter, r *http.Requ
 
 	followers, err := s.services.Artist.ListArtistFollowers(r.Context(), artistId, limit, offset)
 	if err != nil {
+		log.Printf("[GetArtistsArtistIdFollowers] ListArtistFollowers error (artistID=%s): %v", artistId, err)
 		RespondError(w, http.StatusInternalServerError, "Failed to retrieve followers")
 		return
 	}
@@ -240,6 +246,7 @@ func (s *Server) PostArtistsArtistIdRate(w http.ResponseWriter, r *http.Request,
 
 	updatedArtist, err := s.services.Artist.RateArtist(r.Context(), myID, artistId, reqBody.Score)
 	if err != nil {
+		log.Printf("[PostArtistsArtistIdRate] RateArtist error (userID=%s, artistID=%s): %v", myID, artistId, err)
 		RespondError(w, http.StatusInternalServerError, err.Error())
 		return
 	}

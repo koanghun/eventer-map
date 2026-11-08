@@ -20,8 +20,13 @@ func CORS(next http.Handler) http.Handler {
 					break
 				}
 			}
-		} else if origin == "http://localhost:3000" || origin == "http://127.0.0.1:3000" {
-			allowedOrigin = origin
+		}
+		if allowedOrigin != origin && origin != "" {
+			if origin == "http://localhost:3000" ||
+				origin == "http://127.0.0.1:3000" ||
+				(os.Getenv("ENV") == "local" && (strings.HasPrefix(origin, "http://localhost:") || strings.HasPrefix(origin, "http://127.0.0.1:"))) {
+				allowedOrigin = origin
+			}
 		}
 
 		// Set CORS headers

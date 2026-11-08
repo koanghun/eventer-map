@@ -18,7 +18,9 @@
     "performerFilter": {
         "label": "출연자 검색",
         "placeholder": "출연자명 또는 별칭 입력",
-        "clearFilter": "필터 해제"
+        "clearFilter": "필터 해제",
+        "noResults": "일치하는 등록된 출연자가 없습니다.",
+        "searchError": "출연자 검색 중 오류가 발생했습니다."
     },
     "auth": {
         "login": "로그인",
@@ -42,7 +44,13 @@
     "errors": {
         "accessDenied": "접근 권한이 없습니다.",
         "serverError": "서버 오류가 발생했습니다. 잠시 후 다시 시도해주세요.",
-        "networkError": "네트워크 연결을 확인해주세요."
+        "serverUnavailable": "서버에 연결할 수 없습니다. 잠시 후 다시 시도해주세요.",
+        "timeoutError": "서버 응답 시간이 초과되었습니다. 잠시 후 다시 시도해주세요.",
+        "networkError": "네트워크 연결을 확인해주세요.",
+        "venueSearchConnectionError": "회장 검색 서버에 연결할 수 없습니다. 잠시 후 다시 시도해주세요.",
+        "venueSearchServerError": "회장 검색 중 서버 오류가 발생했습니다. 잠시 후 다시 시도해주세요.",
+        "artistSearchConnectionError": "출연자 검색 서버에 연결할 수 없습니다. 잠시 후 다시 시도해주세요.",
+        "artistSearchServerError": "출연자 검색 중 서버 오류가 발생했습니다. 잠시 후 다시 시도해주세요."
     },
     "buttons": {
         "back": "뒤로가기",
@@ -55,7 +63,8 @@
         "search": "검색",
         "close": "닫기",
         "proceed": "그래도 등록하기",
-        "register": "등록하기"
+        "register": "등록하기",
+        "retry": "다시 시도"
     },
     "eventList": {
         "title": "이벤트 목록",
@@ -406,19 +415,26 @@
             "venue": "회장",
             "venueId": "회장",
             "venuePlaceholder": "회장 이름 검색...",
-            "venueNoResults": "일치하는 회장이 없습니다.",
+            "venueNoResults": "일치하는 등록된 회장이 없습니다. 아래 버튼으로 새로 추가할 수 있습니다.",
+            "venueSearchError": "회장 검색 결과를 불러오지 못했습니다.",
             "venueSelectHint": "자동완성 목록에서 회장을 선택해주세요.",
             "addVenue": "회장 추가",
             "artists": "출연자",
             "artistsPlaceholder": "출연자 이름 검색...",
+            "artistNoResults": "일치하는 등록된 출연자가 없습니다. 아래 버튼으로 새로 추가할 수 있습니다.",
+            "artistSearchError": "출연자 검색 결과를 불러오지 못했습니다.",
             "addArtist": "출연자 추가",
             "relatedLinks": "관련 링크",
             "linkPlaceholder": "https://..."
         },
         "addLink": "링크 추가",
+        "editTitle": "이벤트 편집",
+        "updateButton": "수정하기",
         "createMissingFields": "타이틀, 시작/종료 시간, 회장은 필수입니다.",
         "createSuccess": "이벤트가 성공적으로 등록되었습니다.",
         "createFail": "이벤트 등록에 실패했습니다.",
+        "updateSuccess": "이벤트가 성공적으로 수정되었습니다.",
+        "updateFail": "이벤트 수정에 실패했습니다.",
         "threads": {
             "title": "스레드",
             "disabledDescription": "이벤트를 등록한 후에 스레드를 작성할 수 있습니다."
@@ -453,6 +469,8 @@
         "fields": {
             "placeSearch": "Google 지도 장소 검색 (자동 입력)",
             "placeSearchPlaceholder": "장소 검색 시 주소·좌표가 자동 입력됩니다...",
+            "placeNoResults": "일치하는 장소를 찾을 수 없습니다. 공식 이름을 직접 입력하고 우측 지도를 클릭해 위치를 선택해주세요.",
+            "placeSearchError": "장소 검색 중 오류가 발생했습니다. 좌표를 직접 입력하거나 우측 지도를 클릭해 선택해주세요.",
             "officialName": "공식 이름",
             "officialNamePlaceholder": "회장 공식 표기명",
             "address": "주소",

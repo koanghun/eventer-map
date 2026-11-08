@@ -25,8 +25,10 @@ export default function MapPage() {
     
     const { isAuthenticated } = useAuth();
     const [isFormOpen, setIsFormOpen] = useState(false);
+    const [editingEvent, setEditingEvent] = useState<EventSummary | null>(null);
 
     const mapBounds = useEventStore((state) => state.mapBounds);
+    const setMapCenterTarget = useEventStore((state) => state.setMapCenterTarget);
     const clearSelection = useEventStore((state) => state.clearSelection);
     const selectedEvent = useEventStore((state) => state.selectedEvent);
 
@@ -56,16 +58,34 @@ export default function MapPage() {
     useEffect(() => {
         if (selectedEvent) {
             setIsFormOpen(false);
+            setEditingEvent(null);
         }
     }, [selectedEvent]);
 
     const handleOpenForm = () => {
         clearSelection();
+        setEditingEvent(null);
+        setIsFormOpen(true);
+    };
+
+    const handleEditEvent = (event: EventSummary) => {
+        clearSelection();
+        setEditingEvent(event);
         setIsFormOpen(true);
     };
 
     const handleCloseForm = () => {
         setIsFormOpen(false);
+        setEditingEvent(null);
+    };
+
+    const handleEventCreated = ({ date, lat, lng }: { date: string; lat?: number; lng?: number }) => {
+        if (date && (date < startDate || date > endDate)) {
+            updateQueryParams({ start: date, end: date });
+        }
+        if (typeof lat === 'number' && typeof lng === 'number') {
+            setMapCenterTarget({ lat, lng });
+        }
     };
 
     const updateQueryParams = (updates: Record<string, string | null>) => {
@@ -90,9 +110,17 @@ export default function MapPage() {
             {/* 좌측 사이드바 영역 (기본 목록 / 이벤트 상세 / 이벤트 생성 폼 전환) */}
             <aside className="w-full flex md:w-[20%] shrink-0 bg-card/50 backdrop-blur-sm border border-border rounded-xl shadow-md flex-col transition-all duration-500 overflow-hidden">
                 {isFormOpen ? (
-                    <EventFormPane onClose={handleCloseForm} />
+                    <EventFormPane
+                        key={editingEvent?.id ?? 'new'}
+                        editingEvent={editingEvent}
+                        initialDate={startDate}
+                        onCreated={handleEventCreated}
+                        onClose={handleCloseForm}
+                    />
                 ) : selectedEvent ? (
-                    <EventDetailPane />
+                    <EventDetailPane
+                        onEdit={isAuthenticated ? () => handleEditEvent(selectedEvent) : undefined}
+                    />
                 ) : (
                     <>
                         <div className="p-4 flex flex-col gap-4 border-b border-border/50 shrink-0">
@@ -112,7 +140,7 @@ export default function MapPage() {
                             <EventList
                                 events={filteredEvents}
                                 loading={isEventsLoading}
-                                onEventEdit={isAuthenticated ? handleOpenForm : undefined}
+                                onEventEdit={isAuthenticated ? handleEditEvent : undefined}
                                 onEventDelete={isAuthenticated ? () => {} : undefined}
                             />
                         </div>

@@ -10,11 +10,11 @@ export default function ArtistSearch() {
     const [searchTerm, setSearchTerm] = useState('');
     const [debouncedTerm] = useDebounce(searchTerm, 300);
 
-    const { data, isLoading } = useGetArtists(
+    const { data, isLoading, isError } = useGetArtists(
         { query: debouncedTerm },
         { query: { enabled: debouncedTerm.length > 0 } }
     );
-    const artists = data || [];
+    const artists = !isError && Array.isArray(data) ? data : [];
 
     return (
         <div className="relative">
@@ -41,9 +41,14 @@ export default function ArtistSearch() {
                     ))}
                 </div>
             )}
-            {debouncedTerm.length > 0 && artists?.length === 0 && !isLoading && (
+            {debouncedTerm.length > 0 && !isLoading && isError && (
+                <div className="absolute top-full left-0 right-0 mt-1 bg-card border border-border rounded-md shadow-lg z-50 p-3 text-center text-sm text-destructive">
+                    {t('performerFilter.searchError', '출연자 검색 중 오류가 발생했습니다.')}
+                </div>
+            )}
+            {debouncedTerm.length > 0 && !isLoading && !isError && artists?.length === 0 && (
                 <div className="absolute top-full left-0 right-0 mt-1 bg-card border border-border rounded-md shadow-lg z-50 p-3 text-center text-sm text-muted-foreground">
-                    {t('performerFilter.noResults', 'No results found.')}
+                    {t('performerFilter.noResults', '일치하는 등록된 출연자가 없습니다.')}
                 </div>
             )}
         </div>

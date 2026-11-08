@@ -2,7 +2,10 @@ package handler
 
 import (
 	"encoding/json"
+	"errors"
+	"log"
 	"net/http"
+	"strings"
 	"time"
 
 	"eventer-map-backend/internal/middleware"
@@ -11,130 +14,9 @@ import (
 	openapi_types "github.com/oapi-codegen/runtime/types"
 )
 
-// GetEvents implements the GET /events endpoint
-func (s *Server) GetEvents(w http.ResponseWriter, r *http.Request, params GetEventsParams) {
-	filter := service.ListEventsFilter{
-		MinLat:   params.MinLat,
-		MaxLat:   params.MaxLat,
-		MinLng:   params.MinLng,
-		MaxLng:   params.MaxLng,
-		Limit:    service.DefaultEventLimit,
-		VenueID:  params.VenueId,
-		ArtistID: params.ArtistId,
-	}
+var eventDateLocation = time.FixedZone("UTC+9", 9*60*60)
 
-	if params.Limit != nil {
-		filter.Limit = int32(*params.Limit)
-	}
-
-	if params.Status != nil {
-		statusStr := string(*params.Status)
-		filter.Status = &statusStr
-	}
-
-	if params.StartDate != nil {
-		d := params.StartDate.Time
-		startFrom := time.Date(d.Year(), d.Month(), d.Day(), 0, 0, 0, 0, time.UTC)
-		filter.StartTimeFrom = &startFrom
-	}
-
-	if params.EndDate != nil {
-		d := params.EndDate.Time
-		endTo := time.Date(d.Year(), d.Month(), d.Day(), 23, 59, 59, 999999999, time.UTC)
-		filter.StartTimeTo = &endTo
-	}
-
-	if params.TimeRange != nil {
-		now := time.Now().UTC()
-		switch *params.TimeRange {
-		case Upcoming:
-			if filter.StartTimeFrom == nil {
-				filter.StartTimeFrom = &now
-			}
-		case Past:
-			if filter.StartTimeTo == nil {
-				filter.StartTimeTo = &now
-			}
-		}
-	}
-
-	rows, hasMore, err := s.services.Event.ListEvents(r.Context(), filter)
-	if err != nil {
-		RespondError(w, http.StatusInternalServerError, "Failed to retrieve events")
-		return
-	}
-
-	summaries := make([]EventSummary, 0, len(rows))
-	for _, row := range rows {
-		id := openapi_types.UUID(row.ID)
-		title := row.Title
-		startTime := row.StartTime
-		endTime := row.EndTime
-		attendeeCount := int(row.AttendeeCount)
-		status := EventSummaryStatus(row.Status)
-
-		var venueID *openapi_types.UUID
-		if row.VenueID.Valid {
-			vID := openapi_types.UUID(row.VenueID.UUID)
-			venueID = &vID
-		}
-
-		var venueName *string
-		if row.VenueName != "" {
-			vName := row.VenueName
-			venueName = &vName
-		}
-
-		var lat, lng *float64
-		if row.VenueID.Valid {
-			l1 := row.Latitude
-			l2 := row.Longitude
-			lat = &l1
-			lng = &l2
-		}
-
-		var rating *float64
-		if row.RatingCount > 0 {
-			avg := row.RatingSum / float64(row.RatingCount)
-			rating = &avg
-		}
-
-		var posterURL *string
-		if row.PosterImageUrl.Valid && row.PosterImageUrl.String != "" {
-			p := row.PosterImageUrl.String
-			posterURL = &p
-		}
-
-		summaries = append(summaries, EventSummary{
-			Id:             &id,
-			Title:          &title,
-			VenueId:        venueID,
-			VenueName:      venueName,
-			Latitude:       lat,
-			Longitude:      lng,
-			StartTime:      &startTime,
-			EndTime:        &endTime,
-			Rating:         rating,
-			AttendeeCount:  &attendeeCount,
-			PosterImageUrl: posterURL,
-			Status:         &status,
-		})
-	}
-
-	RespondJSON(w, http.StatusOK, EventListResponse{
-		Events:  &summaries,
-		HasMore: &hasMore,
-	})
-}
-
-// GetEventsEventId implements the GET /events/{eventId} endpoint
-func (s *Server) GetEventsEventId(w http.ResponseWriter, r *http.Request, eventId uuid.UUID) {
-	detail, err := s.services.Event.GetEventDetail(r.Context(), eventId)
-	if err != nil {
-		RespondError(w, http.StatusNotFound, "Event not found")
-		return
-	}
-
+func mapEventDetailToResponse(detail *service.EventDetail) Event {
 	e := detail.Event
 	id := openapi_types.UUID(e.ID)
 	title := e.Title
@@ -211,7 +93,7 @@ func (s *Server) GetEventsEventId(w http.ResponseWriter, r *http.Request, eventI
 		})
 	}
 
-	RespondJSON(w, http.StatusOK, Event{
+	return Event{
 		Id:             &id,
 		Title:          &title,
 		Venue:          venueSummary,
@@ -225,24 +107,268 @@ func (s *Server) GetEventsEventId(w http.ResponseWriter, r *http.Request, eventI
 		RatingCount:    &ratingCount,
 		AttendeeCount:  &attendeeCount,
 		Status:         &status,
+	}
+}
+
+// GetEvents implements the GET /events endpoint
+func (s *Server) GetEvents(w http.ResponseWriter, r *http.Request, params GetEventsParams) {
+	filter := service.ListEventsFilter{
+		MinLat:   params.MinLat,
+		MaxLat:   params.MaxLat,
+		MinLng:   params.MinLng,
+		MaxLng:   params.MaxLng,
+		Limit:    service.DefaultEventLimit,
+		VenueID:  params.VenueId,
+		ArtistID: params.ArtistId,
+	}
+
+	if params.Limit != nil {
+		filter.Limit = int32(*params.Limit)
+	}
+
+	if params.Status != nil {
+		statusStr := string(*params.Status)
+		filter.Status = &statusStr
+	}
+
+	if params.StartDate != nil {
+		d := params.StartDate.Time
+		startFrom := time.Date(d.Year(), d.Month(), d.Day(), 0, 0, 0, 0, eventDateLocation)
+		filter.StartTimeFrom = &startFrom
+	}
+
+	if params.EndDate != nil {
+		d := params.EndDate.Time
+		endTo := time.Date(d.Year(), d.Month(), d.Day(), 23, 59, 59, 999999999, eventDateLocation)
+		filter.StartTimeTo = &endTo
+	}
+
+	if params.TimeRange != nil {
+		now := time.Now().UTC()
+		switch *params.TimeRange {
+		case Upcoming:
+			if filter.StartTimeFrom == nil {
+				filter.StartTimeFrom = &now
+			}
+		case Past:
+			if filter.StartTimeTo == nil {
+				filter.StartTimeTo = &now
+			}
+		}
+	}
+
+	rows, hasMore, err := s.services.Event.ListEvents(r.Context(), filter)
+	if err != nil {
+		log.Printf("[GetEvents] ListEvents error: %v", err)
+		RespondError(w, http.StatusInternalServerError, "Failed to retrieve events")
+		return
+	}
+
+	summaries := make([]EventSummary, 0, len(rows))
+	for _, row := range rows {
+		id := openapi_types.UUID(row.ID)
+		title := row.Title
+		startTime := row.StartTime
+		endTime := row.EndTime
+		attendeeCount := int(row.AttendeeCount)
+		status := EventSummaryStatus(row.Status)
+
+		var venueID *openapi_types.UUID
+		if row.VenueID.Valid {
+			vID := openapi_types.UUID(row.VenueID.UUID)
+			venueID = &vID
+		}
+
+		var venueName *string
+		if row.VenueName != "" {
+			vName := row.VenueName
+			venueName = &vName
+		}
+
+		var lat, lng *float64
+		if row.VenueID.Valid {
+			l1 := row.Latitude
+			l2 := row.Longitude
+			lat = &l1
+			lng = &l2
+		}
+
+		var rating *float64
+		if row.RatingCount > 0 {
+			avg := row.RatingSum / float64(row.RatingCount)
+			rating = &avg
+		}
+
+		var posterURL *string
+		if row.PosterImageUrl.Valid && row.PosterImageUrl.String != "" {
+			p := row.PosterImageUrl.String
+			posterURL = &p
+		}
+
+		summaries = append(summaries, EventSummary{
+			Id:             &id,
+			Title:          &title,
+			VenueId:        venueID,
+			VenueName:      venueName,
+			Latitude:       lat,
+			Longitude:      lng,
+			StartTime:      &startTime,
+			EndTime:        &endTime,
+			Rating:         rating,
+			AttendeeCount:  &attendeeCount,
+			PosterImageUrl: posterURL,
+			Status:         &status,
+		})
+	}
+
+	RespondJSON(w, http.StatusOK, EventListResponse{
+		Events:  &summaries,
+		HasMore: &hasMore,
 	})
+}
+
+// GetEventsEventId implements the GET /events/{eventId} endpoint
+func (s *Server) GetEventsEventId(w http.ResponseWriter, r *http.Request, eventId uuid.UUID) {
+	detail, err := s.services.Event.GetEventDetail(r.Context(), eventId)
+	if err != nil {
+		RespondError(w, http.StatusNotFound, "Event not found")
+		return
+	}
+
+	RespondJSON(w, http.StatusOK, mapEventDetailToResponse(detail))
+}
+
+func parseEventMultipartInput(r *http.Request, authorID uuid.UUID) (service.CreateEventInput, string) {
+	if err := r.ParseMultipartForm(10 << 20); err != nil {
+		return service.CreateEventInput{}, "Invalid form data"
+	}
+
+	title := strings.TrimSpace(r.FormValue("title"))
+	if title == "" {
+		return service.CreateEventInput{}, "title is required"
+	}
+
+	venueIDStr := strings.TrimSpace(r.FormValue("venueId"))
+	venueID, err := uuid.Parse(venueIDStr)
+	if err != nil || venueID == uuid.Nil {
+		return service.CreateEventInput{}, "valid venueId is required"
+	}
+
+	startTimeStr := strings.TrimSpace(r.FormValue("startTime"))
+	startTime, err := time.Parse(time.RFC3339, startTimeStr)
+	if err != nil {
+		return service.CreateEventInput{}, "valid startTime is required"
+	}
+
+	endTimeStr := strings.TrimSpace(r.FormValue("endTime"))
+	endTime, err := time.Parse(time.RFC3339, endTimeStr)
+	if err != nil {
+		return service.CreateEventInput{}, "valid endTime is required"
+	}
+
+	if endTime.Before(startTime) {
+		endTime = endTime.Add(24 * time.Hour)
+	}
+
+	var openingTime *time.Time
+	if openingTimeStr := strings.TrimSpace(r.FormValue("openingTime")); openingTimeStr != "" {
+		t, err := time.Parse(time.RFC3339, openingTimeStr)
+		if err != nil {
+			return service.CreateEventInput{}, "invalid openingTime"
+		}
+		openingTime = &t
+	}
+
+	var artistIDs []uuid.UUID
+	if r.MultipartForm != nil {
+		for _, rawID := range r.MultipartForm.Value["artistIds"] {
+			trimmed := strings.TrimSpace(rawID)
+			if trimmed == "" {
+				continue
+			}
+			parsedID, err := uuid.Parse(trimmed)
+			if err != nil {
+				return service.CreateEventInput{}, "invalid artistIds"
+			}
+			artistIDs = append(artistIDs, parsedID)
+		}
+	}
+
+	var relatedLinks []string
+	if r.MultipartForm != nil {
+		for _, rawLink := range r.MultipartForm.Value["relatedLinks"] {
+			if trimmed := strings.TrimSpace(rawLink); trimmed != "" {
+				relatedLinks = append(relatedLinks, trimmed)
+			}
+		}
+	}
+
+	return service.CreateEventInput{
+		Title:        title,
+		VenueID:      venueID,
+		ArtistIDs:    artistIDs,
+		OpeningTime:  openingTime,
+		StartTime:    startTime,
+		EndTime:      endTime,
+		RelatedLinks: relatedLinks,
+		AuthorID:     authorID,
+	}, ""
 }
 
 // PostEvents implements the POST /events endpoint
 func (s *Server) PostEvents(w http.ResponseWriter, r *http.Request) {
-	if err := r.ParseMultipartForm(10 << 20); err != nil {
-		RespondError(w, http.StatusBadRequest, "Invalid form data")
+	myID, ok := r.Context().Value(middleware.UserIDKey).(uuid.UUID)
+	if !ok {
+		RespondError(w, http.StatusUnauthorized, "user not authenticated")
 		return
 	}
 
-	// Just a skeleton for now, extract title to prove it works
-	title := r.FormValue("title")
-	if title == "" {
-		RespondError(w, http.StatusBadRequest, "title is required")
+	input, validationErr := parseEventMultipartInput(r, myID)
+	if validationErr != "" {
+		RespondError(w, http.StatusBadRequest, validationErr)
 		return
 	}
 
-	RespondJSON(w, http.StatusCreated, map[string]string{"message": "Event created", "title": title})
+	detail, err := s.services.Event.CreateEvent(r.Context(), input)
+	if err != nil {
+		if errors.Is(err, service.ErrUserBanned) {
+			RespondError(w, http.StatusForbidden, "User is banned")
+			return
+		}
+		log.Printf("[PostEvents] CreateEvent error (title=%q, venueID=%s, authorID=%s): %v", input.Title, input.VenueID, input.AuthorID, err)
+		RespondError(w, http.StatusInternalServerError, "Failed to create event")
+		return
+	}
+
+	RespondJSON(w, http.StatusCreated, mapEventDetailToResponse(detail))
+}
+
+// PutEventsEventId implements the PUT /events/{eventId} endpoint
+func (s *Server) PutEventsEventId(w http.ResponseWriter, r *http.Request, eventId uuid.UUID) {
+	myID, ok := r.Context().Value(middleware.UserIDKey).(uuid.UUID)
+	if !ok {
+		RespondError(w, http.StatusUnauthorized, "user not authenticated")
+		return
+	}
+
+	input, validationErr := parseEventMultipartInput(r, myID)
+	if validationErr != "" {
+		RespondError(w, http.StatusBadRequest, validationErr)
+		return
+	}
+
+	detail, err := s.services.Event.UpdateEvent(r.Context(), eventId, input)
+	if err != nil {
+		if errors.Is(err, service.ErrUserBanned) {
+			RespondError(w, http.StatusForbidden, "User is banned")
+			return
+		}
+		log.Printf("[PutEventsEventId] UpdateEvent error (eventID=%s, authorID=%s): %v", eventId, input.AuthorID, err)
+		RespondError(w, http.StatusInternalServerError, "Failed to update event")
+		return
+	}
+
+	RespondJSON(w, http.StatusOK, mapEventDetailToResponse(detail))
 }
 
 // PostEventsEventIdRate implements the POST /events/{eventId}/rate endpoint
@@ -269,6 +395,7 @@ func (s *Server) PutEventsEventIdAction(w http.ResponseWriter, r *http.Request, 
 
 	err := s.services.Event.PutEventAction(r.Context(), userID, eventId, int32(reqBody.Status))
 	if err != nil {
+		log.Printf("[PutEventsEventIdAction] PutEventAction error (userID=%s, eventID=%s): %v", userID, eventId, err)
 		RespondError(w, http.StatusInternalServerError, "Failed to update action")
 		return
 	}
@@ -295,6 +422,7 @@ func (s *Server) GetEventsEventIdAttendees(w http.ResponseWriter, r *http.Reques
 
 	attendees, err := s.services.Event.GetEventAttendees(r.Context(), myID, eventId, limit, offset)
 	if err != nil {
+		log.Printf("[GetEventsEventIdAttendees] GetEventAttendees error (eventID=%s): %v", eventId, err)
 		RespondError(w, http.StatusInternalServerError, "Failed to retrieve attendees")
 		return
 	}

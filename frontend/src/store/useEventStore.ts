@@ -18,11 +18,13 @@ export interface VenueDraftLocation {
 interface EventState {
     selectedEvent: EventSummary | null;
     mapBounds: MapBounds | null;
+    mapCenterTarget: { lat: number; lng: number } | null;
     isPickingVenueLocation: boolean;
     venueDraftLocation: VenueDraftLocation | null;
     selectEvent: (event: EventSummary | null) => void;
     clearSelection: () => void;
     setMapBounds: (bounds: MapBounds) => void;
+    setMapCenterTarget: (target: { lat: number; lng: number } | null) => void;
     setIsPickingVenueLocation: (picking: boolean) => void;
     setVenueDraftLocation: (location: VenueDraftLocation | null) => void;
 }
@@ -33,10 +35,12 @@ interface EventState {
 export const useEventStore = create<EventState>((set) => ({
     selectedEvent: null,
     mapBounds: null,
+    mapCenterTarget: null,
     isPickingVenueLocation: false,
     venueDraftLocation: null,
     selectEvent: (event) => set({ selectedEvent: event }),
     clearSelection: () => set({ selectedEvent: null }),
+    setMapCenterTarget: (target) => set({ mapCenterTarget: target }),
     setIsPickingVenueLocation: (picking) => set({ isPickingVenueLocation: picking }),
     setVenueDraftLocation: (location) => set({ venueDraftLocation: location }),
     setMapBounds: (bounds) =>

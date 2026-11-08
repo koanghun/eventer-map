@@ -121,6 +121,7 @@ function EventMap({ events }: EventMapProps) {
     const selectEvent = useEventStore((state) => state.selectEvent);
     const clearSelection = useEventStore((state) => state.clearSelection);
     const setMapBounds = useEventStore((state) => state.setMapBounds);
+    const mapCenterTarget = useEventStore((state) => state.mapCenterTarget);
     const isPickingVenueLocation = useEventStore((state) => state.isPickingVenueLocation);
     const venueDraftLocation = useEventStore((state) => state.venueDraftLocation);
     const setVenueDraftLocation = useEventStore((state) => state.setVenueDraftLocation);
@@ -186,6 +187,13 @@ function EventMap({ events }: EventMapProps) {
             mapRef.current.panTo({ lat: venueDraftLocation.lat, lng: venueDraftLocation.lng });
         }
     }, [venueDraftLocation]);
+
+    useEffect(() => {
+        if (mapCenterTarget && mapRef.current) {
+            mapRef.current.panTo({ lat: mapCenterTarget.lat, lng: mapCenterTarget.lng });
+            updateBoundsFromMap();
+        }
+    }, [mapCenterTarget, updateBoundsFromMap]);
 
     const handleMapClick = useCallback((e: google.maps.MapMouseEvent) => {
         if (!isPickingVenueLocation || !e.latLng) return;

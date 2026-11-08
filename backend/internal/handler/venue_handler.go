@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"log"
 	"net/http"
 	"strings"
 
@@ -107,6 +108,7 @@ func (s *Server) PostVenues(w http.ResponseWriter, r *http.Request) {
 
 	created, err := s.services.Venue.CreateVenue(r.Context(), input)
 	if err != nil {
+		log.Printf("[PostVenues] CreateVenue error (officialName=%q, authorID=%s): %v", input.OfficialName, input.AuthorID, err)
 		RespondError(w, http.StatusInternalServerError, "Failed to create venue")
 		return
 	}
@@ -123,6 +125,7 @@ func (s *Server) GetVenuesSearch(w http.ResponseWriter, r *http.Request, params 
 
 	rows, err := s.services.Venue.SearchVenues(r.Context(), params.Query, limit)
 	if err != nil {
+		log.Printf("[GetVenuesSearch] SearchVenues error (query=%q): %v", params.Query, err)
 		RespondError(w, http.StatusInternalServerError, "Failed to search venues")
 		return
 	}
@@ -177,6 +180,7 @@ func (s *Server) GetVenues(w http.ResponseWriter, r *http.Request, params GetVen
 		nameKeyword,
 	)
 	if err != nil {
+		log.Printf("[GetVenues] ListVenuesByBoundingBox error: %v", err)
 		RespondError(w, http.StatusInternalServerError, "Failed to retrieve venues")
 		return
 	}
@@ -218,6 +222,7 @@ func (s *Server) PostVenuesVenueIdRate(w http.ResponseWriter, r *http.Request, v
 
 	updatedVenue, err := s.services.Venue.RateVenue(r.Context(), myID, venueId, reqBody.Score)
 	if err != nil {
+		log.Printf("[PostVenuesVenueIdRate] RateVenue error (userID=%s, venueID=%s): %v", myID, venueId, err)
 		RespondError(w, http.StatusInternalServerError, err.Error())
 		return
 	}

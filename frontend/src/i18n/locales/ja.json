@@ -18,7 +18,9 @@
     "performerFilter": {
         "label": "出演者検索",
         "placeholder": "出演者名または別名を入力",
-        "clearFilter": "フィルター解除"
+        "clearFilter": "フィルター解除",
+        "noResults": "一致する登録済みの出演者がありません。",
+        "searchError": "出演者の検索中にエラーが発生しました。"
     },
     "auth": {
         "login": "ログイン",
@@ -42,7 +44,13 @@
     "errors": {
         "accessDenied": "アクセス権限がありません。",
         "serverError": "サーバーエラーが発生しました。しばらくしてから再度お試しください。",
-        "networkError": "ネットワーク接続を確認してください。"
+        "serverUnavailable": "サーバーに接続できません。しばらくしてから再度お試しください。",
+        "timeoutError": "サーバーの応答がタイムアウトしました。しばらくしてから再度お試しください。",
+        "networkError": "ネットワーク接続を確認してください。",
+        "venueSearchConnectionError": "会場検索サーバーに接続できません。しばらくしてから再度お試しください。",
+        "venueSearchServerError": "会場の検索中にサーバーエラーが発生しました。しばらくしてから再度お試しください。",
+        "artistSearchConnectionError": "出演者検索サーバーに接続できません。しばらくしてから再度お試しください。",
+        "artistSearchServerError": "出演者の検索中にサーバーエラーが発生しました。しばらくしてから再度お試しください。"
     },
     "buttons": {
         "back": "戻る",
@@ -55,7 +63,8 @@
         "search": "検索",
         "close": "閉じる",
         "proceed": "このまま登録する",
-        "register": "登録する"
+        "register": "登録する",
+        "retry": "再試行"
     },
     "eventList": {
         "title": "イベント一覧",
@@ -406,19 +415,26 @@
             "venue": "会場",
             "venueId": "会場",
             "venuePlaceholder": "会場名を検索...",
-            "venueNoResults": "一致する会場がありません。",
+            "venueNoResults": "一致する登録済みの会場がありません。下のボタンから新規追加できます。",
+            "venueSearchError": "会場の検索結果を取得できませんでした。",
             "venueSelectHint": "候補リストから会場を選択してください。",
             "addVenue": "会場追加",
             "artists": "出演者",
             "artistsPlaceholder": "出演者名を検索...",
+            "artistNoResults": "一致する登録済みの出演者がありません。下のボタンから新規追加できます。",
+            "artistSearchError": "出演者の検索結果を取得できませんでした。",
             "addArtist": "出演者追加",
             "relatedLinks": "関連リンク",
             "linkPlaceholder": "https://..."
         },
         "addLink": "リンク追加",
+        "editTitle": "イベント編集",
+        "updateButton": "更新する",
         "createMissingFields": "タイトル、開始/終了時間、会場は必須です。",
         "createSuccess": "イベントが正常に登録されました。",
         "createFail": "イベントの登録に失敗しました。",
+        "updateSuccess": "イベントが正常に更新されました。",
+        "updateFail": "イベントの更新に失敗しました。",
         "threads": {
             "title": "スレッド",
             "disabledDescription": "イベントを登録した後にスレッドを作成できます。"
@@ -453,6 +469,8 @@
         "fields": {
             "placeSearch": "Google マップ場所検索（自動入力）",
             "placeSearchPlaceholder": "場所を検索すると住所・座標が自動入力されます...",
+            "placeNoResults": "一致する場所が見つかりませんでした。公式名称を直接入力し、右の地図をクリックして位置を選択してください。",
+            "placeSearchError": "場所の検索中にエラーが発生しました。座標を直接入力するか、右の地図をクリックして選択してください。",
             "officialName": "公式名称",
             "officialNamePlaceholder": "会場の公式表記名",
             "address": "住所",

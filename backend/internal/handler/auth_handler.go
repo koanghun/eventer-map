@@ -81,6 +81,7 @@ func (s *Server) PostAuthLogin(w http.ResponseWriter, r *http.Request) {
 			RespondError(w, http.StatusUnauthorized, err.Error())
 			return
 		}
+		log.Printf("[PostAuthLogin] Login error: %v", err)
 		RespondError(w, http.StatusInternalServerError, "Failed to process login")
 		return
 	}

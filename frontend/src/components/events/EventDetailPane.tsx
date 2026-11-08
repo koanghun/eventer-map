@@ -1,11 +1,15 @@
-import { ArrowLeft, Calendar, MapPin, ExternalLink, Users, Mic2 } from 'lucide-react';
+import { ArrowLeft, Calendar, MapPin, ExternalLink, Users, Mic2, Edit2 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useEventStore } from '../../store/useEventStore';
 import { Button } from '../ui/button';
 
 import { useGetEventsEventId } from '../../api/generated/events/events';
 
-export default function EventDetailPane() {
+interface EventDetailPaneProps {
+    onEdit?: () => void;
+}
+
+export default function EventDetailPane({ onEdit }: EventDetailPaneProps) {
     const { t } = useTranslation();
     const selectedEvent = useEventStore((state) => state.selectedEvent);
     const clearSelection = useEventStore((state) => state.clearSelection);
@@ -38,9 +42,21 @@ export default function EventDetailPane() {
                 >
                     <ArrowLeft className="w-4 h-4 text-foreground" />
                 </Button>
-                <h2 className="text-lg font-bold text-foreground truncate">
+                <h2 className="text-lg font-bold text-foreground truncate flex-1">
                     {t('eventDetail.title', 'Event Details')}
                 </h2>
+                {onEdit && (
+                    <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={onEdit}
+                        className="rounded-full w-8 h-8 hover:bg-muted text-muted-foreground hover:text-primary shrink-0"
+                        title={t('buttons.edit', '수정')}
+                        aria-label={t('buttons.edit', '수정')}
+                    >
+                        <Edit2 className="w-4 h-4" />
+                    </Button>
+                )}
             </div>
 
             {/* Content Scrollable Area */}

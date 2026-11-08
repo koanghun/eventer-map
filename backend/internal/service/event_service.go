@@ -3,11 +3,16 @@ package service
 import (
 	"context"
 	"database/sql"
+	"encoding/json"
+	"errors"
+	"strings"
 	"time"
 
 	"eventer-map-backend/internal/repository"
 	"github.com/google/uuid"
 )
+
+var ErrUserBanned = errors.New("user is banned")
 
 const (
 	DefaultEventLimit int32 = 50
@@ -27,6 +32,18 @@ type ListEventsFilter struct {
 	Limit         int32
 }
 
+type CreateEventInput struct {
+	Title          string
+	VenueID        uuid.UUID
+	ArtistIDs      []uuid.UUID
+	OpeningTime    *time.Time
+	StartTime      time.Time
+	EndTime        time.Time
+	RelatedLinks   []string
+	PosterImageURL *string
+	AuthorID       uuid.UUID
+}
+
 type EventDetail struct {
 	Event         repository.Event
 	Venue         *repository.Venue
@@ -36,10 +53,11 @@ type EventDetail struct {
 
 type EventService struct {
 	repo *repository.Queries
+	db   *sql.DB
 }
 
-func NewEventService(repo *repository.Queries) *EventService {
-	return &EventService{repo: repo}
+func NewEventService(repo *repository.Queries, db *sql.DB) *EventService {
+	return &EventService{repo: repo, db: db}
 }
 
 func (s *EventService) ListEvents(ctx context.Context, filter ListEventsFilter) ([]repository.ListEventsRow, bool, error) {
@@ -132,12 +150,206 @@ func (s *EventService) GetEventDetail(ctx context.Context, id uuid.UUID) (*Event
 	return detail, nil
 }
 
-func (s *EventService) CreateEvent(ctx context.Context, arg repository.CreateEventParams) (*repository.Event, error) {
-	event, err := s.repo.CreateEvent(ctx, arg)
-	if err != nil {
+func (s *EventService) CreateEvent(ctx context.Context, input CreateEventInput) (*EventDetail, error) {
+	status := "PENDING"
+	if user, err := s.repo.GetUserByID(ctx, input.AuthorID); err == nil {
+		if user.IsBanned {
+			return nil, ErrUserBanned
+		}
+		if user.Role == "ADMIN" {
+			status = "APPROVED"
+		}
+	}
+
+	relatedLinks := input.RelatedLinks
+	if relatedLinks == nil {
+		relatedLinks = []string{}
+	}
+
+	params := repository.CreateEventParams{
+		Title:        strings.TrimSpace(input.Title),
+		VenueID:      uuid.NullUUID{UUID: input.VenueID, Valid: input.VenueID != uuid.Nil},
+		StartTime:    input.StartTime,
+		EndTime:      input.EndTime,
+		RelatedLinks: relatedLinks,
+		Status:       status,
+		AuthorID:     uuid.NullUUID{UUID: input.AuthorID, Valid: input.AuthorID != uuid.Nil},
+	}
+
+	if input.OpeningTime != nil {
+		params.OpeningTime = sql.NullTime{Time: *input.OpeningTime, Valid: true}
+	}
+	if input.PosterImageURL != nil && strings.TrimSpace(*input.PosterImageURL) != "" {
+		params.PosterImageUrl = sql.NullString{String: strings.TrimSpace(*input.PosterImageURL), Valid: true}
+	}
+
+	var createdEvent repository.Event
+
+	if s.db != nil {
+		tx, err := s.db.BeginTx(ctx, nil)
+		if err != nil {
+			return nil, err
+		}
+		defer tx.Rollback()
+
+		q := s.repo.WithTx(tx)
+
+		createdEvent, err = q.CreateEvent(ctx, params)
+		if err != nil {
+			return nil, err
+		}
+
+		for _, artistID := range input.ArtistIDs {
+			if artistID == uuid.Nil {
+				continue
+			}
+			if err := q.AddArtistToEvent(ctx, repository.AddArtistToEventParams{
+				EventID:  createdEvent.ID,
+				ArtistID: artistID,
+			}); err != nil {
+				return nil, err
+			}
+		}
+
+		snapshotData, err := json.Marshal(map[string]interface{}{
+			"title":        createdEvent.Title,
+			"venueId":      input.VenueID,
+			"artistIds":    input.ArtistIDs,
+			"openingTime":  input.OpeningTime,
+			"startTime":    createdEvent.StartTime,
+			"endTime":      createdEvent.EndTime,
+			"relatedLinks": relatedLinks,
+		})
+		if err == nil {
+			_, _ = q.CreateEventHistory(ctx, repository.CreateEventHistoryParams{
+				EventID:  createdEvent.ID,
+				EditorID: uuid.NullUUID{UUID: input.AuthorID, Valid: input.AuthorID != uuid.Nil},
+				Snapshot: snapshotData,
+			})
+		}
+
+		if err := tx.Commit(); err != nil {
+			return nil, err
+		}
+	} else {
+		var err error
+		createdEvent, err = s.repo.CreateEvent(ctx, params)
+		if err != nil {
+			return nil, err
+		}
+		for _, artistID := range input.ArtistIDs {
+			if artistID == uuid.Nil {
+				continue
+			}
+			_ = s.repo.AddArtistToEvent(ctx, repository.AddArtistToEventParams{
+				EventID:  createdEvent.ID,
+				ArtistID: artistID,
+			})
+		}
+	}
+
+	return s.GetEventDetail(ctx, createdEvent.ID)
+}
+
+func (s *EventService) UpdateEvent(ctx context.Context, eventID uuid.UUID, input CreateEventInput) (*EventDetail, error) {
+	if user, err := s.repo.GetUserByID(ctx, input.AuthorID); err == nil {
+		if user.IsBanned {
+			return nil, ErrUserBanned
+		}
+	}
+
+	if _, err := s.repo.GetEvent(ctx, eventID); err != nil {
 		return nil, err
 	}
-	return &event, nil
+
+	relatedLinks := input.RelatedLinks
+	if relatedLinks == nil {
+		relatedLinks = []string{}
+	}
+
+	params := repository.UpdateEventParams{
+		ID:           eventID,
+		Title:        sql.NullString{String: strings.TrimSpace(input.Title), Valid: true},
+		VenueID:      uuid.NullUUID{UUID: input.VenueID, Valid: input.VenueID != uuid.Nil},
+		StartTime:    sql.NullTime{Time: input.StartTime, Valid: true},
+		EndTime:      sql.NullTime{Time: input.EndTime, Valid: true},
+		RelatedLinks: relatedLinks,
+	}
+
+	if input.OpeningTime != nil {
+		params.OpeningTime = sql.NullTime{Time: *input.OpeningTime, Valid: true}
+	}
+	if input.PosterImageURL != nil && strings.TrimSpace(*input.PosterImageURL) != "" {
+		params.PosterImageUrl = sql.NullString{String: strings.TrimSpace(*input.PosterImageURL), Valid: true}
+	}
+
+	if s.db != nil {
+		tx, err := s.db.BeginTx(ctx, nil)
+		if err != nil {
+			return nil, err
+		}
+		defer tx.Rollback()
+
+		q := s.repo.WithTx(tx)
+
+		updatedEvent, err := q.UpdateEvent(ctx, params)
+		if err != nil {
+			return nil, err
+		}
+
+		if err := q.ClearArtistsFromEvent(ctx, eventID); err != nil {
+			return nil, err
+		}
+
+		for _, artistID := range input.ArtistIDs {
+			if artistID == uuid.Nil {
+				continue
+			}
+			if err := q.AddArtistToEvent(ctx, repository.AddArtistToEventParams{
+				EventID:  eventID,
+				ArtistID: artistID,
+			}); err != nil {
+				return nil, err
+			}
+		}
+
+		snapshotData, err := json.Marshal(map[string]interface{}{
+			"title":        updatedEvent.Title,
+			"venueId":      input.VenueID,
+			"artistIds":    input.ArtistIDs,
+			"openingTime":  input.OpeningTime,
+			"startTime":    updatedEvent.StartTime,
+			"endTime":      updatedEvent.EndTime,
+			"relatedLinks": relatedLinks,
+		})
+		if err == nil {
+			_, _ = q.CreateEventHistory(ctx, repository.CreateEventHistoryParams{
+				EventID:  eventID,
+				EditorID: uuid.NullUUID{UUID: input.AuthorID, Valid: input.AuthorID != uuid.Nil},
+				Snapshot: snapshotData,
+			})
+		}
+
+		if err := tx.Commit(); err != nil {
+			return nil, err
+		}
+	} else {
+		if _, err := s.repo.UpdateEvent(ctx, params); err != nil {
+			return nil, err
+		}
+		_ = s.repo.ClearArtistsFromEvent(ctx, eventID)
+		for _, artistID := range input.ArtistIDs {
+			if artistID == uuid.Nil {
+				continue
+			}
+			_ = s.repo.AddArtistToEvent(ctx, repository.AddArtistToEventParams{
+				EventID:  eventID,
+				ArtistID: artistID,
+			})
+		}
+	}
+
+	return s.GetEventDetail(ctx, eventID)
 }
 
 func (s *EventService) RateEvent(ctx context.Context, eventID, userID uuid.UUID, score int32) error {

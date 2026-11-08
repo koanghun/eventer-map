@@ -24,7 +24,7 @@ func NewServices(repo *repository.Queries, db *sql.DB) *Services {
 
 	return &Services{
 		Auth:   NewAuthService(repo, m),
-		Event:  NewEventService(repo),
+		Event:  NewEventService(repo, db),
 		User:   NewUserService(repo),
 		Artist: NewArtistService(repo, db),
 		Venue:  NewVenueService(repo, db),

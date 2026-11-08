@@ -2,6 +2,7 @@ package handler
 
 import (
 	"encoding/json"
+	"log"
 	"net/http"
 
 	"eventer-map-backend/internal/middleware"
@@ -43,6 +44,7 @@ func (s *Server) GetUsersMeEvents(w http.ResponseWriter, r *http.Request) {
 
 	actions, err := s.services.User.ListUserEventActions(r.Context(), userID)
 	if err != nil {
+		log.Printf("[GetUsersMeEvents] ListUserEventActions error (userID=%s): %v", userID, err)
 		RespondError(w, http.StatusInternalServerError, "Failed to retrieve events")
 		return
 	}
@@ -84,6 +86,7 @@ func (s *Server) DeleteUsersUserIdFollow(w http.ResponseWriter, r *http.Request,
 		return
 	}
 	if err := s.services.User.UnfollowUser(r.Context(), myID, userId); err != nil {
+		log.Printf("[DeleteUsersUserIdFollow] UnfollowUser error (myID=%s, userID=%s): %v", myID, userId, err)
 		RespondError(w, http.StatusInternalServerError, "Unfollow failed")
 		return
 	}
@@ -98,6 +101,7 @@ func (s *Server) PostUsersUserIdBlock(w http.ResponseWriter, r *http.Request, us
 		return
 	}
 	if err := s.services.User.BlockUser(r.Context(), myID, userId); err != nil {
+		log.Printf("[PostUsersUserIdBlock] BlockUser error (myID=%s, userID=%s): %v", myID, userId, err)
 		RespondError(w, http.StatusInternalServerError, "Block failed")
 		return
 	}
@@ -112,6 +116,7 @@ func (s *Server) DeleteUsersUserIdBlock(w http.ResponseWriter, r *http.Request, 
 		return
 	}
 	if err := s.services.User.UnblockUser(r.Context(), myID, userId); err != nil {
+		log.Printf("[DeleteUsersUserIdBlock] UnblockUser error (myID=%s, userID=%s): %v", myID, userId, err)
 		RespondError(w, http.StatusInternalServerError, "Unblock failed")
 		return
 	}
@@ -131,6 +136,7 @@ func (s *Server) GetUsersUserIdFollowers(w http.ResponseWriter, r *http.Request,
 
 	followers, err := s.services.User.ListFollowers(r.Context(), userId, limit, offset)
 	if err != nil {
+		log.Printf("[GetUsersUserIdFollowers] ListFollowers error (userID=%s): %v", userId, err)
 		RespondError(w, http.StatusInternalServerError, "Failed to retrieve followers")
 		return
 	}
@@ -168,6 +174,7 @@ func (s *Server) GetUsersMeFollowing(w http.ResponseWriter, r *http.Request, par
 
 	following, err := s.services.User.ListFollowing(r.Context(), myID, limit, offset)
 	if err != nil {
+		log.Printf("[GetUsersMeFollowing] ListFollowing error (userID=%s): %v", myID, err)
 		RespondError(w, http.StatusInternalServerError, "Failed to retrieve following")
 		return
 	}
@@ -205,6 +212,7 @@ func (s *Server) GetUsersMeFollowingEvents(w http.ResponseWriter, r *http.Reques
 
 	events, err := s.services.User.ListFollowingEvents(r.Context(), myID, limit, offset)
 	if err != nil {
+		log.Printf("[GetUsersMeFollowingEvents] ListFollowingEvents error (userID=%s): %v", myID, err)
 		RespondError(w, http.StatusInternalServerError, "Failed to retrieve following events")
 		return
 	}
@@ -244,6 +252,7 @@ func (s *Server) GetUsersMeFollowingArtists(w http.ResponseWriter, r *http.Reque
 
 	artists, err := s.services.Artist.ListFollowingArtists(r.Context(), myID, limit, offset)
 	if err != nil {
+		log.Printf("[GetUsersMeFollowingArtists] ListFollowingArtists error (userID=%s): %v", myID, err)
 		RespondError(w, http.StatusInternalServerError, "Failed to retrieve following artists")
 		return
 	}
@@ -303,6 +312,7 @@ func (s *Server) GetUsersMeFollowingArtistsEvents(w http.ResponseWriter, r *http
 
 	events, err := s.services.Artist.ListFollowingArtistEvents(r.Context(), myID, limit, offset)
 	if err != nil {
+		log.Printf("[GetUsersMeFollowingArtistsEvents] ListFollowingArtistEvents error (userID=%s): %v", myID, err)
 		RespondError(w, http.StatusInternalServerError, "Failed to retrieve artist events")
 		return
 	}
@@ -360,6 +370,7 @@ func (s *Server) PostUsersMeFollowingArtistsEventsRead(w http.ResponseWriter, r 
 	}
 
 	if err := s.services.Artist.UpdateLastArtistFeedCheckedAt(r.Context(), myID); err != nil {
+		log.Printf("[PostUsersMeFollowingArtistsEventsRead] UpdateLastArtistFeedCheckedAt error (userID=%s): %v", myID, err)
 		RespondError(w, http.StatusInternalServerError, "Failed to update read timestamp")
 		return
 	}
@@ -387,6 +398,7 @@ func (s *Server) PatchUsersMe(w http.ResponseWriter, r *http.Request) {
 			RespondError(w, http.StatusBadRequest, "Nickname already exists")
 			return
 		}
+		log.Printf("[PatchUsersMe] UpdateProfile error (userID=%s): %v", userID, err)
 		RespondError(w, http.StatusInternalServerError, "Failed to update profile")
 		return
 	}
@@ -425,6 +437,7 @@ func (s *Server) PutUsersMePassword(w http.ResponseWriter, r *http.Request) {
 			RespondError(w, http.StatusBadRequest, "Invalid current password")
 			return
 		}
+		log.Printf("[PutUsersMePassword] UpdatePassword error (userID=%s): %v", userID, err)
 		RespondError(w, http.StatusInternalServerError, "Failed to update password")
 		return
 	}
@@ -458,6 +471,7 @@ func (s *Server) PostUsersMeLinkGoogle(w http.ResponseWriter, r *http.Request) {
 			RespondError(w, http.StatusUnauthorized, err.Error())
 			return
 		}
+		log.Printf("[PostUsersMeLinkGoogle] LinkGoogleAccount error (userID=%s): %v", userID, err)
 		RespondError(w, http.StatusInternalServerError, "Failed to link Google account")
 		return
 	}
@@ -477,6 +491,7 @@ func (s *Server) PostUsersMeUnlinkGoogle(w http.ResponseWriter, r *http.Request)
 
 	err := s.services.Auth.UnlinkGoogleAccount(r.Context(), userID)
 	if err != nil {
+		log.Printf("[PostUsersMeUnlinkGoogle] UnlinkGoogleAccount error (userID=%s): %v", userID, err)
 		RespondError(w, http.StatusInternalServerError, "Failed to unlink Google account")
 		return
 	}

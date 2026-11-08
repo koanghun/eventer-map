@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"log"
 	"net/http"
 )
 
@@ -13,6 +14,7 @@ func (s *Server) GetPing(w http.ResponseWriter, r *http.Request) {
 func (s *Server) PostVisits(w http.ResponseWriter, r *http.Request) {
 	count, err := s.services.Stats.IncrementDailyVisit(r.Context())
 	if err != nil {
+		log.Printf("[PostVisits] IncrementDailyVisit error: %v", err)
 		RespondError(w, http.StatusInternalServerError, "Failed to increment visit counter")
 		return
 	}

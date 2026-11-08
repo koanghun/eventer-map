@@ -6,7 +6,13 @@ import { Button } from '../ui/button';
 import { Input } from '../ui/input';
 import { Label } from '../ui/label';
 import { ScrollArea } from '../ui/scroll-area';
-import { usePostEvents, getGetEventsQueryKey } from '../../api/generated/events/events';
+import {
+    usePostEvents,
+    usePutEventsEventId,
+    useGetEventsEventId,
+    getGetEventsQueryKey,
+    getGetEventsEventIdQueryKey,
+} from '../../api/generated/events/events';
 import { useGetVenuesSearch } from '../../api/generated/venues/venues';
 import { useGetArtists } from '../../api/generated/artists/artists';
 import { useQueryClient } from '@tanstack/react-query';
@@ -17,9 +23,23 @@ import { Calendar } from '../ui/calendar';
 import { cn } from '../../lib/utils';
 import ArtistFormPane from './ArtistFormPane';
 import VenueFormPane from './VenueFormPane';
-import type { Artist, ArtistSummary, EventInput, Venue, VenueSummary } from '../../api/generated/model';
+import type { Artist, ArtistSummary, Event, EventInput, EventSummary, Venue, VenueSummary } from '../../api/generated/model';
 
 const EVENT_FORM_DRAFT_KEY = 'eventer_map_event_form_draft';
+
+function toLocalDateStr(iso?: string): string {
+    if (!iso) return '';
+    const d = new Date(iso);
+    if (Number.isNaN(d.getTime())) return '';
+    return format(d, 'yyyy-MM-dd');
+}
+
+function toLocalTimeStr(iso?: string): string {
+    if (!iso) return '';
+    const d = new Date(iso);
+    if (Number.isNaN(d.getTime())) return '';
+    return format(d, 'HH:mm');
+}
 
 interface EventFormDraft {
     title: string;
@@ -45,32 +65,124 @@ function loadEventFormDraft(): EventFormDraft | null {
 }
 
 interface EventFormPaneProps {
+    editingEvent?: (EventSummary & Partial<Event>) | null;
+    initialDate?: string;
+    onCreated?: (info: { date: string; lat?: number; lng?: number }) => void;
     onClose: () => void;
 }
 
-export default function EventFormPane({ onClose }: EventFormPaneProps) {
+export default function EventFormPane({ editingEvent, initialDate, onCreated, onClose }: EventFormPaneProps) {
     const { t } = useTranslation();
     const queryClient = useQueryClient();
 
-    const initialDraft = useRef<EventFormDraft | null>(loadEventFormDraft());
+    const isEditMode = Boolean(editingEvent?.id);
+    const initialDraft = useRef<EventFormDraft | null>(isEditMode ? null : loadEventFormDraft());
+    const populatedDetailIdRef = useRef<string | null>(null);
 
-    // Form fields (initialized from browser sessionStorage draft if available)
-    const [title, setTitle] = useState(initialDraft.current?.title ?? '');
-    const [date, setDate] = useState(initialDraft.current?.date ?? '');
-    const [doorsOpen, setDoorsOpen] = useState(initialDraft.current?.doorsOpen ?? '');
-    const [startTime, setStartTime] = useState(initialDraft.current?.startTime ?? '');
-    const [endTime, setEndTime] = useState(initialDraft.current?.endTime ?? '');
-    const [venueId, setVenueId] = useState(initialDraft.current?.venueId ?? '');
-    const [venueQuery, setVenueQuery] = useState(initialDraft.current?.venueQuery ?? '');
-    const [selectedVenue, setSelectedVenue] = useState<VenueSummary | null>(initialDraft.current?.selectedVenue ?? null);
+    const initialEditVenue: VenueSummary | null = isEditMode
+        ? editingEvent?.venue
+            ? editingEvent.venue
+            : editingEvent?.venueId || editingEvent?.venueName
+              ? {
+                    id: editingEvent.venueId,
+                    officialName: editingEvent.venueName,
+                    latitude: editingEvent.latitude,
+                    longitude: editingEvent.longitude,
+                }
+              : null
+        : null;
+
+    // Form fields (initialized from editingEvent in edit mode, or browser sessionStorage draft in create mode)
+    const [title, setTitle] = useState(
+        isEditMode ? (editingEvent?.title ?? '') : (initialDraft.current?.title ?? '')
+    );
+    const [date, setDate] = useState(
+        isEditMode
+            ? toLocalDateStr(editingEvent?.startTime) || initialDate || ''
+            : initialDraft.current?.date || initialDate || ''
+    );
+    const [doorsOpen, setDoorsOpen] = useState(
+        isEditMode ? toLocalTimeStr(editingEvent?.openingTime) : (initialDraft.current?.doorsOpen ?? '')
+    );
+    const [startTime, setStartTime] = useState(
+        isEditMode ? toLocalTimeStr(editingEvent?.startTime) : (initialDraft.current?.startTime ?? '')
+    );
+    const [endTime, setEndTime] = useState(
+        isEditMode ? toLocalTimeStr(editingEvent?.endTime) : (initialDraft.current?.endTime ?? '')
+    );
+    const [venueId, setVenueId] = useState(
+        isEditMode ? (initialEditVenue?.id ?? '') : (initialDraft.current?.venueId ?? '')
+    );
+    const [venueQuery, setVenueQuery] = useState(
+        isEditMode ? (initialEditVenue?.officialName ?? '') : (initialDraft.current?.venueQuery ?? '')
+    );
+    const [selectedVenue, setSelectedVenue] = useState<VenueSummary | null>(
+        isEditMode ? initialEditVenue : (initialDraft.current?.selectedVenue ?? null)
+    );
     const [selectedArtists, setSelectedArtists] = useState<ArtistSummary[]>(
-        Array.isArray(initialDraft.current?.selectedArtists) ? initialDraft.current!.selectedArtists : []
+        isEditMode
+            ? Array.isArray(editingEvent?.artists)
+                ? editingEvent!.artists!
+                : []
+            : Array.isArray(initialDraft.current?.selectedArtists)
+              ? initialDraft.current!.selectedArtists
+              : []
     );
     const [links, setLinks] = useState<string[]>(
-        Array.isArray(initialDraft.current?.links) && initialDraft.current!.links.length > 0
-            ? initialDraft.current!.links
-            : ['']
+        isEditMode
+            ? Array.isArray(editingEvent?.relatedLinks) && editingEvent!.relatedLinks!.length > 0
+                ? editingEvent!.relatedLinks!
+                : ['']
+            : Array.isArray(initialDraft.current?.links) && initialDraft.current!.links.length > 0
+              ? initialDraft.current!.links
+              : ['']
     );
+
+    const { data: eventDetail, isFetching: isLoadingEventDetail } = useGetEventsEventId(
+        editingEvent?.id || '',
+        {
+            query: {
+                enabled: isEditMode && Boolean(editingEvent?.id),
+            },
+        }
+    );
+
+    // Populate full event details (openingTime, venue, artists, relatedLinks) once loaded in edit mode
+    useEffect(() => {
+        if (!isEditMode || !eventDetail || !editingEvent?.id) return;
+        if (populatedDetailIdRef.current === editingEvent.id) return;
+        populatedDetailIdRef.current = editingEvent.id;
+
+        if (eventDetail.title !== undefined) {
+            setTitle(eventDetail.title);
+        }
+        const detailDate = toLocalDateStr(eventDetail.startTime);
+        if (detailDate) {
+            setDate(detailDate);
+        }
+        setDoorsOpen(toLocalTimeStr(eventDetail.openingTime));
+        const detailStart = toLocalTimeStr(eventDetail.startTime);
+        if (detailStart) {
+            setStartTime(detailStart);
+        }
+        const detailEnd = toLocalTimeStr(eventDetail.endTime);
+        if (detailEnd) {
+            setEndTime(detailEnd);
+        }
+        if (eventDetail.venue) {
+            setSelectedVenue(eventDetail.venue);
+            setVenueId(eventDetail.venue.id ?? '');
+            setVenueQuery(eventDetail.venue.officialName ?? '');
+        }
+        if (Array.isArray(eventDetail.artists)) {
+            setSelectedArtists(eventDetail.artists);
+        }
+        if (Array.isArray(eventDetail.relatedLinks) && eventDetail.relatedLinks.length > 0) {
+            setLinks(eventDetail.relatedLinks);
+        } else {
+            setLinks(['']);
+        }
+    }, [isEditMode, eventDetail, editingEvent?.id]);
 
     // Venue autocomplete & New Venue sub-pane state
     const [isVenueDropdownOpen, setIsVenueDropdownOpen] = useState(false);
@@ -93,8 +205,9 @@ export default function EventFormPane({ onClose }: EventFormPaneProps) {
     const [debouncedVenueQuery] = useDebounce(venueQuery.trim(), 300);
     const [debouncedArtistQuery] = useDebounce(artistQuery.trim(), 300);
 
-    // Persist draft to browser sessionStorage whenever form state changes
+    // Persist draft to browser sessionStorage whenever form state changes (only in new event mode)
     useEffect(() => {
+        if (isEditMode) return;
         try {
             const draft: EventFormDraft = {
                 title,
@@ -112,7 +225,7 @@ export default function EventFormPane({ onClose }: EventFormPaneProps) {
         } catch {
             // Ignore storage quota errors
         }
-    }, [title, date, doorsOpen, startTime, endTime, venueId, venueQuery, selectedVenue, selectedArtists, links]);
+    }, [isEditMode, title, date, doorsOpen, startTime, endTime, venueId, venueQuery, selectedVenue, selectedArtists, links]);
 
     const clearEventFormDraft = () => {
         try {
@@ -129,7 +242,12 @@ export default function EventFormPane({ onClose }: EventFormPaneProps) {
         debouncedVenueQuery.length >= 1 &&
         (!selectedVenue || selectedVenue.officialName !== venueQuery);
 
-    const { data: rawVenueResults, isFetching: isSearchingVenues } = useGetVenuesSearch(
+    const {
+        data: rawVenueResults,
+        isFetching: isSearchingVenues,
+        isError: isVenueSearchError,
+        refetch: refetchVenueSearch,
+    } = useGetVenuesSearch(
         { query: debouncedVenueQuery, limit: 10 },
         {
             query: {
@@ -139,7 +257,8 @@ export default function EventFormPane({ onClose }: EventFormPaneProps) {
             },
         }
     );
-    const venueResults: VenueSummary[] = Array.isArray(rawVenueResults) ? rawVenueResults : [];
+    const venueResults: VenueSummary[] =
+        !isVenueSearchError && Array.isArray(rawVenueResults) ? rawVenueResults : [];
 
     const hasExactVenueMatch = (venueResults || []).some(
         (venue) => (venue?.officialName ?? '').trim().toLowerCase() === debouncedVenueQuery.toLowerCase()
@@ -153,7 +272,12 @@ export default function EventFormPane({ onClose }: EventFormPaneProps) {
         !isArtistComposing &&
         debouncedArtistQuery.length >= 1;
 
-    const { data: rawArtistResults, isFetching: isSearchingArtists } = useGetArtists(
+    const {
+        data: rawArtistResults,
+        isFetching: isSearchingArtists,
+        isError: isArtistSearchError,
+        refetch: refetchArtistSearch,
+    } = useGetArtists(
         { query: debouncedArtistQuery, limit: 10 },
         {
             query: {
@@ -163,25 +287,26 @@ export default function EventFormPane({ onClose }: EventFormPaneProps) {
             },
         }
     );
-    const artistResults: ArtistSummary[] = Array.isArray(rawArtistResults)
-        ? rawArtistResults.map((a: any) => ({
-              id: a?.id ?? a?.ID,
-              officialName: a?.officialName ?? a?.OfficialName,
-              hiragana:
-                  typeof a?.hiragana === 'string'
-                      ? a.hiragana
-                      : typeof a?.Hiragana?.String === 'string' && a?.Hiragana?.Valid
-                        ? a.Hiragana.String
-                        : undefined,
-              disambiguation:
-                  typeof a?.disambiguation === 'string'
-                      ? a.disambiguation
-                      : typeof a?.Disambiguation?.String === 'string' && a?.Disambiguation?.Valid
-                        ? a.Disambiguation.String
-                        : undefined,
-              status: a?.status ?? a?.Status,
-          }))
-        : [];
+    const artistResults: ArtistSummary[] =
+        !isArtistSearchError && Array.isArray(rawArtistResults)
+            ? rawArtistResults.map((a: any) => ({
+                  id: a?.id ?? a?.ID,
+                  officialName: a?.officialName ?? a?.OfficialName,
+                  hiragana:
+                      typeof a?.hiragana === 'string'
+                          ? a.hiragana
+                          : typeof a?.Hiragana?.String === 'string' && a?.Hiragana?.Valid
+                            ? a.Hiragana.String
+                            : undefined,
+                  disambiguation:
+                      typeof a?.disambiguation === 'string'
+                          ? a.disambiguation
+                          : typeof a?.Disambiguation?.String === 'string' && a?.Disambiguation?.Valid
+                            ? a.Disambiguation.String
+                            : undefined,
+                  status: a?.status ?? a?.Status,
+              }))
+            : [];
 
     const hasExactArtistMatch = (artistResults || []).some(
         (artist) => (artist?.officialName ?? '').trim().toLowerCase() === debouncedArtistQuery.toLowerCase()
@@ -363,7 +488,9 @@ export default function EventFormPane({ onClose }: EventFormPaneProps) {
         }
     };
 
-    const { mutateAsync: createEvent, isPending } = usePostEvents();
+    const { mutateAsync: createEvent, isPending: isCreating } = usePostEvents();
+    const { mutateAsync: updateEvent, isPending: isUpdating } = usePutEventsEventId();
+    const isPending = isCreating || isUpdating;
 
     const handleLinkChange = (index: number, value: string) => {
         const newLinks = [...links];
@@ -388,6 +515,11 @@ export default function EventFormPane({ onClose }: EventFormPaneProps) {
         }
 
         const toDateTime = (time: string) => new Date(`${date}T${time}:00`).toISOString();
+        const startDateObj = new Date(`${date}T${startTime}:00`);
+        const endDateObj = new Date(`${date}T${endTime}:00`);
+        if (endDateObj < startDateObj) {
+            endDateObj.setDate(endDateObj.getDate() + 1);
+        }
         const artistIds = selectedArtists.map((a) => a.id).filter((id): id is string => Boolean(id));
 
         const payload: EventInput = {
@@ -395,19 +527,40 @@ export default function EventFormPane({ onClose }: EventFormPaneProps) {
             venueId,
             artistIds: artistIds.length > 0 ? artistIds : undefined,
             openingTime: doorsOpen ? toDateTime(doorsOpen) : undefined,
-            startTime: toDateTime(startTime),
-            endTime: toDateTime(endTime),
+            startTime: startDateObj.toISOString(),
+            endTime: endDateObj.toISOString(),
             relatedLinks: links.filter((l) => l.trim() !== ''),
         };
 
         try {
-            await createEvent({ data: payload });
-            clearEventFormDraft();
-            toast.success(t('event.createSuccess', '이벤트가 성공적으로 등록되었습니다.'));
-            queryClient.invalidateQueries({ queryKey: getGetEventsQueryKey() });
-            onClose();
+            if (isEditMode && editingEvent?.id) {
+                const updated = await updateEvent({ eventId: editingEvent.id, data: payload });
+                const lat = updated?.venue?.latitude ?? selectedVenue?.latitude;
+                const lng = updated?.venue?.longitude ?? selectedVenue?.longitude;
+                toast.success(t('event.updateSuccess', '이벤트가 성공적으로 수정되었습니다.'));
+                onCreated?.({ date, lat, lng });
+                await Promise.all([
+                    queryClient.invalidateQueries({ queryKey: getGetEventsQueryKey() }),
+                    queryClient.invalidateQueries({ queryKey: getGetEventsEventIdQueryKey(editingEvent.id) }),
+                ]);
+                onClose();
+            } else {
+                const created = await createEvent({ data: payload });
+                const lat = created?.venue?.latitude ?? selectedVenue?.latitude;
+                const lng = created?.venue?.longitude ?? selectedVenue?.longitude;
+                clearEventFormDraft();
+                toast.success(t('event.createSuccess', '이벤트가 성공적으로 등록되었습니다.'));
+                onCreated?.({ date, lat, lng });
+                await queryClient.invalidateQueries({ queryKey: getGetEventsQueryKey() });
+                onClose();
+            }
         } catch (error: any) {
-            toast.apiError(error, t('event.createFail', '이벤트 등록에 실패했습니다.'));
+            toast.apiError(
+                error,
+                isEditMode
+                    ? t('event.updateFail', '이벤트 수정에 실패했습니다.')
+                    : t('event.createFail', '이벤트 등록에 실패했습니다.')
+            );
         }
     };
 
@@ -450,8 +603,13 @@ export default function EventFormPane({ onClose }: EventFormPaneProps) {
                     <ArrowLeft className="w-4 h-4 text-foreground" />
                 </Button>
                 <h2 className="font-bold text-lg text-primary truncate">
-                    {t('buttons.newEvent', '새 이벤트 등록')}
+                    {isEditMode
+                        ? t('event.editTitle', t('eventForm.titleEdit', '이벤트 편집'))
+                        : t('buttons.newEvent', '새 이벤트 등록')}
                 </h2>
+                {isEditMode && isLoadingEventDetail && (
+                    <Loader2 className="w-4 h-4 animate-spin text-muted-foreground ml-auto shrink-0" />
+                )}
             </div>
 
             <ScrollArea className="flex-1">
@@ -547,8 +705,28 @@ export default function EventFormPane({ onClose }: EventFormPaneProps) {
                                 ) : null}
                             </div>
 
-                            {shouldSearchVenues && (venueResults.length > 0 || showAddVenueOption) && (
+                            {shouldSearchVenues && (venueResults.length > 0 || showAddVenueOption || isVenueSearchError) && (
                                 <div className="absolute left-0 right-0 top-full mt-1 z-50 rounded-md border border-border bg-popover text-popover-foreground shadow-md max-h-52 overflow-y-auto">
+                                    {/* 검색 에러 안내 vs 미등록(검색 결과 0건) 안내 */}
+                                    {!isSearchingVenues && isVenueSearchError ? (
+                                        <div className="px-2.5 py-2 text-xs text-destructive flex items-center justify-between gap-2 border-b border-border/50 bg-destructive/5">
+                                            <span>
+                                                {t('event.fields.venueSearchError', '회장 검색 결과를 불러오지 못했습니다.')}
+                                            </span>
+                                            <button
+                                                type="button"
+                                                onClick={() => refetchVenueSearch()}
+                                                className="shrink-0 underline font-semibold hover:opacity-80"
+                                            >
+                                                {t('buttons.retry', '다시 시도')}
+                                            </button>
+                                        </div>
+                                    ) : !isSearchingVenues && venueResults.length === 0 ? (
+                                        <div className="px-2.5 py-1.5 text-[11px] text-muted-foreground border-b border-border/50">
+                                            {t('event.fields.venueNoResults', '일치하는 등록된 회장이 없습니다.')}
+                                        </div>
+                                    ) : null}
+
                                     {/* 자동완성 회장 목록 */}
                                     {venueResults.map((venue, idx) => (
                                         <button
@@ -654,8 +832,28 @@ export default function EventFormPane({ onClose }: EventFormPaneProps) {
                                 )}
                             </div>
 
-                            {shouldSearchArtists && (artistResults.length > 0 || showAddArtistOption) && (
+                            {shouldSearchArtists && (artistResults.length > 0 || showAddArtistOption || isArtistSearchError) && (
                                 <div className="absolute left-0 right-0 top-full mt-1 z-50 rounded-md border border-border bg-popover text-popover-foreground shadow-md max-h-52 overflow-y-auto">
+                                    {/* 검색 에러 안내 vs 미등록(검색 결과 0건) 안내 */}
+                                    {!isSearchingArtists && isArtistSearchError ? (
+                                        <div className="px-2.5 py-2 text-xs text-destructive flex items-center justify-between gap-2 border-b border-border/50 bg-destructive/5">
+                                            <span>
+                                                {t('event.fields.artistSearchError', '출연자 검색 결과를 불러오지 못했습니다.')}
+                                            </span>
+                                            <button
+                                                type="button"
+                                                onClick={() => refetchArtistSearch()}
+                                                className="shrink-0 underline font-semibold hover:opacity-80"
+                                            >
+                                                {t('buttons.retry', '다시 시도')}
+                                            </button>
+                                        </div>
+                                    ) : !isSearchingArtists && artistResults.length === 0 ? (
+                                        <div className="px-2.5 py-1.5 text-[11px] text-muted-foreground border-b border-border/50">
+                                            {t('event.fields.artistNoResults', '일치하는 등록된 출연자가 없습니다.')}
+                                        </div>
+                                    ) : null}
+
                                     {/* 자동완성 출연자 목록 */}
                                     {artistResults.map((artist, idx) => {
                                         const isAlreadyAdded = Array.isArray(selectedArtists) && selectedArtists.some((a) => a.id === artist.id);
@@ -748,7 +946,9 @@ export default function EventFormPane({ onClose }: EventFormPaneProps) {
 
                     <Button type="submit" disabled={isPending} className="w-full font-bold shadow-sm h-9 bg-primary text-primary-foreground hover:bg-primary/90 mt-2">
                         {isPending ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Save className="w-4 h-4 mr-2" />}
-                        {t('buttons.register', '등록하기')}
+                        {isEditMode
+                            ? t('event.updateButton', t('buttons.update', '수정'))
+                            : t('buttons.register', '등록하기')}
                     </Button>
 
                     <hr className="border-border my-2" />
