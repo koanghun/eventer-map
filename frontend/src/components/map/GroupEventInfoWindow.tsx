@@ -1,14 +1,14 @@
 import { OverlayView } from '@react-google-maps/api';
-
 import { useTranslation } from 'react-i18next';
-import { MapPin, Calendar, ChevronRight } from 'lucide-react';
+import { MapPin, Calendar, ChevronRight, X } from 'lucide-react';
+import type { EventSummary } from '../../api/generated/model';
 
 interface GroupEventInfoWindowProps {
-    events: any[];
+    events: EventSummary[];
     location: { lat: number; lng: number };
     locationName: string;
     onClose: () => void;
-    onEventSelect: (event: any) => void;
+    onEventSelect: (event: EventSummary) => void;
 }
 
 export default function GroupEventInfoWindow({
@@ -16,55 +16,71 @@ export default function GroupEventInfoWindow({
     location,
     locationName,
     onClose,
-    onEventSelect
+    onEventSelect,
 }: GroupEventInfoWindowProps) {
     const { t } = useTranslation();
 
     return (
         <OverlayView position={location} mapPaneName={OverlayView.FLOAT_PANE}>
             <div className="absolute bottom-[45px] left-0 -translate-x-1/2 z-50">
-                <div className="min-w-[280px] max-w-[350px] font-sans p-1 bg-background text-foreground shadow-2xl rounded-2xl border border-border relative animate-in zoom-in-95 duration-200">
-                    {/* Custom Close Button */}
-                    <button 
-                        className="absolute top-3 right-3 text-muted-foreground hover:text-foreground rounded-full w-6 h-6 flex items-center justify-center transition-colors hover:bg-muted/80 z-10" 
-                        onClick={onClose}
-                        title={t('buttons.close') || "Close"}
-                    >
-                        ✕
-                    </button>
-
+                <div className="min-w-[280px] max-w-[340px] font-sans bg-background text-foreground shadow-2xl rounded-2xl border border-border relative animate-in zoom-in-95 duration-200">
                     {/* Speech Bubble Arrow Tail */}
-                    <div className="absolute bottom-[-6px] left-1/2 -translate-x-1/2 w-3 h-3 bg-background border-r border-b border-border rotate-45"></div>
-                <div className="mb-4 bg-muted/30 -mx-1 -mt-1 p-3 border-b border-border rounded-t-lg">
-                    <h3 className="font-bold text-lg text-primary mb-1">
-                        {t('eventMap.groupModal.title', { count: events.length })}
-                    </h3>
-                    <div className="flex items-start gap-1 text-sm text-muted-foreground">
-                        <MapPin className="w-3.5 h-3.5 mt-0.5 shrink-0" />
-                        <span className="break-words">{locationName}</span>
-                    </div>
-                </div>
+                    <div className="absolute bottom-[-6px] left-1/2 -translate-x-1/2 w-3 h-3 bg-background border-r border-b border-border rotate-45" />
 
-                <div className="max-h-[250px] overflow-y-auto pr-1 space-y-2">
-                    {events.map(event => (
-                        <div
-                            key={event.id}
-                            className="group p-3 rounded-lg border border-border bg-card hover:border-primary hover:bg-primary/5 cursor-pointer transition-all flex items-center justify-between"
-                            onClick={() => onEventSelect(event)}
-                        >
-                            <div className="min-w-0 pr-2">
-                                <h4 className="font-bold text-foreground text-sm truncate group-hover:text-primary transition-colors">
-                                    {event.title}
-                                </h4>
-                                <div className="flex items-center gap-1.5 mt-1 text-xs text-muted-foreground">
-                                    <Calendar className="w-3 h-3" />
-                                    <span>{event.startTime ? new Date(event.startTime).toLocaleString('ko-KR') : event.event_date}</span>
+                    {/* Header */}
+                    <div className="bg-muted/30 p-3.5 border-b border-border rounded-t-2xl flex justify-between items-start gap-3">
+                        <div className="min-w-0">
+                            <h3 className="font-bold text-base text-primary mb-1 leading-snug">
+                                {t('eventMap.groupModal.title', { count: events.length })}
+                            </h3>
+                            {locationName && (
+                                <div className="flex items-start gap-1 text-xs text-muted-foreground">
+                                    <MapPin className="w-3.5 h-3.5 mt-0.5 shrink-0" />
+                                    <span className="break-words">{locationName}</span>
                                 </div>
-                            </div>
-                            <ChevronRight className="w-4 h-4 text-muted-foreground group-hover:text-primary shrink-0 transition-colors" />
+                            )}
                         </div>
-                    ))}
-                </div>
+                        <button
+                            type="button"
+                            className="p-1 rounded-full text-muted-foreground hover:bg-muted hover:text-foreground transition-colors shrink-0"
+                            onClick={onClose}
+                            title={t('buttons.close', '닫기')}
+                            aria-label={t('buttons.close', '닫기')}
+                        >
+                            <X className="w-4 h-4" />
+                        </button>
+                    </div>
+
+                    {/* Event List */}
+                    <div className="p-2.5 max-h-[250px] overflow-y-auto space-y-2">
+                        {events.map((event) => (
+                            <div
+                                key={event.id}
+                                className="group p-3 rounded-xl border border-border bg-card hover:border-primary hover:bg-primary/5 cursor-pointer transition-all flex items-center justify-between"
+                                onClick={() => onEventSelect(event)}
+                            >
+                                <div className="min-w-0 pr-2">
+                                    <h4 className="font-bold text-foreground text-sm truncate group-hover:text-primary transition-colors">
+                                        {event.title}
+                                    </h4>
+                                    {event.startTime && (
+                                        <div className="flex items-center gap-1.5 mt-1 text-xs text-muted-foreground">
+                                            <Calendar className="w-3 h-3 shrink-0" />
+                                            <span>
+                                                {new Date(event.startTime).toLocaleString('ko-KR', {
+                                                    month: 'short',
+                                                    day: 'numeric',
+                                                    hour: '2-digit',
+                                                    minute: '2-digit',
+                                                })}
+                                            </span>
+                                        </div>
+                                    )}
+                                </div>
+                                <ChevronRight className="w-4 h-4 text-muted-foreground group-hover:text-primary shrink-0 transition-colors" />
+                            </div>
+                        ))}
+                    </div>
                 </div>
             </div>
         </OverlayView>

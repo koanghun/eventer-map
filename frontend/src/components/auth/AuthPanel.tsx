@@ -36,12 +36,11 @@ export default function AuthPanel({ onClose }: AuthPanelProps) {
                 await contextGoogleLogin(tokenResponse.access_token);
                 onClose();
             } catch (err: any) {
-                const msg = err?.response?.data?.error || t('auth.loginFailed', 'Login failed.');
-                toast.error(msg);
+                toast.apiError(err, t('auth.loginFailed', '로그인에 실패했습니다.'));
             }
         },
         onError: () => {
-            toast.error(t('auth.loginFailed', 'Login failed.'));
+            toast.error(t('auth.loginFailed', '로그인에 실패했습니다.'));
         }
     });
 
@@ -53,8 +52,7 @@ export default function AuthPanel({ onClose }: AuthPanelProps) {
             await login(email, password);
             onClose();
         } catch (err: any) {
-            const msg = err?.response?.data?.error || t('auth.loginFailed', 'Login failed.');
-            toast.error(msg);
+            toast.apiError(err, t('auth.loginFailed', '로그인에 실패했습니다.'));
         } finally {
             setIsSubmitting(false);
         }
@@ -63,7 +61,7 @@ export default function AuthPanel({ onClose }: AuthPanelProps) {
     const handleSignup = async (e: React.FormEvent) => {
         e.preventDefault();
         if (signupPassword !== signupPasswordConfirm) {
-            toast.error(t('auth.passwordMismatch', 'Passwords do not match.'));
+            toast.error(t('auth.passwordMismatch', '비밀번호가 일치하지 않습니다.'));
             return;
         }
         if (!signupEmail || !signupPassword || !signupNickname) return;
@@ -72,8 +70,7 @@ export default function AuthPanel({ onClose }: AuthPanelProps) {
             await signup(signupEmail, signupPassword, signupNickname);
             setView('verifyEmail');
         } catch (err: any) {
-            const msg = err?.response?.data?.error || t('auth.signupFailed', 'Signup failed.');
-            toast.error(msg);
+            toast.apiError(err, t('auth.signupFailed', '회원가입에 실패했습니다.'));
         } finally {
             setIsSubmitting(false);
         }
@@ -87,8 +84,7 @@ export default function AuthPanel({ onClose }: AuthPanelProps) {
             await verifyEmail(signupEmail, verificationCode);
             onClose();
         } catch (err: any) {
-            const msg = err?.response?.data?.error || t('auth.verifyFailed', 'Verification failed.');
-            toast.error(msg);
+            toast.apiError(err, t('auth.verifyFailed', '이메일 인증에 실패했습니다.'));
         } finally {
             setIsSubmitting(false);
         }
@@ -240,14 +236,12 @@ export default function AuthPanel({ onClose }: AuthPanelProps) {
     );
 
     return (
-        <div className="absolute top-[73px] right-0 md:right-8 w-full md:w-[350px] bg-card border-b md:border md:border-t-0 border-border md:rounded-b-xl shadow-xl z-50 animate-in slide-in-from-top-4 duration-300">
-            <div className="p-6 flex flex-col">
-                {view === 'login' && renderLoginForm()}
-                {view === 'signup' && renderSignupForm()}
-                {view === 'verifyEmail' && renderVerifyEmailForm()}
-                {view === 'findId' && renderFindIdForm()}
-                {view === 'findPassword' && renderFindPasswordForm()}
-            </div>
+        <div className="flex flex-col">
+            {view === 'login' && renderLoginForm()}
+            {view === 'signup' && renderSignupForm()}
+            {view === 'verifyEmail' && renderVerifyEmailForm()}
+            {view === 'findId' && renderFindIdForm()}
+            {view === 'findPassword' && renderFindPasswordForm()}
         </div>
     );
 }

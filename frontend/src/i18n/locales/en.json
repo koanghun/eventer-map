@@ -21,17 +21,28 @@
         "clearFilter": "フィルター解除"
     },
     "auth": {
+        "login": "Login",
         "loginWithGoogle": "Log in with Google",
         "logout": "Log out",
         "loginRequired": "Login is required",
         "loginToCreate": "Please log in to register an event",
         "processingLogin": "Processing login",
-        "loginFailed": "Login failed",
+        "loginFailed": "Login failed.",
         "loginSuccess": "Logged in successfully.",
         "logoutSuccess": "Logged out successfully.",
         "googleLoginSuccess": "Logged in with Google successfully.",
+        "signupSuccess": "A verification code has been sent to your email.",
+        "signupFailed": "Sign up failed.",
+        "verifySuccess": "Email verification completed.",
+        "verifyFailed": "Email verification failed.",
+        "passwordMismatch": "Passwords do not match.",
         "email": "Email",
         "nickname": "Nickname"
+    },
+    "errors": {
+        "accessDenied": "Access denied.",
+        "serverError": "A server error occurred. Please try again later.",
+        "networkError": "Please check your network connection."
     },
     "buttons": {
         "back": "Back",

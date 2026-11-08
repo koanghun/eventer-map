@@ -21,17 +21,28 @@
         "clearFilter": "필터 해제"
     },
     "auth": {
+        "login": "로그인",
         "loginWithGoogle": "Google로 로그인",
         "logout": "로그아웃",
         "loginRequired": "로그인이 필요합니다",
         "loginToCreate": "이벤트를 등록하려면 로그인하세요",
         "processingLogin": "로그인 처리 중",
-        "loginFailed": "로그인에 실패했습니다",
+        "loginFailed": "로그인에 실패했습니다.",
         "loginSuccess": "로그인되었습니다.",
         "logoutSuccess": "로그아웃되었습니다.",
         "googleLoginSuccess": "구글 로그인 성공!",
+        "signupSuccess": "인증 코드가 이메일로 발송되었습니다.",
+        "signupFailed": "회원가입에 실패했습니다.",
+        "verifySuccess": "이메일 인증이 완료되었습니다.",
+        "verifyFailed": "이메일 인증에 실패했습니다.",
+        "passwordMismatch": "비밀번호가 일치하지 않습니다.",
         "email": "이메일",
         "nickname": "닉네임"
+    },
+    "errors": {
+        "accessDenied": "접근 권한이 없습니다.",
+        "serverError": "서버 오류가 발생했습니다. 잠시 후 다시 시도해주세요.",
+        "networkError": "네트워크 연결을 확인해주세요."
     },
     "buttons": {
         "back": "뒤로가기",

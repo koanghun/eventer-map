@@ -47,8 +47,7 @@ export default function ProfileSettingsModal({ isOpen, onClose }: ProfileSetting
                 await refreshUser();
                 toast.success(t('profile.googleLinked', '구글 계정이 연동되었습니다.'));
             } catch (error: any) {
-                const msg = error?.response?.data?.error || t('profile.googleLinkFailed', '구글 계정 연동에 실패했습니다.');
-                toast.error(msg);
+                toast.apiError(error, t('profile.googleLinkFailed', '구글 계정 연동에 실패했습니다.'));
             }
         },
         onError: () => {
@@ -67,8 +66,8 @@ export default function ProfileSettingsModal({ isOpen, onClose }: ProfileSetting
             toast.success(t('profile.updateSuccess', '회원정보가 수정되었습니다.'));
             // Optionally reload to fetch new profile data
             window.location.reload();
-        } catch (error) {
-            toast.error(t('profile.updateFailed', '회원정보 수정에 실패했습니다.'));
+        } catch (error: any) {
+            toast.apiError(error, t('profile.updateFailed', '회원정보 수정에 실패했습니다.'));
         } finally {
             setIsSubmitting(false);
         }
@@ -92,8 +91,7 @@ export default function ProfileSettingsModal({ isOpen, onClose }: ProfileSetting
             setNewPassword('');
             setConfirmPassword('');
         } catch (error: any) {
-            const msg = error?.response?.data?.error || t('profile.passwordChangeFailed', '비밀번호 변경에 실패했습니다.');
-            toast.error(msg);
+            toast.apiError(error, t('profile.passwordChangeFailed', '비밀번호 변경에 실패했습니다.'));
         } finally {
             setIsSubmitting(false);
         }
@@ -107,8 +105,7 @@ export default function ProfileSettingsModal({ isOpen, onClose }: ProfileSetting
                 await refreshUser();
                 toast.success(t('profile.googleUnlinked', '구글 계정 연동이 해제되었습니다.'));
             } catch (error: any) {
-                const msg = error?.response?.data?.error || t('profile.googleUnlinkFailed', '구글 계정 연동 해제에 실패했습니다.');
-                toast.error(msg);
+                toast.apiError(error, t('profile.googleUnlinkFailed', '구글 계정 연동 해제에 실패했습니다.'));
             }
         } else {
             googleLogin();

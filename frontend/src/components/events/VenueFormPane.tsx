@@ -373,7 +373,7 @@ export default function VenueFormPane({ initialName, onBack, onCreated }: VenueF
             toast.success(t('venueForm.createSuccess', '신규 회장이 등록되어 선택되었습니다.'));
             onCreated(created);
         } catch (error: any) {
-            toast.error(error?.response?.data?.error || t('venueForm.createFail', '회장 등록에 실패했습니다.'));
+            toast.apiError(error, t('venueForm.createFail', '회장 등록에 실패했습니다.'));
         }
     };
 

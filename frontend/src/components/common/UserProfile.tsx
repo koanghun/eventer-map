@@ -37,7 +37,7 @@ export default function UserProfile() {
                         )}
                     </button>
                 </PopoverTrigger>
-                <PopoverContent className="w-64 p-2 bg-popover text-popover-foreground border border-border shadow-md rounded-lg mt-2" align="end">
+                <PopoverContent className="w-64 p-2 bg-popover text-popover-foreground border border-border shadow-xl rounded-2xl mt-2" align="end">
                     <div className="flex flex-col gap-4 p-2">
                         <div className="flex flex-col space-y-1 pb-3 border-b border-border">
                             <p className="font-semibold text-sm leading-none">{user.displayName || user.email}</p>

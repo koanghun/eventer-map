@@ -20,12 +20,28 @@
         "clearFilter": "フィルター解除"
     },
     "auth": {
-        "loginWithGoogle": "Googleでログイン",
-        "logout": "ログアウト",
-        "loginRequired": "ログインが必要です",
-        "loginToCreate": "イベントを登録するにはログインしてください",
-        "processingLogin": "ログイン処理中",
-        "loginFailed": "ログインに失敗しました"
+        "login": "登录",
+        "loginWithGoogle": "使用 Google 登录",
+        "logout": "退出登录",
+        "loginRequired": "需要登录",
+        "loginToCreate": "请登录后登记活动",
+        "processingLogin": "正在登录...",
+        "loginFailed": "登录失败。",
+        "loginSuccess": "已成功登录。",
+        "logoutSuccess": "已退出登录。",
+        "googleLoginSuccess": "Google 登录成功！",
+        "signupSuccess": "验证码已发送至您的邮箱。",
+        "signupFailed": "注册失败。",
+        "verifySuccess": "邮箱验证已完成。",
+        "verifyFailed": "邮箱验证失败。",
+        "passwordMismatch": "密码不一致。",
+        "email": "电子邮箱",
+        "nickname": "昵称"
+    },
+    "errors": {
+        "accessDenied": "没有访问权限。",
+        "serverError": "发生服务器错误，请稍后重试。",
+        "networkError": "请检查您的网络连接。"
     },
     "buttons": {
         "back": "返回",

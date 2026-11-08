@@ -407,7 +407,7 @@ export default function EventFormPane({ onClose }: EventFormPaneProps) {
             queryClient.invalidateQueries({ queryKey: getGetEventsQueryKey() });
             onClose();
         } catch (error: any) {
-            toast.error(error?.response?.data?.error || t('event.createFail', '이벤트 등록에 실패했습니다.'));
+            toast.apiError(error, t('event.createFail', '이벤트 등록에 실패했습니다.'));
         }
     };
 

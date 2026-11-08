@@ -21,17 +21,28 @@
         "clearFilter": "フィルター解除"
     },
     "auth": {
+        "login": "ログイン",
         "loginWithGoogle": "Googleでログイン",
         "logout": "ログアウト",
         "loginRequired": "ログインが必要です",
         "loginToCreate": "イベントを登録するにはログインしてください",
         "processingLogin": "ログイン処理中",
-        "loginFailed": "ログインに失敗しました",
+        "loginFailed": "ログインに失敗しました。",
         "loginSuccess": "ログインしました。",
         "logoutSuccess": "ログアウトしました。",
         "googleLoginSuccess": "Googleでログインしました。",
+        "signupSuccess": "認証コードをメールで送信しました。",
+        "signupFailed": "会員登録に失敗しました。",
+        "verifySuccess": "メール認証が完了しました。",
+        "verifyFailed": "メール認証に失敗しました。",
+        "passwordMismatch": "パスワードが一致しません。",
         "email": "メールアドレス",
         "nickname": "ニックネーム"
+    },
+    "errors": {
+        "accessDenied": "アクセス権限がありません。",
+        "serverError": "サーバーエラーが発生しました。しばらくしてから再度お試しください。",
+        "networkError": "ネットワーク接続を確認してください。"
     },
     "buttons": {
         "back": "戻る",

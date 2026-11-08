@@ -98,7 +98,7 @@ export default function ArtistFormPane({ initialName, onBack, onCreated }: Artis
             toast.success(t('artistForm.createSuccess', '신규 출연자가 등록되어 목록에 추가되었습니다.'));
             onCreated(created);
         } catch (error: any) {
-            toast.error(error?.response?.data?.error || t('artistForm.createFail', '출연자 등록에 실패했습니다.'));
+            toast.apiError(error, t('artistForm.createFail', '출연자 등록에 실패했습니다.'));
         }
     };
 

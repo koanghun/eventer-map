@@ -21,8 +21,10 @@ import (
 )
 
 func main() {
-	// 0. Load .env file for local development
-	_ = godotenv.Load()
+	// 0. Load .env file for local development (supports running from backend/ or workspace root)
+	if err := godotenv.Load(); err != nil {
+		_ = godotenv.Load("backend/.env")
+	}
 
 	// 1. DB Connection
 	dbURL := os.Getenv("DATABASE_URL")
@@ -65,7 +67,7 @@ func main() {
 	h = middleware.Logger(h)
 
 	// 8. Start Server (Local vs Lambda)
-	if os.Getenv("ENV") == "local" {
+	if os.Getenv("ENV") == "local" || os.Getenv("AWS_LAMBDA_FUNCTION_NAME") == "" {
 		port := os.Getenv("PORT")
 		if port == "" {
 			port = "8080"

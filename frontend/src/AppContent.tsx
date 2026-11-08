@@ -10,6 +10,7 @@ import AuthPanel from './components/auth/AuthPanel';
 import { useLocation, useNavigate, Routes, Route, useSearchParams } from 'react-router-dom';
 import { Sun, Moon, Map as MapIcon, Flag, Loader2, LogIn } from 'lucide-react';
 import { Button } from './components/ui/button';
+import { Popover, PopoverContent, PopoverTrigger } from './components/ui/popover';
 import { format } from 'date-fns';
 
 import MapPage from './pages/MapPage';
@@ -129,22 +130,27 @@ export default function AppContent() {
                         ) : isAuthenticated ? (
                             <UserProfile />
                         ) : (
-                            <Button 
-                                variant={isAuthPanelOpen ? "default" : "outline"} 
-                                size="sm" 
-                                className="rounded-full h-9 px-4" 
-                                onClick={() => setIsAuthPanelOpen(!isAuthPanelOpen)}
-                            >
-                                <LogIn className="w-4 h-4 mr-2" />
-                                {t('auth.login', 'Login')}
-                            </Button>
+                            <Popover open={isAuthPanelOpen} onOpenChange={setIsAuthPanelOpen}>
+                                <PopoverTrigger asChild>
+                                    <Button 
+                                        variant={isAuthPanelOpen ? "default" : "outline"} 
+                                        size="sm" 
+                                        className="rounded-full h-9 px-4"
+                                    >
+                                        <LogIn className="w-4 h-4 mr-2" />
+                                        {t('auth.login', 'Login')}
+                                    </Button>
+                                </PopoverTrigger>
+                                <PopoverContent
+                                    className="w-[340px] p-6 bg-popover text-popover-foreground border border-border shadow-xl rounded-2xl mt-2"
+                                    align="end"
+                                >
+                                    <AuthPanel onClose={() => setIsAuthPanelOpen(false)} />
+                                </PopoverContent>
+                            </Popover>
                         )}
                     </div>
                 </header>
-
-                {isAuthPanelOpen && !isAuthenticated && (
-                    <AuthPanel onClose={() => setIsAuthPanelOpen(false)} />
-                )}
 
                 <Routes>
                     <Route path="/" element={<MapPage />} />
