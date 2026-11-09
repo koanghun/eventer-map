@@ -52,6 +52,7 @@ type EventDetail struct {
 	Venue         *repository.Venue
 	Artists       []repository.Artist
 	AttendeeCount int32
+	MyRating      *int32
 }
 
 type EventService struct {
@@ -329,6 +330,21 @@ func (s *EventService) UpdateEvent(ctx context.Context, eventID uuid.UUID, input
 	return s.GetEventDetail(ctx, eventID)
 }
 
+func (s *EventService) GetUserRating(ctx context.Context, eventID, userID uuid.UUID) (*int32, error) {
+	r, err := s.repo.GetUserRatingForEvent(ctx, repository.GetUserRatingForEventParams{
+		UserID:  userID,
+		EventID: eventID,
+	})
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, nil
+		}
+		return nil, err
+	}
+	score := r.Score
+	return &score, nil
+}
+
 func (s *EventService) RateEvent(ctx context.Context, eventID, userID uuid.UUID, score int32) error {
 	if score < 1 || score > 5 {
 		return ErrInvalidScore
@@ -353,10 +369,6 @@ func (s *EventService) RateEvent(ctx context.Context, eventID, userID uuid.UUID,
 	event, err := q.GetEventForUpdate(ctx, eventID)
 	if err != nil {
 		return err
-	}
-
-	if time.Now().Before(event.EndTime) {
-		return ErrEventNotEnded
 	}
 
 	actionStatus, err := q.GetUserEventAction(ctx, repository.GetUserEventActionParams{
@@ -420,18 +432,132 @@ func (s *EventService) RateEvent(ctx context.Context, eventID, userID uuid.UUID,
 	return tx.Commit()
 }
 
-func (s *EventService) PutEventAction(ctx context.Context, userID, eventID uuid.UUID, status int32) error {
-	if status == 0 {
-		return s.repo.DeleteUserEventAction(ctx, repository.DeleteUserEventActionParams{
+func (s *EventService) DeleteEventRating(ctx context.Context, eventID, userID uuid.UUID) error {
+	if s.db == nil {
+		return s.repo.DeleteUserEventRating(ctx, repository.DeleteUserEventRatingParams{
 			UserID:  userID,
 			EventID: eventID,
 		})
 	}
-	return s.repo.UpsertUserEventAction(ctx, repository.UpsertUserEventActionParams{
+
+	tx, err := s.db.BeginTx(ctx, nil)
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
+
+	q := s.repo.WithTx(tx)
+
+	prevRating, err := q.GetUserRatingForEvent(ctx, repository.GetUserRatingForEventParams{
 		UserID:  userID,
 		EventID: eventID,
-		Status:  status,
 	})
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil
+		}
+		return err
+	}
+
+	if err := q.DeleteUserEventRating(ctx, repository.DeleteUserEventRatingParams{
+		UserID:  userID,
+		EventID: eventID,
+	}); err != nil {
+		return err
+	}
+
+	if err := q.UpdateEventRating(ctx, repository.UpdateEventRatingParams{
+		ScoreDelta: -float64(prevRating.Score),
+		CountDelta: -1,
+		ID:         eventID,
+	}); err != nil {
+		return err
+	}
+
+	event, err := q.GetEvent(ctx, eventID)
+	if err == nil {
+		if event.VenueID.Valid {
+			_ = q.RecalculateVenueRatingFromEvents(ctx, event.VenueID.UUID)
+		}
+		_ = q.RecalculateEventArtistsRatingFromEvents(ctx, eventID)
+	}
+
+	return tx.Commit()
+}
+
+func (s *EventService) PutEventAction(ctx context.Context, userID, eventID uuid.UUID, status int32) error {
+	if s.db == nil {
+		if status == 0 {
+			return s.repo.DeleteUserEventAction(ctx, repository.DeleteUserEventActionParams{
+				UserID:  userID,
+				EventID: eventID,
+			})
+		}
+		return s.repo.UpsertUserEventAction(ctx, repository.UpsertUserEventActionParams{
+			UserID:  userID,
+			EventID: eventID,
+			Status:  status,
+		})
+	}
+
+	tx, err := s.db.BeginTx(ctx, nil)
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
+
+	q := s.repo.WithTx(tx)
+
+	// '참가' 상태(status=2)에서 해제(status=0)하거나 다른 상태로 변경 시 평점도 삭제
+	if status != 2 {
+		prevRating, err := q.GetUserRatingForEvent(ctx, repository.GetUserRatingForEventParams{
+			UserID:  userID,
+			EventID: eventID,
+		})
+		if err == nil {
+			if err := q.DeleteUserEventRating(ctx, repository.DeleteUserEventRatingParams{
+				UserID:  userID,
+				EventID: eventID,
+			}); err != nil {
+				return err
+			}
+
+			if err := q.UpdateEventRating(ctx, repository.UpdateEventRatingParams{
+				ScoreDelta: -float64(prevRating.Score),
+				CountDelta: -1,
+				ID:         eventID,
+			}); err != nil {
+				return err
+			}
+
+			event, err := q.GetEvent(ctx, eventID)
+			if err == nil {
+				if event.VenueID.Valid {
+					_ = q.RecalculateVenueRatingFromEvents(ctx, event.VenueID.UUID)
+				}
+				_ = q.RecalculateEventArtistsRatingFromEvents(ctx, eventID)
+			}
+		}
+	}
+
+	if status == 0 {
+		if err := q.DeleteUserEventAction(ctx, repository.DeleteUserEventActionParams{
+			UserID:  userID,
+			EventID: eventID,
+		}); err != nil {
+			return err
+		}
+	} else {
+		if err := q.UpsertUserEventAction(ctx, repository.UpsertUserEventActionParams{
+			UserID:  userID,
+			EventID: eventID,
+			Status:  status,
+		}); err != nil {
+			return err
+		}
+	}
+
+	return tx.Commit()
 }
 
 func (s *EventService) GetEventAttendees(ctx context.Context, viewerID, eventID uuid.UUID, limit, offset int32) ([]repository.GetEventAttendeesRow, error) {

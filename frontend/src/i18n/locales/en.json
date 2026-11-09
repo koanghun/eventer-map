@@ -166,6 +166,19 @@
             "statusAttending": "Attending",
             "updateFailed": "Failed to update event status."
         },
+        "rating": {
+            "title": "Rating",
+            "myRating": "My Rating: {{score}} stars",
+            "score": "{{score}} stars",
+            "average": "Average {{score}} ({{count}})",
+            "noRatings": "No ratings yet.",
+            "attendeeOnly": "Only attendees can rate this event.",
+            "success": "Rating submitted successfully.",
+            "failed": "Failed to submit rating.",
+            "delete": "Delete Rating",
+            "deleted": "Rating deleted.",
+            "deleteFailed": "Failed to delete rating."
+        },
         "flags": {
             "add": "フラグを追加",
             "remove": "フラグを解除",

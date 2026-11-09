@@ -7,11 +7,13 @@ STACK_NAME ?= eventer-map-stack
 AWS_REGION ?= ap-northeast-1
 ARTIFACT_BUCKET ?=
 
+export PATH := $(PATH):/home/parkkh/go/bin
+
 generate:
 	@echo "Generating OpenAPI code..."
-	go run github.com/oapi-codegen/oapi-codegen/v2/cmd/oapi-codegen@latest -generate types,std-http,spec -package handler api/openapi.yaml > internal/handler/openapi.gen.go
+	oapi-codegen -generate types,std-http,spec -package handler api/openapi.yaml > internal/handler/openapi.gen.go
 	@echo "Generating SQL code..."
-	go run github.com/sqlc-dev/sqlc/cmd/sqlc@latest generate
+	sqlc generate
 	@echo "Done."
 
 # Target invoked by AWS SAM (if using 'sam build')

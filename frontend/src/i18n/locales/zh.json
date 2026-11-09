@@ -165,6 +165,19 @@
             "statusAttending": "参加中",
             "updateFailed": "更新活动状态失败。"
         },
+        "rating": {
+            "title": "评分",
+            "myRating": "我的评分: {{score}}分",
+            "score": "{{score}}分",
+            "average": "平均 {{score}}分 ({{count}}人)",
+            "noRatings": "暂无评分。",
+            "attendeeOnly": "仅已参加活动的观众可提交评分。",
+            "success": "评分已提交。",
+            "failed": "评分提交失败。",
+            "delete": "删除评分",
+            "deleted": "评分已删除。",
+            "deleteFailed": "删除评分失败。"
+        },
         "flags": {
             "add": "フラグを追加",
             "remove": "フラグを解除",

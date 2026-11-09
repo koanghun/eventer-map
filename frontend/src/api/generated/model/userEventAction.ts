@@ -8,6 +8,12 @@ import type { UserEventActionStatus } from './userEventActionStatus';
 
 export interface UserEventAction {
   eventId: string;
+  /**
+   * 유저가 등록한 평점 (1~5점)
+   * @minimum 1
+   * @maximum 5
+   */
+  rating?: number;
   /** 1: 체크(북마크), 2: 참가 */
   status: UserEventActionStatus;
 }

@@ -484,7 +484,7 @@ export const usePutEventsEventIdAction = <TError = unknown,
       return useMutation(mutationOptions);
     }
     /**
- * 이벤트 종료 후, 참가자만 가능
+ * 이벤트 참가자(status=2)만 평점 등록 가능
  * @summary 이벤트 평점 등록
  */
 export const postEventsEventIdRate = (
@@ -539,6 +539,62 @@ export const usePostEventsEventIdRate = <TError = void,
       > => {
 
       const mutationOptions = getPostEventsEventIdRateMutationOptions(options);
+
+      return useMutation(mutationOptions);
+    }
+    /**
+ * 등록된 평점을 삭제합니다
+ * @summary 이벤트 평점 삭제
+ */
+export const deleteEventsEventIdRate = (
+    eventId: string,
+ options?: SecondParameter<typeof customInstance>,) => {
+      
+      
+      return customInstance<void>(
+      {url: `/events/${eventId}/rate`, method: 'DELETE'
+    },
+      options);
+    }
+  
+
+
+export const getDeleteEventsEventIdRateMutationOptions = <TError = void,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteEventsEventIdRate>>, TError,{eventId: string}, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationOptions<Awaited<ReturnType<typeof deleteEventsEventIdRate>>, TError,{eventId: string}, TContext> => {
+const {mutation: mutationOptions, request: requestOptions} = options ?? {};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof deleteEventsEventIdRate>>, {eventId: string}> = (props) => {
+          const {eventId} = props ?? {};
+
+          return  deleteEventsEventIdRate(eventId,requestOptions)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type DeleteEventsEventIdRateMutationResult = NonNullable<Awaited<ReturnType<typeof deleteEventsEventIdRate>>>
+    
+    export type DeleteEventsEventIdRateMutationError = void
+
+    /**
+ * @summary 이벤트 평점 삭제
+ */
+export const useDeleteEventsEventIdRate = <TError = void,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteEventsEventIdRate>>, TError,{eventId: string}, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationResult<
+        Awaited<ReturnType<typeof deleteEventsEventIdRate>>,
+        TError,
+        {eventId: string},
+        TContext
+      > => {
+
+      const mutationOptions = getDeleteEventsEventIdRateMutationOptions(options);
 
       return useMutation(mutationOptions);
     }

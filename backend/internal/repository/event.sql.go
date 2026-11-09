@@ -113,6 +113,21 @@ func (q *Queries) DeleteUserEventAction(ctx context.Context, arg DeleteUserEvent
 	return err
 }
 
+const deleteUserEventRating = `-- name: DeleteUserEventRating :exec
+DELETE FROM user_event_ratings
+WHERE user_id = $1 AND event_id = $2
+`
+
+type DeleteUserEventRatingParams struct {
+	UserID  uuid.UUID
+	EventID uuid.UUID
+}
+
+func (q *Queries) DeleteUserEventRating(ctx context.Context, arg DeleteUserEventRatingParams) error {
+	_, err := q.db.ExecContext(ctx, deleteUserEventRating, arg.UserID, arg.EventID)
+	return err
+}
+
 const getArtistsForEvent = `-- name: GetArtistsForEvent :many
 SELECT a.id, a.official_name, a.hiragana, a.gender, a.profile_image_url, a.rating_sum, a.rating_count, a.status, a.author_id, a.created_at, a.updated_at, a.disambiguation
 FROM artists a
@@ -438,21 +453,35 @@ func (q *Queries) ListEvents(ctx context.Context, arg ListEventsParams) ([]ListE
 }
 
 const listUserEventActions = `-- name: ListUserEventActions :many
-SELECT user_id, event_id, status FROM event_user_actions
-WHERE user_id = $1
-ORDER BY event_id
+SELECT eua.user_id, eua.event_id, eua.status, uer.score AS rating
+FROM event_user_actions eua
+LEFT JOIN user_event_ratings uer ON eua.user_id = uer.user_id AND eua.event_id = uer.event_id
+WHERE eua.user_id = $1
+ORDER BY eua.event_id
 `
 
-func (q *Queries) ListUserEventActions(ctx context.Context, userID uuid.UUID) ([]EventUserAction, error) {
+type ListUserEventActionsRow struct {
+	UserID  uuid.UUID
+	EventID uuid.UUID
+	Status  int32
+	Rating  sql.NullInt32
+}
+
+func (q *Queries) ListUserEventActions(ctx context.Context, userID uuid.UUID) ([]ListUserEventActionsRow, error) {
 	rows, err := q.db.QueryContext(ctx, listUserEventActions, userID)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	var items []EventUserAction
+	var items []ListUserEventActionsRow
 	for rows.Next() {
-		var i EventUserAction
-		if err := rows.Scan(&i.UserID, &i.EventID, &i.Status); err != nil {
+		var i ListUserEventActionsRow
+		if err := rows.Scan(
+			&i.UserID,
+			&i.EventID,
+			&i.Status,
+			&i.Rating,
+		); err != nil {
 			return nil, err
 		}
 		items = append(items, i)
@@ -612,8 +641,8 @@ func (q *Queries) UpdateEvent(ctx context.Context, arg UpdateEventParams) (Event
 
 const updateEventRating = `-- name: UpdateEventRating :exec
 UPDATE events
-SET rating_sum = rating_sum + $1,
-    rating_count = rating_count + $2
+SET rating_sum = GREATEST(0::double precision, rating_sum + $1),
+    rating_count = GREATEST(0, rating_count + $2)
 WHERE id = $3
 `
 

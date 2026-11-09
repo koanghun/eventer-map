@@ -166,6 +166,19 @@
             "statusAttending": "参加中",
             "updateFailed": "イベントの状態変更に失敗しました。"
         },
+        "rating": {
+            "title": "評価",
+            "myRating": "マイ評価: {{score}}点",
+            "score": "{{score}}点",
+            "average": "平均 {{score}}点 ({{count}}人)",
+            "noRatings": "評価はまだありません。",
+            "attendeeOnly": "イベントに参加中のユーザーのみ評価できます。",
+            "success": "評価を登録しました。",
+            "failed": "評価の登録に失敗しました。",
+            "delete": "評価を削除",
+            "deleted": "評価を削除しました。",
+            "deleteFailed": "評価の削除に失敗しました。"
+        },
         "flags": {
             "add": "フラグを追加",
             "remove": "フラグを解除",

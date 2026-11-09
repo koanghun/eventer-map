@@ -132,8 +132,8 @@ RETURNING *;
 
 -- name: UpdateEventRating :exec
 UPDATE events
-SET rating_sum = rating_sum + sqlc.arg('score_delta'),
-    rating_count = rating_count + sqlc.arg('count_delta')
+SET rating_sum = GREATEST(0::double precision, rating_sum + sqlc.arg('score_delta')),
+    rating_count = GREATEST(0, rating_count + sqlc.arg('count_delta'))
 WHERE id = sqlc.arg('id');
 
 -- name: AddArtistToEvent :exec
@@ -171,15 +171,20 @@ SELECT status FROM event_user_actions
 WHERE user_id = $1 AND event_id = $2 LIMIT 1;
 
 -- name: ListUserEventActions :many
-SELECT * FROM event_user_actions
-WHERE user_id = $1
-ORDER BY event_id;
+SELECT eua.user_id, eua.event_id, eua.status, uer.score AS rating
+FROM event_user_actions eua
+LEFT JOIN user_event_ratings uer ON eua.user_id = uer.user_id AND eua.event_id = uer.event_id
+WHERE eua.user_id = $1
+ORDER BY eua.event_id;
 
 -- name: RateEvent :exec
 INSERT INTO user_event_ratings (user_id, event_id, score)
 VALUES ($1, $2, $3)
 ON CONFLICT (user_id, event_id) DO UPDATE SET score = EXCLUDED.score;
 
+-- name: DeleteUserEventRating :exec
+DELETE FROM user_event_ratings
+WHERE user_id = $1 AND event_id = $2;
 
 -- name: GetUserRatingForEvent :one
 SELECT * FROM user_event_ratings

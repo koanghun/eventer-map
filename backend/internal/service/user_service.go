@@ -17,7 +17,7 @@ type UserService struct {
 func NewUserService(repo *repository.Queries) *UserService {
 	return &UserService{repo: repo}
 }
-func (s *UserService) ListUserEventActions(ctx context.Context, userID uuid.UUID) ([]repository.EventUserAction, error) {
+func (s *UserService) ListUserEventActions(ctx context.Context, userID uuid.UUID) ([]repository.ListUserEventActionsRow, error) {
 	return s.repo.ListUserEventActions(ctx, userID)
 }
 

@@ -94,6 +94,12 @@ func mapEventDetailToResponse(detail *service.EventDetail) Event {
 		})
 	}
 
+	var myRating *int
+	if detail.MyRating != nil {
+		r := int(*detail.MyRating)
+		myRating = &r
+	}
+
 	return Event{
 		Id:            &id,
 		Title:         &title,
@@ -105,6 +111,7 @@ func mapEventDetailToResponse(detail *service.EventDetail) Event {
 		RelatedLinks:  &relatedLinks,
 		RatingSum:     &ratingSum,
 		RatingCount:   &ratingCount,
+		MyRating:      myRating,
 		AttendeeCount: &attendeeCount,
 		Status:        &status,
 	}
@@ -242,6 +249,12 @@ func (s *Server) GetEventsEventId(w http.ResponseWriter, r *http.Request, eventI
 		return
 	}
 
+	if userID, ok := r.Context().Value(middleware.UserIDKey).(uuid.UUID); ok {
+		if rating, err := s.services.Event.GetUserRating(r.Context(), eventId, userID); err == nil && rating != nil {
+			detail.MyRating = rating
+		}
+	}
+
 	RespondJSON(w, http.StatusOK, mapEventDetailToResponse(detail))
 }
 
@@ -376,6 +389,23 @@ func (s *Server) PutEventsEventId(w http.ResponseWriter, r *http.Request, eventI
 	}
 
 	RespondJSON(w, http.StatusOK, mapEventDetailToResponse(detail))
+}
+
+// DeleteEventsEventIdRate implements the DELETE /events/{eventId}/rate endpoint
+func (s *Server) DeleteEventsEventIdRate(w http.ResponseWriter, r *http.Request, eventId uuid.UUID) {
+	userID, ok := r.Context().Value(middleware.UserIDKey).(uuid.UUID)
+	if !ok {
+		RespondError(w, http.StatusUnauthorized, "user not authenticated")
+		return
+	}
+
+	if err := s.services.Event.DeleteEventRating(r.Context(), eventId, userID); err != nil {
+		log.Printf("[DeleteEventsEventIdRate] DeleteEventRating error (userID=%s, eventID=%s): %v", userID, eventId, err)
+		RespondError(w, http.StatusInternalServerError, "Failed to delete rating")
+		return
+	}
+
+	RespondJSON(w, http.StatusOK, map[string]string{"message": "Rating deleted"})
 }
 
 // PostEventsEventIdRate implements the POST /events/{eventId}/rate endpoint

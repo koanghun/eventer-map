@@ -53,10 +53,15 @@ func (s *Server) GetUsersMeEvents(w http.ResponseWriter, r *http.Request) {
 	// Map to API response
 	var response []UserEventAction
 	for _, a := range actions {
-		response = append(response, UserEventAction{
+		item := UserEventAction{
 			EventId: a.EventID,
 			Status:  UserEventActionStatus(a.Status),
-		})
+		}
+		if a.Rating.Valid {
+			rVal := int(a.Rating.Int32)
+			item.Rating = &rVal
+		}
+		response = append(response, item)
 	}
 	if response == nil {
 		response = []UserEventAction{}

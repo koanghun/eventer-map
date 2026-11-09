@@ -1,14 +1,18 @@
-import { ArrowLeft, Calendar, MapPin, ExternalLink, Users, Mic2, Edit2, Bookmark, UserCheck, RotateCcw, Loader2 } from 'lucide-react';
+import { useState } from 'react';
+import { ArrowLeft, Calendar, MapPin, ExternalLink, Users, Mic2, Edit2, Bookmark, UserCheck, RotateCcw, Loader2, Star } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '../../context/AuthContext';
 import { useEventStore } from '../../store/useEventStore';
 import { toast } from '../../store/useToastStore';
 import { Button } from '../ui/button';
+import { cn } from '../../lib/utils';
 import EventThreadSection from './EventThreadSection';
 import {
     useGetEventsEventId,
     usePutEventsEventIdAction,
+    usePostEventsEventIdRate,
+    useDeleteEventsEventIdRate,
     getGetEventsEventIdQueryKey,
     getGetEventsQueryKey,
 } from '../../api/generated/events/events';
@@ -29,165 +33,400 @@ interface EventDetailPaneProps {
     onVenueSelect?: (venue: { id: string; name: string; lat?: number; lng?: number }) => void;
 }
 
-    export default function EventDetailPane({
-        onEdit,
-        onArtistSelect,
-        onVenueSelect,
-    }: EventDetailPaneProps) {
-        const { t } = useTranslation();
-        const queryClient = useQueryClient();
-        const { isAuthenticated } = useAuth();
-        const selectedEvent = useEventStore((state) => state.selectedEvent);
-        const clearSelection = useEventStore((state) => state.clearSelection);
+export default function EventDetailPane({
+    onEdit,
+    onArtistSelect,
+    onVenueSelect,
+}: EventDetailPaneProps) {
+    const { t } = useTranslation();
+    const queryClient = useQueryClient();
+    const { isAuthenticated } = useAuth();
+    const selectedEvent = useEventStore((state) => state.selectedEvent);
+    const clearSelection = useEventStore((state) => state.clearSelection);
+    const [hoverScore, setHoverScore] = useState<number | null>(null);
 
-        const eventId = selectedEvent?.id || '';
+    const eventId = selectedEvent?.id || '';
 
-        const { data: eventData, isLoading } = useGetEventsEventId(
-            eventId,
-            {
-                query: {
-                    enabled: !!eventId,
-                },
-            }
-        );
-
-        const { data: myEventActions } = useGetUsersMeEvents({
+    const { data: eventData, isLoading } = useGetEventsEventId(
+        eventId,
+        {
             query: {
-                enabled: isAuthenticated,
+                enabled: !!eventId,
             },
-        });
+        }
+    );
 
-        const currentStatus: 0 | 1 | 2 = isAuthenticated
-            ? (myEventActions?.find((a) => a.eventId === eventId)?.status ?? 0)
-            : 0;
+    const { data: myEventActions } = useGetUsersMeEvents({
+        query: {
+            enabled: isAuthenticated,
+        },
+    });
 
-                    const actionMutation = usePutEventsEventIdAction<
-                        unknown,
-                    {
-                        previousActions ?: UserEventAction[];
-                    previousEvent?: Event;
+    const currentStatus: 0 | 1 | 2 = isAuthenticated
+        ? (myEventActions?.find((a) => a.eventId === eventId)?.status ?? 0)
+        : 0;
+
+    const actionMutation = usePutEventsEventIdAction<
+        unknown,
+        {
+            previousActions?: UserEventAction[];
+            previousEvent?: Event;
         }
     >({
-                        mutation: {
-                        onMutate: async ({eventId: targetEventId, data }) => {
+        mutation: {
+            onMutate: async ({ eventId: targetEventId, data }) => {
                 const actionsKey = getGetUsersMeEventsQueryKey();
-                    const eventKey = getGetEventsEventIdQueryKey(targetEventId);
+                const eventKey = getGetEventsEventIdQueryKey(targetEventId);
 
-                    await Promise.all([
-                    queryClient.cancelQueries({queryKey: actionsKey }),
-                    queryClient.cancelQueries({queryKey: eventKey }),
-                    ]);
+                await Promise.all([
+                    queryClient.cancelQueries({ queryKey: actionsKey }),
+                    queryClient.cancelQueries({ queryKey: eventKey }),
+                ]);
 
-                    const previousActions = queryClient.getQueryData<UserEventAction[]>(actionsKey);
-                    const previousEvent = queryClient.getQueryData<Event>(eventKey);
+                const previousActions = queryClient.getQueryData<UserEventAction[]>(actionsKey);
+                const previousEvent = queryClient.getQueryData<Event>(eventKey);
 
-                        const prevStatus =
+                const prevStatus =
                     previousActions?.find((a) => a.eventId === targetEventId)?.status ?? 0;
-                        const nextStatus = data.status;
+                const nextStatus = data.status;
 
-                        queryClient.setQueryData<UserEventAction[]>(actionsKey, (old = []) => {
+                queryClient.setQueryData<UserEventAction[]>(actionsKey, (old = []) => {
                     const filtered = old.filter((a) => a.eventId !== targetEventId);
-                        if (nextStatus === PutEventsEventIdActionBodyStatus.NUMBER_0) {
+                    if (nextStatus === PutEventsEventIdActionBodyStatus.NUMBER_0) {
                         return filtered;
                     }
-                        return [
+                    return [
                         ...filtered,
                         {
                             eventId: targetEventId,
-                        status: nextStatus as UserEventActionStatus,
+                            status: nextStatus as UserEventActionStatus,
                         },
-                        ];
+                    ];
                 });
 
-                        if (previousEvent) {
-                            let countDelta = 0;
-                        if (prevStatus !== 2 && nextStatus === 2) countDelta = 1;
-                        if (prevStatus === 2 && nextStatus !== 2) countDelta = -1;
+                if (previousEvent) {
+                    let countDelta = 0;
+                    if (prevStatus !== 2 && nextStatus === 2) countDelta = 1;
+                    if (prevStatus === 2 && nextStatus !== 2) countDelta = -1;
 
-                        if (countDelta !== 0) {
-                            queryClient.setQueryData<Event>(eventKey, {
-                                ...previousEvent,
-                                attendeeCount: Math.max(0, (previousEvent.attendeeCount ?? 0) + countDelta),
-                            });
-                    }
+                    const hadRating =
+                        previousActions?.find((a) => a.eventId === targetEventId)?.rating ??
+                        previousEvent.myRating;
+                    const shouldRemoveRating =
+                        prevStatus === 2 && nextStatus !== 2 && hadRating !== undefined && hadRating > 0;
+
+                    const nextCount = Math.max(0, (previousEvent.attendeeCount ?? 0) + countDelta);
+                    const nextRatingCount = shouldRemoveRating
+                        ? Math.max(0, (previousEvent.ratingCount ?? 0) - 1)
+                        : previousEvent.ratingCount;
+                    const nextRatingSum = shouldRemoveRating
+                        ? Math.max(0, (previousEvent.ratingSum ?? 0) - (hadRating ?? 0))
+                        : previousEvent.ratingSum;
+
+                    queryClient.setQueryData<Event>(eventKey, {
+                        ...previousEvent,
+                        attendeeCount: nextCount,
+                        myRating: shouldRemoveRating ? undefined : previousEvent.myRating,
+                        ratingCount: nextRatingCount,
+                        ratingSum: nextRatingSum,
+                    });
                 }
 
-                        return {previousActions, previousEvent};
+                return { previousActions, previousEvent };
             },
-                        onError: (err, {eventId: targetEventId }, context) => {
+            onError: (err, { eventId: targetEventId }, context) => {
                 if (context?.previousActions !== undefined) {
-                            queryClient.setQueryData(getGetUsersMeEventsQueryKey(), context.previousActions);
+                    queryClient.setQueryData(getGetUsersMeEventsQueryKey(), context.previousActions);
                 }
-                        if (context?.previousEvent !== undefined) {
-                            queryClient.setQueryData(
-                                getGetEventsEventIdQueryKey(targetEventId),
-                                context.previousEvent
-                            );
+                if (context?.previousEvent !== undefined) {
+                    queryClient.setQueryData(
+                        getGetEventsEventIdQueryKey(targetEventId),
+                        context.previousEvent
+                    );
                 }
-                        toast.apiError(
-                        err,
-                        t('eventDetail.action.updateFailed', '이벤트 상태 변경에 실패했습니다.')
-                        );
+                toast.apiError(
+                    err,
+                    t('eventDetail.action.updateFailed', '이벤트 상태 변경에 실패했습니다.')
+                );
             },
-                        onSettled: (_data, _error, {eventId: targetEventId }) => {
-                            queryClient.invalidateQueries({ queryKey: getGetUsersMeEventsQueryKey() });
-                        queryClient.invalidateQueries({
-                            queryKey: getGetEventsEventIdQueryKey(targetEventId),
+            onSettled: (_data, _error, { eventId: targetEventId }) => {
+                queryClient.invalidateQueries({ queryKey: getGetUsersMeEventsQueryKey() });
+                queryClient.invalidateQueries({
+                    queryKey: getGetEventsEventIdQueryKey(targetEventId),
                 });
-                        queryClient.invalidateQueries({queryKey: getGetEventsQueryKey() });
+                queryClient.invalidateQueries({ queryKey: getGetEventsQueryKey() });
             },
         },
     });
 
-                        if (!selectedEvent) return null;
-
-    const handleCycleAction = () => {
-        if (!isAuthenticated) {
-                            toast.info(t('auth.loginRequired', '로그인이 필요합니다'));
-                        return;
+    const rateMutation = usePostEventsEventIdRate<
+        unknown,
+        {
+            previousActions?: UserEventAction[];
+            previousEvent?: Event;
         }
-                        if (!eventId || actionMutation.isPending) return;
+    >({
+        mutation: {
+            onMutate: async ({ eventId: targetEventId, data }) => {
+                const actionsKey = getGetUsersMeEventsQueryKey();
+                const eventKey = getGetEventsEventIdQueryKey(targetEventId);
 
-                        const nextStatus = ((currentStatus + 1) % 3) as PutEventsEventIdActionBodyStatus;
-                        actionMutation.mutate({
-                            eventId,
-                            data: {status: nextStatus },
+                await Promise.all([
+                    queryClient.cancelQueries({ queryKey: actionsKey }),
+                    queryClient.cancelQueries({ queryKey: eventKey }),
+                ]);
+
+                const previousActions = queryClient.getQueryData<UserEventAction[]>(actionsKey);
+                const previousEvent = queryClient.getQueryData<Event>(eventKey);
+
+                const prevScore =
+                    previousActions?.find((a) => a.eventId === targetEventId)?.rating ??
+                    previousEvent?.myRating;
+                const newScore = data.score;
+
+                queryClient.setQueryData<UserEventAction[]>(actionsKey, (old = []) => {
+                    const found = old.some((a) => a.eventId === targetEventId);
+                    if (!found) {
+                        return [
+                            ...old,
+                            {
+                                eventId: targetEventId,
+                                status: 2 as UserEventActionStatus,
+                                rating: newScore,
+                            },
+                        ];
+                    }
+                    return old.map((a) => {
+                        if (a.eventId === targetEventId) {
+                            return { ...a, rating: newScore };
+                        }
+                        return a;
+                    });
+                });
+
+                if (previousEvent) {
+                    const oldCount = previousEvent.ratingCount ?? 0;
+                    const oldSum = previousEvent.ratingSum ?? 0;
+                    let nextCount = oldCount;
+                    let nextSum = oldSum;
+
+                    if (prevScore !== undefined && prevScore > 0) {
+                        nextSum = oldSum - prevScore + newScore;
+                    } else {
+                        nextCount = oldCount + 1;
+                        nextSum = oldSum + newScore;
+                    }
+
+                    queryClient.setQueryData<Event>(eventKey, {
+                        ...previousEvent,
+                        myRating: newScore,
+                        ratingCount: nextCount,
+                        ratingSum: nextSum,
+                    });
+                }
+
+                return { previousActions, previousEvent };
+            },
+            onError: (err, { eventId: targetEventId }, context) => {
+                if (context?.previousActions !== undefined) {
+                    queryClient.setQueryData(getGetUsersMeEventsQueryKey(), context.previousActions);
+                }
+                if (context?.previousEvent !== undefined) {
+                    queryClient.setQueryData(
+                        getGetEventsEventIdQueryKey(targetEventId),
+                        context.previousEvent
+                    );
+                }
+                toast.apiError(
+                    err,
+                    t('eventDetail.rating.failed', '평점 등록에 실패했습니다.')
+                );
+            },
+            onSuccess: () => {
+                toast.success(t('eventDetail.rating.success', '평점이 등록되었습니다.'));
+            },
+            onSettled: (_data, _error, { eventId: targetEventId }) => {
+                queryClient.invalidateQueries({ queryKey: getGetUsersMeEventsQueryKey() });
+                queryClient.invalidateQueries({
+                    queryKey: getGetEventsEventIdQueryKey(targetEventId),
+                });
+                queryClient.invalidateQueries({ queryKey: getGetEventsQueryKey() });
+            },
+        },
+    });
+
+    const deleteRateMutation = useDeleteEventsEventIdRate<
+        unknown,
+        {
+            previousActions?: UserEventAction[];
+            previousEvent?: Event;
+        }
+    >({
+        mutation: {
+            onMutate: async ({ eventId: targetEventId }) => {
+                const actionsKey = getGetUsersMeEventsQueryKey();
+                const eventKey = getGetEventsEventIdQueryKey(targetEventId);
+
+                await Promise.all([
+                    queryClient.cancelQueries({ queryKey: actionsKey }),
+                    queryClient.cancelQueries({ queryKey: eventKey }),
+                ]);
+
+                const previousActions = queryClient.getQueryData<UserEventAction[]>(actionsKey);
+                const previousEvent = queryClient.getQueryData<Event>(eventKey);
+
+                const prevScore =
+                    previousActions?.find((a) => a.eventId === targetEventId)?.rating ??
+                    previousEvent?.myRating;
+
+                queryClient.setQueryData<UserEventAction[]>(actionsKey, (old = []) => {
+                    return old.map((a) => {
+                        if (a.eventId === targetEventId) {
+                            const { rating: _, ...rest } = a;
+                            return rest as UserEventAction;
+                        }
+                        return a;
+                    });
+                });
+
+                if (previousEvent && prevScore) {
+                    queryClient.setQueryData<Event>(eventKey, {
+                        ...previousEvent,
+                        myRating: undefined,
+                        ratingCount: Math.max(0, (previousEvent.ratingCount ?? 0) - 1),
+                        ratingSum: Math.max(0, (previousEvent.ratingSum ?? 0) - prevScore),
+                    });
+                }
+
+                return { previousActions, previousEvent };
+            },
+            onError: (err, { eventId: targetEventId }, context) => {
+                if (context?.previousActions !== undefined) {
+                    queryClient.setQueryData(getGetUsersMeEventsQueryKey(), context.previousActions);
+                }
+                if (context?.previousEvent !== undefined) {
+                    queryClient.setQueryData(
+                        getGetEventsEventIdQueryKey(targetEventId),
+                        context.previousEvent
+                    );
+                }
+                toast.apiError(
+                    err,
+                    t('eventDetail.rating.deleteFailed', '평점 삭제에 실패했습니다.')
+                );
+            },
+            onSuccess: () => {
+                toast.success(t('eventDetail.rating.deleted', '평점이 삭제되었습니다.'));
+            },
+            onSettled: (_data, _error, { eventId: targetEventId }) => {
+                queryClient.invalidateQueries({ queryKey: getGetUsersMeEventsQueryKey() });
+                queryClient.invalidateQueries({
+                    queryKey: getGetEventsEventIdQueryKey(targetEventId),
+                });
+                queryClient.invalidateQueries({ queryKey: getGetEventsQueryKey() });
+            },
+        },
+    });
+
+    if (!selectedEvent) return null;
+
+    const isAttending = currentStatus === 2;
+    const isRatingPending = rateMutation.isPending || deleteRateMutation.isPending;
+
+    const displayEvent = eventData || selectedEvent;
+
+    const currentRating = isAuthenticated
+        ? (myEventActions?.find((a) => a.eventId === eventId)?.rating ??
+            ('myRating' in displayEvent ? displayEvent.myRating : undefined))
+        : undefined;
+
+    const activeScore = hoverScore ?? currentRating ?? 0;
+
+    const handleRate = (score: number) => {
+        if (!isAuthenticated) {
+            toast.info(t('auth.loginRequired', '로그인이 필요합니다'));
+            return;
+        }
+        if (!isAttending) {
+            toast.info(
+                t('eventDetail.rating.attendeeOnly', '이벤트에 참가한 상태에서만 평점을 등록할 수 있습니다.')
+            );
+            return;
+        }
+        if (!eventId || isRatingPending) return;
+
+        rateMutation.mutate({
+            eventId,
+            data: { score },
         });
     };
 
-                        const displayEvent = eventData || selectedEvent;
-                        const venueId =
-                        ('venue' in displayEvent && displayEvent.venue?.id) ||
-                        ('venueId' in displayEvent ? displayEvent.venueId : undefined);
-                        const venueName =
-                        ('venue' in displayEvent && displayEvent.venue?.officialName) ||
-                        ('venueName' in displayEvent ? displayEvent.venueName : undefined);
-                        const venueLat =
-                        ('venue' in displayEvent ? displayEvent.venue?.latitude : undefined) ??
-                        ('latitude' in displayEvent ? displayEvent.latitude : undefined);
-                        const venueLng =
-                        ('venue' in displayEvent ? displayEvent.venue?.longitude : undefined) ??
-                        ('longitude' in displayEvent ? displayEvent.longitude : undefined);
+    const handleDeleteRating = () => {
+        if (!isAuthenticated) {
+            toast.info(t('auth.loginRequired', '로그인이 필요합니다'));
+            return;
+        }
+        if (!eventId || isRatingPending) return;
+
+        deleteRateMutation.mutate({ eventId });
+    };
+
+    const handleCycleAction = () => {
+        if (!isAuthenticated) {
+            toast.info(t('auth.loginRequired', '로그인이 필요합니다'));
+            return;
+        }
+        if (!eventId || actionMutation.isPending) return;
+
+        const nextStatus = ((currentStatus + 1) % 3) as PutEventsEventIdActionBodyStatus;
+        actionMutation.mutate({
+            eventId,
+            data: { status: nextStatus },
+        });
+    };
+
+    const venueId =
+        ('venue' in displayEvent && displayEvent.venue?.id) ||
+        ('venueId' in displayEvent ? displayEvent.venueId : undefined);
+    const venueName =
+        ('venue' in displayEvent && displayEvent.venue?.officialName) ||
+        ('venueName' in displayEvent ? displayEvent.venueName : undefined);
+    const venueLat =
+        ('venue' in displayEvent ? displayEvent.venue?.latitude : undefined) ??
+        ('latitude' in displayEvent ? displayEvent.latitude : undefined);
+    const venueLng =
+        ('venue' in displayEvent ? displayEvent.venue?.longitude : undefined) ??
+        ('longitude' in displayEvent ? displayEvent.longitude : undefined);
+
+    const eventRatingCount = 'ratingCount' in displayEvent ? displayEvent.ratingCount : undefined;
+    const eventRatingSum = 'ratingSum' in displayEvent ? displayEvent.ratingSum : undefined;
+    const summaryRating = 'rating' in displayEvent ? displayEvent.rating : undefined;
+    const averageScore =
+        eventRatingCount && eventRatingCount > 0 && eventRatingSum !== undefined
+            ? (eventRatingSum / eventRatingCount).toFixed(1)
+            : summaryRating !== undefined && summaryRating > 0
+                ? summaryRating.toFixed(1)
+                : null;
 
 
-                        return (
-                        <div className="w-full h-full flex flex-col animate-in fade-in slide-in-from-left-4 duration-300 overflow-hidden">
-                            {/* Header (좌측 상단 뒤로가기 버튼) */}
-                            <div className="flex items-center gap-2 p-4 border-b border-border/50 shrink-0">
-                                <Button
-                                    variant="ghost"
-                                    size="icon"
-                                    onClick={clearSelection}
-                                    className="rounded-full w-8 h-8 hover:bg-muted shrink-0"
-                                    title={t('buttons.back', '뒤로가기')}
-                                    aria-label={t('buttons.back', '뒤로가기')}
-                                >
-                                    <ArrowLeft className="w-4 h-4 text-foreground" />
-                                </Button>
-                                <h2 className="text-lg font-bold text-foreground truncate flex-1">
-                                    {t('eventDetail.title', 'Event Details')}
-                                </h2>
-                                {onEdit && (
+    return (
+        <div className="w-full h-full flex flex-col animate-in fade-in slide-in-from-left-4 duration-300 overflow-hidden">
+            {/* Header (좌측 상단 뒤로가기 버튼) */}
+            <div className="flex items-center gap-2 p-4 border-b border-border/50 shrink-0">
+                <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={clearSelection}
+                    className="rounded-full w-8 h-8 hover:bg-muted shrink-0"
+                    title={t('buttons.back', '뒤로가기')}
+                    aria-label={t('buttons.back', '뒤로가기')}
+                >
+                    <ArrowLeft className="w-4 h-4 text-foreground" />
+                </Button>
+                <h2 className="text-lg font-bold text-foreground truncate flex-1">
+                    {t('eventDetail.title', 'Event Details')}
+                </h2>
+                {onEdit && (
                     <Button
                         variant="ghost"
                         size="icon"
@@ -199,168 +438,242 @@ interface EventDetailPaneProps {
                         <Edit2 className="w-4 h-4" />
                     </Button>
                 )}
+            </div>
+
+            {/* Content Scrollable Area */}
+            <div className="flex-1 overflow-y-auto p-5 space-y-6">
+
+                {/* Title & Metadata */}
+                <div>
+                    <h1 className="text-2xl font-extrabold tracking-tight text-primary mb-3">
+                        {displayEvent.title || 'Untitled Event'}
+                    </h1>
+
+                    <div className="space-y-2 text-sm text-muted-foreground">
+                        <div className="flex items-start gap-2">
+                            <Calendar className="w-4 h-4 text-primary shrink-0" />
+                            <span className="truncate">{displayEvent.startTime || t('eventDetail.dateUnknown', 'Date TBD')}</span>
                         </div>
-
-                            {/* Content Scrollable Area */}
-                            <div className="flex-1 overflow-y-auto p-5 space-y-6">
-
-                                    {/* Title & Metadata */}
-                                    <div>
-                                        <h1 className="text-2xl font-extrabold tracking-tight text-primary mb-3">
-                                            {displayEvent.title || 'Untitled Event'}
-                                        </h1>
-
-                                                <div className="space-y-2 text-sm text-muted-foreground">
-                                                    <div className="flex items-start gap-2">
-                                                        <Calendar className="w-4 h-4 text-primary shrink-0" />
-                                                        <span className="truncate">{displayEvent.startTime || t('eventDetail.dateUnknown', 'Date TBD')}</span>
-                                                    </div>
-                                                    <div className="flex items-start gap-2">
-                                                        <MapPin className="w-4 h-4 text-primary shrink-0 mt-0.5" />
-                                                        {isLoading && !venueName ? (
-                                                            <span className="truncate">{t('eventDetail.loading', 'Loading...')}</span>
-                                                        ) : venueId && venueName && onVenueSelect ? (
-                                                            <button
-                                                                type="button"
-                                                                onClick={() =>
-                                                                    onVenueSelect({
-                                                                        id: venueId,
-                                                                        name: venueName,
-                                                                        lat: venueLat,
-                                                                        lng: venueLng,
-                                                                    })
-                                                                }
-                                                                className="text-left text-foreground hover:text-primary hover:underline underline-offset-2 transition-colors font-medium break-words cursor-pointer"
-                                                                title={t('eventDetail.searchByVenue', '이 공연장으로 검색 (6개월)')}
-                                                            >
-                                                                {venueName}
-                                                            </button>
-                                                        ) : (
-                                                            <span className="truncate">
-                                                                {venueName || t('eventDetail.venueUnknown', 'Venue TBD')}
-                                                            </span>
-                                                        )}
-                                                    </div>
-                                                    {typeof displayEvent.attendeeCount === 'number' && (
-                                                        <div className="flex items-center gap-2">
-                                                            <Users className="w-4 h-4 text-primary shrink-0" />
-                                                            <span>{displayEvent.attendeeCount}</span>
-                                                        </div>
-                                                    )}
-                                                    {('artists' in displayEvent) && displayEvent.artists && displayEvent.artists.length > 0 && (
-                                                        <div className="flex items-start gap-2">
-                                                                    < Mic2 className="w-4 h-4 text-primary shrink-0 mt-0.5" />
-                                                                <div className="flex flex-wrap items-center gap-x-1.5 gap-y-1">
-                                                                    {displayEvent.artists
-                                                                        .filter((a) => Boolean(a.officialName))
-                                                                        .map((a, idx, arr) => {
-                                                                            const label = a.disambiguation
-                                                ? `${a.officialName} (${a.disambiguation})`
-                                                                        : a.officialName!;
-                                                                    return (
-                                                                    <span key={a.id || idx} className="inline-flex items-center">
-                                                                        {a.id && onArtistSelect ? (
-                                                                            <button
-                                                                                type="button"
-                                                                                onClick={() =>
-                                                                                    onArtistSelect({
-                                                                                        id: a.id!,
-                                                                                        name: a.officialName!,
-                                                                                    })
-                                                                                }
-                                                                                className="text-left text-foreground hover:text-primary hover:underline underline-offset-2 transition-colors font-medium break-words cursor-pointer"
-                                                                                title={t('eventDetail.searchByArtist', '이 출연자로 검색 (6개월)')}
-                                                                            >
-                                                                                {label}
-                                                                            </button>
-                                                                        ) : (
-                                                                            <span className="text-foreground">{label}</span>
-                                                                        )}
-                                                                        {idx < arr.length - 1 && (
-                                                                            <span className="text-muted-foreground">,</span>
-                                                                        )}
-                                                                    </span>
-                                                                    );
-                                        })}
-                                                                </div>
-                                                            </div>
+                        <div className="flex items-start gap-2">
+                            <MapPin className="w-4 h-4 text-primary shrink-0 mt-0.5" />
+                            {isLoading && !venueName ? (
+                                <span className="truncate">{t('eventDetail.loading', 'Loading...')}</span>
+                            ) : venueId && venueName && onVenueSelect ? (
+                                <button
+                                    type="button"
+                                    onClick={() =>
+                                        onVenueSelect({
+                                            id: venueId,
+                                            name: venueName,
+                                            lat: venueLat,
+                                            lng: venueLng,
+                                        })
+                                    }
+                                    className="text-left text-foreground hover:text-primary hover:underline underline-offset-2 transition-colors font-medium break-words cursor-pointer"
+                                    title={t('eventDetail.searchByVenue', '이 공연장으로 검색 (6개월)')}
+                                >
+                                    {venueName}
+                                </button>
+                            ) : (
+                                <span className="truncate">
+                                    {venueName || t('eventDetail.venueUnknown', 'Venue TBD')}
+                                </span>
+                            )}
+                        </div>
+                        {typeof displayEvent.attendeeCount === 'number' && (
+                            <div className="flex items-center gap-2">
+                                <Users className="w-4 h-4 text-primary shrink-0" />
+                                <span>{displayEvent.attendeeCount}</span>
+                            </div>
                         )}
-                                                            {('relatedLinks' in displayEvent) && displayEvent.relatedLinks && displayEvent.relatedLinks.length > 0 && (
-                                                                <div className="flex items-center gap-2 mt-2">
-                                                                    <ExternalLink className="w-4 h-4 shrink-0 text-primary/70" />
-                                                                    <a
-                                                                        href={displayEvent.relatedLinks[0]}
-                                                                        target="_blank"
-                                                                        rel="noopener noreferrer"
-                                                                        className="text-primary hover:underline hover:text-primary/80 transition-colors truncate"
-                                                                    >
-                                                                        {t('eventDetail.relatedLink', 'Open Related Link')}
-                                                                    </a>
-                                                                </div>
-                                                            )}
-                                                        </div>
+                        {averageScore !== null && (
+                            <div className="flex items-center gap-2">
+                                <Star className="w-4 h-4 fill-amber-400 text-amber-400 shrink-0" />
+                                <span className="font-semibold text-foreground">
+                                    {averageScore}
+                                </span>
+                                {typeof eventRatingCount === 'number' && eventRatingCount > 0 && (
+                                    <span className="text-xs text-muted-foreground">
+                                        ({eventRatingCount})
+                                    </span>
+                                )}
+                            </div>
+                        )}
+                        {('artists' in displayEvent) && displayEvent.artists && displayEvent.artists.length > 0 && (
+                            <div className="flex items-start gap-2">
+                                < Mic2 className="w-4 h-4 text-primary shrink-0 mt-0.5" />
+                                <div className="flex flex-wrap items-center gap-x-1.5 gap-y-1">
+                                    {displayEvent.artists
+                                        .filter((a) => Boolean(a.officialName))
+                                        .map((a, idx, arr) => {
+                                            const label = a.disambiguation
+                                                ? `${a.officialName} (${a.disambiguation})`
+                                                : a.officialName!;
+                                            return (
+                                                <span key={a.id || idx} className="inline-flex items-center">
+                                                    {a.id && onArtistSelect ? (
+                                                        <button
+                                                            type="button"
+                                                            onClick={() =>
+                                                                onArtistSelect({
+                                                                    id: a.id!,
+                                                                    name: a.officialName!,
+                                                                })
+                                                            }
+                                                            className="text-left text-foreground hover:text-primary hover:underline underline-offset-2 transition-colors font-medium break-words cursor-pointer"
+                                                            title={t('eventDetail.searchByArtist', '이 출연자로 검색 (6개월)')}
+                                                        >
+                                                            {label}
+                                                        </button>
+                                                    ) : (
+                                                        <span className="text-foreground">{label}</span>
+                                                    )}
+                                                    {idx < arr.length - 1 && (
+                                                        <span className="text-muted-foreground">,</span>
+                                                    )}
+                                                </span>
+                                            );
+                                        })}
+                                </div>
+                            </div>
+                        )}
+                        {('relatedLinks' in displayEvent) && displayEvent.relatedLinks && displayEvent.relatedLinks.length > 0 && (
+                            <div className="flex items-center gap-2 mt-2">
+                                <ExternalLink className="w-4 h-4 shrink-0 text-primary/70" />
+                                <a
+                                    href={displayEvent.relatedLinks[0]}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="text-primary hover:underline hover:text-primary/80 transition-colors truncate"
+                                >
+                                    {t('eventDetail.relatedLink', 'Open Related Link')}
+                                </a>
+                            </div>
+                        )}
+                    </div>
 
                     {/* 체크 -> 참가 -> 해제 상태 순환 버튼 */}
-                                                    <div className="mt-4 pt-4 border-t border-border/50 flex flex-col gap-2">
-                                                        {currentStatus !== 0 && (
-                                                            <div className="flex items-center justify-between text-xs">
-                                                                <span
-                                                                    className={
-                                                                        currentStatus === 1
-                                                                            ? 'inline-flex items-center gap-1 font-semibold text-amber-600 dark:text-amber-400 bg-amber-500/10 px-2.5 py-0.5 rounded-full'
-                                                                            : 'inline-flex items-center gap-1 font-semibold text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 px-2.5 py-0.5 rounded-full'
-                                                                    }
-                                                                >
-                                                                    {currentStatus === 1 ? (
-                                                                        <>
-                                                                            <Bookmark className="w-3 h-3 fill-current" />
-                                                                            {t('eventDetail.action.statusChecked', '체크됨')}
-                                                                        </>
-                                                                    ) : (
-                                                                        <>
-                                                                            <UserCheck className="w-3 h-3" />
-                                                                            {t('eventDetail.action.statusAttending', '참가중')}
-                                                                        </>
+                        <div className="mt-3 pt-3 border-t border-border/50 flex flex-col gap-1.5">
+                            {currentStatus !== 0 && (
+                                <div className="flex items-center justify-between text-xs">
+                                    <span
+                                        className={
+                                            currentStatus === 1
+                                                    ? 'inline-flex items-center gap-1 font-semibold text-amber-600 dark:text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded-full text-[11px]'
+                                                    : 'inline-flex items-center gap-1 font-semibold text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-full text-[11px]'
+                                        }
+                                    >
+                                        {currentStatus === 1 ? (
+                                            <>
+                                                <Bookmark className="w-2.5 h-2.5 fill-current" />
+                                                {t('eventDetail.action.statusChecked', '체크됨')}
+                                            </>
+                                        ) : (
+                                            <>
+                                                <UserCheck className="w-2.5 h-2.5" />
+                                                {t('eventDetail.action.statusAttending', '참가중')}
+                                            </>
+                                        )}
+                                    </span>
+                                </div>
+                            )}
+                            <Button
+                                type="button"
+                                size="sm"
+                                disabled={actionMutation.isPending}
+                                onClick={handleCycleAction}
+                                variant={currentStatus === 2 ? 'outline' : 'default'}
+                                className={
+                                    currentStatus === 0
+                                            ? 'w-full h-8 text-xs font-semibold shadow-sm transition-all'
+                                            : currentStatus === 1
+                                                    ? 'w-full h-8 text-xs font-semibold bg-gradient-to-r from-primary to-orange-500 hover:from-primary/90 hover:to-orange-500/90 text-white shadow-sm transition-all'
+                                                    : 'w-full h-8 text-xs font-semibold border-border text-muted-foreground hover:text-destructive hover:border-destructive/50 hover:bg-destructive/5 transition-all'
+                            }
+                            >
+                                {actionMutation.isPending ? (
+                                <Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" />
+                                ) : currentStatus === 0 ? (
+                                <Bookmark className="w-3.5 h-3.5 mr-1.5" />
+                                ) : currentStatus === 1 ? (
+                                <UserCheck className="w-3.5 h-3.5 mr-1.5" />
+                                ) : (
+                                <RotateCcw className="w-3.5 h-3.5 mr-1.5" />
+                                )}
+                                {currentStatus === 0
+                                    ? t('eventDetail.action.check', '체크')
+                                    : currentStatus === 1
+                                        ? t('eventDetail.action.attend', '참가')
+                                        : t('eventDetail.action.release', '해제')}
+                            </Button>
+                        </div>
+
+                            {/* Rating Section (평점 등록 영역 — 참가중일 때만 노출) */}
+                            {isAttending && (
+                                <div className="mt-2.5 p-2.5 bg-muted/40 rounded-lg border border-border/60 flex flex-col gap-1.5 animate-in fade-in slide-in-from-top-1 duration-200">
+                                    <div className="flex items-center justify-between">
+                                        <span className="text-[11px] font-bold text-foreground flex items-center gap-1">
+                                            <Star className="w-3 h-3 fill-amber-400 text-amber-400" />
+                                            {t('eventDetail.rating.title', '평점')}
+                                        </span>
+                                        {currentRating !== undefined && (
+                                            <button
+                                                type="button"
+                                                disabled={isRatingPending}
+                                                onClick={handleDeleteRating}
+                                                className="text-[10px] text-muted-foreground hover:text-destructive underline underline-offset-2 transition-colors cursor-pointer"
+                                            >
+                                                {t('eventDetail.rating.delete', '평점 삭제')}
+                                            </button>
+                                        )}
+                                    </div>
+
+                                            <div className="flex items-center justify-between gap-2">
+                                                <div className="flex items-center gap-0.5">
+                                                    {[1, 2, 3, 4, 5].map((star) => {
+                                                        const isFilled = star <= activeScore;
+                                                        return (
+                                                            <button
+                                                                key={star}
+                                                                type="button"
+                                                                disabled={isRatingPending}
+                                                                onClick={() => handleRate(star)}
+                                                                onMouseEnter={() => setHoverScore(star)}
+                                                                onMouseLeave={() => setHoverScore(null)}
+                                                                className="p-0.5 rounded transition-transform focus:outline-none focus-visible:ring-1 focus-visible:ring-primary cursor-pointer hover:scale-125 duration-150"
+                                                                title={t('eventDetail.rating.score', { score: star, defaultValue: `${star}점` })}
+                                                                aria-label={`${star} stars`}
+                                                            >
+                                                                <Star
+                                                                    className={cn(
+                                                                        "w-4.5 h-4.5 transition-colors",
+                                                                        isFilled
+                                                                            ? "fill-amber-400 text-amber-400 drop-shadow-sm"
+                                                                            : "text-muted-foreground/30 hover:text-muted-foreground/60"
                                                                     )}
-                                                                </span>
-                                                            </div>
-                                                        )}
-                                                        <Button
-                                                            type="button"
-                                                            disabled={actionMutation.isPending}
-                                                            onClick={handleCycleAction}
-                                                            variant={currentStatus === 2 ? 'outline' : 'default'}
-                                                            className={
-                                                                currentStatus === 0
-                                                                    ? 'w-full font-bold shadow-sm transition-all'
-                                                                    : currentStatus === 1
-                                                                        ? 'w-full font-bold bg-gradient-to-r from-primary to-orange-500 hover:from-primary/90 hover:to-orange-500/90 text-white shadow-md transition-all'
-                                                                        : 'w-full font-bold border-border text-muted-foreground hover:text-destructive hover:border-destructive/50 hover:bg-destructive/5 transition-all'
-                                                            }
-                                                        >
-                                                            {actionMutation.isPending ? (
-                                                                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                                                            ) : currentStatus === 0 ? (
-                                                                <Bookmark className="w-4 h-4 mr-2" />
-                                                            ) : currentStatus === 1 ? (
-                                                                <UserCheck className="w-4 h-4 mr-2" />
-                                                            ) : (
-                                                                <RotateCcw className="w-4 h-4 mr-2" />
-                                                            )}
-                                                            {currentStatus === 0
-                                                                ? t('eventDetail.action.check', '체크')
-                                                                : currentStatus === 1
-                                                                    ? t('eventDetail.action.attend', '참가')
-                                                                    : t('eventDetail.action.release', '해제')}
-                                                        </Button>
-                                                    </div>
+                                                                />
+                                                            </button>
+                                                        );
+                                                    })}
                                                 </div>
 
-
-                                                {/* Thread (커뮤니티) Section — 추천순 정렬 */}
-                                                {eventId && <EventThreadSection eventId={eventId} />}
-
+                                                {isRatingPending ? (
+                                                    <Loader2 className="w-3.5 h-3.5 animate-spin text-muted-foreground" />
+                                                ) : currentRating !== undefined ? (
+                                                    <span className="text-[11px] font-semibold text-amber-600 dark:text-amber-400">
+                                                        {t('eventDetail.rating.myRating', { score: currentRating, defaultValue: `내 평점: ${currentRating}점` })}
+                                                    </span>
+                                                ) : null}
                                             </div>
-                                    </div>
-                                    );
+                                        </div>
+                    )}
+                                </div>
+
+
+                {/* Thread (커뮤니티) Section — 추천순 정렬 */}
+                            {eventId && <EventThreadSection eventId={eventId} />}
+
+                        </div>
+                    </div>
+                    );
 }
