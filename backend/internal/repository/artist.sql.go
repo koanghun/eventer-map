@@ -8,6 +8,7 @@ package repository
 import (
 	"context"
 	"database/sql"
+	"time"
 
 	"github.com/google/uuid"
 )
@@ -72,13 +73,55 @@ func (q *Queries) CreateArtist(ctx context.Context, arg CreateArtistParams) (Art
 }
 
 const getArtist = `-- name: GetArtist :one
-SELECT id, official_name, hiragana, gender, profile_image_url, rating_sum, rating_count, status, author_id, created_at, updated_at, credit_score, credit_count, disambiguation FROM artists
-WHERE id = $1 LIMIT 1
+SELECT
+    a.id,
+    a.official_name,
+    a.hiragana,
+    a.gender,
+    a.profile_image_url,
+    COALESCE((
+        SELECT SUM(e.rating_sum / e.rating_count)
+        FROM event_artists ea
+        JOIN events e ON ea.event_id = e.id
+        WHERE ea.artist_id = a.id AND e.rating_count > 0
+    ), a.rating_sum)::double precision AS rating_sum,
+    COALESCE((
+        SELECT NULLIF(COUNT(*)::int, 0)
+        FROM event_artists ea
+        JOIN events e ON ea.event_id = e.id
+        WHERE ea.artist_id = a.id AND e.rating_count > 0
+    ), a.rating_count)::int AS rating_count,
+    a.status,
+    a.author_id,
+    a.created_at,
+    a.updated_at,
+    a.credit_score,
+    a.credit_count,
+    a.disambiguation
+FROM artists a
+WHERE a.id = $1 LIMIT 1
 `
 
-func (q *Queries) GetArtist(ctx context.Context, id uuid.UUID) (Artist, error) {
+type GetArtistRow struct {
+	ID              uuid.UUID
+	OfficialName    string
+	Hiragana        sql.NullString
+	Gender          string
+	ProfileImageUrl sql.NullString
+	RatingSum       float64
+	RatingCount     int32
+	Status          string
+	AuthorID        uuid.NullUUID
+	CreatedAt       time.Time
+	UpdatedAt       time.Time
+	CreditScore     int32
+	CreditCount     int32
+	Disambiguation  sql.NullString
+}
+
+func (q *Queries) GetArtist(ctx context.Context, id uuid.UUID) (GetArtistRow, error) {
 	row := q.db.QueryRowContext(ctx, getArtist, id)
-	var i Artist
+	var i GetArtistRow
 	err := row.Scan(
 		&i.ID,
 		&i.OfficialName,
@@ -159,19 +202,44 @@ func (q *Queries) InsertUserArtistRating(ctx context.Context, arg InsertUserArti
 }
 
 const listArtists = `-- name: ListArtists :many
-SELECT id, official_name, hiragana, gender, profile_image_url, rating_sum, rating_count, status, author_id, created_at, updated_at, credit_score, credit_count, disambiguation FROM artists
+SELECT
+    a.id,
+    a.official_name,
+    a.hiragana,
+    a.gender,
+    a.profile_image_url,
+    COALESCE((
+        SELECT SUM(e.rating_sum / e.rating_count)
+        FROM event_artists ea
+        JOIN events e ON ea.event_id = e.id
+        WHERE ea.artist_id = a.id AND e.rating_count > 0
+    ), a.rating_sum)::double precision AS rating_sum,
+    COALESCE((
+        SELECT NULLIF(COUNT(*)::int, 0)
+        FROM event_artists ea
+        JOIN events e ON ea.event_id = e.id
+        WHERE ea.artist_id = a.id AND e.rating_count > 0
+    ), a.rating_count)::int AS rating_count,
+    a.status,
+    a.author_id,
+    a.created_at,
+    a.updated_at,
+    a.credit_score,
+    a.credit_count,
+    a.disambiguation
+FROM artists a
 WHERE 
-    status != 'REJECTED'
-    AND ($2::varchar = '' OR status = $2)
+    a.status != 'REJECTED'
+    AND ($2::varchar = '' OR a.status = $2)
     AND (
         $3::varchar = ''
-        OR LOWER(official_name) LIKE LOWER($3) || '%'
-        OR hiragana LIKE $3 || '%'
+        OR LOWER(a.official_name) LIKE LOWER($3) || '%'
+        OR a.hiragana LIKE $3 || '%'
     )
-    AND ($4::uuid = '00000000-0000-0000-0000-000000000000'::uuid OR id > $4)
+    AND ($4::uuid = '00000000-0000-0000-0000-000000000000'::uuid OR a.id > $4)
 ORDER BY
-    CASE WHEN status = 'APPROVED' THEN 0 ELSE 1 END,
-    official_name ASC
+    CASE WHEN a.status = 'APPROVED' THEN 0 ELSE 1 END,
+    a.official_name ASC
 LIMIT $1
 `
 
@@ -182,7 +250,24 @@ type ListArtistsParams struct {
 	CursorID    uuid.UUID
 }
 
-func (q *Queries) ListArtists(ctx context.Context, arg ListArtistsParams) ([]Artist, error) {
+type ListArtistsRow struct {
+	ID              uuid.UUID
+	OfficialName    string
+	Hiragana        sql.NullString
+	Gender          string
+	ProfileImageUrl sql.NullString
+	RatingSum       float64
+	RatingCount     int32
+	Status          string
+	AuthorID        uuid.NullUUID
+	CreatedAt       time.Time
+	UpdatedAt       time.Time
+	CreditScore     int32
+	CreditCount     int32
+	Disambiguation  sql.NullString
+}
+
+func (q *Queries) ListArtists(ctx context.Context, arg ListArtistsParams) ([]ListArtistsRow, error) {
 	rows, err := q.db.QueryContext(ctx, listArtists,
 		arg.Limit,
 		arg.Status,
@@ -193,9 +278,9 @@ func (q *Queries) ListArtists(ctx context.Context, arg ListArtistsParams) ([]Art
 		return nil, err
 	}
 	defer rows.Close()
-	var items []Artist
+	var items []ListArtistsRow
 	for rows.Next() {
-		var i Artist
+		var i ListArtistsRow
 		if err := rows.Scan(
 			&i.ID,
 			&i.OfficialName,

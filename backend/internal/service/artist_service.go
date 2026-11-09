@@ -46,12 +46,20 @@ func (s *ArtistService) ListArtists(ctx context.Context, limit int32, status str
 
 	trimmed := strings.TrimSpace(nameKeyword)
 
-	return s.repo.ListArtists(ctx, repository.ListArtistsParams{
+	rows, err := s.repo.ListArtists(ctx, repository.ListArtistsParams{
 		Limit:       limit,
 		Status:      status,
 		NameKeyword: likeEscaper.Replace(trimmed),
 		CursorID:    cursorID,
 	})
+	if err != nil {
+		return nil, err
+	}
+	artists := make([]repository.Artist, len(rows))
+	for i, r := range rows {
+		artists[i] = repository.Artist(r)
+	}
+	return artists, nil
 }
 
 func (s *ArtistService) CreateArtist(ctx context.Context, input CreateArtistInput) (*repository.Artist, error) {
@@ -93,10 +101,11 @@ func (s *ArtistService) CreateArtist(ctx context.Context, input CreateArtistInpu
 }
 
 func (s *ArtistService) GetArtist(ctx context.Context, id uuid.UUID) (*repository.Artist, error) {
-	artist, err := s.repo.GetArtist(ctx, id)
+	row, err := s.repo.GetArtist(ctx, id)
 	if err != nil {
 		return nil, err
 	}
+	artist := repository.Artist(row)
 	return &artist, nil
 }
 

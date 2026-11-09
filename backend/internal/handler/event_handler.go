@@ -10,6 +10,7 @@ import (
 
 	"eventer-map-backend/internal/middleware"
 	"eventer-map-backend/internal/service"
+
 	"github.com/google/uuid"
 	openapi_types "github.com/oapi-codegen/runtime/types"
 )
@@ -84,11 +85,17 @@ func mapEventDetailToResponse(detail *service.EventDetail) Event {
 			d := a.Disambiguation.String
 			disambiguation = &d
 		}
+		var aRating *float64
+		if a.RatingCount > 0 {
+			avg := a.RatingSum / float64(a.RatingCount)
+			aRating = &avg
+		}
 		artistSummaries = append(artistSummaries, ArtistSummary{
 			Id:             &aID,
 			OfficialName:   &aName,
 			Hiragana:       hiragana,
 			Disambiguation: disambiguation,
+			Rating:         aRating,
 			Status:         &aStatus,
 		})
 	}
@@ -205,19 +212,33 @@ func (s *Server) GetEvents(w http.ResponseWriter, r *http.Request, params GetEve
 			posterURL = &p
 		}
 
+		var topArtistName *string
+		if row.TopArtistName != "" {
+			n := row.TopArtistName
+			topArtistName = &n
+		}
+
+		var topArtistProfileImageURL *string
+		if row.TopArtistProfileImageUrl != "" {
+			u := row.TopArtistProfileImageUrl
+			topArtistProfileImageURL = &u
+		}
+
 		summaries = append(summaries, EventSummary{
-			Id:             &id,
-			Title:          &title,
-			VenueId:        venueID,
-			VenueName:      venueName,
-			Latitude:       lat,
-			Longitude:      lng,
-			StartTime:      &startTime,
-			EndTime:        &endTime,
-			Rating:         rating,
-			AttendeeCount:  &attendeeCount,
-			PosterImageUrl: posterURL,
-			Status:         &status,
+			Id:                       &id,
+			Title:                    &title,
+			VenueId:                  venueID,
+			VenueName:                venueName,
+			Latitude:                 lat,
+			Longitude:                lng,
+			StartTime:                &startTime,
+			EndTime:                  &endTime,
+			Rating:                   rating,
+			AttendeeCount:            &attendeeCount,
+			PosterImageUrl:           posterURL,
+			TopArtistName:            topArtistName,
+			TopArtistProfileImageUrl: topArtistProfileImageURL,
+			Status:                   &status,
 		})
 	}
 
@@ -373,8 +394,30 @@ func (s *Server) PutEventsEventId(w http.ResponseWriter, r *http.Request, eventI
 
 // PostEventsEventIdRate implements the POST /events/{eventId}/rate endpoint
 func (s *Server) PostEventsEventIdRate(w http.ResponseWriter, r *http.Request, eventId uuid.UUID) {
-	// In a real scenario we extract userID from middleware ctx
-	// userID := r.Context().Value(middleware.UserIDKey).(uuid.UUID)
+	userID, ok := r.Context().Value(middleware.UserIDKey).(uuid.UUID)
+	if !ok {
+		RespondError(w, http.StatusUnauthorized, "user not authenticated")
+		return
+	}
+
+	var reqBody RatingInput
+	if err := ParseJSON(r, &reqBody); err != nil {
+		RespondError(w, http.StatusBadRequest, "Invalid request body")
+		return
+	}
+
+	if err := s.services.Event.RateEvent(r.Context(), eventId, userID, int32(reqBody.Score)); err != nil {
+		switch {
+		case errors.Is(err, service.ErrInvalidScore), errors.Is(err, service.ErrEventNotEnded):
+			RespondError(w, http.StatusBadRequest, err.Error())
+		case errors.Is(err, service.ErrNotAttendee):
+			RespondError(w, http.StatusForbidden, err.Error())
+		default:
+			log.Printf("[PostEventsEventIdRate] RateEvent error (userID=%s, eventID=%s): %v", userID, eventId, err)
+			RespondError(w, http.StatusInternalServerError, "Failed to rate event")
+		}
+		return
+	}
 
 	RespondJSON(w, http.StatusOK, map[string]string{"message": "Rating submitted"})
 }

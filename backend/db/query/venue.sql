@@ -4,40 +4,105 @@ VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
 RETURNING *;
 
 -- name: GetVenue :one
-SELECT * FROM venues
-WHERE id = $1 LIMIT 1;
+SELECT
+    v.id,
+    v.official_name,
+    v.google_map_id,
+    v.address,
+    v.latitude,
+    v.longitude,
+    v.related_links,
+    v.capacity,
+    COALESCE((
+        SELECT SUM(e.rating_sum / e.rating_count)
+        FROM events e
+        WHERE e.venue_id = v.id AND e.rating_count > 0
+    ), v.rating_sum)::double precision AS rating_sum,
+    COALESCE((
+        SELECT NULLIF(COUNT(*)::int, 0)
+        FROM events e
+        WHERE e.venue_id = v.id AND e.rating_count > 0
+    ), v.rating_count)::int AS rating_count,
+    v.status,
+    v.author_id,
+    v.created_at,
+    v.updated_at,
+    v.credit_score,
+    v.credit_count
+FROM venues v
+WHERE v.id = $1 LIMIT 1;
 
 -- name: GetVenueForUpdate :one
 SELECT * FROM venues
 WHERE id = $1 FOR UPDATE LIMIT 1;
 
 -- name: ListVenuesByBoundingBox :many
-SELECT * FROM venues
+SELECT
+    v.id,
+    v.official_name,
+    v.google_map_id,
+    v.address,
+    v.latitude,
+    v.longitude,
+    v.related_links,
+    v.capacity,
+    COALESCE((
+        SELECT SUM(e.rating_sum / e.rating_count)
+        FROM events e
+        WHERE e.venue_id = v.id AND e.rating_count > 0
+    ), v.rating_sum)::double precision AS rating_sum,
+    COALESCE((
+        SELECT NULLIF(COUNT(*)::int, 0)
+        FROM events e
+        WHERE e.venue_id = v.id AND e.rating_count > 0
+    ), v.rating_count)::int AS rating_count,
+    v.status,
+    v.author_id,
+    v.created_at,
+    v.updated_at,
+    v.credit_score,
+    v.credit_count
+FROM venues v
 WHERE 
-    latitude BETWEEN @min_lat AND @max_lat
-    AND longitude BETWEEN @min_lon AND @max_lon
-    AND (@status::varchar IS NULL OR status = @status)
-    AND (@cursor_id::uuid IS NULL OR id > @cursor_id)
-ORDER BY id ASC
+    v.latitude BETWEEN @min_lat AND @max_lat
+    AND v.longitude BETWEEN @min_lon AND @max_lon
+    AND (@status::varchar IS NULL OR v.status = @status)
+    AND (@cursor_id::uuid IS NULL OR v.id > @cursor_id)
+ORDER BY
+    CASE
+        WHEN COALESCE((SELECT COUNT(*) FROM events e WHERE e.venue_id = v.id AND e.rating_count > 0), 0) > 0
+        THEN (SELECT AVG(e.rating_sum / e.rating_count) FROM events e WHERE e.venue_id = v.id AND e.rating_count > 0)
+        WHEN v.rating_count > 0 THEN v.rating_sum / v.rating_count
+        ELSE 0
+    END DESC,
+    v.id ASC
 LIMIT $1;
 
 -- name: SearchVenues :many
 SELECT
-    id,
-    official_name,
-    address,
-    latitude,
-    longitude,
-    rating_sum,
-    rating_count,
-    status
-FROM venues
+    v.id,
+    v.official_name,
+    v.address,
+    v.latitude,
+    v.longitude,
+    COALESCE((
+        SELECT SUM(e.rating_sum / e.rating_count)
+        FROM events e
+        WHERE e.venue_id = v.id AND e.rating_count > 0
+    ), v.rating_sum)::double precision AS rating_sum,
+    COALESCE((
+        SELECT NULLIF(COUNT(*)::int, 0)
+        FROM events e
+        WHERE e.venue_id = v.id AND e.rating_count > 0
+    ), v.rating_count)::int AS rating_count,
+    v.status
+FROM venues v
 WHERE
-    status != 'REJECTED'
-    AND LOWER(official_name) LIKE LOWER(sqlc.arg('query')::varchar) || '%'
+    v.status != 'REJECTED'
+    AND LOWER(v.official_name) LIKE LOWER(sqlc.arg('query')::varchar) || '%'
 ORDER BY
-    CASE WHEN status = 'APPROVED' THEN 0 ELSE 1 END,
-    official_name ASC
+    CASE WHEN v.status = 'APPROVED' THEN 0 ELSE 1 END,
+    v.official_name ASC
 LIMIT sqlc.arg('limit');
 
 -- name: UpdateVenue :one

@@ -1,18 +1,146 @@
 import { useMemo, useState, useRef, useCallback, useEffect } from 'react';
-import { GoogleMap, Marker } from '@react-google-maps/api';
+import { GoogleMap, Marker, OverlayView } from '@react-google-maps/api';
 
 import { useTheme } from '../../context/ThemeContext';
 import SingleEventInfoWindow from './SingleEventInfoWindow';
 import GroupEventInfoWindow from './GroupEventInfoWindow';
 import { useEventStore } from '../../store/useEventStore';
+import type { EventSummary } from '../../api/generated/model';
 
 interface EventMapProps {
-    events: any[];
+    events: EventSummary[];
 }
 
 type InfoWindowState =
-    | { type: 'single'; event: any }
-    | { type: 'group'; events: any[]; location: { lat: number; lng: number } };
+    | { type: 'single'; event: EventSummary }
+    | { type: 'group'; events: EventSummary[]; location: { lat: number; lng: number } };
+
+/**
+ * 참가자 수(attendeeCount)에 따라 마커 원형 아이콘의 크기(px)를 계산
+ * 기본 42px에서 시작하여 참가자 수에 따라 로그 스케일로 최대 76px까지 커지는 기믹 적용
+ */
+function getMarkerSize(attendeeCount: number = 0): number {
+    const count = Math.max(0, attendeeCount);
+    const scale = Math.min(34, Math.round(Math.log2(count + 1) * 7));
+    return 42 + scale;
+}
+
+/**
+ * 이름 문자열을 기반으로 일관된 배경 그라데이션 색상을 반환
+ */
+const AVATAR_GRADIENTS = [
+    'from-orange-500 to-amber-500',
+    'from-rose-500 to-pink-500',
+    'from-violet-600 to-indigo-500',
+    'from-emerald-500 to-teal-500',
+    'from-sky-500 to-blue-600',
+    'from-fuchsia-500 to-purple-600',
+];
+
+function getAvatarGradient(name: string): string {
+    let hash = 0;
+    for (let i = 0; i < name.length; i++) {
+        hash = name.charCodeAt(i) + ((hash << 5) - hash);
+    }
+    return AVATAR_GRADIENTS[Math.abs(hash) % AVATAR_GRADIENTS.length];
+}
+
+function getInitials(name?: string): string {
+    const trimmed = (name || '').trim();
+    if (!trimmed) return '🎤';
+    return Array.from(trimmed).slice(0, 2).join('').toUpperCase();
+}
+
+interface EventAvatarMarkerProps {
+    representativeEvent: EventSummary;
+    eventCount: number;
+    isSelected: boolean;
+    onClick: () => void;
+}
+
+function EventAvatarMarker({
+    representativeEvent,
+    eventCount,
+    isSelected,
+    onClick,
+}: EventAvatarMarkerProps) {
+    const [imgError, setImgError] = useState(false);
+
+    const attendeeCount = representativeEvent.attendeeCount ?? 0;
+    const size = getMarkerSize(attendeeCount);
+    const profileUrl = representativeEvent.topArtistProfileImageUrl;
+    const displayName = representativeEvent.topArtistName || representativeEvent.title || '';
+    const initials = getInitials(displayName);
+    const gradientClass = getAvatarGradient(displayName);
+    const isGrouped = eventCount > 1;
+
+    useEffect(() => {
+        setImgError(false);
+    }, [profileUrl]);
+
+    const fontSize = Math.max(11, Math.round(size * 0.32));
+
+    return (
+        <button
+            type="button"
+            onClick={(e) => {
+                e.stopPropagation();
+                onClick();
+            }}
+            style={{
+                width: `${size}px`,
+                height: `${size}px`,
+            }}
+            title={
+                representativeEvent.topArtistName
+                    ? `${representativeEvent.title} (${representativeEvent.topArtistName})`
+                    : representativeEvent.title
+            }
+            className={`group relative -translate-x-1/2 -translate-y-1/2 rounded-full flex items-center justify-center cursor-pointer select-none transition-transform duration-200 hover:scale-110 hover:z-40 focus:outline-none ${
+                isSelected
+                    ? 'ring-4 ring-primary ring-offset-2 ring-offset-background scale-110 z-30 shadow-xl'
+                    : isGrouped
+                    ? 'ring-[3px] ring-purple-500 shadow-lg z-20'
+                    : 'ring-[3px] ring-white dark:ring-slate-800 shadow-lg z-10'
+            }`}
+        >
+            <div
+                className={`w-full h-full rounded-full overflow-hidden flex items-center justify-center bg-gradient-to-br ${gradientClass} text-white font-extrabold tracking-tight`}
+            >
+                {profileUrl && !imgError ? (
+                    <img
+                        src={profileUrl}
+                        alt={displayName}
+                        className="w-full h-full object-cover"
+                        onError={() => setImgError(true)}
+                        draggable={false}
+                    />
+                ) : (
+                    <span
+                        style={{ fontSize: `${fontSize}px` }}
+                        className="leading-none px-1 truncate max-w-full drop-shadow-sm"
+                    >
+                        {initials}
+                    </span>
+                )}
+            </div>
+
+            {/* 복수 이벤트가 동일 위치에 있을 때 우측 상단 배지 */}
+            {isGrouped && (
+                <span className="absolute -top-1 -right-1 min-w-[20px] h-5 px-1 rounded-full bg-purple-600 text-white text-[11px] font-bold flex items-center justify-center border-2 border-white dark:border-slate-900 shadow-sm">
+                    +{eventCount - 1}
+                </span>
+            )}
+
+            {/* 참가자가 1명 이상일 때 하단 참가자 수 캡슐 배지 */}
+            {attendeeCount > 0 && (
+                <span className="absolute -bottom-1.5 left-1/2 -translate-x-1/2 px-1.5 py-0.2 rounded-full bg-slate-900/90 text-white text-[10px] font-semibold leading-tight border border-white/40 shadow-sm whitespace-nowrap">
+                    👥 {attendeeCount}
+                </span>
+            )}
+        </button>
+    );
+}
 
 const mapContainerStyle = {
     width: '100%',
@@ -270,8 +398,9 @@ function EventMap({ events }: EventMapProps) {
         const groups = new Map<string, any[]>();
 
         events.forEach(event => {
-            const lat = event.latitude ?? event.place?.latitude;
-            const lng = event.longitude ?? event.place?.longitude;
+            const ev = event as any;
+            const lat = ev.latitude ?? ev.place?.latitude;
+            const lng = ev.longitude ?? ev.place?.longitude;
             if (lat === undefined || lng === undefined || (lat === 0 && lng === 0)) {
                 return;
             }
@@ -282,11 +411,23 @@ function EventMap({ events }: EventMapProps) {
             groups.get(key)!.push(event);
         });
 
+        // 동일 좌표에 복수의 이벤트가 있을 때 참가자 수(attendeeCount)가 가장 많은 이벤트가 맨 앞(대표)에 오도록 정렬
+        groups.forEach((groupEvents) => {
+            groupEvents.sort((a, b) => {
+                const countDiff = (b.attendeeCount ?? 0) - (a.attendeeCount ?? 0);
+                if (countDiff !== 0) return countDiff;
+                const timeA = a.startTime ? new Date(a.startTime).getTime() : 0;
+                const timeB = b.startTime ? new Date(b.startTime).getTime() : 0;
+                return timeA - timeB;
+            });
+        });
+
         return groups;
     }, [events]);
 
     const handleMarkerClick = (eventsAtLocation: any[]) => {
         if (eventsAtLocation.length === 1) {
+            setInfoWindowStack(null);
             selectEvent(eventsAtLocation[0]);
         } else {
             const firstEvent = eventsAtLocation[0];
@@ -319,11 +460,14 @@ function EventMap({ events }: EventMapProps) {
     const renderInfoWindow = () => {
         if (infoWindowStack?.type === 'group') {
             const { events: groupEvents, location } = infoWindowStack;
+            const topEvent = groupEvents[0] as any;
+            const offsetPx = Math.round(getMarkerSize(topEvent?.attendeeCount ?? 0) / 2) + 10;
             return (
                 <GroupEventInfoWindow
                     events={groupEvents}
                     location={location}
-                    locationName={groupEvents[0].venueName ?? groupEvents[0].place?.canonical_name ?? groupEvents[0].location ?? ''}
+                    locationName={topEvent.venueName ?? topEvent.place?.canonical_name ?? topEvent.location ?? ''}
+                    offsetPx={offsetPx}
                     onClose={handleInfoWindowClose}
                     onEventSelect={handleEventSelectFromGroup}
                 />
@@ -336,10 +480,13 @@ function EventMap({ events }: EventMapProps) {
         const lng = (selectedEvent as any).longitude ?? (selectedEvent as any).place?.longitude;
         if (lat === undefined || lng === undefined) return null;
 
+        const offsetPx = Math.round(getMarkerSize(selectedEvent.attendeeCount ?? 0) / 2) + 10;
+
         return (
             <SingleEventInfoWindow
                 event={selectedEvent}
                 position={{ lat, lng }}
+                offsetPx={offsetPx}
                 onClose={handleInfoWindowClose}
             />
         );
@@ -372,41 +519,30 @@ function EventMap({ events }: EventMapProps) {
                     />
                 )}
                 {Array.from(eventGroups.entries()).map(([coordKey, eventsAtLocation]) => {
-                    const firstEvent = eventsAtLocation[0];
-                    const isGrouped = eventsAtLocation.length > 1;
+                    const representativeEvent = eventsAtLocation[0];
+                    const lat = representativeEvent.place?.latitude ?? representativeEvent.latitude ?? 0;
+                    const lng = representativeEvent.place?.longitude ?? representativeEvent.longitude ?? 0;
 
-                    const isSelected = infoWindowStack && (
-                        (infoWindowStack.type === 'single' && eventsAtLocation.some(e => e.id === infoWindowStack.event.id)) ||
-                        (infoWindowStack.type === 'group' && infoWindowStack.location.lat === (firstEvent.place?.latitude ?? firstEvent.latitude) && infoWindowStack.location.lng === (firstEvent.place?.longitude ?? firstEvent.longitude))
+                    const isSelected = Boolean(
+                        (selectedEvent && eventsAtLocation.some((e) => e.id === selectedEvent.id)) ||
+                        (infoWindowStack?.type === 'group' &&
+                            infoWindowStack.location.lat === lat &&
+                            infoWindowStack.location.lng === lng)
                     );
 
                     return (
-                        <Marker
+                        <OverlayView
                             key={coordKey}
-                            position={{ lat: firstEvent.place?.latitude ?? firstEvent.latitude ?? 0, lng: firstEvent.place?.longitude ?? firstEvent.longitude ?? 0 }}
-                            onClick={() => handleMarkerClick(eventsAtLocation)}
-                            label={isGrouped ? {
-                                text: String(eventsAtLocation.length),
-                                color: '#ffffff',
-                                fontSize: '14px',
-                                fontWeight: 'bold',
-                            } : undefined}
-                            icon={
-                                isSelected
-                                    ? undefined
-                                    : {
-                                        url: 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(`
-                                            <svg xmlns="http://www.w3.org/2000/svg" width="36" height="48" viewBox="0 0 36 48">
-                                                <path fill="${isGrouped ? '#9B59B6' : '#FF6B35'}" stroke="#ffffff" stroke-width="2" d="M18 2C11.373 2 6 7.373 6 14c0 10.5 12 32 12 32s12-21.5 12-32c0-6.627-5.373-12-12-12z"/>
-                                                <circle cx="18" cy="14" r="8" fill="#ffffff"/>
-                                                <path fill="${isGrouped ? '#9B59B6' : '#FF6B35'}" d="M18 8c-1.1 0-2 .9-2 2v4c0 1.1.9 2 2 2s2-.9 2-2v-4c0-1.1-.9-2-2-2zm-4 8c0 2.2 1.8 4 4 4s4-1.8 4-4h-1.5c0 1.4-1.1 2.5-2.5 2.5s-2.5-1.1-2.5-2.5H14z"/>
-                                            </svg>
-                                        `),
-                                        scaledSize: new window.google.maps.Size(36, 48),
-                                        anchor: new window.google.maps.Point(18, 48),
-                                    }
-                            }
-                        />
+                            position={{ lat, lng }}
+                            mapPaneName={OverlayView.OVERLAY_MOUSE_TARGET}
+                        >
+                            <EventAvatarMarker
+                                representativeEvent={representativeEvent}
+                                eventCount={eventsAtLocation.length}
+                                isSelected={isSelected}
+                                onClick={() => handleMarkerClick(eventsAtLocation)}
+                            />
+                        </OverlayView>
                     );
                 })}
 

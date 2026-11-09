@@ -4,27 +4,77 @@ VALUES ($1, $2, $3, $4, $5, $6, $7)
 RETURNING *;
 
 -- name: GetArtist :one
-SELECT * FROM artists
-WHERE id = $1 LIMIT 1;
+SELECT
+    a.id,
+    a.official_name,
+    a.hiragana,
+    a.gender,
+    a.profile_image_url,
+    COALESCE((
+        SELECT SUM(e.rating_sum / e.rating_count)
+        FROM event_artists ea
+        JOIN events e ON ea.event_id = e.id
+        WHERE ea.artist_id = a.id AND e.rating_count > 0
+    ), a.rating_sum)::double precision AS rating_sum,
+    COALESCE((
+        SELECT NULLIF(COUNT(*)::int, 0)
+        FROM event_artists ea
+        JOIN events e ON ea.event_id = e.id
+        WHERE ea.artist_id = a.id AND e.rating_count > 0
+    ), a.rating_count)::int AS rating_count,
+    a.status,
+    a.author_id,
+    a.created_at,
+    a.updated_at,
+    a.credit_score,
+    a.credit_count,
+    a.disambiguation
+FROM artists a
+WHERE a.id = $1 LIMIT 1;
 
 -- name: GetArtistForUpdate :one
 SELECT * FROM artists
 WHERE id = $1 FOR UPDATE LIMIT 1;
 
 -- name: ListArtists :many
-SELECT * FROM artists
+SELECT
+    a.id,
+    a.official_name,
+    a.hiragana,
+    a.gender,
+    a.profile_image_url,
+    COALESCE((
+        SELECT SUM(e.rating_sum / e.rating_count)
+        FROM event_artists ea
+        JOIN events e ON ea.event_id = e.id
+        WHERE ea.artist_id = a.id AND e.rating_count > 0
+    ), a.rating_sum)::double precision AS rating_sum,
+    COALESCE((
+        SELECT NULLIF(COUNT(*)::int, 0)
+        FROM event_artists ea
+        JOIN events e ON ea.event_id = e.id
+        WHERE ea.artist_id = a.id AND e.rating_count > 0
+    ), a.rating_count)::int AS rating_count,
+    a.status,
+    a.author_id,
+    a.created_at,
+    a.updated_at,
+    a.credit_score,
+    a.credit_count,
+    a.disambiguation
+FROM artists a
 WHERE 
-    status != 'REJECTED'
-    AND (@status::varchar = '' OR status = @status)
+    a.status != 'REJECTED'
+    AND (@status::varchar = '' OR a.status = @status)
     AND (
         @name_keyword::varchar = ''
-        OR LOWER(official_name) LIKE LOWER(@name_keyword) || '%'
-        OR hiragana LIKE @name_keyword || '%'
+        OR LOWER(a.official_name) LIKE LOWER(@name_keyword) || '%'
+        OR a.hiragana LIKE @name_keyword || '%'
     )
-    AND (@cursor_id::uuid = '00000000-0000-0000-0000-000000000000'::uuid OR id > @cursor_id)
+    AND (@cursor_id::uuid = '00000000-0000-0000-0000-000000000000'::uuid OR a.id > @cursor_id)
 ORDER BY
-    CASE WHEN status = 'APPROVED' THEN 0 ELSE 1 END,
-    official_name ASC
+    CASE WHEN a.status = 'APPROVED' THEN 0 ELSE 1 END,
+    a.official_name ASC
 LIMIT $1;
 
 -- name: UpdateArtist :one

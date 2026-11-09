@@ -20,6 +20,10 @@ export interface EventSummary {
   startTime?: string;
   status?: EventSummaryStatus;
   title?: string;
+  /** 출연자 중 가장 평점이 높은 대표 출연자 공식 이름 */
+  topArtistName?: string;
+  /** 출연자 중 가장 평점이 높은 대표 출연자 프로필 이미지 URL */
+  topArtistProfileImageUrl?: string;
   venueId?: string;
   /** 공연장 공식 이름 */
   venueName?: string;

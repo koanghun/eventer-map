@@ -8,7 +8,29 @@ DELETE FROM user_artist_follows
 WHERE user_id = $1 AND artist_id = $2;
 
 -- name: ListFollowingArtists :many
-SELECT a.id, a.official_name, a.hiragana, a.disambiguation, a.gender, a.profile_image_url, a.rating_sum, a.rating_count, a.status, a.author_id, a.created_at, a.updated_at
+SELECT
+    a.id,
+    a.official_name,
+    a.hiragana,
+    a.disambiguation,
+    a.gender,
+    a.profile_image_url,
+    COALESCE((
+        SELECT SUM(e.rating_sum / e.rating_count)
+        FROM event_artists ea
+        JOIN events e ON ea.event_id = e.id
+        WHERE ea.artist_id = a.id AND e.rating_count > 0
+    ), a.rating_sum)::double precision AS rating_sum,
+    COALESCE((
+        SELECT NULLIF(COUNT(*)::int, 0)
+        FROM event_artists ea
+        JOIN events e ON ea.event_id = e.id
+        WHERE ea.artist_id = a.id AND e.rating_count > 0
+    ), a.rating_count)::int AS rating_count,
+    a.status,
+    a.author_id,
+    a.created_at,
+    a.updated_at
 FROM artists a
 JOIN user_artist_follows uaf ON a.id = uaf.artist_id
 WHERE uaf.user_id = $1

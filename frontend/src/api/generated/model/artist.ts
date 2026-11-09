@@ -25,6 +25,10 @@ export interface Artist {
   officialName?: string;
   /** 프로필 이미지 URL */
   profileImageUrl?: string;
+  /** 참가한 이벤트들의 평균 평점 */
+  rating?: number;
+  /** 평점이 매겨진 참가 이벤트 수 */
+  ratingCount?: number;
   /** 아티스트 상태 (유저 등록 시 PENDING, 관리자 승인 시 APPROVED) */
   status?: ArtistStatus;
 }

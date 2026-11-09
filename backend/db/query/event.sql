@@ -11,6 +11,64 @@ WHERE id = $1 LIMIT 1;
 SELECT COUNT(*)::int FROM event_user_actions
 WHERE event_id = $1 AND status = 2;
 
+-- name: GetEventForUpdate :one
+SELECT * FROM events
+WHERE id = $1 FOR UPDATE LIMIT 1;
+
+-- name: RecalculateVenueRatingFromEvents :exec
+UPDATE venues v
+SET
+    rating_sum = COALESCE((
+        SELECT SUM(e.rating_sum / e.rating_count)
+        FROM events e
+        WHERE e.venue_id = v.id AND e.rating_count > 0
+    ), 0),
+    rating_count = COALESCE((
+        SELECT COUNT(*)::int
+        FROM events e
+        WHERE e.venue_id = v.id AND e.rating_count > 0
+    ), 0),
+    updated_at = NOW()
+WHERE v.id = $1;
+
+-- name: RecalculateEventArtistsRatingFromEvents :exec
+UPDATE artists a
+SET
+    rating_sum = COALESCE((
+        SELECT SUM(e.rating_sum / e.rating_count)
+        FROM event_artists ea2
+        JOIN events e ON ea2.event_id = e.id
+        WHERE ea2.artist_id = a.id AND e.rating_count > 0
+    ), 0),
+    rating_count = COALESCE((
+        SELECT COUNT(*)::int
+        FROM event_artists ea2
+        JOIN events e ON ea2.event_id = e.id
+        WHERE ea2.artist_id = a.id AND e.rating_count > 0
+    ), 0),
+    updated_at = NOW()
+WHERE a.id IN (
+    SELECT ea.artist_id FROM event_artists ea WHERE ea.event_id = $1
+);
+
+-- name: RecalculateArtistRatingFromEvents :exec
+UPDATE artists a
+SET
+    rating_sum = COALESCE((
+        SELECT SUM(e.rating_sum / e.rating_count)
+        FROM event_artists ea
+        JOIN events e ON ea.event_id = e.id
+        WHERE ea.artist_id = a.id AND e.rating_count > 0
+    ), 0),
+    rating_count = COALESCE((
+        SELECT COUNT(*)::int
+        FROM event_artists ea
+        JOIN events e ON ea.event_id = e.id
+        WHERE ea.artist_id = a.id AND e.rating_count > 0
+    ), 0),
+    updated_at = NOW()
+WHERE a.id = $1;
+
 -- name: ListEvents :many
 SELECT
     e.id,
@@ -25,9 +83,30 @@ SELECT
     e.rating_count,
     (SELECT COUNT(*)::int FROM event_user_actions eua WHERE eua.event_id = e.id AND eua.status = 2) AS attendee_count,
     e.poster_image_url,
-    e.status
+    e.status,
+    COALESCE(ta.official_name, '')::varchar AS top_artist_name,
+    COALESCE(ta.profile_image_url, '')::varchar AS top_artist_profile_image_url
 FROM events e
 LEFT JOIN venues v ON e.venue_id = v.id
+LEFT JOIN LATERAL (
+    SELECT
+        a.official_name,
+        a.profile_image_url,
+        COALESCE((
+            SELECT AVG(ev.rating_sum / ev.rating_count)
+            FROM event_artists ea_sub
+            JOIN events ev ON ea_sub.event_id = ev.id
+            WHERE ea_sub.artist_id = a.id AND ev.rating_count > 0
+        ), CASE WHEN a.rating_count > 0 THEN a.rating_sum / a.rating_count ELSE 0 END) AS artist_avg_rating
+    FROM event_artists ea
+    JOIN artists a ON ea.artist_id = a.id
+    WHERE ea.event_id = e.id
+    ORDER BY
+        artist_avg_rating DESC,
+        a.rating_count DESC,
+        a.official_name ASC
+    LIMIT 1
+) ta ON true
 WHERE
     (sqlc.narg('min_lat')::double precision IS NULL OR v.latitude >= sqlc.narg('min_lat'))
     AND (sqlc.narg('max_lat')::double precision IS NULL OR v.latitude <= sqlc.narg('max_lat'))
@@ -73,9 +152,42 @@ DELETE FROM event_artists
 WHERE event_id = $1;
 
 -- name: GetArtistsForEvent :many
-SELECT a.* FROM artists a
+SELECT
+    a.id,
+    a.official_name,
+    a.hiragana,
+    a.gender,
+    a.profile_image_url,
+    COALESCE((
+        SELECT SUM(e.rating_sum / e.rating_count)
+        FROM event_artists ea2
+        JOIN events e ON ea2.event_id = e.id
+        WHERE ea2.artist_id = a.id AND e.rating_count > 0
+    ), a.rating_sum)::double precision AS rating_sum,
+    COALESCE((
+        SELECT NULLIF(COUNT(*)::int, 0)
+        FROM event_artists ea2
+        JOIN events e ON ea2.event_id = e.id
+        WHERE ea2.artist_id = a.id AND e.rating_count > 0
+    ), a.rating_count)::int AS rating_count,
+    a.status,
+    a.author_id,
+    a.created_at,
+    a.updated_at,
+    a.credit_score,
+    a.credit_count,
+    a.disambiguation
+FROM artists a
 JOIN event_artists ea ON a.id = ea.artist_id
-WHERE ea.event_id = $1;
+WHERE ea.event_id = $1
+ORDER BY
+    CASE
+        WHEN COALESCE((SELECT COUNT(*) FROM event_artists ea2 JOIN events e ON ea2.event_id = e.id WHERE ea2.artist_id = a.id AND e.rating_count > 0), 0) > 0
+        THEN (SELECT AVG(e.rating_sum / e.rating_count) FROM event_artists ea2 JOIN events e ON ea2.event_id = e.id WHERE ea2.artist_id = a.id AND e.rating_count > 0)
+        WHEN a.rating_count > 0 THEN a.rating_sum / a.rating_count
+        ELSE 0
+    END DESC,
+    a.official_name ASC;
 
 -- name: UpsertUserEventAction :exec
 INSERT INTO event_user_actions (user_id, event_id, status)

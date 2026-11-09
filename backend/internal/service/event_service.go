@@ -12,7 +12,12 @@ import (
 	"github.com/google/uuid"
 )
 
-var ErrUserBanned = errors.New("user is banned")
+var (
+	ErrUserBanned     = errors.New("user is banned")
+	ErrEventNotEnded  = errors.New("event has not ended yet")
+	ErrNotAttendee    = errors.New("only attendees can rate the event")
+	ErrInvalidScore   = errors.New("score must be between 1 and 5")
+)
 
 const (
 	DefaultEventLimit int32 = 50
@@ -134,12 +139,17 @@ func (s *EventService) GetEventDetail(ctx context.Context, id uuid.UUID) (*Event
 	}
 
 	if event.VenueID.Valid {
-		if venue, err := s.repo.GetVenue(ctx, event.VenueID.UUID); err == nil {
+		if row, err := s.repo.GetVenue(ctx, event.VenueID.UUID); err == nil {
+			venue := repository.Venue(row)
 			detail.Venue = &venue
 		}
 	}
 
-	if artists, err := s.repo.GetArtistsForEvent(ctx, id); err == nil {
+	if rows, err := s.repo.GetArtistsForEvent(ctx, id); err == nil {
+		artists := make([]repository.Artist, len(rows))
+		for i, r := range rows {
+			artists[i] = repository.Artist(r)
+		}
 		detail.Artists = artists
 	}
 
@@ -330,6 +340,12 @@ func (s *EventService) UpdateEvent(ctx context.Context, eventID uuid.UUID, input
 			})
 		}
 
+		// 공연장 및 출연자들의 평점을 이벤트 평균 평점 기준으로 재계산하여 동기화
+		if input.VenueID != uuid.Nil {
+			_ = q.RecalculateVenueRatingFromEvents(ctx, input.VenueID)
+		}
+		_ = q.RecalculateEventArtistsRatingFromEvents(ctx, eventID)
+
 		if err := tx.Commit(); err != nil {
 			return nil, err
 		}
@@ -353,12 +369,94 @@ func (s *EventService) UpdateEvent(ctx context.Context, eventID uuid.UUID, input
 }
 
 func (s *EventService) RateEvent(ctx context.Context, eventID, userID uuid.UUID, score int32) error {
-	// In a real scenario, this would use a transaction to update both event_ratings and the running totals on events.
-	return s.repo.RateEvent(ctx, repository.RateEventParams{
-		EventID: eventID,
+	if score < 1 || score > 5 {
+		return ErrInvalidScore
+	}
+
+	if s.db == nil {
+		return s.repo.RateEvent(ctx, repository.RateEventParams{
+			EventID: eventID,
+			UserID:  userID,
+			Score:   score,
+		})
+	}
+
+	tx, err := s.db.BeginTx(ctx, nil)
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
+
+	q := s.repo.WithTx(tx)
+
+	event, err := q.GetEventForUpdate(ctx, eventID)
+	if err != nil {
+		return err
+	}
+
+	if time.Now().Before(event.EndTime) {
+		return ErrEventNotEnded
+	}
+
+	actionStatus, err := q.GetUserEventAction(ctx, repository.GetUserEventActionParams{
 		UserID:  userID,
-		Score:   score,
+		EventID: eventID,
 	})
+	if err != nil || actionStatus != 2 {
+		return ErrNotAttendee
+	}
+
+	prevRating, err := q.GetUserRatingForEvent(ctx, repository.GetUserRatingForEventParams{
+		UserID:  userID,
+		EventID: eventID,
+	})
+
+	var scoreDelta float64
+	var countDelta int32
+
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			scoreDelta = float64(score)
+			countDelta = 1
+		} else {
+			return err
+		}
+	} else {
+		scoreDelta = float64(score - prevRating.Score)
+		countDelta = 0
+	}
+
+	if err := q.RateEvent(ctx, repository.RateEventParams{
+		UserID:  userID,
+		EventID: eventID,
+		Score:   score,
+	}); err != nil {
+		return err
+	}
+
+	if scoreDelta != 0 || countDelta != 0 {
+		if err := q.UpdateEventRating(ctx, repository.UpdateEventRatingParams{
+			ScoreDelta: scoreDelta,
+			CountDelta: countDelta,
+			ID:         eventID,
+		}); err != nil {
+			return err
+		}
+
+		// 이벤트 평점이 갱신되면 해당 공연장(해당 공연장에서 개최한 이벤트들의 평균 평점)과
+		// 참가 출연자(해당 출연자가 참가한 이벤트들의 평균 평점)를 즉시 재계산
+		if event.VenueID.Valid {
+			if err := q.RecalculateVenueRatingFromEvents(ctx, event.VenueID.UUID); err != nil {
+				return err
+			}
+		}
+
+		if err := q.RecalculateEventArtistsRatingFromEvents(ctx, eventID); err != nil {
+			return err
+		}
+	}
+
+	return tx.Commit()
 }
 
 func (s *EventService) PutEventAction(ctx context.Context, userID, eventID uuid.UUID, status int32) error {

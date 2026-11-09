@@ -8,6 +8,7 @@ package repository
 import (
 	"context"
 	"database/sql"
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/lib/pq"
@@ -96,13 +97,57 @@ func (q *Queries) GetUserVenueRating(ctx context.Context, arg GetUserVenueRating
 }
 
 const getVenue = `-- name: GetVenue :one
-SELECT id, official_name, google_map_id, address, latitude, longitude, related_links, capacity, rating_sum, rating_count, status, author_id, created_at, updated_at, credit_score, credit_count FROM venues
-WHERE id = $1 LIMIT 1
+SELECT
+    v.id,
+    v.official_name,
+    v.google_map_id,
+    v.address,
+    v.latitude,
+    v.longitude,
+    v.related_links,
+    v.capacity,
+    COALESCE((
+        SELECT SUM(e.rating_sum / e.rating_count)
+        FROM events e
+        WHERE e.venue_id = v.id AND e.rating_count > 0
+    ), v.rating_sum)::double precision AS rating_sum,
+    COALESCE((
+        SELECT NULLIF(COUNT(*)::int, 0)
+        FROM events e
+        WHERE e.venue_id = v.id AND e.rating_count > 0
+    ), v.rating_count)::int AS rating_count,
+    v.status,
+    v.author_id,
+    v.created_at,
+    v.updated_at,
+    v.credit_score,
+    v.credit_count
+FROM venues v
+WHERE v.id = $1 LIMIT 1
 `
 
-func (q *Queries) GetVenue(ctx context.Context, id uuid.UUID) (Venue, error) {
+type GetVenueRow struct {
+	ID           uuid.UUID
+	OfficialName string
+	GoogleMapID  string
+	Address      string
+	Latitude     float64
+	Longitude    float64
+	RelatedLinks []string
+	Capacity     sql.NullInt32
+	RatingSum    float64
+	RatingCount  int32
+	Status       string
+	AuthorID     uuid.NullUUID
+	CreatedAt    time.Time
+	UpdatedAt    time.Time
+	CreditScore  int32
+	CreditCount  int32
+}
+
+func (q *Queries) GetVenue(ctx context.Context, id uuid.UUID) (GetVenueRow, error) {
 	row := q.db.QueryRowContext(ctx, getVenue, id)
-	var i Venue
+	var i GetVenueRow
 	err := row.Scan(
 		&i.ID,
 		&i.OfficialName,
@@ -170,13 +215,45 @@ func (q *Queries) InsertUserVenueRating(ctx context.Context, arg InsertUserVenue
 }
 
 const listVenuesByBoundingBox = `-- name: ListVenuesByBoundingBox :many
-SELECT id, official_name, google_map_id, address, latitude, longitude, related_links, capacity, rating_sum, rating_count, status, author_id, created_at, updated_at, credit_score, credit_count FROM venues
+SELECT
+    v.id,
+    v.official_name,
+    v.google_map_id,
+    v.address,
+    v.latitude,
+    v.longitude,
+    v.related_links,
+    v.capacity,
+    COALESCE((
+        SELECT SUM(e.rating_sum / e.rating_count)
+        FROM events e
+        WHERE e.venue_id = v.id AND e.rating_count > 0
+    ), v.rating_sum)::double precision AS rating_sum,
+    COALESCE((
+        SELECT NULLIF(COUNT(*)::int, 0)
+        FROM events e
+        WHERE e.venue_id = v.id AND e.rating_count > 0
+    ), v.rating_count)::int AS rating_count,
+    v.status,
+    v.author_id,
+    v.created_at,
+    v.updated_at,
+    v.credit_score,
+    v.credit_count
+FROM venues v
 WHERE 
-    latitude BETWEEN $2 AND $3
-    AND longitude BETWEEN $4 AND $5
-    AND ($6::varchar IS NULL OR status = $6)
-    AND ($7::uuid IS NULL OR id > $7)
-ORDER BY id ASC
+    v.latitude BETWEEN $2 AND $3
+    AND v.longitude BETWEEN $4 AND $5
+    AND ($6::varchar IS NULL OR v.status = $6)
+    AND ($7::uuid IS NULL OR v.id > $7)
+ORDER BY
+    CASE
+        WHEN COALESCE((SELECT COUNT(*) FROM events e WHERE e.venue_id = v.id AND e.rating_count > 0), 0) > 0
+        THEN (SELECT AVG(e.rating_sum / e.rating_count) FROM events e WHERE e.venue_id = v.id AND e.rating_count > 0)
+        WHEN v.rating_count > 0 THEN v.rating_sum / v.rating_count
+        ELSE 0
+    END DESC,
+    v.id ASC
 LIMIT $1
 `
 
@@ -190,7 +267,26 @@ type ListVenuesByBoundingBoxParams struct {
 	CursorID uuid.UUID
 }
 
-func (q *Queries) ListVenuesByBoundingBox(ctx context.Context, arg ListVenuesByBoundingBoxParams) ([]Venue, error) {
+type ListVenuesByBoundingBoxRow struct {
+	ID           uuid.UUID
+	OfficialName string
+	GoogleMapID  string
+	Address      string
+	Latitude     float64
+	Longitude    float64
+	RelatedLinks []string
+	Capacity     sql.NullInt32
+	RatingSum    float64
+	RatingCount  int32
+	Status       string
+	AuthorID     uuid.NullUUID
+	CreatedAt    time.Time
+	UpdatedAt    time.Time
+	CreditScore  int32
+	CreditCount  int32
+}
+
+func (q *Queries) ListVenuesByBoundingBox(ctx context.Context, arg ListVenuesByBoundingBoxParams) ([]ListVenuesByBoundingBoxRow, error) {
 	rows, err := q.db.QueryContext(ctx, listVenuesByBoundingBox,
 		arg.Limit,
 		arg.MinLat,
@@ -204,9 +300,9 @@ func (q *Queries) ListVenuesByBoundingBox(ctx context.Context, arg ListVenuesByB
 		return nil, err
 	}
 	defer rows.Close()
-	var items []Venue
+	var items []ListVenuesByBoundingBoxRow
 	for rows.Next() {
-		var i Venue
+		var i ListVenuesByBoundingBoxRow
 		if err := rows.Scan(
 			&i.ID,
 			&i.OfficialName,
@@ -240,21 +336,29 @@ func (q *Queries) ListVenuesByBoundingBox(ctx context.Context, arg ListVenuesByB
 
 const searchVenues = `-- name: SearchVenues :many
 SELECT
-    id,
-    official_name,
-    address,
-    latitude,
-    longitude,
-    rating_sum,
-    rating_count,
-    status
-FROM venues
+    v.id,
+    v.official_name,
+    v.address,
+    v.latitude,
+    v.longitude,
+    COALESCE((
+        SELECT SUM(e.rating_sum / e.rating_count)
+        FROM events e
+        WHERE e.venue_id = v.id AND e.rating_count > 0
+    ), v.rating_sum)::double precision AS rating_sum,
+    COALESCE((
+        SELECT NULLIF(COUNT(*)::int, 0)
+        FROM events e
+        WHERE e.venue_id = v.id AND e.rating_count > 0
+    ), v.rating_count)::int AS rating_count,
+    v.status
+FROM venues v
 WHERE
-    status != 'REJECTED'
-    AND LOWER(official_name) LIKE LOWER($1::varchar) || '%'
+    v.status != 'REJECTED'
+    AND LOWER(v.official_name) LIKE LOWER($1::varchar) || '%'
 ORDER BY
-    CASE WHEN status = 'APPROVED' THEN 0 ELSE 1 END,
-    official_name ASC
+    CASE WHEN v.status = 'APPROVED' THEN 0 ELSE 1 END,
+    v.official_name ASC
 LIMIT $2
 `
 

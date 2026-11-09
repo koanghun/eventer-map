@@ -56,7 +56,7 @@ func (s *VenueService) SearchVenues(ctx context.Context, query string, limit int
 }
 
 func (s *VenueService) ListVenuesByBoundingBox(ctx context.Context, minLat, maxLat, minLng, maxLng float64, status, nameKeyword string) ([]repository.Venue, error) {
-	return s.repo.ListVenuesByBoundingBox(ctx, repository.ListVenuesByBoundingBoxParams{
+	rows, err := s.repo.ListVenuesByBoundingBox(ctx, repository.ListVenuesByBoundingBoxParams{
 		MinLat:   minLat,
 		MaxLat:   maxLat,
 		MinLon:   minLng, // Map Lng to Lon
@@ -64,6 +64,14 @@ func (s *VenueService) ListVenuesByBoundingBox(ctx context.Context, minLat, maxL
 		Status:   status,
 		CursorID: uuid.Nil,
 	})
+	if err != nil {
+		return nil, err
+	}
+	venues := make([]repository.Venue, len(rows))
+	for i, r := range rows {
+		venues[i] = repository.Venue(r)
+	}
+	return venues, nil
 }
 
 func (s *VenueService) CreateVenue(ctx context.Context, input CreateVenueInput) (*repository.Venue, error) {
@@ -100,10 +108,11 @@ func (s *VenueService) CreateVenue(ctx context.Context, input CreateVenueInput) 
 }
 
 func (s *VenueService) GetVenue(ctx context.Context, id uuid.UUID) (*repository.Venue, error) {
-	venue, err := s.repo.GetVenue(ctx, id)
+	row, err := s.repo.GetVenue(ctx, id)
 	if err != nil {
 		return nil, err
 	}
+	venue := repository.Venue(row)
 	return &venue, nil
 }
 

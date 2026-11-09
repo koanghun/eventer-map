@@ -279,6 +279,12 @@ func (s *Server) GetUsersMeFollowingArtists(w http.ResponseWriter, r *http.Reque
 			p := a.ProfileImageUrl.String
 			profileImageURL = &p
 		}
+		ratingCount := int(a.RatingCount)
+		var rating *float64
+		if a.RatingCount > 0 {
+			avg := a.RatingSum / float64(a.RatingCount)
+			rating = &avg
+		}
 
 		response = append(response, Artist{
 			Id:              &id,
@@ -287,6 +293,8 @@ func (s *Server) GetUsersMeFollowingArtists(w http.ResponseWriter, r *http.Reque
 			Disambiguation:  disambiguation,
 			Gender:          &gender,
 			ProfileImageUrl: profileImageURL,
+			Rating:          rating,
+			RatingCount:     &ratingCount,
 			Status:          &status,
 		})
 	}

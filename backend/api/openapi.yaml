@@ -1487,6 +1487,13 @@ components:
         posterImageUrl:
           type: string
           format: uri
+        topArtistName:
+          type: string
+          description: 출연자 중 가장 평점이 높은 대표 출연자 공식 이름
+        topArtistProfileImageUrl:
+          type: string
+          format: uri
+          description: 출연자 중 가장 평점이 높은 대표 출연자 프로필 이미지 URL
         status:
           type: string
           enum: [PENDING, APPROVED, REJECTED]
@@ -1773,6 +1780,10 @@ components:
           type: string
           maxLength: 100
           description: "동명이인 구분을 위한 한 줄 식별 설명 (소속 그룹, 분야 등)"
+        rating:
+          type: number
+          format: double
+          description: "참가한 이벤트들의 평균 평점"
         status:
           type: string
           enum: [PENDING, APPROVED, REJECTED]
@@ -1802,6 +1813,13 @@ components:
           type: string
           format: uri
           description: 프로필 이미지 URL
+        rating:
+          type: number
+          format: double
+          description: "참가한 이벤트들의 평균 평점"
+        ratingCount:
+          type: integer
+          description: "평점이 매겨진 참가 이벤트 수"
         status:
           type: string
           enum: [PENDING, APPROVED, REJECTED]

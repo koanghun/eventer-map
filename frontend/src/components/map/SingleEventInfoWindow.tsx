@@ -6,12 +6,14 @@ import type { EventSummary } from '../../api/generated/model';
 interface SingleEventInfoWindowProps {
     event: EventSummary;
     position: { lat: number; lng: number };
+    offsetPx?: number;
     onClose: () => void;
 }
 
 export default function SingleEventInfoWindow({
     event,
     position,
+    offsetPx = 32,
     onClose,
 }: SingleEventInfoWindowProps) {
     const { t } = useTranslation();
@@ -35,7 +37,10 @@ export default function SingleEventInfoWindow({
 
     return (
         <OverlayView position={position} mapPaneName={OverlayView.FLOAT_PANE}>
-            <div className="absolute bottom-[45px] left-0 -translate-x-1/2 z-50">
+            <div
+                style={{ bottom: `${offsetPx}px` }}
+                className="absolute left-0 -translate-x-1/2 z-50"
+            >
                 <div className="min-w-[280px] max-w-[340px] font-sans bg-background text-foreground rounded-2xl shadow-2xl border border-border relative animate-in zoom-in-95 duration-200">
                     {/* Speech Bubble Arrow Tail */}
                     <div className="absolute bottom-[-6px] left-1/2 -translate-x-1/2 w-3 h-3 bg-background border-r border-b border-border rotate-45" />

@@ -7,6 +7,7 @@ interface GroupEventInfoWindowProps {
     events: EventSummary[];
     location: { lat: number; lng: number };
     locationName: string;
+    offsetPx?: number;
     onClose: () => void;
     onEventSelect: (event: EventSummary) => void;
 }
@@ -15,6 +16,7 @@ export default function GroupEventInfoWindow({
     events,
     location,
     locationName,
+    offsetPx = 32,
     onClose,
     onEventSelect,
 }: GroupEventInfoWindowProps) {
@@ -22,7 +24,10 @@ export default function GroupEventInfoWindow({
 
     return (
         <OverlayView position={location} mapPaneName={OverlayView.FLOAT_PANE}>
-            <div className="absolute bottom-[45px] left-0 -translate-x-1/2 z-50">
+            <div
+                style={{ bottom: `${offsetPx}px` }}
+                className="absolute left-0 -translate-x-1/2 z-50"
+            >
                 <div className="min-w-[280px] max-w-[340px] font-sans bg-background text-foreground shadow-2xl rounded-2xl border border-border relative animate-in zoom-in-95 duration-200">
                     {/* Speech Bubble Arrow Tail */}
                     <div className="absolute bottom-[-6px] left-1/2 -translate-x-1/2 w-3 h-3 bg-background border-r border-b border-border rotate-45" />

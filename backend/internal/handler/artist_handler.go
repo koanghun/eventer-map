@@ -38,6 +38,12 @@ func mapArtistToResponse(a *repository.Artist) Artist {
 		aID := openapi_types.UUID(a.AuthorID.UUID)
 		authorID = &aID
 	}
+	ratingCount := int(a.RatingCount)
+	var rating *float64
+	if a.RatingCount > 0 {
+		avg := a.RatingSum / float64(a.RatingCount)
+		rating = &avg
+	}
 
 	return Artist{
 		Id:              &id,
@@ -46,6 +52,8 @@ func mapArtistToResponse(a *repository.Artist) Artist {
 		Disambiguation:  disambiguation,
 		Gender:          &gen,
 		ProfileImageUrl: profileImageURL,
+		Rating:          rating,
+		RatingCount:     &ratingCount,
 		Status:          &st,
 		AuthorId:        authorID,
 	}
@@ -90,11 +98,17 @@ func (s *Server) GetArtists(w http.ResponseWriter, r *http.Request, params GetAr
 			d := a.Disambiguation.String
 			disambiguation = &d
 		}
+		var rating *float64
+		if a.RatingCount > 0 {
+			avg := a.RatingSum / float64(a.RatingCount)
+			rating = &avg
+		}
 		summaries = append(summaries, ArtistSummary{
 			Id:             &id,
 			OfficialName:   &name,
 			Hiragana:       hiragana,
 			Disambiguation: disambiguation,
+			Rating:         rating,
 			Status:         &st,
 		})
 	}

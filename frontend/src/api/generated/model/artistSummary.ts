@@ -18,6 +18,8 @@ export interface ArtistSummary {
   id?: string;
   /** 공식 이름 */
   officialName?: string;
+  /** 참가한 이벤트들의 평균 평점 */
+  rating?: number;
   /** 아티스트 상태 */
   status?: ArtistSummaryStatus;
 }
