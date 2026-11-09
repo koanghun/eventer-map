@@ -417,7 +417,7 @@ func (s *Server) PutEventsEventIdAction(w http.ResponseWriter, r *http.Request, 
 	}
 
 	var reqBody PutEventsEventIdActionJSONRequestBody
-	if err := json.NewDecoder(r.Body).Decode(&reqBody); err != nil {
+	if err := json.NewDecoder(r.Body).Decode(&reqBody); err != nil || !reqBody.Status.Valid() {
 		RespondError(w, http.StatusBadRequest, "Invalid request body")
 		return
 	}

@@ -134,6 +134,14 @@
         }
     },
     "eventDetail": {
+        "action": {
+            "check": "チェック",
+            "attend": "参加",
+            "release": "解除",
+            "statusChecked": "チェック済み",
+            "statusAttending": "参加中",
+            "updateFailed": "イベントの状態変更に失敗しました。"
+        },
         "flags": {
             "add": "フラグを追加",
             "remove": "フラグを解除",

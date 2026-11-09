@@ -134,6 +134,14 @@
         }
     },
     "eventDetail": {
+        "action": {
+            "check": "체크",
+            "attend": "참가",
+            "release": "해제",
+            "statusChecked": "체크됨",
+            "statusAttending": "참가중",
+            "updateFailed": "이벤트 상태 변경에 실패했습니다."
+        },
         "flags": {
             "add": "플래그 추가",
             "remove": "플래그 제거",

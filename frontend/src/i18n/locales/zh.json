@@ -133,6 +133,14 @@
         }
     },
     "eventDetail": {
+        "action": {
+            "check": "关注",
+            "attend": "参加",
+            "release": "解除",
+            "statusChecked": "已关注",
+            "statusAttending": "参加中",
+            "updateFailed": "更新活动状态失败。"
+        },
         "flags": {
             "add": "フラグを追加",
             "remove": "フラグを解除",

@@ -33,6 +33,7 @@ export default function SingleEventInfoWindow({
     const rawVenueName = eventData?.venue?.officialName || event.venueName;
     const venueName = rawVenueName || t('eventDetail.venueUnknown', 'Venue TBD');
     const artists = eventData?.artists?.filter((a) => Boolean(a.officialName)) || [];
+    const attendeeCount = eventData?.attendeeCount ?? event.attendeeCount;
 
     const formattedStart = event.startTime
         ? new Date(event.startTime).toLocaleString('ko-KR', {
@@ -162,14 +163,16 @@ export default function SingleEventInfoWindow({
                             </div>
                         </div>
 
-                        {typeof event.attendeeCount === 'number' && (
-                            <div className="flex items-center gap-2.5">
-                                <Users className="w-4 h-4 text-primary/70 shrink-0" />
-                                <span className="text-foreground font-medium">
-                                    {event.attendeeCount}
-                                </span>
-                            </div>
-                        )}
+                            {
+                                typeof attendeeCount === 'number' && (
+                                    <div className="flex items-center gap-2.5">
+                                        <Users className="w-4 h-4 text-primary/70 shrink-0" />
+                                        <span className="text-foreground font-medium">
+                                            {attendeeCount}
+                                        </span>
+                                    </div>
+                                )
+                            }
                     </div>
                 </div>
             </div>
