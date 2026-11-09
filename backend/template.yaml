@@ -59,6 +59,9 @@ Resources:
     Properties:
       CodeUri: .build
       Handler: bootstrap
+      Policies:
+        - S3CrudPolicy:
+            BucketName: !Ref MediaBucket
       Environment:
         Variables:
           ENV: !Ref Stage
@@ -67,6 +70,7 @@ Resources:
           CORS_ORIGINS: !Ref CorsOrigins
           COOKIE_DOMAIN: !Ref CookieDomain
           COOKIE_SAMESITE: !Ref CookieSameSite
+          S3_MEDIA_BUCKET: !Ref MediaBucket
       Events:
         CatchAll:
           Type: Api
@@ -80,6 +84,35 @@ Resources:
             Method: ANY
     Metadata:
       BuildMethod: makefile
+
+  # ============================================================================
+  # 1-1. Media Storage: S3 Bucket for Uploaded Images (Artist Profiles, Posters)
+  # ============================================================================
+  MediaBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault:
+              SSEAlgorithm: AES256
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: false
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: false
+
+  MediaBucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket: !Ref MediaBucket
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Sid: AllowPublicReadArtistProfiles
+            Effect: Allow
+            Principal: "*"
+            Action: s3:GetObject
+            Resource: !Sub "${MediaBucket.Arn}/artists/profiles/*"
 
   # ============================================================================
   # 2. Frontend: S3 Bucket (Private) + CloudFront (OAC)
@@ -166,6 +199,10 @@ Outputs:
   EventerMapApi:
     Description: "API Gateway endpoint URL"
     Value: !Sub "https://${ServerlessRestApi}.execute-api.${AWS::Region}.amazonaws.com/Prod"
+
+  MediaBucketName:
+    Description: "S3 Bucket Name for Uploaded Media Files"
+    Value: !Ref MediaBucket
 
   FrontendBucketName:
     Description: "S3 Bucket Name for Frontend Static Files"

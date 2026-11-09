@@ -4,9 +4,11 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"io"
 	"strings"
 
 	"eventer-map-backend/internal/repository"
+	"eventer-map-backend/internal/storage"
 	"github.com/google/uuid"
 )
 
@@ -16,20 +18,23 @@ const (
 )
 
 type CreateArtistInput struct {
-	OfficialName   string
-	Hiragana       *string
-	Disambiguation *string
-	Gender         string
-	AuthorID       uuid.UUID
+	OfficialName            string
+	Hiragana                *string
+	Disambiguation          *string
+	Gender                  string
+	ProfileImage            io.Reader
+	ProfileImageContentType string
+	AuthorID                uuid.UUID
 }
 
 type ArtistService struct {
-	repo *repository.Queries
-	db   *sql.DB
+	repo     *repository.Queries
+	db       *sql.DB
+	uploader storage.Uploader
 }
 
-func NewArtistService(repo *repository.Queries, db *sql.DB) *ArtistService {
-	return &ArtistService{repo: repo, db: db}
+func NewArtistService(repo *repository.Queries, db *sql.DB, uploader storage.Uploader) *ArtistService {
+	return &ArtistService{repo: repo, db: db, uploader: uploader}
 }
 
 func (s *ArtistService) ListArtists(ctx context.Context, limit int32, status string, nameKeyword string, cursorID uuid.UUID) ([]repository.Artist, error) {
@@ -67,6 +72,17 @@ func (s *ArtistService) CreateArtist(ctx context.Context, input CreateArtistInpu
 	}
 	if input.Disambiguation != nil && strings.TrimSpace(*input.Disambiguation) != "" {
 		params.Disambiguation = sql.NullString{String: strings.TrimSpace(*input.Disambiguation), Valid: true}
+	}
+
+	if input.ProfileImage != nil {
+		if s.uploader == nil {
+			return nil, errors.New("S3 storage is not configured")
+		}
+		imageURL, err := s.uploader.UploadArtistProfileImage(ctx, input.ProfileImage, input.ProfileImageContentType)
+		if err != nil {
+			return nil, err
+		}
+		params.ProfileImageUrl = sql.NullString{String: imageURL, Valid: true}
 	}
 
 	artist, err := s.repo.CreateArtist(ctx, params)

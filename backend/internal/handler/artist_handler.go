@@ -1,15 +1,55 @@
 package handler
 
 import (
+	"io"
 	"log"
 	"net/http"
 	"strings"
 
 	"eventer-map-backend/internal/middleware"
+	"eventer-map-backend/internal/repository"
 	"eventer-map-backend/internal/service"
 	"github.com/google/uuid"
 	openapi_types "github.com/oapi-codegen/runtime/types"
 )
+
+func mapArtistToResponse(a *repository.Artist) Artist {
+	id := openapi_types.UUID(a.ID)
+	name := a.OfficialName
+	gen := ArtistGender(a.Gender)
+	st := ArtistStatus(a.Status)
+	var hiragana *string
+	if a.Hiragana.Valid && a.Hiragana.String != "" {
+		h := a.Hiragana.String
+		hiragana = &h
+	}
+	var disambiguation *string
+	if a.Disambiguation.Valid && a.Disambiguation.String != "" {
+		d := a.Disambiguation.String
+		disambiguation = &d
+	}
+	var profileImageURL *string
+	if a.ProfileImageUrl.Valid && a.ProfileImageUrl.String != "" {
+		p := a.ProfileImageUrl.String
+		profileImageURL = &p
+	}
+	var authorID *openapi_types.UUID
+	if a.AuthorID.Valid {
+		aID := openapi_types.UUID(a.AuthorID.UUID)
+		authorID = &aID
+	}
+
+	return Artist{
+		Id:              &id,
+		OfficialName:    &name,
+		Hiragana:        hiragana,
+		Disambiguation:  disambiguation,
+		Gender:          &gen,
+		ProfileImageUrl: profileImageURL,
+		Status:          &st,
+		AuthorId:        authorID,
+	}
+}
 
 // GetArtists implements the GET /artists endpoint
 func (s *Server) GetArtists(w http.ResponseWriter, r *http.Request, params GetArtistsParams) {
@@ -82,23 +122,41 @@ func (s *Server) PostArtists(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	input := service.CreateArtistInput{
+		OfficialName: officialName,
+		Gender:       string(gender),
+		AuthorID:     myID,
+	}
+
 	if file, header, err := r.FormFile("profileImage"); err == nil {
 		defer file.Close()
 		if header.Size > 5<<20 {
 			RespondError(w, http.StatusBadRequest, "profileImage must be 5MB or smaller")
 			return
 		}
-		contentType := header.Header.Get("Content-Type")
-		if contentType != "image/jpeg" && contentType != "image/png" {
-			RespondError(w, http.StatusBadRequest, "profileImage must be JPG or PNG")
+
+		// Inspect magic bytes (up to 512 bytes) to verify actual image format
+		var sniffBuf [512]byte
+		n, readErr := io.ReadFull(file, sniffBuf[:])
+		if readErr != nil && readErr != io.EOF && readErr != io.ErrUnexpectedEOF {
+			RespondError(w, http.StatusBadRequest, "Failed to read profileImage")
 			return
 		}
-	}
+		detectedType := http.DetectContentType(sniffBuf[:n])
+		if detectedType != "image/jpeg" && detectedType != "image/png" {
+			RespondError(w, http.StatusBadRequest, "profileImage must be a valid JPG or PNG image")
+			return
+		}
+		if _, seekErr := file.Seek(0, io.SeekStart); seekErr != nil {
+			RespondError(w, http.StatusInternalServerError, "Failed to process profileImage")
+			return
+		}
 
-	input := service.CreateArtistInput{
-		OfficialName: officialName,
-		Gender:       string(gender),
-		AuthorID:     myID,
+		input.ProfileImage = file
+		input.ProfileImageContentType = detectedType
+	} else if err != http.ErrMissingFile {
+		RespondError(w, http.StatusBadRequest, "Invalid profileImage upload")
+		return
 	}
 
 	if h := strings.TrimSpace(r.FormValue("hiragana")); h != "" {
@@ -119,35 +177,7 @@ func (s *Server) PostArtists(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	id := openapi_types.UUID(created.ID)
-	name := created.OfficialName
-	gen := ArtistGender(created.Gender)
-	st := ArtistStatus(created.Status)
-	var hiragana *string
-	if created.Hiragana.Valid && created.Hiragana.String != "" {
-		h := created.Hiragana.String
-		hiragana = &h
-	}
-	var disambiguation *string
-	if created.Disambiguation.Valid && created.Disambiguation.String != "" {
-		d := created.Disambiguation.String
-		disambiguation = &d
-	}
-	var authorID *openapi_types.UUID
-	if created.AuthorID.Valid {
-		aID := openapi_types.UUID(created.AuthorID.UUID)
-		authorID = &aID
-	}
-
-	RespondJSON(w, http.StatusCreated, Artist{
-		Id:             &id,
-		OfficialName:   &name,
-		Hiragana:       hiragana,
-		Disambiguation: disambiguation,
-		Gender:         &gen,
-		Status:         &st,
-		AuthorId:       authorID,
-	})
+	RespondJSON(w, http.StatusCreated, mapArtistToResponse(created))
 }
 
 // GetArtistsArtistId implements the GET /artists/{artistId} endpoint
@@ -158,7 +188,7 @@ func (s *Server) GetArtistsArtistId(w http.ResponseWriter, r *http.Request, arti
 		return
 	}
 
-	RespondJSON(w, http.StatusOK, artist)
+	RespondJSON(w, http.StatusOK, mapArtistToResponse(artist))
 }
 
 // PostArtistsArtistIdFollow implements the POST /artists/{artistId}/follow endpoint
@@ -251,5 +281,5 @@ func (s *Server) PostArtistsArtistIdRate(w http.ResponseWriter, r *http.Request,
 		return
 	}
 
-	RespondJSON(w, http.StatusOK, updatedArtist)
+	RespondJSON(w, http.StatusOK, mapArtistToResponse(updatedArtist))
 }
