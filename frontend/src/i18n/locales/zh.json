@@ -116,7 +116,6 @@
             "placeNotFound": "会場が見つかりませんでした。別の検索語をお試しください。",
             "placeFound": "会場情報を自動的に取得しました。",
             "placeCreateFailed": "会場の登録処理に失敗しました。",
-
             "requiredFields": "必須項目をすべて入力してください。",
             "duplicateCheckError": "重複確認中にエラーが発生しました。しばらくしてから再度お試しください。"
         }
@@ -207,7 +206,8 @@
             "performers": "出演者",
             "description": "説明"
         },
-        "mapLink": "Google Mapsで表示"
+        "searchByArtist": "按此出演者搜索（6个月）",
+        "searchByVenue": "按此会场搜索（6个月）"
     },
     "filter": {
         "flags": {

@@ -1,6 +1,7 @@
 import { OverlayView } from '@react-google-maps/api';
 import { useTranslation } from 'react-i18next';
-import { MapPin, Calendar, Users, X } from 'lucide-react';
+import { MapPin, Calendar, Users, Mic2, ExternalLink, X } from 'lucide-react';
+import { useGetEventsEventId } from '../../api/generated/events/events';
 import type { EventSummary } from '../../api/generated/model';
 
 interface SingleEventInfoWindowProps {
@@ -8,6 +9,8 @@ interface SingleEventInfoWindowProps {
     position: { lat: number; lng: number };
     offsetPx?: number;
     onClose: () => void;
+    onArtistSelect?: (artist: { id: string; name: string }) => void;
+    onVenueSelect?: (venue: { id: string; name: string; lat?: number; lng?: number }) => void;
 }
 
 export default function SingleEventInfoWindow({
@@ -15,24 +18,36 @@ export default function SingleEventInfoWindow({
     position,
     offsetPx = 32,
     onClose,
+    onArtistSelect,
+    onVenueSelect,
 }: SingleEventInfoWindowProps) {
     const { t } = useTranslation();
 
-    const venueName = event.venueName || t('eventDetail.venueUnknown', 'Venue TBD');
+    const { data: eventData } = useGetEventsEventId(event.id || '', {
+        query: {
+            enabled: !!event.id,
+        },
+    });
+
+    const venueId = eventData?.venue?.id || event.venueId;
+    const rawVenueName = eventData?.venue?.officialName || event.venueName;
+    const venueName = rawVenueName || t('eventDetail.venueUnknown', 'Venue TBD');
+    const artists = eventData?.artists?.filter((a) => Boolean(a.officialName)) || [];
+
     const formattedStart = event.startTime
         ? new Date(event.startTime).toLocaleString('ko-KR', {
-              year: 'numeric',
-              month: 'short',
-              day: 'numeric',
-              hour: '2-digit',
-              minute: '2-digit',
-          })
+            year: 'numeric',
+            month: 'short',
+            day: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit',
+        })
         : t('eventDetail.dateUnknown', 'Date TBD');
     const formattedEnd = event.endTime
         ? new Date(event.endTime).toLocaleTimeString('ko-KR', {
-              hour: '2-digit',
-              minute: '2-digit',
-          })
+            hour: '2-digit',
+            minute: '2-digit',
+        })
         : null;
 
     return (
@@ -65,16 +80,79 @@ export default function SingleEventInfoWindow({
                     <div className="p-3.5 space-y-2.5 text-sm">
                         <div className="flex items-start gap-2.5">
                             <MapPin className="w-4 h-4 text-primary/70 mt-0.5 shrink-0" />
-                            <a
-                                href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(venueName)}`}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="text-foreground hover:text-primary hover:underline underline-offset-2 transition-colors break-words font-medium"
-                                title={t('eventDetail.mapLink', 'Google Maps에서 보기')}
-                            >
-                                {venueName}
-                            </a>
+                            <div className="flex items-center gap-1.5 flex-wrap min-w-0">
+                                {venueId && rawVenueName && onVenueSelect ? (
+                                    <button
+                                        type="button"
+                                        onClick={() =>
+                                            onVenueSelect({
+                                                id: venueId,
+                                                name: rawVenueName,
+                                                lat: position.lat,
+                                                lng: position.lng,
+                                            })
+                                        }
+                                        className="text-left text-foreground hover:text-primary hover:underline underline-offset-2 transition-colors break-words font-medium cursor-pointer"
+                                        title={t('eventDetail.searchByVenue', '이 공연장으로 검색 (6개월)')}
+                                    >
+                                        {venueName}
+                                    </button>
+                                ) : (
+                                    <span className="text-foreground break-words font-medium">
+                                        {venueName}
+                                    </span>
+                                )}
+                                {rawVenueName && (
+                                    <a
+                                        href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(rawVenueName)}`}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="text-muted-foreground hover:text-primary transition-colors shrink-0"
+                                        title={t('eventDetail.mapLink', 'Google Maps에서 보기')}
+                                        aria-label={t('eventDetail.mapLink', 'Google Maps에서 보기')}
+                                    >
+                                        <ExternalLink className="w-3.5 h-3.5" />
+                                    </a>
+                                )}
+                            </div>
                         </div>
+
+                        {artists.length > 0 && (
+                            <div className="flex items-start gap-2.5">
+                                <Mic2 className="w-4 h-4 text-primary/70 mt-0.5 shrink-0" />
+                                <div className="flex flex-wrap items-center gap-x-1.5 gap-y-1">
+                                    {artists.map((a, idx) => {
+                                        const label = a.disambiguation
+                                            ? `${a.officialName} (${a.disambiguation})`
+                                            : a.officialName!;
+                                        return (
+                                            <span key={a.id || idx} className="inline-flex items-center">
+                                                {a.id && onArtistSelect ? (
+                                                    <button
+                                                        type="button"
+                                                        onClick={() =>
+                                                            onArtistSelect({
+                                                                id: a.id!,
+                                                                name: a.officialName!,
+                                                            })
+                                                        }
+                                                        className="text-left text-foreground hover:text-primary hover:underline underline-offset-2 transition-colors font-medium break-words cursor-pointer"
+                                                        title={t('eventDetail.searchByArtist', '이 출연자로 검색 (6개월)')}
+                                                    >
+                                                        {label}
+                                                    </button>
+                                                ) : (
+                                                    <span className="text-foreground font-medium">{label}</span>
+                                                )}
+                                                {idx < artists.length - 1 && (
+                                                    <span className="text-muted-foreground">,</span>
+                                                )}
+                                            </span>
+                                        );
+                                    })}
+                                </div>
+                            </div>
+                        )}
 
                         <div className="flex items-start gap-2.5">
                             <Calendar className="w-4 h-4 text-primary/70 mt-0.5 shrink-0" />

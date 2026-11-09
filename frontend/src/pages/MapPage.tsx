@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useSearchParams } from 'react-router-dom';
-import { format } from 'date-fns';
+import { format, addMonths } from 'date-fns';
 import { Plus } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useEventStore } from '../store/useEventStore';
@@ -18,11 +18,16 @@ import EventDetailPane from '../components/events/EventDetailPane';
 export default function MapPage() {
     const { t } = useTranslation();
     const [searchParams, setSearchParams] = useSearchParams();
-    
+
     const today = format(new Date(), 'yyyy-MM-dd');
     const startDate = searchParams.get('start') ?? today;
     const endDate = searchParams.get('end') ?? today;
-    
+    const artistId = searchParams.get('artistId') || undefined;
+    const artistName = searchParams.get('artistName') || undefined;
+    const venueId = searchParams.get('venueId') || undefined;
+    const venueName = searchParams.get('venueName') || undefined;
+    const isFilteredByEntity = Boolean(artistId || venueId);
+
     const { isAuthenticated } = useAuth();
     const [isFormOpen, setIsFormOpen] = useState(false);
     const [editingEvent, setEditingEvent] = useState<EventSummary | null>(null);
@@ -35,17 +40,19 @@ export default function MapPage() {
     // 지도 Bounding Box(좌표 범위) 및 날짜 범위를 백엔드로 전달하여 참가자 많은 순으로 최대 50건만 조회
     const { data: eventsData, isLoading: isEventsLoading } = useGetEvents(
         {
-            minLat: mapBounds?.minLat,
-            maxLat: mapBounds?.maxLat,
-            minLng: mapBounds?.minLng,
-            maxLng: mapBounds?.maxLng,
+            minLat: isFilteredByEntity ? undefined : mapBounds?.minLat,
+            maxLat: isFilteredByEntity ? undefined : mapBounds?.maxLat,
+            minLng: isFilteredByEntity ? undefined : mapBounds?.minLng,
+            maxLng: isFilteredByEntity ? undefined : mapBounds?.maxLng,
             startDate,
             endDate,
+            artistId,
+            venueId,
             limit: 50,
         },
         {
             query: {
-                enabled: mapBounds !== null,
+                enabled: isFilteredByEntity || mapBounds !== null,
                 staleTime: 60 * 1000, // 1분간 캐시 유지 (AWS Lambda 및 DS920+ NAS DB 호출 절감)
                 placeholderData: (previousData) => previousData, // 지도 이동 중 이전 마커/목록 유지하여 깜빡임 방지
             },
@@ -105,6 +112,47 @@ export default function MapPage() {
         clearSelection();
     };
 
+    const handleSearchByArtist = (artist: { id: string; name: string }) => {
+        const searchStart = format(new Date(), 'yyyy-MM-dd');
+        const searchEnd = format(addMonths(new Date(), 6), 'yyyy-MM-dd');
+        updateQueryParams({
+            start: searchStart,
+            end: searchEnd,
+            artistId: artist.id,
+            artistName: artist.name,
+            venueId: null,
+            venueName: null,
+        });
+        clearSelection();
+    };
+
+    const handleSearchByVenue = (venue: { id: string; name: string; lat?: number; lng?: number }) => {
+        const searchStart = format(new Date(), 'yyyy-MM-dd');
+        const searchEnd = format(addMonths(new Date(), 6), 'yyyy-MM-dd');
+        updateQueryParams({
+            start: searchStart,
+            end: searchEnd,
+            venueId: venue.id,
+            venueName: venue.name,
+            artistId: null,
+            artistName: null,
+        });
+        if (typeof venue.lat === 'number' && typeof venue.lng === 'number') {
+            setMapCenterTarget({ lat: venue.lat, lng: venue.lng });
+        }
+        clearSelection();
+    };
+
+    const handleClearEntityFilter = () => {
+        updateQueryParams({
+            artistId: null,
+            artistName: null,
+            venueId: null,
+            venueName: null,
+        });
+        clearSelection();
+    };
+
     return (
         <div className="flex-1 flex flex-col md:flex-row gap-4 p-4 md:p-6 w-full max-w-[2400px] mx-auto md:overflow-hidden md:h-[calc(100vh-73px)] relative overflow-x-hidden">
             {/* 좌측 사이드바 영역 (기본 목록 / 이벤트 상세 / 이벤트 생성 폼 전환) */}
@@ -120,16 +168,31 @@ export default function MapPage() {
                 ) : selectedEvent ? (
                     <EventDetailPane
                         onEdit={isAuthenticated ? () => handleEditEvent(selectedEvent) : undefined}
+                        onArtistSelect={handleSearchByArtist}
+                        onVenueSelect={handleSearchByVenue}
                     />
                 ) : (
                     <>
                         <div className="p-4 flex flex-col gap-4 border-b border-border/50 shrink-0">
-                            <DatePicker 
-                                startDate={startDate} 
-                                endDate={endDate} 
-                                onDateChange={handleDateChange} 
+                            <DatePicker
+                                startDate={startDate}
+                                endDate={endDate}
+                                onDateChange={handleDateChange}
                             />
-                            <ArtistSearch />
+                            <ArtistSearch
+                                selectedArtist={
+                                    artistId
+                                        ? { id: artistId, name: artistName || artistId }
+                                        : null
+                                }
+                                selectedVenue={
+                                    venueId
+                                        ? { id: venueId, name: venueName || venueId }
+                                        : null
+                                }
+                                onSelectArtist={handleSearchByArtist}
+                                onClearFilter={handleClearEntityFilter}
+                            />
                             {isAuthenticated && (
                                 <Button className="w-full bg-gradient-to-r from-primary to-orange-500 hover:from-primary/90 hover:to-orange-500/90 text-white shadow-md transition-all hover:-translate-y-0.5" onClick={handleOpenForm}>
                                     <Plus className="w-4 h-4 mr-2" /> {t('buttons.newEvent')}
@@ -141,7 +204,7 @@ export default function MapPage() {
                                 events={filteredEvents}
                                 loading={isEventsLoading}
                                 onEventEdit={isAuthenticated ? handleEditEvent : undefined}
-                                onEventDelete={isAuthenticated ? () => {} : undefined}
+                                onEventDelete={isAuthenticated ? () => { } : undefined}
                             />
                         </div>
                     </>
@@ -150,7 +213,11 @@ export default function MapPage() {
 
             {/* 중앙 지도 영역 */}
             <main className="flex-1 min-h-[400px] md:min-h-0 bg-card rounded-xl border border-border overflow-hidden shadow-md relative z-0 transition-all duration-500 w-full md:w-[80%]">
-                <EventMap events={filteredEvents} />
+                <EventMap
+                    events={filteredEvents}
+                    onArtistSelect={handleSearchByArtist}
+                    onVenueSelect={handleSearchByVenue}
+                />
             </main>
         </div>
     );

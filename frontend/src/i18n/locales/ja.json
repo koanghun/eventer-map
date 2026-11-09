@@ -207,7 +207,8 @@
             "performers": "出演者",
             "description": "説明"
         },
-        "mapLink": "Google Mapsで表示"
+        "searchByArtist": "この出演者で検索（6ヶ月）",
+        "searchByVenue": "この会場で検索（6ヶ月）"
     },
     "filter": {
         "flags": {

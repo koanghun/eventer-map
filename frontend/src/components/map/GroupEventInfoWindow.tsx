@@ -10,6 +10,7 @@ interface GroupEventInfoWindowProps {
     offsetPx?: number;
     onClose: () => void;
     onEventSelect: (event: EventSummary) => void;
+    onVenueSelect?: (venue: { id: string; name: string; lat?: number; lng?: number }) => void;
 }
 
 export default function GroupEventInfoWindow({
@@ -19,8 +20,10 @@ export default function GroupEventInfoWindow({
     offsetPx = 32,
     onClose,
     onEventSelect,
+    onVenueSelect,
 }: GroupEventInfoWindowProps) {
     const { t } = useTranslation();
+    const venueId = events.find((e) => Boolean(e.venueId))?.venueId;
 
     return (
         <OverlayView position={location} mapPaneName={OverlayView.FLOAT_PANE}>
@@ -41,7 +44,25 @@ export default function GroupEventInfoWindow({
                             {locationName && (
                                 <div className="flex items-start gap-1 text-xs text-muted-foreground">
                                     <MapPin className="w-3.5 h-3.5 mt-0.5 shrink-0" />
-                                    <span className="break-words">{locationName}</span>
+                                    {venueId && onVenueSelect ? (
+                                        <button
+                                            type="button"
+                                            onClick={() =>
+                                                onVenueSelect({
+                                                    id: venueId,
+                                                    name: locationName,
+                                                    lat: location.lat,
+                                                    lng: location.lng,
+                                                })
+                                            }
+                                            className="text-left hover:text-primary hover:underline underline-offset-2 transition-colors break-words font-medium cursor-pointer"
+                                            title={t('eventDetail.searchByVenue', '이 공연장으로 검색 (6개월)')}
+                                        >
+                                            {locationName}
+                                        </button>
+                                    ) : (
+                                        <span className="break-words">{locationName}</span>
+                                    )}
                                 </div>
                             )}
                         </div>
