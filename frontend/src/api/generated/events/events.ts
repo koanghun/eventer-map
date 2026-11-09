@@ -118,9 +118,6 @@ formData.append('endTime', eventInput.endTime)
 if(eventInput.relatedLinks !== undefined) {
  eventInput.relatedLinks.forEach(value => formData.append('relatedLinks', value));
  }
-if(eventInput.posterImage !== undefined) {
- formData.append('posterImage', eventInput.posterImage)
- }
 
       return customInstance<Event>(
       {url: `/events`, method: 'POST',
@@ -254,9 +251,6 @@ formData.append('startTime', eventInput.startTime)
 formData.append('endTime', eventInput.endTime)
 if(eventInput.relatedLinks !== undefined) {
  eventInput.relatedLinks.forEach(value => formData.append('relatedLinks', value));
- }
-if(eventInput.posterImage !== undefined) {
- formData.append('posterImage', eventInput.posterImage)
  }
 
       return customInstance<Event>(

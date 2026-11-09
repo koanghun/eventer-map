@@ -34,12 +34,6 @@ func mapEventDetailToResponse(detail *service.EventDetail) Event {
 		openingTime = &t
 	}
 
-	var posterURL *string
-	if e.PosterImageUrl.Valid && e.PosterImageUrl.String != "" {
-		p := e.PosterImageUrl.String
-		posterURL = &p
-	}
-
 	relatedLinks := make([]string, 0)
 	if len(e.RelatedLinks) > 0 {
 		relatedLinks = e.RelatedLinks
@@ -101,19 +95,18 @@ func mapEventDetailToResponse(detail *service.EventDetail) Event {
 	}
 
 	return Event{
-		Id:             &id,
-		Title:          &title,
-		Venue:          venueSummary,
-		Artists:        &artistSummaries,
-		OpeningTime:    openingTime,
-		StartTime:      &startTime,
-		EndTime:        &endTime,
-		RelatedLinks:   &relatedLinks,
-		PosterImageUrl: posterURL,
-		RatingSum:      &ratingSum,
-		RatingCount:    &ratingCount,
-		AttendeeCount:  &attendeeCount,
-		Status:         &status,
+		Id:            &id,
+		Title:         &title,
+		Venue:         venueSummary,
+		Artists:       &artistSummaries,
+		OpeningTime:   openingTime,
+		StartTime:     &startTime,
+		EndTime:       &endTime,
+		RelatedLinks:  &relatedLinks,
+		RatingSum:     &ratingSum,
+		RatingCount:   &ratingCount,
+		AttendeeCount: &attendeeCount,
+		Status:        &status,
 	}
 }
 
@@ -206,12 +199,6 @@ func (s *Server) GetEvents(w http.ResponseWriter, r *http.Request, params GetEve
 			rating = &avg
 		}
 
-		var posterURL *string
-		if row.PosterImageUrl.Valid && row.PosterImageUrl.String != "" {
-			p := row.PosterImageUrl.String
-			posterURL = &p
-		}
-
 		var topArtistName *string
 		if row.TopArtistName != "" {
 			n := row.TopArtistName
@@ -235,7 +222,6 @@ func (s *Server) GetEvents(w http.ResponseWriter, r *http.Request, params GetEve
 			EndTime:                  &endTime,
 			Rating:                   rating,
 			AttendeeCount:            &attendeeCount,
-			PosterImageUrl:           posterURL,
 			TopArtistName:            topArtistName,
 			TopArtistProfileImageUrl: topArtistProfileImageURL,
 			Status:                   &status,

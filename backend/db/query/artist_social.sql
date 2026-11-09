@@ -8,29 +8,7 @@ DELETE FROM user_artist_follows
 WHERE user_id = $1 AND artist_id = $2;
 
 -- name: ListFollowingArtists :many
-SELECT
-    a.id,
-    a.official_name,
-    a.hiragana,
-    a.disambiguation,
-    a.gender,
-    a.profile_image_url,
-    COALESCE((
-        SELECT SUM(e.rating_sum / e.rating_count)
-        FROM event_artists ea
-        JOIN events e ON ea.event_id = e.id
-        WHERE ea.artist_id = a.id AND e.rating_count > 0
-    ), a.rating_sum)::double precision AS rating_sum,
-    COALESCE((
-        SELECT NULLIF(COUNT(*)::int, 0)
-        FROM event_artists ea
-        JOIN events e ON ea.event_id = e.id
-        WHERE ea.artist_id = a.id AND e.rating_count > 0
-    ), a.rating_count)::int AS rating_count,
-    a.status,
-    a.author_id,
-    a.created_at,
-    a.updated_at
+SELECT a.*
 FROM artists a
 JOIN user_artist_follows uaf ON a.id = uaf.artist_id
 WHERE uaf.user_id = $1
@@ -46,7 +24,7 @@ ORDER BY uaf.created_at DESC
 LIMIT $2 OFFSET $3;
 
 -- name: ListFollowingArtistEvents :many
-SELECT DISTINCT e.id, e.title, e.venue_id, e.opening_time, e.start_time, e.end_time, e.related_links, e.poster_image_url, e.rating_sum, e.rating_count, e.status, e.author_id, e.created_at, e.updated_at
+SELECT DISTINCT e.id, e.title, e.venue_id, e.opening_time, e.start_time, e.end_time, e.related_links, e.rating_sum, e.rating_count, e.status, e.author_id, e.created_at, e.updated_at
 FROM events e
 JOIN event_artists ea ON e.id = ea.event_id
 JOIN user_artist_follows uaf ON ea.artist_id = uaf.artist_id
@@ -61,3 +39,12 @@ WHERE id = $1;
 
 -- name: GetLastArtistFeedCheckedAt :one
 SELECT last_artist_feed_checked_at FROM users WHERE id = $1;
+
+-- name: CountUnreadFollowingArtistEvents :one
+SELECT COUNT(DISTINCT e.id)
+FROM events e
+JOIN event_artists ea ON e.id = ea.event_id
+JOIN user_artist_follows uaf ON ea.artist_id = uaf.artist_id
+JOIN users u ON uaf.user_id = u.id
+WHERE uaf.user_id = $1
+  AND e.created_at > u.last_artist_feed_checked_at;

@@ -3,7 +3,6 @@ package service
 import (
 	"context"
 	"database/sql"
-	"encoding/json"
 	"errors"
 	"strings"
 	"time"
@@ -13,10 +12,10 @@ import (
 )
 
 var (
-	ErrUserBanned     = errors.New("user is banned")
-	ErrEventNotEnded  = errors.New("event has not ended yet")
-	ErrNotAttendee    = errors.New("only attendees can rate the event")
-	ErrInvalidScore   = errors.New("score must be between 1 and 5")
+	ErrUserBanned    = errors.New("user is banned")
+	ErrEventNotEnded = errors.New("event has not ended yet")
+	ErrNotAttendee   = errors.New("only attendees can rate the event")
+	ErrInvalidScore  = errors.New("score must be between 1 and 5")
 )
 
 const (
@@ -38,15 +37,14 @@ type ListEventsFilter struct {
 }
 
 type CreateEventInput struct {
-	Title          string
-	VenueID        uuid.UUID
-	ArtistIDs      []uuid.UUID
-	OpeningTime    *time.Time
-	StartTime      time.Time
-	EndTime        time.Time
-	RelatedLinks   []string
-	PosterImageURL *string
-	AuthorID       uuid.UUID
+	Title        string
+	VenueID      uuid.UUID
+	ArtistIDs    []uuid.UUID
+	OpeningTime  *time.Time
+	StartTime    time.Time
+	EndTime      time.Time
+	RelatedLinks []string
+	AuthorID     uuid.UUID
 }
 
 type EventDetail struct {
@@ -139,17 +137,12 @@ func (s *EventService) GetEventDetail(ctx context.Context, id uuid.UUID) (*Event
 	}
 
 	if event.VenueID.Valid {
-		if row, err := s.repo.GetVenue(ctx, event.VenueID.UUID); err == nil {
-			venue := repository.Venue(row)
+		if venue, err := s.repo.GetVenue(ctx, event.VenueID.UUID); err == nil {
 			detail.Venue = &venue
 		}
 	}
 
-	if rows, err := s.repo.GetArtistsForEvent(ctx, id); err == nil {
-		artists := make([]repository.Artist, len(rows))
-		for i, r := range rows {
-			artists[i] = repository.Artist(r)
-		}
+	if artists, err := s.repo.GetArtistsForEvent(ctx, id); err == nil {
 		detail.Artists = artists
 	}
 
@@ -189,9 +182,6 @@ func (s *EventService) CreateEvent(ctx context.Context, input CreateEventInput) 
 	if input.OpeningTime != nil {
 		params.OpeningTime = sql.NullTime{Time: *input.OpeningTime, Valid: true}
 	}
-	if input.PosterImageURL != nil && strings.TrimSpace(*input.PosterImageURL) != "" {
-		params.PosterImageUrl = sql.NullString{String: strings.TrimSpace(*input.PosterImageURL), Valid: true}
-	}
 
 	var createdEvent repository.Event
 
@@ -219,23 +209,6 @@ func (s *EventService) CreateEvent(ctx context.Context, input CreateEventInput) 
 			}); err != nil {
 				return nil, err
 			}
-		}
-
-		snapshotData, err := json.Marshal(map[string]interface{}{
-			"title":        createdEvent.Title,
-			"venueId":      input.VenueID,
-			"artistIds":    input.ArtistIDs,
-			"openingTime":  input.OpeningTime,
-			"startTime":    createdEvent.StartTime,
-			"endTime":      createdEvent.EndTime,
-			"relatedLinks": relatedLinks,
-		})
-		if err == nil {
-			_, _ = q.CreateEventHistory(ctx, repository.CreateEventHistoryParams{
-				EventID:  createdEvent.ID,
-				EditorID: uuid.NullUUID{UUID: input.AuthorID, Valid: input.AuthorID != uuid.Nil},
-				Snapshot: snapshotData,
-			})
 		}
 
 		if err := tx.Commit(); err != nil {
@@ -268,7 +241,8 @@ func (s *EventService) UpdateEvent(ctx context.Context, eventID uuid.UUID, input
 		}
 	}
 
-	if _, err := s.repo.GetEvent(ctx, eventID); err != nil {
+	oldEvent, err := s.repo.GetEvent(ctx, eventID)
+	if err != nil {
 		return nil, err
 	}
 
@@ -289,9 +263,6 @@ func (s *EventService) UpdateEvent(ctx context.Context, eventID uuid.UUID, input
 	if input.OpeningTime != nil {
 		params.OpeningTime = sql.NullTime{Time: *input.OpeningTime, Valid: true}
 	}
-	if input.PosterImageURL != nil && strings.TrimSpace(*input.PosterImageURL) != "" {
-		params.PosterImageUrl = sql.NullString{String: strings.TrimSpace(*input.PosterImageURL), Valid: true}
-	}
 
 	if s.db != nil {
 		tx, err := s.db.BeginTx(ctx, nil)
@@ -302,8 +273,9 @@ func (s *EventService) UpdateEvent(ctx context.Context, eventID uuid.UUID, input
 
 		q := s.repo.WithTx(tx)
 
-		updatedEvent, err := q.UpdateEvent(ctx, params)
-		if err != nil {
+		oldArtists, _ := q.GetArtistsForEvent(ctx, eventID)
+
+		if _, err := q.UpdateEvent(ctx, params); err != nil {
 			return nil, err
 		}
 
@@ -323,26 +295,15 @@ func (s *EventService) UpdateEvent(ctx context.Context, eventID uuid.UUID, input
 			}
 		}
 
-		snapshotData, err := json.Marshal(map[string]interface{}{
-			"title":        updatedEvent.Title,
-			"venueId":      input.VenueID,
-			"artistIds":    input.ArtistIDs,
-			"openingTime":  input.OpeningTime,
-			"startTime":    updatedEvent.StartTime,
-			"endTime":      updatedEvent.EndTime,
-			"relatedLinks": relatedLinks,
-		})
-		if err == nil {
-			_, _ = q.CreateEventHistory(ctx, repository.CreateEventHistoryParams{
-				EventID:  eventID,
-				EditorID: uuid.NullUUID{UUID: input.AuthorID, Valid: input.AuthorID != uuid.Nil},
-				Snapshot: snapshotData,
-			})
-		}
-
 		// 공연장 및 출연자들의 평점을 이벤트 평균 평점 기준으로 재계산하여 동기화
+		if oldEvent.VenueID.Valid && oldEvent.VenueID.UUID != input.VenueID {
+			_ = q.RecalculateVenueRatingFromEvents(ctx, oldEvent.VenueID.UUID)
+		}
 		if input.VenueID != uuid.Nil {
 			_ = q.RecalculateVenueRatingFromEvents(ctx, input.VenueID)
+		}
+		for _, oa := range oldArtists {
+			_ = q.RecalculateArtistRatingFromEvents(ctx, oa.ID)
 		}
 		_ = q.RecalculateEventArtistsRatingFromEvents(ctx, eventID)
 

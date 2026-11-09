@@ -1,6 +1,6 @@
 -- name: CreateEvent :one
-INSERT INTO events (title, venue_id, opening_time, start_time, end_time, related_links, poster_image_url, status, author_id)
-VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+INSERT INTO events (title, venue_id, opening_time, start_time, end_time, related_links, status, author_id)
+VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
 RETURNING *;
 
 -- name: GetEvent :one
@@ -82,7 +82,6 @@ SELECT
     e.rating_sum,
     e.rating_count,
     (SELECT COUNT(*)::int FROM event_user_actions eua WHERE eua.event_id = e.id AND eua.status = 2) AS attendee_count,
-    e.poster_image_url,
     e.status,
     COALESCE(ta.official_name, '')::varchar AS top_artist_name,
     COALESCE(ta.profile_image_url, '')::varchar AS top_artist_profile_image_url
@@ -92,12 +91,7 @@ LEFT JOIN LATERAL (
     SELECT
         a.official_name,
         a.profile_image_url,
-        COALESCE((
-            SELECT AVG(ev.rating_sum / ev.rating_count)
-            FROM event_artists ea_sub
-            JOIN events ev ON ea_sub.event_id = ev.id
-            WHERE ea_sub.artist_id = a.id AND ev.rating_count > 0
-        ), CASE WHEN a.rating_count > 0 THEN a.rating_sum / a.rating_count ELSE 0 END) AS artist_avg_rating
+        CASE WHEN a.rating_count > 0 THEN a.rating_sum / a.rating_count ELSE 0 END AS artist_avg_rating
     FROM event_artists ea
     JOIN artists a ON ea.artist_id = a.id
     WHERE ea.event_id = e.id
@@ -131,7 +125,6 @@ SET title = COALESCE(sqlc.narg('title'), title),
     start_time = COALESCE(sqlc.narg('start_time'), start_time),
     end_time = COALESCE(sqlc.narg('end_time'), end_time),
     related_links = COALESCE(sqlc.narg('related_links'), related_links),
-    poster_image_url = COALESCE(sqlc.narg('poster_image_url'), poster_image_url),
     status = COALESCE(sqlc.narg('status'), status),
     updated_at = NOW()
 WHERE id = sqlc.arg('id')
@@ -152,38 +145,12 @@ DELETE FROM event_artists
 WHERE event_id = $1;
 
 -- name: GetArtistsForEvent :many
-SELECT
-    a.id,
-    a.official_name,
-    a.hiragana,
-    a.gender,
-    a.profile_image_url,
-    COALESCE((
-        SELECT SUM(e.rating_sum / e.rating_count)
-        FROM event_artists ea2
-        JOIN events e ON ea2.event_id = e.id
-        WHERE ea2.artist_id = a.id AND e.rating_count > 0
-    ), a.rating_sum)::double precision AS rating_sum,
-    COALESCE((
-        SELECT NULLIF(COUNT(*)::int, 0)
-        FROM event_artists ea2
-        JOIN events e ON ea2.event_id = e.id
-        WHERE ea2.artist_id = a.id AND e.rating_count > 0
-    ), a.rating_count)::int AS rating_count,
-    a.status,
-    a.author_id,
-    a.created_at,
-    a.updated_at,
-    a.credit_score,
-    a.credit_count,
-    a.disambiguation
+SELECT a.*
 FROM artists a
 JOIN event_artists ea ON a.id = ea.artist_id
 WHERE ea.event_id = $1
 ORDER BY
     CASE
-        WHEN COALESCE((SELECT COUNT(*) FROM event_artists ea2 JOIN events e ON ea2.event_id = e.id WHERE ea2.artist_id = a.id AND e.rating_count > 0), 0) > 0
-        THEN (SELECT AVG(e.rating_sum / e.rating_count) FROM event_artists ea2 JOIN events e ON ea2.event_id = e.id WHERE ea2.artist_id = a.id AND e.rating_count > 0)
         WHEN a.rating_count > 0 THEN a.rating_sum / a.rating_count
         ELSE 0
     END DESC,

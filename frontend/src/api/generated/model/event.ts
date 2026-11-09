@@ -15,7 +15,6 @@ export interface Event {
   endTime?: string;
   id?: string;
   openingTime?: string;
-  posterImageUrl?: string;
   ratingCount?: number;
   ratingSum?: number;
   relatedLinks?: string[];

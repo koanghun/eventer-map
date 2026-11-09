@@ -6,7 +6,6 @@ package repository
 
 import (
 	"database/sql"
-	"encoding/json"
 	"time"
 
 	"github.com/google/uuid"
@@ -24,8 +23,6 @@ type Artist struct {
 	AuthorID        uuid.NullUUID
 	CreatedAt       time.Time
 	UpdatedAt       time.Time
-	CreditScore     int32
-	CreditCount     int32
 	Disambiguation  sql.NullString
 }
 
@@ -35,35 +32,24 @@ type DailyVisit struct {
 }
 
 type Event struct {
-	ID             uuid.UUID
-	Title          string
-	VenueID        uuid.NullUUID
-	OpeningTime    sql.NullTime
-	StartTime      time.Time
-	EndTime        time.Time
-	RelatedLinks   []string
-	PosterImageUrl sql.NullString
-	RatingSum      float64
-	RatingCount    int32
-	Status         string
-	AuthorID       uuid.NullUUID
-	CreatedAt      time.Time
-	UpdatedAt      time.Time
+	ID           uuid.UUID
+	Title        string
+	VenueID      uuid.NullUUID
+	OpeningTime  sql.NullTime
+	StartTime    time.Time
+	EndTime      time.Time
+	RelatedLinks []string
+	RatingSum    float64
+	RatingCount  int32
+	Status       string
+	AuthorID     uuid.NullUUID
+	CreatedAt    time.Time
+	UpdatedAt    time.Time
 }
 
 type EventArtist struct {
 	EventID  uuid.UUID
 	ArtistID uuid.UUID
-}
-
-type EventHistory struct {
-	ID          uuid.UUID
-	EventID     uuid.UUID
-	EditorID    uuid.NullUUID
-	Snapshot    json.RawMessage
-	ReportCount int32
-	Status      string
-	CreatedAt   time.Time
 }
 
 type EventThread struct {
@@ -80,12 +66,6 @@ type EventUserAction struct {
 	UserID  uuid.UUID
 	EventID uuid.UUID
 	Status  int32
-}
-
-type HistoryReport struct {
-	UserID    uuid.UUID
-	HistoryID uuid.UUID
-	CreatedAt time.Time
 }
 
 type ThreadRecommendation struct {
@@ -113,12 +93,6 @@ type UserArtistFollow struct {
 	CreatedAt time.Time
 }
 
-type UserArtistRating struct {
-	UserID   uuid.UUID
-	ArtistID uuid.UUID
-	Score    int32
-}
-
 type UserBlock struct {
 	BlockerID uuid.UUID
 	BlockedID uuid.UUID
@@ -137,12 +111,6 @@ type UserFollow struct {
 	CreatedAt  time.Time
 }
 
-type UserVenueRating struct {
-	UserID  uuid.UUID
-	VenueID uuid.UUID
-	Score   int32
-}
-
 type Venue struct {
 	ID           uuid.UUID
 	OfficialName string
@@ -158,8 +126,6 @@ type Venue struct {
 	AuthorID     uuid.NullUUID
 	CreatedAt    time.Time
 	UpdatedAt    time.Time
-	CreditScore  int32
-	CreditCount  int32
 }
 
 type VerificationToken struct {

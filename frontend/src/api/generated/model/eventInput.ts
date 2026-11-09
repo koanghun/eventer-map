@@ -9,7 +9,6 @@ export interface EventInput {
   artistIds?: string[];
   endTime: string;
   openingTime?: string;
-  posterImage?: Blob;
   relatedLinks?: string[];
   startTime: string;
   title: string;

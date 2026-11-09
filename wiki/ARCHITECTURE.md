@@ -71,7 +71,7 @@ flowchart LR
 
 ### 4) `internal/service/` (비즈니스 계층)
 - HTTP 객체(`http.Request` 등)에 의존하지 않는 순수 Go 도메인 로직을 수행합니다.
-- 유저 권한(`ADMIN` 여부)에 따른 등록 상태 결정(`PENDING` vs `APPROVED`), 신용점수(`credit_score`) 합산 및 자동 승인, 트랜잭션 처리를 담당합니다.
+- 유저 권한(`ADMIN` 여부)에 따른 등록 상태 결정(`PENDING` vs `APPROVED`), 이벤트 평점/수정 시 공연장 및 출연자의 평균 평점 캐시(`rating_sum`, `rating_count`) 재계산, 트랜잭션 처리를 담당합니다.
 
 ### 5) `internal/repository/` (데이터 접근 계층)
 - `sqlc`가 `db/migration/*.sql`과 `db/query/*.sql`을 컴파일 타임에 검증하여 자동 생성한 패키지입니다.

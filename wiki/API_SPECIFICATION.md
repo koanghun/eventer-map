@@ -28,14 +28,19 @@
 | `GET` | `/users/me/following` | **내가 팔로우하는 유저 목록 조회** | 🟢 |
 | `GET` | `/users/me/followers` | **나를 팔로우하는 유저 목록 조회** | 🟢 |
 | `GET` | `/users/me/following/artists` | **내가 팔로우하는 아티스트 목록 조회** | 🟢 |
+| `GET` | `/users/me/following-artists/events` | **팔로우 아티스트 이벤트 피드 및 미확인 카운트 조회**: 팔로우한 아티스트들의 이벤트 목록(`events`)과 `last_artist_feed_checked_at` 이후 등록된 미확인 이벤트 수(`unreadCount`)를 반환합니다. | 🟢 |
+| `POST` | `/users/me/following-artists/events/read` | **팔로우 아티스트 피드 읽음 처리**: `users.last_artist_feed_checked_at`을 현재 시각(`NOW()`)으로 갱신하여 `unreadCount`를 `0`으로 초기화합니다. | 🟢 |
 | `POST` | `/users/{userId}/follow` | **특정 유저 팔로우** | 🟢 |
 | `DELETE` | `/users/{userId}/follow` | **특정 유저 언팔로우** | 🟢 |
+| `GET` | `/users/me/blocks` | **내가 차단한 유저 목록 조회** | 🟢 |
+| `POST` | `/users/{userId}/block` | **특정 유저 차단** | 🟢 |
+| `DELETE` | `/users/{userId}/block` | **특정 유저 차단 해제** | 🟢 |
 
 ---
 
 ## 2. 🎤 아티스트 / 출연자 (Artists)
 
-출연자(아티스트) 자동완성 검색, 신규 등록, 상세 조회, 팔로우 및 신용점수 평가를 관리합니다.
+출연자(아티스트) 자동완성 검색, 신규 등록, 상세 조회 및 팔로우를 관리합니다.
 
 | Method | Endpoint | Description | Auth Required |
 | :--- | :--- | :--- | :---: |
@@ -45,7 +50,6 @@
 | `PUT` | `/artists/{artistId}` | **아티스트 정보 수정**: 작성자(심사 중일 때) 또는 관리자가 아티스트 정보를 수정합니다. | 🟢 |
 | `DELETE` | `/artists/{artistId}` | **아티스트 삭제**: 이벤트에 연결되지 않은 아티스트를 삭제합니다. | 🟢 |
 | `POST` | `/artists/{artistId}/approve` | **아티스트 승인**: 관리자(`ADMIN`) 전용 즉시 승인 엔드포인트입니다. | 🟢 (Admin) |
-| `POST` | `/artists/{artistId}/rate` | **아티스트 신용점수 평가**: 심사 중(`PENDING`)인 아티스트에 `+1` 또는 `-1`을 투표합니다 (10명 이상 평가 시 자동 승인). | 🟢 |
 | `POST` | `/artists/{artistId}/follow` | **아티스트 팔로우** | 🟢 |
 | `DELETE` | `/artists/{artistId}/follow` | **아티스트 언팔로우** | 🟢 |
 | `GET` | `/artists/{artistId}/followers` | **아티스트 팔로워 목록 조회** | ❌ |
@@ -53,6 +57,7 @@
 ### 💡 아티스트 스키마 핵심 포인트 (`Artist` / `ArtistSummary` / `ArtistInput`)
 - **성별 (`gender`)**: `MALE`(남성) / `FEMALE`(여성) 2종으로만 분류합니다.
 - **동명이인 구분 (`disambiguation`)**: 생년월일/데뷔일 대신 소속 그룹·분야 등 한 줄 식별 설명(`VARCHAR(100)`, 예: `"솔로 가수"`, `"LE SSERAFIM"`, `"성우"`)을 통해 자동완성 드롭다운, 선택 칩, 이벤트 상세 화면에서 동명이인을 명확히 구분합니다.
+- **평점 (`rating`, `ratingCount`)**: 참가한 이벤트들의 평균 평점 합계(`rating_sum`)와 평점 부여 이벤트 수(`rating_count`)로 일원화되어 관리됩니다.
 
 ---
 
@@ -69,24 +74,20 @@
 | `PUT` | `/venues/{venueId}` | **공연장 정보 수정**: 권한(유저/관리자)에 따라 공연장 정보를 수정합니다. | 🟢 |
 | `DELETE` | `/venues/{venueId}` | **공연장 삭제**: 공연장을 삭제합니다. | 🟢 |
 | `POST` | `/venues/{venueId}/approve` | **공연장 승인**: 관리자(`ADMIN`) 전용 승인 엔드포인트입니다. | 🟢 (Admin) |
-| `POST` | `/venues/{venueId}/rate` | **공연장 신용점수 평가**: 심사 중(`PENDING`)인 공연장에 `+1` 또는 `-1`을 부여합니다. | 🟢 |
 
 ---
 
-## 4. 🎫 이벤트 (Events & History)
+## 4. 🎫 이벤트 (Events)
 
-공연장과 출연자를 연결하여 이벤트를 생성하고, 지도 바운딩 박스 및 날짜 범위로 조회하며, 수정 이력을 관리합니다.
+공연장과 출연자를 연결하여 이벤트를 생성하고, 지도 바운딩 박스 및 날짜 범위로 조회합니다.
 
 | Method | Endpoint | Description | Auth Required |
 | :--- | :--- | :--- | :---: |
-| `GET` | `/events` | **이벤트 목록 조회**: 지도 바운딩 박스(`minLat`, `maxLat`, `minLng`, `maxLng`), 날짜 범위(`startDate`, `endDate`), `artistIds`, `venueIds`, `limit`으로 필터링하여 참가자 수 순으로 조회합니다. | ❌ |
+| `GET` | `/events` | **이벤트 목록 조회**: 지도 바운딩 박스(`minLat`, `maxLat`, `minLng`, `maxLng`), 날짜 범위(`startDate`, `endDate`), `artistId`, `venueId`, `limit`으로 필터링하여 참가자 수 순으로 조회합니다. | ❌ |
 | `POST` | `/events` | **새 이벤트 등록**: `title`, `venueId`, `startTime`, `endTime`(이상 필수), `openingTime`, `artistIds`, `relatedLinks`를 전달받아 이벤트를 생성합니다. | 🟢 |
 | `GET` | `/events/{eventId}` | **이벤트 단건 상세 조회**: 이벤트 기본 정보, 공연장 요약(`VenueSummary`), 출연자 목록(`ArtistSummary[]`), 참가자 수, 평점 통계를 반환합니다. | ❌ |
-| `PUT` | `/events/{eventId}` | **이벤트 정보 수정 (위키 방식)**: 이벤트 정보를 수정하고 기존 스냅샷을 History에 기록합니다. | 🟢 |
-| `DELETE` | `/events/{eventId}` | **이벤트 삭제**: 권한에 따라 이벤트를 삭제합니다. | 🟢 |
-| `POST` | `/events/{eventId}/approve` | **이벤트 승인**: 관리자(`ADMIN`) 전용 승인 엔드포인트입니다. | 🟢 (Admin) |
-| `GET` | `/events/{eventId}/history` | **이벤트 수정 이력 조회**: 이벤트의 수정 히스토리를 조회합니다. | ❌ |
-| `POST` | `/event-history/{historyId}/report` | **특정 수정 이력 신고 (반달리즘 방지)**: 악의적인 수정을 신고하여 임계치 도달 시 자동 롤백 처리합니다. | 🟢 |
+| `PUT` | `/events/{eventId}` | **이벤트 정보 수정**: 이벤트 정보를 수정하고 공연장/출연자 평점 통계를 재동기화합니다. | 🟢 |
+| `POST` | `/events/{eventId}/delete-request` | **이벤트 삭제 요청**: 이벤트 삭제 요청을 접수합니다. | 🟢 |
 
 ---
 

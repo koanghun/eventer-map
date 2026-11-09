@@ -8,7 +8,6 @@ package repository
 import (
 	"context"
 	"database/sql"
-	"time"
 
 	"github.com/google/uuid"
 )
@@ -29,7 +28,7 @@ func (q *Queries) CheckArtistInEvent(ctx context.Context, artistID uuid.UUID) (b
 const createArtist = `-- name: CreateArtist :one
 INSERT INTO artists (official_name, hiragana, disambiguation, gender, profile_image_url, status, author_id)
 VALUES ($1, $2, $3, $4, $5, $6, $7)
-RETURNING id, official_name, hiragana, gender, profile_image_url, rating_sum, rating_count, status, author_id, created_at, updated_at, credit_score, credit_count, disambiguation
+RETURNING id, official_name, hiragana, gender, profile_image_url, rating_sum, rating_count, status, author_id, created_at, updated_at, disambiguation
 `
 
 type CreateArtistParams struct {
@@ -65,89 +64,18 @@ func (q *Queries) CreateArtist(ctx context.Context, arg CreateArtistParams) (Art
 		&i.AuthorID,
 		&i.CreatedAt,
 		&i.UpdatedAt,
-		&i.CreditScore,
-		&i.CreditCount,
 		&i.Disambiguation,
 	)
 	return i, err
 }
 
 const getArtist = `-- name: GetArtist :one
-SELECT
-    a.id,
-    a.official_name,
-    a.hiragana,
-    a.gender,
-    a.profile_image_url,
-    COALESCE((
-        SELECT SUM(e.rating_sum / e.rating_count)
-        FROM event_artists ea
-        JOIN events e ON ea.event_id = e.id
-        WHERE ea.artist_id = a.id AND e.rating_count > 0
-    ), a.rating_sum)::double precision AS rating_sum,
-    COALESCE((
-        SELECT NULLIF(COUNT(*)::int, 0)
-        FROM event_artists ea
-        JOIN events e ON ea.event_id = e.id
-        WHERE ea.artist_id = a.id AND e.rating_count > 0
-    ), a.rating_count)::int AS rating_count,
-    a.status,
-    a.author_id,
-    a.created_at,
-    a.updated_at,
-    a.credit_score,
-    a.credit_count,
-    a.disambiguation
-FROM artists a
-WHERE a.id = $1 LIMIT 1
+SELECT id, official_name, hiragana, gender, profile_image_url, rating_sum, rating_count, status, author_id, created_at, updated_at, disambiguation FROM artists
+WHERE id = $1 LIMIT 1
 `
 
-type GetArtistRow struct {
-	ID              uuid.UUID
-	OfficialName    string
-	Hiragana        sql.NullString
-	Gender          string
-	ProfileImageUrl sql.NullString
-	RatingSum       float64
-	RatingCount     int32
-	Status          string
-	AuthorID        uuid.NullUUID
-	CreatedAt       time.Time
-	UpdatedAt       time.Time
-	CreditScore     int32
-	CreditCount     int32
-	Disambiguation  sql.NullString
-}
-
-func (q *Queries) GetArtist(ctx context.Context, id uuid.UUID) (GetArtistRow, error) {
+func (q *Queries) GetArtist(ctx context.Context, id uuid.UUID) (Artist, error) {
 	row := q.db.QueryRowContext(ctx, getArtist, id)
-	var i GetArtistRow
-	err := row.Scan(
-		&i.ID,
-		&i.OfficialName,
-		&i.Hiragana,
-		&i.Gender,
-		&i.ProfileImageUrl,
-		&i.RatingSum,
-		&i.RatingCount,
-		&i.Status,
-		&i.AuthorID,
-		&i.CreatedAt,
-		&i.UpdatedAt,
-		&i.CreditScore,
-		&i.CreditCount,
-		&i.Disambiguation,
-	)
-	return i, err
-}
-
-const getArtistForUpdate = `-- name: GetArtistForUpdate :one
-SELECT id, official_name, hiragana, gender, profile_image_url, rating_sum, rating_count, status, author_id, created_at, updated_at, credit_score, credit_count, disambiguation FROM artists
-WHERE id = $1 FOR UPDATE LIMIT 1
-`
-
-func (q *Queries) GetArtistForUpdate(ctx context.Context, id uuid.UUID) (Artist, error) {
-	row := q.db.QueryRowContext(ctx, getArtistForUpdate, id)
 	var i Artist
 	err := row.Scan(
 		&i.ID,
@@ -161,73 +89,13 @@ func (q *Queries) GetArtistForUpdate(ctx context.Context, id uuid.UUID) (Artist,
 		&i.AuthorID,
 		&i.CreatedAt,
 		&i.UpdatedAt,
-		&i.CreditScore,
-		&i.CreditCount,
 		&i.Disambiguation,
 	)
 	return i, err
 }
 
-const getUserArtistRating = `-- name: GetUserArtistRating :one
-SELECT score FROM user_artist_ratings
-WHERE user_id = $1 AND artist_id = $2 LIMIT 1
-`
-
-type GetUserArtistRatingParams struct {
-	UserID   uuid.UUID
-	ArtistID uuid.UUID
-}
-
-func (q *Queries) GetUserArtistRating(ctx context.Context, arg GetUserArtistRatingParams) (int32, error) {
-	row := q.db.QueryRowContext(ctx, getUserArtistRating, arg.UserID, arg.ArtistID)
-	var score int32
-	err := row.Scan(&score)
-	return score, err
-}
-
-const insertUserArtistRating = `-- name: InsertUserArtistRating :exec
-INSERT INTO user_artist_ratings (user_id, artist_id, score)
-VALUES ($1, $2, $3)
-`
-
-type InsertUserArtistRatingParams struct {
-	UserID   uuid.UUID
-	ArtistID uuid.UUID
-	Score    int32
-}
-
-func (q *Queries) InsertUserArtistRating(ctx context.Context, arg InsertUserArtistRatingParams) error {
-	_, err := q.db.ExecContext(ctx, insertUserArtistRating, arg.UserID, arg.ArtistID, arg.Score)
-	return err
-}
-
 const listArtists = `-- name: ListArtists :many
-SELECT
-    a.id,
-    a.official_name,
-    a.hiragana,
-    a.gender,
-    a.profile_image_url,
-    COALESCE((
-        SELECT SUM(e.rating_sum / e.rating_count)
-        FROM event_artists ea
-        JOIN events e ON ea.event_id = e.id
-        WHERE ea.artist_id = a.id AND e.rating_count > 0
-    ), a.rating_sum)::double precision AS rating_sum,
-    COALESCE((
-        SELECT NULLIF(COUNT(*)::int, 0)
-        FROM event_artists ea
-        JOIN events e ON ea.event_id = e.id
-        WHERE ea.artist_id = a.id AND e.rating_count > 0
-    ), a.rating_count)::int AS rating_count,
-    a.status,
-    a.author_id,
-    a.created_at,
-    a.updated_at,
-    a.credit_score,
-    a.credit_count,
-    a.disambiguation
-FROM artists a
+SELECT id, official_name, hiragana, gender, profile_image_url, rating_sum, rating_count, status, author_id, created_at, updated_at, disambiguation FROM artists a
 WHERE 
     a.status != 'REJECTED'
     AND ($2::varchar = '' OR a.status = $2)
@@ -250,24 +118,7 @@ type ListArtistsParams struct {
 	CursorID    uuid.UUID
 }
 
-type ListArtistsRow struct {
-	ID              uuid.UUID
-	OfficialName    string
-	Hiragana        sql.NullString
-	Gender          string
-	ProfileImageUrl sql.NullString
-	RatingSum       float64
-	RatingCount     int32
-	Status          string
-	AuthorID        uuid.NullUUID
-	CreatedAt       time.Time
-	UpdatedAt       time.Time
-	CreditScore     int32
-	CreditCount     int32
-	Disambiguation  sql.NullString
-}
-
-func (q *Queries) ListArtists(ctx context.Context, arg ListArtistsParams) ([]ListArtistsRow, error) {
+func (q *Queries) ListArtists(ctx context.Context, arg ListArtistsParams) ([]Artist, error) {
 	rows, err := q.db.QueryContext(ctx, listArtists,
 		arg.Limit,
 		arg.Status,
@@ -278,9 +129,9 @@ func (q *Queries) ListArtists(ctx context.Context, arg ListArtistsParams) ([]Lis
 		return nil, err
 	}
 	defer rows.Close()
-	var items []ListArtistsRow
+	var items []Artist
 	for rows.Next() {
-		var i ListArtistsRow
+		var i Artist
 		if err := rows.Scan(
 			&i.ID,
 			&i.OfficialName,
@@ -293,8 +144,6 @@ func (q *Queries) ListArtists(ctx context.Context, arg ListArtistsParams) ([]Lis
 			&i.AuthorID,
 			&i.CreatedAt,
 			&i.UpdatedAt,
-			&i.CreditScore,
-			&i.CreditCount,
 			&i.Disambiguation,
 		); err != nil {
 			return nil, err
@@ -320,7 +169,7 @@ SET official_name = COALESCE($1, official_name),
     status = COALESCE($6, status),
     updated_at = NOW()
 WHERE id = $7
-RETURNING id, official_name, hiragana, gender, profile_image_url, rating_sum, rating_count, status, author_id, created_at, updated_at, credit_score, credit_count, disambiguation
+RETURNING id, official_name, hiragana, gender, profile_image_url, rating_sum, rating_count, status, author_id, created_at, updated_at, disambiguation
 `
 
 type UpdateArtistParams struct {
@@ -356,44 +205,7 @@ func (q *Queries) UpdateArtist(ctx context.Context, arg UpdateArtistParams) (Art
 		&i.AuthorID,
 		&i.CreatedAt,
 		&i.UpdatedAt,
-		&i.CreditScore,
-		&i.CreditCount,
 		&i.Disambiguation,
 	)
 	return i, err
-}
-
-const updateArtistCredit = `-- name: UpdateArtistCredit :exec
-UPDATE artists
-SET credit_score = credit_score + $1,
-    credit_count = credit_count + $2
-WHERE id = $3
-`
-
-type UpdateArtistCreditParams struct {
-	ScoreDelta int32
-	CountDelta int32
-	ID         uuid.UUID
-}
-
-func (q *Queries) UpdateArtistCredit(ctx context.Context, arg UpdateArtistCreditParams) error {
-	_, err := q.db.ExecContext(ctx, updateArtistCredit, arg.ScoreDelta, arg.CountDelta, arg.ID)
-	return err
-}
-
-const updateUserArtistRating = `-- name: UpdateUserArtistRating :exec
-UPDATE user_artist_ratings
-SET score = $3
-WHERE user_id = $1 AND artist_id = $2
-`
-
-type UpdateUserArtistRatingParams struct {
-	UserID   uuid.UUID
-	ArtistID uuid.UUID
-	Score    int32
-}
-
-func (q *Queries) UpdateUserArtistRating(ctx context.Context, arg UpdateUserArtistRatingParams) error {
-	_, err := q.db.ExecContext(ctx, updateUserArtistRating, arg.UserID, arg.ArtistID, arg.Score)
-	return err
 }

@@ -726,39 +726,6 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Artist"
-  /artists/{artistId}/rate:
-    post:
-      tags:
-        - Artists
-      summary: 아티스트 신용점수 평가
-      description: 심사 중인 아티스트에 대해 +1 또는 -1의 점수를 부여합니다. 10명 이상 평가 및 80% 이상 긍정 시 자동 승인됩니다.
-      security:
-        - bearerAuth: []
-      parameters:
-        - in: path
-          name: artistId
-          required: true
-          schema:
-            type: string
-            format: uuid
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              required: [score]
-              properties:
-                score:
-                  type: integer
-                  enum: [1, -1]
-      responses:
-        "200":
-          description: 평가 완료
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Artist"
   /artists/{artistId}/follow:
     post:
       tags:
@@ -1019,39 +986,6 @@ paths:
       responses:
         "200":
           description: 승인 성공
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Venue"
-  /venues/{venueId}/rate:
-    post:
-      tags:
-        - Venues
-      summary: 공연장 신용점수 평가
-      description: 심사 중인 공연장에 대해 +1 또는 -1의 점수를 부여합니다. 10명 이상 평가 및 80% 이상 긍정 시 자동 승인됩니다.
-      security:
-        - bearerAuth: []
-      parameters:
-        - in: path
-          name: venueId
-          required: true
-          schema:
-            type: string
-            format: uuid
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              required: [score]
-              properties:
-                score:
-                  type: integer
-                  enum: [1, -1]
-      responses:
-        "200":
-          description: 평가 완료
           content:
             application/json:
               schema:
@@ -1395,45 +1329,6 @@ paths:
       responses:
         "200":
           description: 추천 성공
-  /events/{eventId}/history:
-    get:
-      tags:
-        - History
-      summary: 이벤트 수정 이력 조회
-      parameters:
-        - in: path
-          name: eventId
-          required: true
-          schema:
-            type: string
-            format: uuid
-      responses:
-        "200":
-          description: 이력 목록
-          content:
-            application/json:
-              schema:
-                type: array
-                items:
-                  $ref: "#/components/schemas/EventHistorySummary"
-  /event-history/{historyId}/report:
-    post:
-      tags:
-        - History
-      summary: 수정 이력 신고
-      description: 임계치 초과 시 해당 이력 취소(REVERTED) 및 롤백, 유저 밴 처리됨
-      security:
-        - bearerAuth: []
-      parameters:
-        - in: path
-          name: historyId
-          required: true
-          schema:
-            type: string
-            format: uuid
-      responses:
-        "200":
-          description: 신고 성공
 
 components:
   schemas:
@@ -1484,9 +1379,6 @@ components:
         attendeeCount:
           type: integer
           description: 이벤트 참가자 수 (status=2)
-        posterImageUrl:
-          type: string
-          format: uri
         topArtistName:
           type: string
           description: 출연자 중 가장 평점이 높은 대표 출연자 공식 이름
@@ -1534,9 +1426,6 @@ components:
           items:
             type: string
             format: uri
-        posterImageUrl:
-          type: string
-          format: uri
         ratingSum:
           type: number
           format: double
@@ -1580,9 +1469,6 @@ components:
           items:
             type: string
             format: uri
-        posterImage:
-          type: string
-          format: binary
     RatingInput:
       type: object
       required:
@@ -1618,26 +1504,6 @@ components:
       properties:
         content:
           type: string
-    EventHistorySummary:
-      type: object
-      properties:
-        id:
-          type: string
-          format: uuid
-        eventId:
-          type: string
-          format: uuid
-        editorId:
-          type: string
-          format: uuid
-        reportCount:
-          type: integer
-        status:
-          type: string
-          enum: [ACTIVE, REVERTED]
-        createdAt:
-          type: string
-          format: date-time
 
     GoogleLoginRequest:
       type: object

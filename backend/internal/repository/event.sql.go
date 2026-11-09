@@ -52,21 +52,20 @@ func (q *Queries) CountEventAttendees(ctx context.Context, eventID uuid.UUID) (i
 }
 
 const createEvent = `-- name: CreateEvent :one
-INSERT INTO events (title, venue_id, opening_time, start_time, end_time, related_links, poster_image_url, status, author_id)
-VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
-RETURNING id, title, venue_id, opening_time, start_time, end_time, related_links, poster_image_url, rating_sum, rating_count, status, author_id, created_at, updated_at
+INSERT INTO events (title, venue_id, opening_time, start_time, end_time, related_links, status, author_id)
+VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+RETURNING id, title, venue_id, opening_time, start_time, end_time, related_links, rating_sum, rating_count, status, author_id, created_at, updated_at
 `
 
 type CreateEventParams struct {
-	Title          string
-	VenueID        uuid.NullUUID
-	OpeningTime    sql.NullTime
-	StartTime      time.Time
-	EndTime        time.Time
-	RelatedLinks   []string
-	PosterImageUrl sql.NullString
-	Status         string
-	AuthorID       uuid.NullUUID
+	Title        string
+	VenueID      uuid.NullUUID
+	OpeningTime  sql.NullTime
+	StartTime    time.Time
+	EndTime      time.Time
+	RelatedLinks []string
+	Status       string
+	AuthorID     uuid.NullUUID
 }
 
 func (q *Queries) CreateEvent(ctx context.Context, arg CreateEventParams) (Event, error) {
@@ -77,7 +76,6 @@ func (q *Queries) CreateEvent(ctx context.Context, arg CreateEventParams) (Event
 		arg.StartTime,
 		arg.EndTime,
 		pq.Array(arg.RelatedLinks),
-		arg.PosterImageUrl,
 		arg.Status,
 		arg.AuthorID,
 	)
@@ -90,7 +88,6 @@ func (q *Queries) CreateEvent(ctx context.Context, arg CreateEventParams) (Event
 		&i.StartTime,
 		&i.EndTime,
 		pq.Array(&i.RelatedLinks),
-		&i.PosterImageUrl,
 		&i.RatingSum,
 		&i.RatingCount,
 		&i.Status,
@@ -117,70 +114,27 @@ func (q *Queries) DeleteUserEventAction(ctx context.Context, arg DeleteUserEvent
 }
 
 const getArtistsForEvent = `-- name: GetArtistsForEvent :many
-SELECT
-    a.id,
-    a.official_name,
-    a.hiragana,
-    a.gender,
-    a.profile_image_url,
-    COALESCE((
-        SELECT SUM(e.rating_sum / e.rating_count)
-        FROM event_artists ea2
-        JOIN events e ON ea2.event_id = e.id
-        WHERE ea2.artist_id = a.id AND e.rating_count > 0
-    ), a.rating_sum)::double precision AS rating_sum,
-    COALESCE((
-        SELECT NULLIF(COUNT(*)::int, 0)
-        FROM event_artists ea2
-        JOIN events e ON ea2.event_id = e.id
-        WHERE ea2.artist_id = a.id AND e.rating_count > 0
-    ), a.rating_count)::int AS rating_count,
-    a.status,
-    a.author_id,
-    a.created_at,
-    a.updated_at,
-    a.credit_score,
-    a.credit_count,
-    a.disambiguation
+SELECT a.id, a.official_name, a.hiragana, a.gender, a.profile_image_url, a.rating_sum, a.rating_count, a.status, a.author_id, a.created_at, a.updated_at, a.disambiguation
 FROM artists a
 JOIN event_artists ea ON a.id = ea.artist_id
 WHERE ea.event_id = $1
 ORDER BY
     CASE
-        WHEN COALESCE((SELECT COUNT(*) FROM event_artists ea2 JOIN events e ON ea2.event_id = e.id WHERE ea2.artist_id = a.id AND e.rating_count > 0), 0) > 0
-        THEN (SELECT AVG(e.rating_sum / e.rating_count) FROM event_artists ea2 JOIN events e ON ea2.event_id = e.id WHERE ea2.artist_id = a.id AND e.rating_count > 0)
         WHEN a.rating_count > 0 THEN a.rating_sum / a.rating_count
         ELSE 0
     END DESC,
     a.official_name ASC
 `
 
-type GetArtistsForEventRow struct {
-	ID              uuid.UUID
-	OfficialName    string
-	Hiragana        sql.NullString
-	Gender          string
-	ProfileImageUrl sql.NullString
-	RatingSum       float64
-	RatingCount     int32
-	Status          string
-	AuthorID        uuid.NullUUID
-	CreatedAt       time.Time
-	UpdatedAt       time.Time
-	CreditScore     int32
-	CreditCount     int32
-	Disambiguation  sql.NullString
-}
-
-func (q *Queries) GetArtistsForEvent(ctx context.Context, eventID uuid.UUID) ([]GetArtistsForEventRow, error) {
+func (q *Queries) GetArtistsForEvent(ctx context.Context, eventID uuid.UUID) ([]Artist, error) {
 	rows, err := q.db.QueryContext(ctx, getArtistsForEvent, eventID)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	var items []GetArtistsForEventRow
+	var items []Artist
 	for rows.Next() {
-		var i GetArtistsForEventRow
+		var i Artist
 		if err := rows.Scan(
 			&i.ID,
 			&i.OfficialName,
@@ -193,8 +147,6 @@ func (q *Queries) GetArtistsForEvent(ctx context.Context, eventID uuid.UUID) ([]
 			&i.AuthorID,
 			&i.CreatedAt,
 			&i.UpdatedAt,
-			&i.CreditScore,
-			&i.CreditCount,
 			&i.Disambiguation,
 		); err != nil {
 			return nil, err
@@ -211,7 +163,7 @@ func (q *Queries) GetArtistsForEvent(ctx context.Context, eventID uuid.UUID) ([]
 }
 
 const getEvent = `-- name: GetEvent :one
-SELECT id, title, venue_id, opening_time, start_time, end_time, related_links, poster_image_url, rating_sum, rating_count, status, author_id, created_at, updated_at FROM events
+SELECT id, title, venue_id, opening_time, start_time, end_time, related_links, rating_sum, rating_count, status, author_id, created_at, updated_at FROM events
 WHERE id = $1 LIMIT 1
 `
 
@@ -226,7 +178,6 @@ func (q *Queries) GetEvent(ctx context.Context, id uuid.UUID) (Event, error) {
 		&i.StartTime,
 		&i.EndTime,
 		pq.Array(&i.RelatedLinks),
-		&i.PosterImageUrl,
 		&i.RatingSum,
 		&i.RatingCount,
 		&i.Status,
@@ -299,7 +250,7 @@ func (q *Queries) GetEventAttendees(ctx context.Context, arg GetEventAttendeesPa
 }
 
 const getEventForUpdate = `-- name: GetEventForUpdate :one
-SELECT id, title, venue_id, opening_time, start_time, end_time, related_links, poster_image_url, rating_sum, rating_count, status, author_id, created_at, updated_at FROM events
+SELECT id, title, venue_id, opening_time, start_time, end_time, related_links, rating_sum, rating_count, status, author_id, created_at, updated_at FROM events
 WHERE id = $1 FOR UPDATE LIMIT 1
 `
 
@@ -314,7 +265,6 @@ func (q *Queries) GetEventForUpdate(ctx context.Context, id uuid.UUID) (Event, e
 		&i.StartTime,
 		&i.EndTime,
 		pq.Array(&i.RelatedLinks),
-		&i.PosterImageUrl,
 		&i.RatingSum,
 		&i.RatingCount,
 		&i.Status,
@@ -372,7 +322,6 @@ SELECT
     e.rating_sum,
     e.rating_count,
     (SELECT COUNT(*)::int FROM event_user_actions eua WHERE eua.event_id = e.id AND eua.status = 2) AS attendee_count,
-    e.poster_image_url,
     e.status,
     COALESCE(ta.official_name, '')::varchar AS top_artist_name,
     COALESCE(ta.profile_image_url, '')::varchar AS top_artist_profile_image_url
@@ -382,12 +331,7 @@ LEFT JOIN LATERAL (
     SELECT
         a.official_name,
         a.profile_image_url,
-        COALESCE((
-            SELECT AVG(ev.rating_sum / ev.rating_count)
-            FROM event_artists ea_sub
-            JOIN events ev ON ea_sub.event_id = ev.id
-            WHERE ea_sub.artist_id = a.id AND ev.rating_count > 0
-        ), CASE WHEN a.rating_count > 0 THEN a.rating_sum / a.rating_count ELSE 0 END) AS artist_avg_rating
+        CASE WHEN a.rating_count > 0 THEN a.rating_sum / a.rating_count ELSE 0 END AS artist_avg_rating
     FROM event_artists ea
     JOIN artists a ON ea.artist_id = a.id
     WHERE ea.event_id = e.id
@@ -439,7 +383,6 @@ type ListEventsRow struct {
 	RatingSum                float64
 	RatingCount              int32
 	AttendeeCount            int32
-	PosterImageUrl           sql.NullString
 	Status                   string
 	TopArtistName            string
 	TopArtistProfileImageUrl string
@@ -477,7 +420,6 @@ func (q *Queries) ListEvents(ctx context.Context, arg ListEventsParams) ([]ListE
 			&i.RatingSum,
 			&i.RatingCount,
 			&i.AttendeeCount,
-			&i.PosterImageUrl,
 			&i.Status,
 			&i.TopArtistName,
 			&i.TopArtistProfileImageUrl,
@@ -621,23 +563,21 @@ SET title = COALESCE($1, title),
     start_time = COALESCE($4, start_time),
     end_time = COALESCE($5, end_time),
     related_links = COALESCE($6, related_links),
-    poster_image_url = COALESCE($7, poster_image_url),
-    status = COALESCE($8, status),
+    status = COALESCE($7, status),
     updated_at = NOW()
-WHERE id = $9
-RETURNING id, title, venue_id, opening_time, start_time, end_time, related_links, poster_image_url, rating_sum, rating_count, status, author_id, created_at, updated_at
+WHERE id = $8
+RETURNING id, title, venue_id, opening_time, start_time, end_time, related_links, rating_sum, rating_count, status, author_id, created_at, updated_at
 `
 
 type UpdateEventParams struct {
-	Title          sql.NullString
-	VenueID        uuid.NullUUID
-	OpeningTime    sql.NullTime
-	StartTime      sql.NullTime
-	EndTime        sql.NullTime
-	RelatedLinks   []string
-	PosterImageUrl sql.NullString
-	Status         sql.NullString
-	ID             uuid.UUID
+	Title        sql.NullString
+	VenueID      uuid.NullUUID
+	OpeningTime  sql.NullTime
+	StartTime    sql.NullTime
+	EndTime      sql.NullTime
+	RelatedLinks []string
+	Status       sql.NullString
+	ID           uuid.UUID
 }
 
 func (q *Queries) UpdateEvent(ctx context.Context, arg UpdateEventParams) (Event, error) {
@@ -648,7 +588,6 @@ func (q *Queries) UpdateEvent(ctx context.Context, arg UpdateEventParams) (Event
 		arg.StartTime,
 		arg.EndTime,
 		pq.Array(arg.RelatedLinks),
-		arg.PosterImageUrl,
 		arg.Status,
 		arg.ID,
 	)
@@ -661,7 +600,6 @@ func (q *Queries) UpdateEvent(ctx context.Context, arg UpdateEventParams) (Event
 		&i.StartTime,
 		&i.EndTime,
 		pq.Array(&i.RelatedLinks),
-		&i.PosterImageUrl,
 		&i.RatingSum,
 		&i.RatingCount,
 		&i.Status,

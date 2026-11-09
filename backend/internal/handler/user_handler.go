@@ -6,6 +6,7 @@ import (
 	"net/http"
 
 	"eventer-map-backend/internal/middleware"
+
 	"github.com/google/uuid"
 	openapi_types "github.com/oapi-codegen/runtime/types"
 )
@@ -220,16 +221,14 @@ func (s *Server) GetUsersMeFollowingEvents(w http.ResponseWriter, r *http.Reques
 	response := make([]EventSummary, 0)
 	for _, e := range events {
 		response = append(response, EventSummary{
-			Id:             &e.ID,
-			Title:          &e.Title,
-			VenueId:        &e.VenueID.UUID, // e.VenueID is uuid.NullUUID, assuming valid
-			StartTime:      &e.StartTime,
-			EndTime:        &e.EndTime,
-			Rating:         nil, // Calculate if needed
-			PosterImageUrl: nil,
+			Id:        &e.ID,
+			Title:     &e.Title,
+			VenueId:   &e.VenueID.UUID, // e.VenueID is uuid.NullUUID, assuming valid
+			StartTime: &e.StartTime,
+			EndTime:   &e.EndTime,
+			Rating:    nil, // Calculate if needed
 		})
 	}
-	RespondJSON(w, http.StatusOK, response)
 	RespondJSON(w, http.StatusOK, response)
 }
 
@@ -325,19 +324,11 @@ func (s *Server) GetUsersMeFollowingArtistsEvents(w http.ResponseWriter, r *http
 		return
 	}
 
-	lastCheckedAtStr, err := s.services.Artist.GetLastArtistFeedCheckedAt(r.Context(), myID)
+	unreadCount, err := s.services.Artist.CountUnreadFollowingArtistEvents(r.Context(), myID)
 	if err != nil {
-		// Log error, but proceed
-		lastCheckedAtStr = "1970-01-01T00:00:00Z"
+		log.Printf("[GetUsersMeFollowingArtistsEvents] CountUnreadFollowingArtistEvents error (userID=%s): %v", myID, err)
+		unreadCount = 0
 	}
-
-	// Just a simple unreadCount calculation based on the paginated events for now
-	// To be accurate across all events, we should have a specific DB query `GetUnreadArtistEventsCount`.
-	// But as a fast Option A implementation, we count it on the frontend or backend in memory for the feed.
-	// Actually, let's just return 0, since the UI might just show "New" labels if `e.CreatedAt > lastCheckedAt`.
-	// We'll set it to 0.
-	unreadCount := 0
-	_ = lastCheckedAtStr
 
 	responseEvents := make([]EventSummary, 0)
 	for _, e := range events {
@@ -348,13 +339,12 @@ func (s *Server) GetUsersMeFollowingArtistsEvents(w http.ResponseWriter, r *http
 		endTime := e.EndTime
 
 		responseEvents = append(responseEvents, EventSummary{
-			Id:             &id,
-			Title:          &title,
-			VenueId:        &venueId,
-			StartTime:      &startTime,
-			EndTime:        &endTime,
-			Rating:         nil,
-			PosterImageUrl: nil,
+			Id:        &id,
+			Title:     &title,
+			VenueId:   &venueId,
+			StartTime: &startTime,
+			EndTime:   &endTime,
+			Rating:    nil,
 		})
 	}
 

@@ -1,6 +1,6 @@
 # 🚀 sqlc 가이드 및 사용 설명서
 
-[⬅️ 홈으로 돌아가기](./Home.md) | [관련 문서: DB 마이그레이션 가이드](./DATABASE_MIGRATION_GUIDE.md)
+[⬅️ 홈으로 돌아가기](./Home.md) | [관련 문서: DB 테이블 스키마 명세](./DATABASE_SCHEMA.md) | [관련 문서: DB 마이그레이션 가이드](./DATABASE_MIGRATION_GUIDE.md)
 
 본 문서는 Eventer Map 백엔드 프로젝트에서 데이터베이스 접근과 쿼리를 관리하기 위해 도입된 **sqlc** 도구에 대한 가이드입니다.
 

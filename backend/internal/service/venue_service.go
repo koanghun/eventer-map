@@ -56,7 +56,8 @@ func (s *VenueService) SearchVenues(ctx context.Context, query string, limit int
 }
 
 func (s *VenueService) ListVenuesByBoundingBox(ctx context.Context, minLat, maxLat, minLng, maxLng float64, status, nameKeyword string) ([]repository.Venue, error) {
-	rows, err := s.repo.ListVenuesByBoundingBox(ctx, repository.ListVenuesByBoundingBoxParams{
+	return s.repo.ListVenuesByBoundingBox(ctx, repository.ListVenuesByBoundingBoxParams{
+		Limit:    100,
 		MinLat:   minLat,
 		MaxLat:   maxLat,
 		MinLon:   minLng, // Map Lng to Lon
@@ -64,14 +65,6 @@ func (s *VenueService) ListVenuesByBoundingBox(ctx context.Context, minLat, maxL
 		Status:   status,
 		CursorID: uuid.Nil,
 	})
-	if err != nil {
-		return nil, err
-	}
-	venues := make([]repository.Venue, len(rows))
-	for i, r := range rows {
-		venues[i] = repository.Venue(r)
-	}
-	return venues, nil
 }
 
 func (s *VenueService) CreateVenue(ctx context.Context, input CreateVenueInput) (*repository.Venue, error) {
@@ -108,103 +101,10 @@ func (s *VenueService) CreateVenue(ctx context.Context, input CreateVenueInput) 
 }
 
 func (s *VenueService) GetVenue(ctx context.Context, id uuid.UUID) (*repository.Venue, error) {
-	row, err := s.repo.GetVenue(ctx, id)
+	venue, err := s.repo.GetVenue(ctx, id)
 	if err != nil {
 		return nil, err
 	}
-	venue := repository.Venue(row)
-	return &venue, nil
-}
-
-// RateVenue handles voting and auto-approval
-func (s *VenueService) RateVenue(ctx context.Context, userID, venueID uuid.UUID, score int32) (*repository.Venue, error) {
-	tx, err := s.db.BeginTx(ctx, nil)
-	if err != nil {
-		return nil, err
-	}
-	defer tx.Rollback()
-
-	q := s.repo.WithTx(tx)
-
-	// 1. Get current venue inside transaction FOR UPDATE
-	venue, err := q.GetVenueForUpdate(ctx, venueID)
-	if err != nil {
-		return nil, err
-	}
-
-	oldScore, err := q.GetUserVenueRating(ctx, repository.GetUserVenueRatingParams{
-		UserID:  userID,
-		VenueID: venueID,
-	})
-
-	var scoreDelta int32
-	var countDelta int32
-
-	if err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
-			err = q.InsertUserVenueRating(ctx, repository.InsertUserVenueRatingParams{
-				UserID:  userID,
-				VenueID: venueID,
-				Score:   score,
-			})
-			if err != nil {
-				return nil, err
-			}
-			scoreDelta = score
-			countDelta = 1
-		} else {
-			return nil, err
-		}
-	} else {
-		if oldScore == score {
-			return &venue, nil
-		}
-		err = q.UpdateUserVenueRating(ctx, repository.UpdateUserVenueRatingParams{
-			UserID:  userID,
-			VenueID: venueID,
-			Score:   score,
-		})
-		if err != nil {
-			return nil, err
-		}
-		scoreDelta = score - oldScore
-		countDelta = 0
-	}
-
-	err = q.UpdateVenueCredit(ctx, repository.UpdateVenueCreditParams{
-		ScoreDelta: scoreDelta,
-		CountDelta: countDelta,
-		ID:         venueID,
-	})
-	if err != nil {
-		return nil, err
-	}
-
-	newCreditSum := venue.CreditScore + scoreDelta
-	newCreditCount := venue.CreditCount + countDelta
-
-	newStatus := venue.Status
-	if newStatus == "PENDING" && newCreditCount >= 10 {
-		if newCreditSum > 0 {
-			newStatus = "APPROVED"
-			_, err = q.UpdateVenue(ctx, repository.UpdateVenueParams{
-				ID:     venueID,
-				Status: sql.NullString{String: "APPROVED", Valid: true},
-			})
-			if err != nil {
-				return nil, err
-			}
-		}
-	}
-
-	if err := tx.Commit(); err != nil {
-		return nil, err
-	}
-
-	venue.CreditScore = newCreditSum
-	venue.CreditCount = newCreditCount
-	venue.Status = newStatus
-
 	return &venue, nil
 }
 

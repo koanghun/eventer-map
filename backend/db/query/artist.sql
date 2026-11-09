@@ -4,65 +4,11 @@ VALUES ($1, $2, $3, $4, $5, $6, $7)
 RETURNING *;
 
 -- name: GetArtist :one
-SELECT
-    a.id,
-    a.official_name,
-    a.hiragana,
-    a.gender,
-    a.profile_image_url,
-    COALESCE((
-        SELECT SUM(e.rating_sum / e.rating_count)
-        FROM event_artists ea
-        JOIN events e ON ea.event_id = e.id
-        WHERE ea.artist_id = a.id AND e.rating_count > 0
-    ), a.rating_sum)::double precision AS rating_sum,
-    COALESCE((
-        SELECT NULLIF(COUNT(*)::int, 0)
-        FROM event_artists ea
-        JOIN events e ON ea.event_id = e.id
-        WHERE ea.artist_id = a.id AND e.rating_count > 0
-    ), a.rating_count)::int AS rating_count,
-    a.status,
-    a.author_id,
-    a.created_at,
-    a.updated_at,
-    a.credit_score,
-    a.credit_count,
-    a.disambiguation
-FROM artists a
-WHERE a.id = $1 LIMIT 1;
-
--- name: GetArtistForUpdate :one
 SELECT * FROM artists
-WHERE id = $1 FOR UPDATE LIMIT 1;
+WHERE id = $1 LIMIT 1;
 
 -- name: ListArtists :many
-SELECT
-    a.id,
-    a.official_name,
-    a.hiragana,
-    a.gender,
-    a.profile_image_url,
-    COALESCE((
-        SELECT SUM(e.rating_sum / e.rating_count)
-        FROM event_artists ea
-        JOIN events e ON ea.event_id = e.id
-        WHERE ea.artist_id = a.id AND e.rating_count > 0
-    ), a.rating_sum)::double precision AS rating_sum,
-    COALESCE((
-        SELECT NULLIF(COUNT(*)::int, 0)
-        FROM event_artists ea
-        JOIN events e ON ea.event_id = e.id
-        WHERE ea.artist_id = a.id AND e.rating_count > 0
-    ), a.rating_count)::int AS rating_count,
-    a.status,
-    a.author_id,
-    a.created_at,
-    a.updated_at,
-    a.credit_score,
-    a.credit_count,
-    a.disambiguation
-FROM artists a
+SELECT * FROM artists a
 WHERE 
     a.status != 'REJECTED'
     AND (@status::varchar = '' OR a.status = @status)
@@ -89,26 +35,7 @@ SET official_name = COALESCE(sqlc.narg('official_name'), official_name),
 WHERE id = sqlc.arg('id')
 RETURNING *;
 
--- name: UpdateArtistCredit :exec
-UPDATE artists
-SET credit_score = credit_score + sqlc.arg('score_delta'),
-    credit_count = credit_count + sqlc.arg('count_delta')
-WHERE id = sqlc.arg('id');
-
 -- name: CheckArtistInEvent :one
 SELECT EXISTS(
     SELECT 1 FROM event_artists WHERE artist_id = $1
 );
-
--- name: GetUserArtistRating :one
-SELECT score FROM user_artist_ratings
-WHERE user_id = $1 AND artist_id = $2 LIMIT 1;
-
--- name: InsertUserArtistRating :exec
-INSERT INTO user_artist_ratings (user_id, artist_id, score)
-VALUES ($1, $2, $3);
-
--- name: UpdateUserArtistRating :exec
-UPDATE user_artist_ratings
-SET score = $3
-WHERE user_id = $1 AND artist_id = $2;

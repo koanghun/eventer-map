@@ -15,7 +15,6 @@ export interface EventSummary {
   latitude?: number;
   /** 공연장 경도 */
   longitude?: number;
-  posterImageUrl?: string;
   rating?: number;
   startTime?: string;
   status?: EventSummaryStatus;

@@ -14,6 +14,23 @@ import (
 	"github.com/lib/pq"
 )
 
+const countUnreadFollowingArtistEvents = `-- name: CountUnreadFollowingArtistEvents :one
+SELECT COUNT(DISTINCT e.id)
+FROM events e
+JOIN event_artists ea ON e.id = ea.event_id
+JOIN user_artist_follows uaf ON ea.artist_id = uaf.artist_id
+JOIN users u ON uaf.user_id = u.id
+WHERE uaf.user_id = $1
+  AND e.created_at > u.last_artist_feed_checked_at
+`
+
+func (q *Queries) CountUnreadFollowingArtistEvents(ctx context.Context, userID uuid.UUID) (int64, error) {
+	row := q.db.QueryRowContext(ctx, countUnreadFollowingArtistEvents, userID)
+	var count int64
+	err := row.Scan(&count)
+	return count, err
+}
+
 const followArtist = `-- name: FollowArtist :exec
 INSERT INTO user_artist_follows (user_id, artist_id)
 VALUES ($1, $2)
@@ -92,7 +109,7 @@ func (q *Queries) ListArtistFollowers(ctx context.Context, arg ListArtistFollowe
 }
 
 const listFollowingArtistEvents = `-- name: ListFollowingArtistEvents :many
-SELECT DISTINCT e.id, e.title, e.venue_id, e.opening_time, e.start_time, e.end_time, e.related_links, e.poster_image_url, e.rating_sum, e.rating_count, e.status, e.author_id, e.created_at, e.updated_at
+SELECT DISTINCT e.id, e.title, e.venue_id, e.opening_time, e.start_time, e.end_time, e.related_links, e.rating_sum, e.rating_count, e.status, e.author_id, e.created_at, e.updated_at
 FROM events e
 JOIN event_artists ea ON e.id = ea.event_id
 JOIN user_artist_follows uaf ON ea.artist_id = uaf.artist_id
@@ -124,7 +141,6 @@ func (q *Queries) ListFollowingArtistEvents(ctx context.Context, arg ListFollowi
 			&i.StartTime,
 			&i.EndTime,
 			pq.Array(&i.RelatedLinks),
-			&i.PosterImageUrl,
 			&i.RatingSum,
 			&i.RatingCount,
 			&i.Status,
@@ -146,29 +162,7 @@ func (q *Queries) ListFollowingArtistEvents(ctx context.Context, arg ListFollowi
 }
 
 const listFollowingArtists = `-- name: ListFollowingArtists :many
-SELECT
-    a.id,
-    a.official_name,
-    a.hiragana,
-    a.disambiguation,
-    a.gender,
-    a.profile_image_url,
-    COALESCE((
-        SELECT SUM(e.rating_sum / e.rating_count)
-        FROM event_artists ea
-        JOIN events e ON ea.event_id = e.id
-        WHERE ea.artist_id = a.id AND e.rating_count > 0
-    ), a.rating_sum)::double precision AS rating_sum,
-    COALESCE((
-        SELECT NULLIF(COUNT(*)::int, 0)
-        FROM event_artists ea
-        JOIN events e ON ea.event_id = e.id
-        WHERE ea.artist_id = a.id AND e.rating_count > 0
-    ), a.rating_count)::int AS rating_count,
-    a.status,
-    a.author_id,
-    a.created_at,
-    a.updated_at
+SELECT a.id, a.official_name, a.hiragana, a.gender, a.profile_image_url, a.rating_sum, a.rating_count, a.status, a.author_id, a.created_at, a.updated_at, a.disambiguation
 FROM artists a
 JOIN user_artist_follows uaf ON a.id = uaf.artist_id
 WHERE uaf.user_id = $1
@@ -182,35 +176,19 @@ type ListFollowingArtistsParams struct {
 	Offset int32
 }
 
-type ListFollowingArtistsRow struct {
-	ID              uuid.UUID
-	OfficialName    string
-	Hiragana        sql.NullString
-	Disambiguation  sql.NullString
-	Gender          string
-	ProfileImageUrl sql.NullString
-	RatingSum       float64
-	RatingCount     int32
-	Status          string
-	AuthorID        uuid.NullUUID
-	CreatedAt       time.Time
-	UpdatedAt       time.Time
-}
-
-func (q *Queries) ListFollowingArtists(ctx context.Context, arg ListFollowingArtistsParams) ([]ListFollowingArtistsRow, error) {
+func (q *Queries) ListFollowingArtists(ctx context.Context, arg ListFollowingArtistsParams) ([]Artist, error) {
 	rows, err := q.db.QueryContext(ctx, listFollowingArtists, arg.UserID, arg.Limit, arg.Offset)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	var items []ListFollowingArtistsRow
+	var items []Artist
 	for rows.Next() {
-		var i ListFollowingArtistsRow
+		var i Artist
 		if err := rows.Scan(
 			&i.ID,
 			&i.OfficialName,
 			&i.Hiragana,
-			&i.Disambiguation,
 			&i.Gender,
 			&i.ProfileImageUrl,
 			&i.RatingSum,
@@ -219,6 +197,7 @@ func (q *Queries) ListFollowingArtists(ctx context.Context, arg ListFollowingArt
 			&i.AuthorID,
 			&i.CreatedAt,
 			&i.UpdatedAt,
+			&i.Disambiguation,
 		); err != nil {
 			return nil, err
 		}

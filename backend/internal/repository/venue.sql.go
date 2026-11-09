@@ -8,7 +8,6 @@ package repository
 import (
 	"context"
 	"database/sql"
-	"time"
 
 	"github.com/google/uuid"
 	"github.com/lib/pq"
@@ -30,7 +29,7 @@ func (q *Queries) CheckVenueInEvent(ctx context.Context, venueID uuid.NullUUID) 
 const createVenue = `-- name: CreateVenue :one
 INSERT INTO venues (official_name, google_map_id, address, latitude, longitude, related_links, capacity, status, author_id)
 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
-RETURNING id, official_name, google_map_id, address, latitude, longitude, related_links, capacity, rating_sum, rating_count, status, author_id, created_at, updated_at, credit_score, credit_count
+RETURNING id, official_name, google_map_id, address, latitude, longitude, related_links, capacity, rating_sum, rating_count, status, author_id, created_at, updated_at
 `
 
 type CreateVenueParams struct {
@@ -73,109 +72,17 @@ func (q *Queries) CreateVenue(ctx context.Context, arg CreateVenueParams) (Venue
 		&i.AuthorID,
 		&i.CreatedAt,
 		&i.UpdatedAt,
-		&i.CreditScore,
-		&i.CreditCount,
 	)
 	return i, err
-}
-
-const getUserVenueRating = `-- name: GetUserVenueRating :one
-SELECT score FROM user_venue_ratings
-WHERE user_id = $1 AND venue_id = $2 LIMIT 1
-`
-
-type GetUserVenueRatingParams struct {
-	UserID  uuid.UUID
-	VenueID uuid.UUID
-}
-
-func (q *Queries) GetUserVenueRating(ctx context.Context, arg GetUserVenueRatingParams) (int32, error) {
-	row := q.db.QueryRowContext(ctx, getUserVenueRating, arg.UserID, arg.VenueID)
-	var score int32
-	err := row.Scan(&score)
-	return score, err
 }
 
 const getVenue = `-- name: GetVenue :one
-SELECT
-    v.id,
-    v.official_name,
-    v.google_map_id,
-    v.address,
-    v.latitude,
-    v.longitude,
-    v.related_links,
-    v.capacity,
-    COALESCE((
-        SELECT SUM(e.rating_sum / e.rating_count)
-        FROM events e
-        WHERE e.venue_id = v.id AND e.rating_count > 0
-    ), v.rating_sum)::double precision AS rating_sum,
-    COALESCE((
-        SELECT NULLIF(COUNT(*)::int, 0)
-        FROM events e
-        WHERE e.venue_id = v.id AND e.rating_count > 0
-    ), v.rating_count)::int AS rating_count,
-    v.status,
-    v.author_id,
-    v.created_at,
-    v.updated_at,
-    v.credit_score,
-    v.credit_count
-FROM venues v
-WHERE v.id = $1 LIMIT 1
+SELECT id, official_name, google_map_id, address, latitude, longitude, related_links, capacity, rating_sum, rating_count, status, author_id, created_at, updated_at FROM venues
+WHERE id = $1 LIMIT 1
 `
 
-type GetVenueRow struct {
-	ID           uuid.UUID
-	OfficialName string
-	GoogleMapID  string
-	Address      string
-	Latitude     float64
-	Longitude    float64
-	RelatedLinks []string
-	Capacity     sql.NullInt32
-	RatingSum    float64
-	RatingCount  int32
-	Status       string
-	AuthorID     uuid.NullUUID
-	CreatedAt    time.Time
-	UpdatedAt    time.Time
-	CreditScore  int32
-	CreditCount  int32
-}
-
-func (q *Queries) GetVenue(ctx context.Context, id uuid.UUID) (GetVenueRow, error) {
+func (q *Queries) GetVenue(ctx context.Context, id uuid.UUID) (Venue, error) {
 	row := q.db.QueryRowContext(ctx, getVenue, id)
-	var i GetVenueRow
-	err := row.Scan(
-		&i.ID,
-		&i.OfficialName,
-		&i.GoogleMapID,
-		&i.Address,
-		&i.Latitude,
-		&i.Longitude,
-		pq.Array(&i.RelatedLinks),
-		&i.Capacity,
-		&i.RatingSum,
-		&i.RatingCount,
-		&i.Status,
-		&i.AuthorID,
-		&i.CreatedAt,
-		&i.UpdatedAt,
-		&i.CreditScore,
-		&i.CreditCount,
-	)
-	return i, err
-}
-
-const getVenueForUpdate = `-- name: GetVenueForUpdate :one
-SELECT id, official_name, google_map_id, address, latitude, longitude, related_links, capacity, rating_sum, rating_count, status, author_id, created_at, updated_at, credit_score, credit_count FROM venues
-WHERE id = $1 FOR UPDATE LIMIT 1
-`
-
-func (q *Queries) GetVenueForUpdate(ctx context.Context, id uuid.UUID) (Venue, error) {
-	row := q.db.QueryRowContext(ctx, getVenueForUpdate, id)
 	var i Venue
 	err := row.Scan(
 		&i.ID,
@@ -192,54 +99,12 @@ func (q *Queries) GetVenueForUpdate(ctx context.Context, id uuid.UUID) (Venue, e
 		&i.AuthorID,
 		&i.CreatedAt,
 		&i.UpdatedAt,
-		&i.CreditScore,
-		&i.CreditCount,
 	)
 	return i, err
 }
 
-const insertUserVenueRating = `-- name: InsertUserVenueRating :exec
-INSERT INTO user_venue_ratings (user_id, venue_id, score)
-VALUES ($1, $2, $3)
-`
-
-type InsertUserVenueRatingParams struct {
-	UserID  uuid.UUID
-	VenueID uuid.UUID
-	Score   int32
-}
-
-func (q *Queries) InsertUserVenueRating(ctx context.Context, arg InsertUserVenueRatingParams) error {
-	_, err := q.db.ExecContext(ctx, insertUserVenueRating, arg.UserID, arg.VenueID, arg.Score)
-	return err
-}
-
 const listVenuesByBoundingBox = `-- name: ListVenuesByBoundingBox :many
-SELECT
-    v.id,
-    v.official_name,
-    v.google_map_id,
-    v.address,
-    v.latitude,
-    v.longitude,
-    v.related_links,
-    v.capacity,
-    COALESCE((
-        SELECT SUM(e.rating_sum / e.rating_count)
-        FROM events e
-        WHERE e.venue_id = v.id AND e.rating_count > 0
-    ), v.rating_sum)::double precision AS rating_sum,
-    COALESCE((
-        SELECT NULLIF(COUNT(*)::int, 0)
-        FROM events e
-        WHERE e.venue_id = v.id AND e.rating_count > 0
-    ), v.rating_count)::int AS rating_count,
-    v.status,
-    v.author_id,
-    v.created_at,
-    v.updated_at,
-    v.credit_score,
-    v.credit_count
+SELECT v.id, v.official_name, v.google_map_id, v.address, v.latitude, v.longitude, v.related_links, v.capacity, v.rating_sum, v.rating_count, v.status, v.author_id, v.created_at, v.updated_at
 FROM venues v
 WHERE 
     v.latitude BETWEEN $2 AND $3
@@ -248,8 +113,6 @@ WHERE
     AND ($7::uuid IS NULL OR v.id > $7)
 ORDER BY
     CASE
-        WHEN COALESCE((SELECT COUNT(*) FROM events e WHERE e.venue_id = v.id AND e.rating_count > 0), 0) > 0
-        THEN (SELECT AVG(e.rating_sum / e.rating_count) FROM events e WHERE e.venue_id = v.id AND e.rating_count > 0)
         WHEN v.rating_count > 0 THEN v.rating_sum / v.rating_count
         ELSE 0
     END DESC,
@@ -267,26 +130,7 @@ type ListVenuesByBoundingBoxParams struct {
 	CursorID uuid.UUID
 }
 
-type ListVenuesByBoundingBoxRow struct {
-	ID           uuid.UUID
-	OfficialName string
-	GoogleMapID  string
-	Address      string
-	Latitude     float64
-	Longitude    float64
-	RelatedLinks []string
-	Capacity     sql.NullInt32
-	RatingSum    float64
-	RatingCount  int32
-	Status       string
-	AuthorID     uuid.NullUUID
-	CreatedAt    time.Time
-	UpdatedAt    time.Time
-	CreditScore  int32
-	CreditCount  int32
-}
-
-func (q *Queries) ListVenuesByBoundingBox(ctx context.Context, arg ListVenuesByBoundingBoxParams) ([]ListVenuesByBoundingBoxRow, error) {
+func (q *Queries) ListVenuesByBoundingBox(ctx context.Context, arg ListVenuesByBoundingBoxParams) ([]Venue, error) {
 	rows, err := q.db.QueryContext(ctx, listVenuesByBoundingBox,
 		arg.Limit,
 		arg.MinLat,
@@ -300,9 +144,9 @@ func (q *Queries) ListVenuesByBoundingBox(ctx context.Context, arg ListVenuesByB
 		return nil, err
 	}
 	defer rows.Close()
-	var items []ListVenuesByBoundingBoxRow
+	var items []Venue
 	for rows.Next() {
-		var i ListVenuesByBoundingBoxRow
+		var i Venue
 		if err := rows.Scan(
 			&i.ID,
 			&i.OfficialName,
@@ -318,8 +162,6 @@ func (q *Queries) ListVenuesByBoundingBox(ctx context.Context, arg ListVenuesByB
 			&i.AuthorID,
 			&i.CreatedAt,
 			&i.UpdatedAt,
-			&i.CreditScore,
-			&i.CreditCount,
 		); err != nil {
 			return nil, err
 		}
@@ -341,16 +183,8 @@ SELECT
     v.address,
     v.latitude,
     v.longitude,
-    COALESCE((
-        SELECT SUM(e.rating_sum / e.rating_count)
-        FROM events e
-        WHERE e.venue_id = v.id AND e.rating_count > 0
-    ), v.rating_sum)::double precision AS rating_sum,
-    COALESCE((
-        SELECT NULLIF(COUNT(*)::int, 0)
-        FROM events e
-        WHERE e.venue_id = v.id AND e.rating_count > 0
-    ), v.rating_count)::int AS rating_count,
+    v.rating_sum,
+    v.rating_count,
     v.status
 FROM venues v
 WHERE
@@ -410,23 +244,6 @@ func (q *Queries) SearchVenues(ctx context.Context, arg SearchVenuesParams) ([]S
 	return items, nil
 }
 
-const updateUserVenueRating = `-- name: UpdateUserVenueRating :exec
-UPDATE user_venue_ratings
-SET score = $3
-WHERE user_id = $1 AND venue_id = $2
-`
-
-type UpdateUserVenueRatingParams struct {
-	UserID  uuid.UUID
-	VenueID uuid.UUID
-	Score   int32
-}
-
-func (q *Queries) UpdateUserVenueRating(ctx context.Context, arg UpdateUserVenueRatingParams) error {
-	_, err := q.db.ExecContext(ctx, updateUserVenueRating, arg.UserID, arg.VenueID, arg.Score)
-	return err
-}
-
 const updateVenue = `-- name: UpdateVenue :one
 UPDATE venues
 SET official_name = COALESCE($1, official_name),
@@ -439,7 +256,7 @@ SET official_name = COALESCE($1, official_name),
     status = COALESCE($8, status),
     updated_at = NOW()
 WHERE id = $9
-RETURNING id, official_name, google_map_id, address, latitude, longitude, related_links, capacity, rating_sum, rating_count, status, author_id, created_at, updated_at, credit_score, credit_count
+RETURNING id, official_name, google_map_id, address, latitude, longitude, related_links, capacity, rating_sum, rating_count, status, author_id, created_at, updated_at
 `
 
 type UpdateVenueParams struct {
@@ -482,26 +299,6 @@ func (q *Queries) UpdateVenue(ctx context.Context, arg UpdateVenueParams) (Venue
 		&i.AuthorID,
 		&i.CreatedAt,
 		&i.UpdatedAt,
-		&i.CreditScore,
-		&i.CreditCount,
 	)
 	return i, err
-}
-
-const updateVenueCredit = `-- name: UpdateVenueCredit :exec
-UPDATE venues
-SET credit_score = credit_score + $1,
-    credit_count = credit_count + $2
-WHERE id = $3
-`
-
-type UpdateVenueCreditParams struct {
-	ScoreDelta int32
-	CountDelta int32
-	ID         uuid.UUID
-}
-
-func (q *Queries) UpdateVenueCredit(ctx context.Context, arg UpdateVenueCreditParams) error {
-	_, err := q.db.ExecContext(ctx, updateVenueCredit, arg.ScoreDelta, arg.CountDelta, arg.ID)
-	return err
 }
