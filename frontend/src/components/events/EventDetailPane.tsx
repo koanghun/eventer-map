@@ -5,6 +5,7 @@ import { useAuth } from '../../context/AuthContext';
 import { useEventStore } from '../../store/useEventStore';
 import { toast } from '../../store/useToastStore';
 import { Button } from '../ui/button';
+import EventThreadSection from './EventThreadSection';
 import {
     useGetEventsEventId,
     usePutEventsEventIdAction,
@@ -356,18 +357,8 @@ interface EventDetailPaneProps {
                                                 </div>
 
 
-                                                {/* Future: Thread / Comments Section */}
-                                                <div className="border-t border-border/50 pt-5">
-                                                    <h3 className="font-bold text-foreground mb-3 flex items-center justify-between">
-                                                        {t('eventDetail.thread.title', 'Thread (Comments)')}
-                                                        <span className="text-xs px-2 py-1 bg-secondary text-secondary-foreground rounded-full">
-                                                            Coming soon
-                                                        </span>
-                                                    </h3>
-                                                    <div className="bg-muted/20 border border-dashed border-border/80 rounded-xl h-32 flex items-center justify-center text-sm text-muted-foreground">
-                                                        {t('eventDetail.thread.comingSoonMsg', 'Thread feature is coming soon.')}
-                                                    </div>
-                                                </div>
+                                                {/* Thread (커뮤니티) Section — 추천순 정렬 */}
+                                                {eventId && <EventThreadSection eventId={eventId} />}
 
                                             </div>
                                     </div>

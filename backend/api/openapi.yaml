@@ -1268,8 +1268,12 @@ paths:
     get:
       tags:
         - Threads
-      summary: 이벤트 스레드(부가정보) 조회
-      description: 추천순(recommendCount) 내림차순 정렬
+      operationId: listEventThreads
+      summary: 이벤트 스레드 목록 조회
+      description: |
+        추천수(recommendCount) 내림차순 → 최신순으로 정렬된 스레드를 커서 기반으로 조회합니다.
+        인증 시 조회자의 추천 여부(isRecommended)와 본인 작성 여부(isMine)가 채워지며,
+        조회자와 차단 관계인 작성자의 스레드는 제외됩니다.
       parameters:
         - in: path
           name: eventId
@@ -1277,18 +1281,34 @@ paths:
           schema:
             type: string
             format: uuid
+        - in: query
+          name: cursor
+          required: false
+          description: 이전 응답의 nextCursor 값 (불투명 문자열)
+          schema:
+            type: string
+            maxLength: 256
+        - in: query
+          name: limit
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 50
+            default: 20
       responses:
         "200":
           description: 조회 성공
           content:
             application/json:
               schema:
-                type: array
-                items:
-                  $ref: "#/components/schemas/EventThread"
+                $ref: "#/components/schemas/EventThreadListResponse"
+        "400":
+          description: 잘못된 커서 또는 파라미터
     post:
       tags:
         - Threads
+      operationId: createEventThread
       summary: 이벤트 스레드 작성
       security:
         - bearerAuth: []
@@ -1312,11 +1332,44 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/EventThread"
-  /event-threads/{threadId}/recommend:
-    post:
+        "400":
+          description: 본문이 비었거나 길이 제한 초과
+        "401":
+          description: 인증 필요
+        "403":
+          description: 정지된 유저
+        "404":
+          description: 이벤트 없음
+  /event-threads/{threadId}:
+    delete:
       tags:
         - Threads
-      summary: 스레드 추천 토글
+      operationId: deleteEventThread
+      summary: 스레드 삭제 (작성자 또는 관리자)
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: threadId
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "204":
+          description: 삭제 성공
+        "401":
+          description: 인증 필요
+        "403":
+          description: 삭제 권한 없음
+        "404":
+          description: 스레드 없음
+  /event-threads/{threadId}/recommend:
+    put:
+      tags:
+        - Threads
+      operationId: recommendEventThread
+      summary: 스레드 추천 (멱등)
       security:
         - bearerAuth: []
       parameters:
@@ -1328,7 +1381,44 @@ paths:
             format: uuid
       responses:
         "200":
-          description: 추천 성공
+          description: 추천 완료
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ThreadRecommendResult"
+        "400":
+          description: 본인 스레드는 추천 불가
+        "401":
+          description: 인증 필요
+        "403":
+          description: 정지된 유저
+        "404":
+          description: 스레드 없음
+    delete:
+      tags:
+        - Threads
+      operationId: unrecommendEventThread
+      summary: 스레드 추천 취소 (멱등)
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: threadId
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          description: 추천 취소 완료
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ThreadRecommendResult"
+        "401":
+          description: 인증 필요
+        "404":
+          description: 스레드 없음
 
 components:
   schemas:
@@ -1478,8 +1568,28 @@ components:
           type: integer
           minimum: 1
           maximum: 5
+    EventThreadAuthor:
+      type: object
+      required:
+        - id
+        - displayName
+      properties:
+        id:
+          type: string
+          format: uuid
+        displayName:
+          type: string
     EventThread:
       type: object
+      required:
+        - id
+        - eventId
+        - content
+        - recommendCount
+        - isRecommended
+        - isMine
+        - createdAt
+        - updatedAt
       properties:
         id:
           type: string
@@ -1487,16 +1597,40 @@ components:
         eventId:
           type: string
           format: uuid
-        authorId:
-          type: string
-          format: uuid
+        author:
+          allOf:
+            - $ref: "#/components/schemas/EventThreadAuthor"
+          nullable: true
+          description: 탈퇴한 유저의 스레드는 null
         content:
           type: string
         recommendCount:
           type: integer
+        isRecommended:
+          type: boolean
+          description: 현재 조회자의 추천 여부 (비로그인 시 false)
+        isMine:
+          type: boolean
+          description: 현재 조회자의 작성 여부 (비로그인 시 false)
         createdAt:
           type: string
           format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+    EventThreadListResponse:
+      type: object
+      required:
+        - threads
+      properties:
+        threads:
+          type: array
+          items:
+            $ref: "#/components/schemas/EventThread"
+        nextCursor:
+          type: string
+          nullable: true
+          description: 다음 페이지 커서 (마지막 페이지면 null)
     EventThreadInput:
       type: object
       required:
@@ -1504,6 +1638,22 @@ components:
       properties:
         content:
           type: string
+          minLength: 1
+          maxLength: 1000
+    ThreadRecommendResult:
+      type: object
+      required:
+        - threadId
+        - recommended
+        - recommendCount
+      properties:
+        threadId:
+          type: string
+          format: uuid
+        recommended:
+          type: boolean
+        recommendCount:
+          type: integer
 
     GoogleLoginRequest:
       type: object

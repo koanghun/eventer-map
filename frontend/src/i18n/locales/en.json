@@ -134,6 +134,30 @@
         }
     },
     "eventDetail": {
+        "thread": {
+            "title": "Threads",
+            "description": "Threads with the most recommendations are shown first.",
+            "loading": "Loading threads...",
+            "loadFailed": "Failed to load threads.",
+            "retry": "Retry",
+            "empty": "No threads yet. Be the first to share some info!",
+            "loadMore": "Load more",
+            "loginToWrite": "Log in to write a thread.",
+            "placeholder": "Share extra info or your thoughts about this event. (e.g. merch sale times, entry tips, reviews)",
+            "submit": "Post",
+            "created": "Thread posted.",
+            "createFailed": "Failed to post thread.",
+            "recommend": "Recommend",
+            "unrecommend": "Remove recommendation",
+            "recommendFailed": "Failed to update recommendation.",
+            "cannotRecommendOwn": "You can't recommend your own thread",
+            "mine": "Mine",
+            "unknownAuthor": "Deleted user",
+            "delete": "Delete thread",
+            "confirmDelete": "Delete this?",
+            "deleted": "Thread deleted.",
+            "deleteFailed": "Failed to delete thread."
+        },
         "action": {
             "check": "Check",
             "attend": "Attend",

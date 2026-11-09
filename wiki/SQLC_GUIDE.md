@@ -24,7 +24,7 @@ sqlc를 이용해 새로운 데이터베이스 기능을 추가하는 흐름은 
 테이블이 변경되거나 새로 생성될 경우, `backend/db/migration/` 폴더 내에 신규 `.up.sql` / `.down.sql` 마이그레이션 파일을 작성합니다. sqlc는 이 마이그레이션 파일들을 순서대로 읽어 Go 구조체 모델(`internal/repository/models.go`)을 생성합니다.
 
 ### 단계 2: SQL 쿼리 작성 (`backend/db/query/`)
-`backend/db/query/` 디렉터리의 도메인별 SQL 파일(`artist.sql`, `venue.sql`, `event.sql`, `user.sql` 등)에 쿼리를 작성합니다.
+`backend/db/query/` 디렉터리의 도메인별 SQL 파일(`artist.sql`, `venue.sql`, `event.sql`, `event_thread.sql`, `user.sql` 등)에 쿼리를 작성합니다.
 반드시 상단에 **sqlc 매직 주석**을 달아 쿼리의 이름과 반환 형태를 지정해야 합니다.
 
 ```sql
@@ -127,8 +127,27 @@ sql:
 ## 5. SQL 작성 핵심 규칙
 
 1. **커서 기반 페이지네이션 (Cursor Pagination)**:
-   - 대량 데이터 조회 시 `OFFSET` 대신 `WHERE id > @cursor_id` 방식을 사용합니다.
+   - 대량 데이터 조회 시 `LIMIT + OFFSET`을 지양하고 커서 방식을 사용합니다.
+   - 단일 ID 기준: `WHERE id > @cursor_id`
+   - **복합 랭킹 기준 (이벤트 스레드 추천순 등)**: 정렬 조건이 `recommend_count DESC, created_at DESC, id DESC`와 같이 복합적일 때는 PostgreSQL의 튜플 비교 문법을 사용하여 동점자 누락 없이 인덱스를 고속 스캔합니다:
+     ```sql
+     -- name: ListEventThreads :many
+     SELECT ... FROM event_threads t
+     WHERE t.event_id = @event_id
+       AND (
+         sqlc.narg('cursor_id')::uuid IS NULL
+         OR (t.recommend_count, t.created_at, t.id) < (
+             sqlc.narg('cursor_recommend_count')::int,
+             sqlc.narg('cursor_created_at')::timestamptz,
+             sqlc.narg('cursor_id')::uuid
+         )
+       )
+     ORDER BY t.recommend_count DESC, t.created_at DESC, t.id DESC
+     LIMIT @row_limit;
+     ```
 2. **조건부 업데이트 (Conditional Update)**:
    - 일부 필드만 선택적으로 수정하는 쿼리는 `COALESCE(sqlc.narg('field'), field)` 패턴을 사용합니다.
 3. **전방 일치 자동완성 인덱스 활용**:
    - 공연장(`SearchVenues`) 및 출연자(`ListArtists`) 검색은 `LOWER(official_name) LIKE LOWER(@query) || '%'` 형태로 작성하여 `varchar_pattern_ops` B-Tree 인덱스를 타도록 유지합니다.
+4. **차단 유저 서브쿼리 필터링 (`NOT EXISTS`)**:
+   - 커뮤니티 및 참가자 목록 조회 시 조회자와 상호 차단 관계에 있는 유저의 데이터는 SQL 레벨에서 제외합니다.

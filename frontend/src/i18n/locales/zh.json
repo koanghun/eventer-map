@@ -133,6 +133,30 @@
         }
     },
     "eventDetail": {
+        "thread": {
+            "title": "讨论串",
+            "description": "获得推荐最多的讨论串会显示在最上方。",
+            "loading": "正在加载讨论串...",
+            "loadFailed": "无法加载讨论串。",
+            "retry": "重试",
+            "empty": "还没有讨论串，来分享第一条信息吧！",
+            "loadMore": "加载更多",
+            "loginToWrite": "登录后即可发表讨论串。",
+            "placeholder": "欢迎分享关于该活动的补充信息或看法。（例如：周边贩售时间、入场技巧、观后感）",
+            "submit": "发布",
+            "created": "讨论串已发布。",
+            "createFailed": "讨论串发布失败。",
+            "recommend": "推荐",
+            "unrecommend": "取消推荐",
+            "recommendFailed": "推荐操作失败。",
+            "cannotRecommendOwn": "不能推荐自己的讨论串",
+            "mine": "我的",
+            "unknownAuthor": "已注销用户",
+            "delete": "删除讨论串",
+            "confirmDelete": "确定删除吗？",
+            "deleted": "讨论串已删除。",
+            "deleteFailed": "讨论串删除失败。"
+        },
         "action": {
             "check": "关注",
             "attend": "参加",

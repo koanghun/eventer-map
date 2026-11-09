@@ -19,7 +19,10 @@ import type {
 } from '@tanstack/react-query'
 import type {
   EventThread,
-  EventThreadInput
+  EventThreadInput,
+  EventThreadListResponse,
+  ListEventThreadsParams,
+  ThreadRecommendResult
 } from '.././model'
 import { customInstance } from '../../../lib/axios';
 
@@ -28,57 +31,65 @@ type SecondParameter<T extends (...args: any) => any> = Parameters<T>[1];
 
 
 /**
- * 추천순(recommendCount) 내림차순 정렬
- * @summary 이벤트 스레드(부가정보) 조회
+ * 추천수(recommendCount) 내림차순 → 최신순으로 정렬된 스레드를 커서 기반으로 조회합니다.
+인증 시 조회자의 추천 여부(isRecommended)와 본인 작성 여부(isMine)가 채워지며,
+조회자와 차단 관계인 작성자의 스레드는 제외됩니다.
+
+ * @summary 이벤트 스레드 목록 조회
  */
-export const getEventsEventIdThreads = (
+export const listEventThreads = (
     eventId: string,
+    params?: ListEventThreadsParams,
  options?: SecondParameter<typeof customInstance>,signal?: AbortSignal
 ) => {
       
       
-      return customInstance<EventThread[]>(
-      {url: `/events/${eventId}/threads`, method: 'GET', signal
+      return customInstance<EventThreadListResponse>(
+      {url: `/events/${eventId}/threads`, method: 'GET',
+        params, signal
     },
       options);
     }
   
 
-export const getGetEventsEventIdThreadsQueryKey = (eventId: string,) => {
-    return [`/events/${eventId}/threads`] as const;
+export const getListEventThreadsQueryKey = (eventId: string,
+    params?: ListEventThreadsParams,) => {
+    return [`/events/${eventId}/threads`, ...(params ? [params]: [])] as const;
     }
 
     
-export const getGetEventsEventIdThreadsQueryOptions = <TData = Awaited<ReturnType<typeof getEventsEventIdThreads>>, TError = unknown>(eventId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getEventsEventIdThreads>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+export const getListEventThreadsQueryOptions = <TData = Awaited<ReturnType<typeof listEventThreads>>, TError = void>(eventId: string,
+    params?: ListEventThreadsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listEventThreads>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 ) => {
 
 const {query: queryOptions, request: requestOptions} = options ?? {};
 
-  const queryKey =  queryOptions?.queryKey ?? getGetEventsEventIdThreadsQueryKey(eventId);
+  const queryKey =  queryOptions?.queryKey ?? getListEventThreadsQueryKey(eventId,params);
 
   
 
-    const queryFn: QueryFunction<Awaited<ReturnType<typeof getEventsEventIdThreads>>> = ({ signal }) => getEventsEventIdThreads(eventId, requestOptions, signal);
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listEventThreads>>> = ({ signal }) => listEventThreads(eventId,params, requestOptions, signal);
 
       
 
       
 
-   return  { queryKey, queryFn, enabled: !!(eventId), ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getEventsEventIdThreads>>, TError, TData> & { queryKey: QueryKey }
+   return  { queryKey, queryFn, enabled: !!(eventId), ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listEventThreads>>, TError, TData> & { queryKey: QueryKey }
 }
 
-export type GetEventsEventIdThreadsQueryResult = NonNullable<Awaited<ReturnType<typeof getEventsEventIdThreads>>>
-export type GetEventsEventIdThreadsQueryError = unknown
+export type ListEventThreadsQueryResult = NonNullable<Awaited<ReturnType<typeof listEventThreads>>>
+export type ListEventThreadsQueryError = void
 
 /**
- * @summary 이벤트 스레드(부가정보) 조회
+ * @summary 이벤트 스레드 목록 조회
  */
-export const useGetEventsEventIdThreads = <TData = Awaited<ReturnType<typeof getEventsEventIdThreads>>, TError = unknown>(
- eventId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getEventsEventIdThreads>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+export const useListEventThreads = <TData = Awaited<ReturnType<typeof listEventThreads>>, TError = void>(
+ eventId: string,
+    params?: ListEventThreadsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listEventThreads>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 
   ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } => {
 
-  const queryOptions = getGetEventsEventIdThreadsQueryOptions(eventId,options)
+  const queryOptions = getListEventThreadsQueryOptions(eventId,params,options)
 
   const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
 
@@ -92,7 +103,7 @@ export const useGetEventsEventIdThreads = <TData = Awaited<ReturnType<typeof get
 /**
  * @summary 이벤트 스레드 작성
  */
-export const postEventsEventIdThreads = (
+export const createEventThread = (
     eventId: string,
     eventThreadInput: EventThreadInput,
  options?: SecondParameter<typeof customInstance>,) => {
@@ -108,18 +119,18 @@ export const postEventsEventIdThreads = (
   
 
 
-export const getPostEventsEventIdThreadsMutationOptions = <TError = unknown,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postEventsEventIdThreads>>, TError,{eventId: string;data: EventThreadInput}, TContext>, request?: SecondParameter<typeof customInstance>}
-): UseMutationOptions<Awaited<ReturnType<typeof postEventsEventIdThreads>>, TError,{eventId: string;data: EventThreadInput}, TContext> => {
+export const getCreateEventThreadMutationOptions = <TError = void,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createEventThread>>, TError,{eventId: string;data: EventThreadInput}, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationOptions<Awaited<ReturnType<typeof createEventThread>>, TError,{eventId: string;data: EventThreadInput}, TContext> => {
 const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
       
 
 
-      const mutationFn: MutationFunction<Awaited<ReturnType<typeof postEventsEventIdThreads>>, {eventId: string;data: EventThreadInput}> = (props) => {
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof createEventThread>>, {eventId: string;data: EventThreadInput}> = (props) => {
           const {eventId,data} = props ?? {};
 
-          return  postEventsEventIdThreads(eventId,data,requestOptions)
+          return  createEventThread(eventId,data,requestOptions)
         }
 
         
@@ -127,54 +138,54 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
   return  { mutationFn, ...mutationOptions }}
 
-    export type PostEventsEventIdThreadsMutationResult = NonNullable<Awaited<ReturnType<typeof postEventsEventIdThreads>>>
-    export type PostEventsEventIdThreadsMutationBody = EventThreadInput
-    export type PostEventsEventIdThreadsMutationError = unknown
+    export type CreateEventThreadMutationResult = NonNullable<Awaited<ReturnType<typeof createEventThread>>>
+    export type CreateEventThreadMutationBody = EventThreadInput
+    export type CreateEventThreadMutationError = void
 
     /**
  * @summary 이벤트 스레드 작성
  */
-export const usePostEventsEventIdThreads = <TError = unknown,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postEventsEventIdThreads>>, TError,{eventId: string;data: EventThreadInput}, TContext>, request?: SecondParameter<typeof customInstance>}
+export const useCreateEventThread = <TError = void,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createEventThread>>, TError,{eventId: string;data: EventThreadInput}, TContext>, request?: SecondParameter<typeof customInstance>}
 ): UseMutationResult<
-        Awaited<ReturnType<typeof postEventsEventIdThreads>>,
+        Awaited<ReturnType<typeof createEventThread>>,
         TError,
         {eventId: string;data: EventThreadInput},
         TContext
       > => {
 
-      const mutationOptions = getPostEventsEventIdThreadsMutationOptions(options);
+      const mutationOptions = getCreateEventThreadMutationOptions(options);
 
       return useMutation(mutationOptions);
     }
     /**
- * @summary 스레드 추천 토글
+ * @summary 스레드 삭제 (작성자 또는 관리자)
  */
-export const postEventThreadsThreadIdRecommend = (
+export const deleteEventThread = (
     threadId: string,
  options?: SecondParameter<typeof customInstance>,) => {
       
       
       return customInstance<void>(
-      {url: `/event-threads/${threadId}/recommend`, method: 'POST'
+      {url: `/event-threads/${threadId}`, method: 'DELETE'
     },
       options);
     }
   
 
 
-export const getPostEventThreadsThreadIdRecommendMutationOptions = <TError = unknown,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postEventThreadsThreadIdRecommend>>, TError,{threadId: string}, TContext>, request?: SecondParameter<typeof customInstance>}
-): UseMutationOptions<Awaited<ReturnType<typeof postEventThreadsThreadIdRecommend>>, TError,{threadId: string}, TContext> => {
+export const getDeleteEventThreadMutationOptions = <TError = void,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteEventThread>>, TError,{threadId: string}, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationOptions<Awaited<ReturnType<typeof deleteEventThread>>, TError,{threadId: string}, TContext> => {
 const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
       
 
 
-      const mutationFn: MutationFunction<Awaited<ReturnType<typeof postEventThreadsThreadIdRecommend>>, {threadId: string}> = (props) => {
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof deleteEventThread>>, {threadId: string}> = (props) => {
           const {threadId} = props ?? {};
 
-          return  postEventThreadsThreadIdRecommend(threadId,requestOptions)
+          return  deleteEventThread(threadId,requestOptions)
         }
 
         
@@ -182,23 +193,133 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
   return  { mutationFn, ...mutationOptions }}
 
-    export type PostEventThreadsThreadIdRecommendMutationResult = NonNullable<Awaited<ReturnType<typeof postEventThreadsThreadIdRecommend>>>
+    export type DeleteEventThreadMutationResult = NonNullable<Awaited<ReturnType<typeof deleteEventThread>>>
     
-    export type PostEventThreadsThreadIdRecommendMutationError = unknown
+    export type DeleteEventThreadMutationError = void
 
     /**
- * @summary 스레드 추천 토글
+ * @summary 스레드 삭제 (작성자 또는 관리자)
  */
-export const usePostEventThreadsThreadIdRecommend = <TError = unknown,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postEventThreadsThreadIdRecommend>>, TError,{threadId: string}, TContext>, request?: SecondParameter<typeof customInstance>}
+export const useDeleteEventThread = <TError = void,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteEventThread>>, TError,{threadId: string}, TContext>, request?: SecondParameter<typeof customInstance>}
 ): UseMutationResult<
-        Awaited<ReturnType<typeof postEventThreadsThreadIdRecommend>>,
+        Awaited<ReturnType<typeof deleteEventThread>>,
         TError,
         {threadId: string},
         TContext
       > => {
 
-      const mutationOptions = getPostEventThreadsThreadIdRecommendMutationOptions(options);
+      const mutationOptions = getDeleteEventThreadMutationOptions(options);
+
+      return useMutation(mutationOptions);
+    }
+    /**
+ * @summary 스레드 추천 (멱등)
+ */
+export const recommendEventThread = (
+    threadId: string,
+ options?: SecondParameter<typeof customInstance>,) => {
+      
+      
+      return customInstance<ThreadRecommendResult>(
+      {url: `/event-threads/${threadId}/recommend`, method: 'PUT'
+    },
+      options);
+    }
+  
+
+
+export const getRecommendEventThreadMutationOptions = <TError = void,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof recommendEventThread>>, TError,{threadId: string}, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationOptions<Awaited<ReturnType<typeof recommendEventThread>>, TError,{threadId: string}, TContext> => {
+const {mutation: mutationOptions, request: requestOptions} = options ?? {};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof recommendEventThread>>, {threadId: string}> = (props) => {
+          const {threadId} = props ?? {};
+
+          return  recommendEventThread(threadId,requestOptions)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type RecommendEventThreadMutationResult = NonNullable<Awaited<ReturnType<typeof recommendEventThread>>>
+    
+    export type RecommendEventThreadMutationError = void
+
+    /**
+ * @summary 스레드 추천 (멱등)
+ */
+export const useRecommendEventThread = <TError = void,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof recommendEventThread>>, TError,{threadId: string}, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationResult<
+        Awaited<ReturnType<typeof recommendEventThread>>,
+        TError,
+        {threadId: string},
+        TContext
+      > => {
+
+      const mutationOptions = getRecommendEventThreadMutationOptions(options);
+
+      return useMutation(mutationOptions);
+    }
+    /**
+ * @summary 스레드 추천 취소 (멱등)
+ */
+export const unrecommendEventThread = (
+    threadId: string,
+ options?: SecondParameter<typeof customInstance>,) => {
+      
+      
+      return customInstance<ThreadRecommendResult>(
+      {url: `/event-threads/${threadId}/recommend`, method: 'DELETE'
+    },
+      options);
+    }
+  
+
+
+export const getUnrecommendEventThreadMutationOptions = <TError = void,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof unrecommendEventThread>>, TError,{threadId: string}, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationOptions<Awaited<ReturnType<typeof unrecommendEventThread>>, TError,{threadId: string}, TContext> => {
+const {mutation: mutationOptions, request: requestOptions} = options ?? {};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof unrecommendEventThread>>, {threadId: string}> = (props) => {
+          const {threadId} = props ?? {};
+
+          return  unrecommendEventThread(threadId,requestOptions)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type UnrecommendEventThreadMutationResult = NonNullable<Awaited<ReturnType<typeof unrecommendEventThread>>>
+    
+    export type UnrecommendEventThreadMutationError = void
+
+    /**
+ * @summary 스레드 추천 취소 (멱등)
+ */
+export const useUnrecommendEventThread = <TError = void,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof unrecommendEventThread>>, TError,{threadId: string}, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationResult<
+        Awaited<ReturnType<typeof unrecommendEventThread>>,
+        TError,
+        {threadId: string},
+        TContext
+      > => {
+
+      const mutationOptions = getUnrecommendEventThreadMutationOptions(options);
 
       return useMutation(mutationOptions);
     }

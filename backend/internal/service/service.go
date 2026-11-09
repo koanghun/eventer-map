@@ -18,6 +18,7 @@ type Services struct {
 	Artist *ArtistService
 	Venue  *VenueService
 	Stats  *StatsService
+	Thread *ThreadService
 	db     *sql.DB
 }
 
@@ -40,6 +41,7 @@ func NewServices(repo *repository.Queries, db *sql.DB) *Services {
 		Artist: NewArtistService(repo, db, uploader),
 		Venue:  NewVenueService(repo, db),
 		Stats:  NewStatsService(repo),
+		Thread: NewThreadService(repo, db),
 		db:     db,
 	}
 }

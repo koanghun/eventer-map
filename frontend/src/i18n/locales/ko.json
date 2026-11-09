@@ -134,6 +134,30 @@
         }
     },
     "eventDetail": {
+        "thread": {
+            "title": "스레드",
+            "description": "추천을 많이 받은 스레드가 위에 표시됩니다.",
+            "loading": "스레드를 불러오는 중...",
+            "loadFailed": "스레드를 불러오지 못했습니다.",
+            "retry": "다시 시도",
+            "empty": "아직 스레드가 없습니다. 첫 번째 정보를 공유해 보세요!",
+            "loadMore": "더 보기",
+            "loginToWrite": "로그인 후 스레드를 작성할 수 있습니다.",
+            "placeholder": "이벤트에 대한 추가 정보나 의견을 자유롭게 남겨주세요. (예: 굿즈 판매 시간, 입장 팁, 후기)",
+            "submit": "등록",
+            "created": "스레드가 등록되었습니다.",
+            "createFailed": "스레드 등록에 실패했습니다.",
+            "recommend": "추천",
+            "unrecommend": "추천 취소",
+            "recommendFailed": "추천 처리에 실패했습니다.",
+            "cannotRecommendOwn": "본인 스레드는 추천할 수 없습니다",
+            "mine": "내 글",
+            "unknownAuthor": "탈퇴한 사용자",
+            "delete": "스레드 삭제",
+            "confirmDelete": "삭제할까요?",
+            "deleted": "스레드가 삭제되었습니다.",
+            "deleteFailed": "스레드 삭제에 실패했습니다."
+        },
         "action": {
             "check": "체크",
             "attend": "참가",

@@ -2,7 +2,7 @@
 
 [⬅️ 홈으로 돌아가기](./Home.md) | [관련 문서: DB 마이그레이션 가이드](./DATABASE_MIGRATION_GUIDE.md) | [관련 문서: sqlc 가이드](./SQLC_GUIDE.md)
 
-이 문서는 `backend/db/migration/`(`000001` ~ `000015`)과 `backend/db/query/*.sql`을 기반으로 Eventer Map의 **PostgreSQL 전체 테이블 스키마(13개 테이블)**를 정의하고, 정리된 요소 및 잔여 검토 항목을 정리한 기술 위키입니다.
+이 문서는 `backend/db/migration/`(`000001` ~ `000016`)과 `backend/db/query/*.sql`을 기반으로 Eventer Map의 **PostgreSQL 전체 테이블 스키마(13개 테이블)**를 정의하고, 정리된 요소 및 잔여 검토 항목을 정리한 기술 위키입니다.
 
 ---
 
@@ -207,14 +207,43 @@ erDiagram
 
 ---
 
-### 2.3. 참여·평점·소셜·시스템 도메인
+### 2.3. 참여·평점·소셜·스레드·시스템 도메인
 
+#### 7) `event_threads` — 이벤트 하위 스레드(커뮤니티/댓글)
+이벤트별 상세 정보, 팁, 후기 등 유저들이 자유롭게 작성하는 하위 커뮤니티 스레드입니다.
+
+| 컬럼명 | 데이터 타입 | 제약 조건 | 기본값 | 설명 |
+| :--- | :--- | :--- | :--- | :--- |
+| `id` | `UUID` | `PK` | `uuid_generate_v4()` | 스레드 고유 식별자 |
+| `event_id` | `UUID` | `NOT NULL`, `FK -> events(id) ON DELETE CASCADE` | - | 소속 이벤트 ID |
+| `author_id` | `UUID` | `FK -> users(id) ON DELETE SET NULL` | - | 작성자 ID (회원 탈퇴 시 보존) |
+| `content` | `TEXT` | `NOT NULL`, `CHECK (char_length(content) BETWEEN 1 AND 1000)` | - | 스레드 본문 (1~1,000자) |
+| `recommend_count` | `INTEGER` | `NOT NULL`, `CHECK (recommend_count >= 0)` | `0` | 누적 추천 수 |
+| `created_at` | `TIMESTAMPTZ` | `NOT NULL` | `NOW()` | 작성 시각 |
+| `updated_at` | `TIMESTAMPTZ` | `NOT NULL` | `NOW()` | 수정 시각 |
+
+**활성 인덱스**:
+- `idx_event_threads_event_ranking`: `ON event_threads (event_id, recommend_count DESC, created_at DESC, id DESC)` (추천순 정렬 및 복합 커서 페이지네이션 전용 인덱스)
+- `idx_event_threads_author_id`: `ON event_threads (author_id)` (작성자 탈퇴 시 SET NULL 처리 가속)
+
+#### 8) `thread_recommendations` — 스레드 유저 추천 매핑
+유저당 스레드 1회 추천을 보장하는 N:M 매핑 테이블입니다.
+
+| 컬럼명 | 데이터 타입 | 제약 조건 | 기본값 | 설명 |
+| :--- | :--- | :--- | :--- | :--- |
+| `user_id` | `UUID` | `PK (1)`, `FK -> users(id) ON DELETE CASCADE` | - | 추천한 유저 ID |
+| `thread_id` | `UUID` | `PK (2)`, `FK -> event_threads(id) ON DELETE CASCADE` | - | 추천 대상 스레드 ID |
+| `created_at` | `TIMESTAMPTZ` | `NOT NULL` | `NOW()` | 추천 시각 |
+
+**활성 인덱스**:
+- `idx_thread_recommendations_thread_id`: `ON thread_recommendations (thread_id)` (스레드 삭제 시 CASCADE 처리 가속)
+
+#### 9) 기타 상호작용 및 시스템 테이블
 - **`event_user_actions`**: `user_id (UUID PK, FK)`, `event_id (UUID PK, FK)`, `status (INT: 1=체크, 2=참가)` — Partial Index `idx_event_user_actions_event_attendees ON event_user_actions (event_id) WHERE status = 2`
 - **`user_event_ratings`**: `user_id (UUID PK, FK)`, `event_id (UUID PK, FK)`, `score (INT CHECK 1..5)`
 - **`user_follows`**: `follower_id (UUID PK, FK)`, `followee_id (UUID PK, FK)`, `created_at (TIMESTAMPTZ)`
 - **`user_blocks`**: `blocker_id (UUID PK, FK)`, `blocked_id (UUID PK, FK)`, `created_at (TIMESTAMPTZ)`
 - **`user_artist_follows`**: `user_id (UUID PK, FK)`, `artist_id (UUID PK, FK)`, `created_at (TIMESTAMPTZ)`
-- **`event_threads` & `thread_recommendations`**: 이벤트 내 스레드(댓글) 및 추천 테이블 (추후 프론트엔드 연동 예정)
 - **`daily_visits`**: `visit_date (DATE PK)`, `visit_count (INT)`
 
 ---
@@ -235,3 +264,18 @@ erDiagram
    - `idx_artists_name_pattern` (`idx_artists_lower_name_pattern`으로 대체됨)
    - `idx_venues_name_pattern` (`idx_venues_lower_name_pattern`으로 대체됨)
    - `idx_events_venue_id` (`idx_events_time_venue` 복합 인덱스의 선두 컬럼으로 대체됨)
+
+---
+
+## 4. 🚀 `000016` 이벤트 스레드(커뮤니티) 스키마 보강 내역
+
+1. **추천순 복합 커서 인덱스 적용 (`idx_event_threads_event_ranking`)**:
+   - 기존의 단순 `(event_id, recommend_count DESC)` 인덱스를 삭제하고, `(event_id, recommend_count DESC, created_at DESC, id DESC)` 복합 B-Tree 인덱스를 생성했습니다.
+   - 이를 통해 추천수 동점 상황에서도 `(t.recommend_count, t.created_at, t.id) < (...)` 튜플 비교 쿼리가 인덱스 스캔만으로 고속 처리됩니다.
+2. **외래키 인덱스 보강**:
+   - `idx_event_threads_author_id`: 유저 탈퇴 시 `ON DELETE SET NULL` 동작 가속.
+   - `idx_thread_recommendations_thread_id`: `thread_recommendations`의 복합 PK가 `(user_id, thread_id)` 순서이므로, 스레드 삭제 시 `thread_id` 기준 CASCADE 삭제가 테이블 풀스캔 없이 즉시 처리되도록 인덱스를 추가했습니다.
+3. **데이터 무결성 제약조건 추가**:
+   - `chk_event_threads_content_length`: 본문 길이 1~1,000자 제한.
+   - `chk_event_threads_recommend_count_non_negative`: 추천수 음수 방지(`recommend_count >= 0`).
+   - `thread_recommendations.created_at`: 추천 발생 시각 타임스탬프 컬럼 추가.

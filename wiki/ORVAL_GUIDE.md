@@ -24,7 +24,7 @@ cd frontend
 npm run generate:api
 ```
 
-명령어가 실행되면 `frontend/src/api/generated/` 하위에 태그별 폴더(`artists/`, `venues/`, `events/`, `auth/`, `user/` 등)와 `model/` 타입 파일들이 자동 갱신됩니다.
+명령어가 실행되면 `frontend/src/api/generated/` 하위에 태그별 폴더(`artists/`, `venues/`, `events/`, `threads/`, `auth/`, `user/` 등)와 `model/` 타입 파일들이 자동 갱신됩니다.
 
 ---
 
@@ -76,6 +76,47 @@ const handleCreate = async () => {
   });
   queryClient.invalidateQueries({ queryKey: getGetArtistsQueryKey() });
 };
+```
+
+### 📌 3) 커서 무한 스크롤 (`useInfiniteQuery`) & 낙관적 업데이트 - `threads/threads`
+Orval이 생성한 API 함수(`listEventThreads`)와 쿼리 키 헬퍼(`getListEventThreadsQueryKey`)를 TanStack Query v5의 `useInfiniteQuery`와 결합하여 무한 스크롤을 구현하고, 추천 토글(`useRecommendEventThread`, `useUnrecommendEventThread`) 시 즉시 UI를 업데이트하는 낙관적 업데이트 패턴을 적용합니다.
+
+```tsx
+import { useInfiniteQuery, useQueryClient } from '@tanstack/react-query';
+import {
+  listEventThreads,
+  getListEventThreadsQueryKey,
+  useCreateEventThread,
+  useRecommendEventThread,
+} from '../../api/generated/threads/threads';
+import type { EventThreadListResponse } from '../../api/generated/model';
+
+// 1. 무한 스크롤 쿼리
+const threadsQueryKey = getListEventThreadsQueryKey(eventId, { limit: 20 });
+const threadsQuery = useInfiniteQuery({
+  queryKey: threadsQueryKey,
+  queryFn: ({ pageParam, signal }) =>
+    listEventThreads(eventId, { limit: 20, cursor: pageParam }, undefined, signal),
+  initialPageParam: undefined as string | undefined,
+  getNextPageParam: (lastPage: EventThreadListResponse) => lastPage.nextCursor ?? undefined,
+  enabled: !!eventId,
+});
+
+// 2. 추천 낙관적 업데이트
+const queryClient = useQueryClient();
+const recommendMutation = useRecommendEventThread({
+  mutation: {
+    onMutate: async () => {
+      await queryClient.cancelQueries({ queryKey: threadsQueryKey });
+      const prev = queryClient.getQueryData(threadsQueryKey);
+      // 캐시 내 카운트 및 추천 상태 즉시 반영
+      return { prev };
+    },
+    onError: (_err, _vars, context) => {
+      if (context?.prev) queryClient.setQueryData(threadsQueryKey, context.prev);
+    },
+  },
+});
 ```
 
 ---

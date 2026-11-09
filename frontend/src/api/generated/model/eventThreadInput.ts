@@ -6,5 +6,9 @@
  */
 
 export interface EventThreadInput {
+  /**
+   * @minLength 1
+   * @maxLength 1000
+   */
   content: string;
 }

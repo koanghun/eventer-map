@@ -7,23 +7,29 @@ package repository
 
 import (
 	"context"
+	"database/sql"
+	"time"
 
 	"github.com/google/uuid"
 )
 
-const cancelRecommendThread = `-- name: CancelRecommendThread :exec
-DELETE FROM thread_recommendations
-WHERE user_id = $1 AND thread_id = $2
+const addThreadRecommendCount = `-- name: AddThreadRecommendCount :one
+UPDATE event_threads
+SET recommend_count = GREATEST(recommend_count + $1::int, 0)
+WHERE id = $2
+RETURNING recommend_count
 `
 
-type CancelRecommendThreadParams struct {
-	UserID   uuid.UUID
-	ThreadID uuid.UUID
+type AddThreadRecommendCountParams struct {
+	Delta int32
+	ID    uuid.UUID
 }
 
-func (q *Queries) CancelRecommendThread(ctx context.Context, arg CancelRecommendThreadParams) error {
-	_, err := q.db.ExecContext(ctx, cancelRecommendThread, arg.UserID, arg.ThreadID)
-	return err
+func (q *Queries) AddThreadRecommendCount(ctx context.Context, arg AddThreadRecommendCountParams) (int32, error) {
+	row := q.db.QueryRowContext(ctx, addThreadRecommendCount, arg.Delta, arg.ID)
+	var recommend_count int32
+	err := row.Scan(&recommend_count)
+	return recommend_count, err
 }
 
 const createEventThread = `-- name: CreateEventThread :one
@@ -53,45 +59,209 @@ func (q *Queries) CreateEventThread(ctx context.Context, arg CreateEventThreadPa
 	return i, err
 }
 
-const incrementThreadRecommend = `-- name: IncrementThreadRecommend :exec
-UPDATE event_threads
-SET recommend_count = recommend_count + $1
-WHERE id = $2
+const deleteEventThread = `-- name: DeleteEventThread :execrows
+DELETE FROM event_threads
+WHERE id = $1
 `
 
-type IncrementThreadRecommendParams struct {
-	Amount int32
-	ID     uuid.UUID
+func (q *Queries) DeleteEventThread(ctx context.Context, id uuid.UUID) (int64, error) {
+	result, err := q.db.ExecContext(ctx, deleteEventThread, id)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected()
 }
 
-func (q *Queries) IncrementThreadRecommend(ctx context.Context, arg IncrementThreadRecommendParams) error {
-	_, err := q.db.ExecContext(ctx, incrementThreadRecommend, arg.Amount, arg.ID)
-	return err
+const deleteThreadRecommendation = `-- name: DeleteThreadRecommendation :execrows
+DELETE FROM thread_recommendations
+WHERE user_id = $1 AND thread_id = $2
+`
+
+type DeleteThreadRecommendationParams struct {
+	UserID   uuid.UUID
+	ThreadID uuid.UUID
+}
+
+func (q *Queries) DeleteThreadRecommendation(ctx context.Context, arg DeleteThreadRecommendationParams) (int64, error) {
+	result, err := q.db.ExecContext(ctx, deleteThreadRecommendation, arg.UserID, arg.ThreadID)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected()
+}
+
+const getEventThread = `-- name: GetEventThread :one
+SELECT id, event_id, author_id, content, recommend_count, created_at, updated_at FROM event_threads
+WHERE id = $1
+LIMIT 1
+`
+
+func (q *Queries) GetEventThread(ctx context.Context, id uuid.UUID) (EventThread, error) {
+	row := q.db.QueryRowContext(ctx, getEventThread, id)
+	var i EventThread
+	err := row.Scan(
+		&i.ID,
+		&i.EventID,
+		&i.AuthorID,
+		&i.Content,
+		&i.RecommendCount,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
+}
+
+const getEventThreadView = `-- name: GetEventThreadView :one
+SELECT
+    t.id,
+    t.event_id,
+    t.author_id,
+    t.content,
+    t.recommend_count,
+    t.created_at,
+    t.updated_at,
+    COALESCE(u.display_name, '')::text AS author_display_name,
+    EXISTS (
+        SELECT 1 FROM thread_recommendations r
+        WHERE r.thread_id = t.id AND r.user_id = $1::uuid
+    ) AS is_recommended
+FROM event_threads t
+LEFT JOIN users u ON u.id = t.author_id
+WHERE t.id = $2
+LIMIT 1
+`
+
+type GetEventThreadViewParams struct {
+	ViewerID uuid.NullUUID
+	ID       uuid.UUID
+}
+
+type GetEventThreadViewRow struct {
+	ID                uuid.UUID
+	EventID           uuid.UUID
+	AuthorID          uuid.NullUUID
+	Content           string
+	RecommendCount    int32
+	CreatedAt         time.Time
+	UpdatedAt         time.Time
+	AuthorDisplayName string
+	IsRecommended     bool
+}
+
+// 단건 스레드 + 작성자 닉네임 + 조회자 추천 여부
+func (q *Queries) GetEventThreadView(ctx context.Context, arg GetEventThreadViewParams) (GetEventThreadViewRow, error) {
+	row := q.db.QueryRowContext(ctx, getEventThreadView, arg.ViewerID, arg.ID)
+	var i GetEventThreadViewRow
+	err := row.Scan(
+		&i.ID,
+		&i.EventID,
+		&i.AuthorID,
+		&i.Content,
+		&i.RecommendCount,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.AuthorDisplayName,
+		&i.IsRecommended,
+	)
+	return i, err
+}
+
+const insertThreadRecommendation = `-- name: InsertThreadRecommendation :execrows
+INSERT INTO thread_recommendations (user_id, thread_id)
+VALUES ($1, $2)
+ON CONFLICT DO NOTHING
+`
+
+type InsertThreadRecommendationParams struct {
+	UserID   uuid.UUID
+	ThreadID uuid.UUID
+}
+
+func (q *Queries) InsertThreadRecommendation(ctx context.Context, arg InsertThreadRecommendationParams) (int64, error) {
+	result, err := q.db.ExecContext(ctx, insertThreadRecommendation, arg.UserID, arg.ThreadID)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected()
 }
 
 const listEventThreads = `-- name: ListEventThreads :many
-SELECT id, event_id, author_id, content, recommend_count, created_at, updated_at FROM event_threads
-WHERE event_id = $2
-    AND ($3::int IS NULL OR recommend_count < $3)
-ORDER BY recommend_count DESC, id ASC
-LIMIT $1
+SELECT
+    t.id,
+    t.event_id,
+    t.author_id,
+    t.content,
+    t.recommend_count,
+    t.created_at,
+    t.updated_at,
+    COALESCE(u.display_name, '')::text AS author_display_name,
+    EXISTS (
+        SELECT 1 FROM thread_recommendations r
+        WHERE r.thread_id = t.id AND r.user_id = $1::uuid
+    ) AS is_recommended
+FROM event_threads t
+LEFT JOIN users u ON u.id = t.author_id
+WHERE t.event_id = $2
+    AND (
+        $3::uuid IS NULL
+        OR (t.recommend_count, t.created_at, t.id) < (
+            $4::int,
+            $5::timestamptz,
+            $3::uuid
+        )
+    )
+    AND (
+        $1::uuid IS NULL
+        OR t.author_id IS NULL
+        OR NOT EXISTS (
+            SELECT 1 FROM user_blocks ub
+            WHERE (ub.blocker_id = $1::uuid AND ub.blocked_id = t.author_id)
+               OR (ub.blocker_id = t.author_id AND ub.blocked_id = $1::uuid)
+        )
+    )
+ORDER BY t.recommend_count DESC, t.created_at DESC, t.id DESC
+LIMIT $6
 `
 
 type ListEventThreadsParams struct {
-	Limit           int32
-	EventID         uuid.UUID
-	CursorRecommend int32
+	ViewerID             uuid.NullUUID
+	EventID              uuid.UUID
+	CursorID             uuid.NullUUID
+	CursorRecommendCount sql.NullInt32
+	CursorCreatedAt      sql.NullTime
+	RowLimit             int32
 }
 
-func (q *Queries) ListEventThreads(ctx context.Context, arg ListEventThreadsParams) ([]EventThread, error) {
-	rows, err := q.db.QueryContext(ctx, listEventThreads, arg.Limit, arg.EventID, arg.CursorRecommend)
+type ListEventThreadsRow struct {
+	ID                uuid.UUID
+	EventID           uuid.UUID
+	AuthorID          uuid.NullUUID
+	Content           string
+	RecommendCount    int32
+	CreatedAt         time.Time
+	UpdatedAt         time.Time
+	AuthorDisplayName string
+	IsRecommended     bool
+}
+
+// 추천수 내림차순 → 최신순 → id 순 정렬, 복합 커서 기반 페이지네이션.
+// 조회자와 차단 관계에 있는 작성자의 스레드는 제외합니다.
+func (q *Queries) ListEventThreads(ctx context.Context, arg ListEventThreadsParams) ([]ListEventThreadsRow, error) {
+	rows, err := q.db.QueryContext(ctx, listEventThreads,
+		arg.ViewerID,
+		arg.EventID,
+		arg.CursorID,
+		arg.CursorRecommendCount,
+		arg.CursorCreatedAt,
+		arg.RowLimit,
+	)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	var items []EventThread
+	var items []ListEventThreadsRow
 	for rows.Next() {
-		var i EventThread
+		var i ListEventThreadsRow
 		if err := rows.Scan(
 			&i.ID,
 			&i.EventID,
@@ -100,6 +270,8 @@ func (q *Queries) ListEventThreads(ctx context.Context, arg ListEventThreadsPara
 			&i.RecommendCount,
 			&i.CreatedAt,
 			&i.UpdatedAt,
+			&i.AuthorDisplayName,
+			&i.IsRecommended,
 		); err != nil {
 			return nil, err
 		}
@@ -112,19 +284,4 @@ func (q *Queries) ListEventThreads(ctx context.Context, arg ListEventThreadsPara
 		return nil, err
 	}
 	return items, nil
-}
-
-const recommendThread = `-- name: RecommendThread :exec
-INSERT INTO thread_recommendations (user_id, thread_id)
-VALUES ($1, $2) ON CONFLICT DO NOTHING
-`
-
-type RecommendThreadParams struct {
-	UserID   uuid.UUID
-	ThreadID uuid.UUID
-}
-
-func (q *Queries) RecommendThread(ctx context.Context, arg RecommendThreadParams) error {
-	_, err := q.db.ExecContext(ctx, recommendThread, arg.UserID, arg.ThreadID)
-	return err
 }

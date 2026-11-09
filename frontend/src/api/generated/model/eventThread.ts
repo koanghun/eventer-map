@@ -4,12 +4,22 @@
  * Eventer Map API
  * OpenAPI spec version: 1.0.0
  */
+import type { EventThreadAuthorProperty } from './eventThreadAuthorProperty';
 
 export interface EventThread {
-  authorId?: string;
-  content?: string;
-  createdAt?: string;
-  eventId?: string;
-  id?: string;
-  recommendCount?: number;
+  /**
+   * 탈퇴한 유저의 스레드는 null
+   * @nullable
+   */
+  author?: EventThreadAuthorProperty;
+  content: string;
+  createdAt: string;
+  eventId: string;
+  id: string;
+  /** 현재 조회자의 작성 여부 (비로그인 시 false) */
+  isMine: boolean;
+  /** 현재 조회자의 추천 여부 (비로그인 시 false) */
+  isRecommended: boolean;
+  recommendCount: number;
+  updatedAt: string;
 }

@@ -66,12 +66,12 @@ flowchart LR
   - `cors.go`: 브라우저 CORS 헤더 및 Preflight(`OPTIONS`) 처리
 
 ### 3) `internal/handler/` (표현 계층)
-- `oapi-codegen`이 생성한 `openapi.gen.go`의 `ServerInterface`를 도메인별 파일(`event_handler.go`, `artist_handler.go`, `venue_handler.go`, `auth_handler.go`, `user_handler.go` 등)에서 구현합니다.
-- 요청 파라미터/바디 파싱 및 입력값 검증(필수값, 문자열 길이, 위경도 범위, 이미지 MIME/용량 등)만 수행하고 비즈니스 로직은 `Service`에 위임합니다.
+- `oapi-codegen`이 생성한 `openapi.gen.go`의 `ServerInterface`를 도메인별 파일(`event_handler.go`, `thread_handler.go`, `artist_handler.go`, `venue_handler.go`, `auth_handler.go`, `user_handler.go` 등)에서 구현합니다.
+- 요청 파라미터/바디 파싱 및 입력값 검증(필수값, 본문 및 문자열 길이, 바디 크기 제한, 위경도 범위, 이미지 MIME/용량 등)만 수행하고 비즈니스 로직은 `Service`에 위임합니다.
 
 ### 4) `internal/service/` (비즈니스 계층)
 - HTTP 객체(`http.Request` 등)에 의존하지 않는 순수 Go 도메인 로직을 수행합니다.
-- 유저 권한(`ADMIN` 여부)에 따른 등록 상태 결정(`PENDING` vs `APPROVED`), 이벤트 평점/수정 시 공연장 및 출연자의 평균 평점 캐시(`rating_sum`, `rating_count`) 재계산, 트랜잭션 처리를 담당합니다.
+- 유저 권한(`ADMIN` 여부)에 따른 등록 상태 결정(`PENDING` vs `APPROVED`), 이벤트 평점/수정 시 공연장 및 출연자의 평균 평점 캐시(`rating_sum`, `rating_count`) 재계산, 스레드 복합 커서 인코딩/디코딩, 본인 스레드 추천 방지, 트랜잭션 처리를 담당합니다.
 
 ### 5) `internal/repository/` (데이터 접근 계층)
 - `sqlc`가 `db/migration/*.sql`과 `db/query/*.sql`을 컴파일 타임에 검증하여 자동 생성한 패키지입니다.
@@ -85,7 +85,14 @@ flowchart LR
 ### 1) 좌측 사이드바 단일 컨테이너 전환 구조
 좌측 사이드바는 별도의 모달 팝업을 띄우지 않고, 상황에 따라 패널 컴포넌트를 매끄럽게 전환합니다:
 - **기본 목록 뷰**: 날짜 필터(`DatePicker`), 출연자 필터(`ArtistSearch`), 이벤트 목록(`EventList`)
-- **이벤트 상세 뷰 (`EventDetailPane.tsx`)**: 지도 마커 또는 리스트에서 이벤트 선택 시 상세 정보 및 출연자(`공식 이름 (식별 설명)`) 표시
+- **이벤트 상세 뷰 (`EventDetailPane.tsx`)**:
+  - 지도 마커 또는 리스트에서 이벤트 선택 시 상세 정보 및 출연자(`공식 이름 (식별 설명)`) 표시
+  - 체크/참가 상태 원클릭 순환(`usePutEventsEventIdAction`)
+  - **이벤트 스레드 & 커뮤니티 서브 섹션 (`EventThreadSection.tsx`)**:
+    - **추천순 랭킹 & BEST 뱃지**: 추천 수가 많은 고품질 스레드가 상단에 정렬되며 상위 스레드에 BEST 뱃지 표시
+    - **커서 기반 무한 스크롤**: TanStack Query v5 `useInfiniteQuery`를 활용한 지연 로딩
+    - **낙관적 업데이트 (Optimistic Update)**: 추천/추천 취소 토글 시 UI에 즉각 반영하고 오류 발생 시 롤백
+    - **스레드 작성 & 본인 글 제어**: 1~1,000자 실시간 카운팅, 본인 작성 글 식별 및 삭제 확인 UI 제공 (XSS 방지를 위한 React JSX 안전 텍스트 바인딩)
 - **새 이벤트 등록 뷰 (`EventFormPane.tsx`)**:
   - 작성 중인 모든 폼 상태를 브라우저 `sessionStorage`(`eventer_map_event_form_draft`)에 실시간 보존합니다.
   - **`'회장'` 및 `'출연자'` 저부하 자동완성**:

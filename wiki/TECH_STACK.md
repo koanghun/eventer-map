@@ -27,6 +27,7 @@
 - **인덱스 최적화:**
   - 지도 바운딩 박스 조회용 공간/좌표 인덱스(`latitude`, `longitude`)
   - 회장/출연자 저부하 전방 일치 자동완성용 `LOWER(official_name) varchar_pattern_ops` 및 `hiragana varchar_pattern_ops` B-Tree 인덱스
+  - 이벤트 하위 스레드 추천순 정렬 및 복합 커서 페이지네이션용 `(event_id, recommend_count DESC, created_at DESC, id DESC)` 복합 인덱스
 
 ---
 
@@ -53,4 +54,4 @@
   - **Refresh Token:** `HttpOnly`, `Secure`(배포 환경 자동 활성화) 쿠키에 저장 (`withCredentials: true`, 환경별 `SameSite`/`Domain` 분기 지원)
 
 ---
-*문서 최종 업데이트: 2026-11-08*
+*문서 최종 업데이트: 2026-11-09*

@@ -69,8 +69,9 @@ type EventUserAction struct {
 }
 
 type ThreadRecommendation struct {
-	UserID   uuid.UUID
-	ThreadID uuid.UUID
+	UserID    uuid.UUID
+	ThreadID  uuid.UUID
+	CreatedAt time.Time
 }
 
 type User struct {

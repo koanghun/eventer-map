@@ -98,11 +98,19 @@
 | `POST` | `/events/{eventId}/action` | **이벤트 체크/참가 등록**: `status: 1`(체크/북마크) 또는 `status: 2`(참가)를 설정합니다. | 🟢 |
 | `DELETE` | `/events/{eventId}/action` | **이벤트 체크/참가 취소**: 설정한 액션을 해제합니다. | 🟢 |
 | `POST` | `/events/{eventId}/rate` | **이벤트 평점 매기기**: 1~5점 사이의 평점을 부여합니다. | 🟢 |
-| `GET` | `/events/{eventId}/threads` | **이벤트 스레드(댓글) 조회**: 추천수 순으로 스레드를 조회합니다. | ❌ |
-| `POST` | `/events/{eventId}/threads` | **이벤트 스레드 작성**: 이벤트에 스레드를 작성합니다. | 🟢 |
-| `POST` | `/event-threads/{threadId}/recommend` | **스레드 추천 토글**: 유용한 스레드에 추천을 토글합니다. | 🟢 |
+| `GET` | `/events/{eventId}/threads` | **이벤트 스레드 목록 조회**: 추천수 순 및 커서 기반 페이지네이션으로 스레드를 조회합니다. 로그인 시 추천 여부(`isRecommended`) 및 본인 작성 여부(`isMine`)가 포함됩니다. | ⚪️ |
+| `POST` | `/events/{eventId}/threads` | **이벤트 스레드 작성**: 이벤트에 스레드를 작성합니다 (최대 1,000자). | 🟢 |
+| `DELETE` | `/event-threads/{threadId}` | **이벤트 스레드 삭제**: 작성자 본인 또는 관리자가 스레드를 삭제합니다. | 🟢 |
+| `PUT` | `/event-threads/{threadId}/recommend` | **스레드 추천**: 유용한 스레드를 추천합니다 (본인 글 제외, 멱등). | 🟢 |
+| `DELETE` | `/event-threads/{threadId}/recommend` | **스레드 추천 취소**: 추천을 취소합니다 (멱등). | 🟢 |
 | `POST` | `/stats/visit` | **일일 방문 기록 및 카운트 반환** | ❌ |
 | `GET` | `/stats/visit` | **오늘의 일일 방문자 수 조회** | ❌ |
+
+### 💡 이벤트 스레드(커뮤니티) 핵심 스펙 및 정책
+- **정렬 및 랭킹**: 누적 추천수(`recommendCount`) 내림차순 ➔ 작성 시각(`createdAt`) 최신순 ➔ `id` 내림차순으로 정렬되어 양질의 정보가 자연스럽게 상단에 노출됩니다.
+- **커서 기반 페이지네이션**: `nextCursor`는 불투명 Base64 인코딩 문자열(`recommendCount|createdAtNano|id`)로 전달되며, 동점자가 발생해도 누락 없이 일관된 순서를 유지합니다.
+- **추천 무결성**: 본인이 작성한 스레드는 추천할 수 없으며(`400 Bad Request`), 추천/취소 요청은 멱등(Idempotent)하게 처리됩니다.
+- **탈퇴 유저 및 차단 정책**: 작성자 탈퇴 시 작성 글은 보존되며 `author: null`로 응답합니다. 상호 차단(`user_blocks`) 관계인 유저의 스레드는 조회 목록에서 자동으로 필터링됩니다.
 
 ---
 
