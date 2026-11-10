@@ -134,6 +134,12 @@
         }
     },
     "eventDetail": {
+        "title": "イベント詳細",
+        "dateUnknown": "日時未定",
+        "venueUnknown": "会場未定",
+        "loading": "読み込み中...",
+        "relatedLink": "関連リンクを開く",
+        "mapLink": "Google Mapsで見る",
         "thread": {
             "title": "スレッド",
             "description": "おすすめの多いスレッドが上に表示されます。",

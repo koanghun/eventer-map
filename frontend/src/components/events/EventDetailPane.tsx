@@ -410,270 +410,263 @@ export default function EventDetailPane({
 
 
     return (
-        <div className="w-full h-full flex flex-col animate-in fade-in slide-in-from-left-4 duration-300 overflow-hidden">
+        <div className="w-full flex-1 min-h-0 flex flex-col animate-in fade-in slide-in-from-left-4 duration-300 overflow-hidden">
             {/* Header (좌측 상단 뒤로가기 버튼) */}
-            <div className="flex items-center gap-2 p-4 border-b border-border/50 shrink-0">
-                <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={clearSelection}
-                    className="rounded-full w-8 h-8 hover:bg-muted shrink-0"
-                    title={t('buttons.back', '뒤로가기')}
-                    aria-label={t('buttons.back', '뒤로가기')}
-                >
-                    <ArrowLeft className="w-4 h-4 text-foreground" />
-                </Button>
-                <h2 className="text-lg font-bold text-foreground truncate flex-1">
-                    {t('eventDetail.title', 'Event Details')}
-                </h2>
-                {onEdit && (
+                <div className="flex items-center gap-2 px-3.5 py-2 border-b border-border/50 shrink-0">
                     <Button
                         variant="ghost"
                         size="icon"
-                        onClick={onEdit}
-                        className="rounded-full w-8 h-8 hover:bg-muted text-muted-foreground hover:text-primary shrink-0"
-                        title={t('buttons.edit', '수정')}
-                        aria-label={t('buttons.edit', '수정')}
+                        onClick={clearSelection}
+                        className="rounded-full w-7 h-7 hover:bg-muted shrink-0"
+                        title={t('buttons.back', '뒤로가기')}
+                        aria-label={t('buttons.back', '뒤로가기')}
                     >
-                        <Edit2 className="w-4 h-4" />
+                        <ArrowLeft className="w-4 h-4 text-foreground" />
                     </Button>
-                )}
-            </div>
-
-            {/* Content Scrollable Area */}
-            <div className="flex-1 overflow-y-auto p-5 space-y-6">
-
-                {/* Title & Metadata */}
-                <div>
-                    <h1 className="text-2xl font-extrabold tracking-tight text-primary mb-3">
-                        {displayEvent.title || 'Untitled Event'}
-                    </h1>
-
-                    <div className="space-y-2 text-sm text-muted-foreground">
-                        <div className="flex items-start gap-2">
-                            <Calendar className="w-4 h-4 text-primary shrink-0" />
-                            <span className="truncate">{displayEvent.startTime || t('eventDetail.dateUnknown', 'Date TBD')}</span>
-                        </div>
-                        <div className="flex items-start gap-2">
-                            <MapPin className="w-4 h-4 text-primary shrink-0 mt-0.5" />
-                            {isLoading && !venueName ? (
-                                <span className="truncate">{t('eventDetail.loading', 'Loading...')}</span>
-                            ) : venueId && venueName && onVenueSelect ? (
-                                <button
-                                    type="button"
-                                    onClick={() =>
-                                        onVenueSelect({
-                                            id: venueId,
-                                            name: venueName,
-                                            lat: venueLat,
-                                            lng: venueLng,
-                                        })
-                                    }
-                                    className="text-left text-foreground hover:text-primary hover:underline underline-offset-2 transition-colors font-medium break-words cursor-pointer"
-                                    title={t('eventDetail.searchByVenue', '이 공연장으로 검색 (6개월)')}
-                                >
-                                    {venueName}
-                                </button>
-                            ) : (
-                                <span className="truncate">
-                                    {venueName || t('eventDetail.venueUnknown', 'Venue TBD')}
-                                </span>
-                            )}
-                        </div>
-                        {typeof displayEvent.attendeeCount === 'number' && (
-                            <div className="flex items-center gap-2">
-                                <Users className="w-4 h-4 text-primary shrink-0" />
-                                <span>{displayEvent.attendeeCount}</span>
-                            </div>
-                        )}
-                        {averageScore !== null && (
-                            <div className="flex items-center gap-2">
-                                <Star className="w-4 h-4 fill-amber-400 text-amber-400 shrink-0" />
-                                <span className="font-semibold text-foreground">
-                                    {averageScore}
-                                </span>
-                                {typeof eventRatingCount === 'number' && eventRatingCount > 0 && (
-                                    <span className="text-xs text-muted-foreground">
-                                        ({eventRatingCount})
-                                    </span>
-                                )}
-                            </div>
-                        )}
-                        {('artists' in displayEvent) && displayEvent.artists && displayEvent.artists.length > 0 && (
-                            <div className="flex items-start gap-2">
-                                < Mic2 className="w-4 h-4 text-primary shrink-0 mt-0.5" />
-                                <div className="flex flex-wrap items-center gap-x-1.5 gap-y-1">
-                                    {displayEvent.artists
-                                        .filter((a) => Boolean(a.officialName))
-                                        .map((a, idx, arr) => {
-                                            const label = a.disambiguation
-                                                ? `${a.officialName} (${a.disambiguation})`
-                                                : a.officialName!;
-                                            return (
-                                                <span key={a.id || idx} className="inline-flex items-center">
-                                                    {a.id && onArtistSelect ? (
-                                                        <button
-                                                            type="button"
-                                                            onClick={() =>
-                                                                onArtistSelect({
-                                                                    id: a.id!,
-                                                                    name: a.officialName!,
-                                                                })
-                                                            }
-                                                            className="text-left text-foreground hover:text-primary hover:underline underline-offset-2 transition-colors font-medium break-words cursor-pointer"
-                                                            title={t('eventDetail.searchByArtist', '이 출연자로 검색 (6개월)')}
-                                                        >
-                                                            {label}
-                                                        </button>
-                                                    ) : (
-                                                        <span className="text-foreground">{label}</span>
-                                                    )}
-                                                    {idx < arr.length - 1 && (
-                                                        <span className="text-muted-foreground">,</span>
-                                                    )}
-                                                </span>
-                                            );
-                                        })}
-                                </div>
-                            </div>
-                        )}
-                        {('relatedLinks' in displayEvent) && displayEvent.relatedLinks && displayEvent.relatedLinks.length > 0 && (
-                            <div className="flex items-center gap-2 mt-2">
-                                <ExternalLink className="w-4 h-4 shrink-0 text-primary/70" />
-                                <a
-                                    href={displayEvent.relatedLinks[0]}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className="text-primary hover:underline hover:text-primary/80 transition-colors truncate"
-                                >
-                                    {t('eventDetail.relatedLink', 'Open Related Link')}
-                                </a>
-                            </div>
-                        )}
-                    </div>
-
-                    {/* 체크 -> 참가 -> 해제 상태 순환 버튼 */}
-                        <div className="mt-3 pt-3 border-t border-border/50 flex flex-col gap-1.5">
-                            {currentStatus !== 0 && (
-                                <div className="flex items-center justify-between text-xs">
-                                    <span
-                                        className={
-                                            currentStatus === 1
-                                                    ? 'inline-flex items-center gap-1 font-semibold text-amber-600 dark:text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded-full text-[11px]'
-                                                    : 'inline-flex items-center gap-1 font-semibold text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-full text-[11px]'
-                                        }
-                                    >
-                                        {currentStatus === 1 ? (
-                                            <>
-                                                <Bookmark className="w-2.5 h-2.5 fill-current" />
-                                                {t('eventDetail.action.statusChecked', '체크됨')}
-                                            </>
-                                        ) : (
-                                            <>
-                                                <UserCheck className="w-2.5 h-2.5" />
-                                                {t('eventDetail.action.statusAttending', '참가중')}
-                                            </>
-                                        )}
-                                    </span>
-                                </div>
-                            )}
+                        <h2 className="text-sm font-bold text-foreground truncate flex-1">
+                            {t('eventDetail.title', '이벤트 상세')}
+                        </h2>
+                        {onEdit && (
                             <Button
-                                type="button"
-                                size="sm"
-                                disabled={actionMutation.isPending}
-                                onClick={handleCycleAction}
-                                variant={currentStatus === 2 ? 'outline' : 'default'}
-                                className={
-                                    currentStatus === 0
-                                            ? 'w-full h-8 text-xs font-semibold shadow-sm transition-all'
-                                            : currentStatus === 1
-                                                    ? 'w-full h-8 text-xs font-semibold bg-gradient-to-r from-primary to-orange-500 hover:from-primary/90 hover:to-orange-500/90 text-white shadow-sm transition-all'
-                                                    : 'w-full h-8 text-xs font-semibold border-border text-muted-foreground hover:text-destructive hover:border-destructive/50 hover:bg-destructive/5 transition-all'
-                            }
+                                variant="ghost"
+                                size="icon"
+                                onClick={onEdit}
+                                className="rounded-full w-7 h-7 hover:bg-muted text-muted-foreground hover:text-primary shrink-0"
+                                title={t('buttons.edit', '수정')}
+                                aria-label={t('buttons.edit', '수정')}
                             >
-                                {actionMutation.isPending ? (
-                                <Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" />
-                                ) : currentStatus === 0 ? (
-                                <Bookmark className="w-3.5 h-3.5 mr-1.5" />
-                                ) : currentStatus === 1 ? (
-                                <UserCheck className="w-3.5 h-3.5 mr-1.5" />
-                                ) : (
-                                <RotateCcw className="w-3.5 h-3.5 mr-1.5" />
-                                )}
-                                {currentStatus === 0
-                                    ? t('eventDetail.action.check', '체크')
-                                    : currentStatus === 1
-                                        ? t('eventDetail.action.attend', '참가')
-                                        : t('eventDetail.action.release', '해제')}
+                                <Edit2 className="w-3.5 h-3.5" />
                             </Button>
-                        </div>
+                        )}
+                </div>
 
-                            {/* Rating Section (평점 등록 영역 — 참가중일 때만 노출) */}
-                            {isAttending && (
-                                <div className="mt-2.5 p-2.5 bg-muted/40 rounded-lg border border-border/60 flex flex-col gap-1.5 animate-in fade-in slide-in-from-top-1 duration-200">
-                                    <div className="flex items-center justify-between">
-                                        <span className="text-[11px] font-bold text-foreground flex items-center gap-1">
-                                            <Star className="w-3 h-3 fill-amber-400 text-amber-400" />
-                                            {t('eventDetail.rating.title', '평점')}
-                                        </span>
-                                        {currentRating !== undefined && (
-                                            <button
-                                                type="button"
-                                                disabled={isRatingPending}
-                                                onClick={handleDeleteRating}
-                                                className="text-[10px] text-muted-foreground hover:text-destructive underline underline-offset-2 transition-colors cursor-pointer"
-                                            >
-                                                {t('eventDetail.rating.delete', '평점 삭제')}
-                                            </button>
+                {/* Content Scrollable Area */}
+                    <div className="flex-1 min-h-0 overflow-y-auto p-4 space-y-4">
+
+                        {/* Title & Metadata */}
+                        <div>
+                                <h1 className="text-lg font-bold tracking-tight text-primary mb-2 line-clamp-2">
+                                    {displayEvent.title || 'Untitled Event'}
+                                </h1>
+
+                                    <div className="space-y-1.5 text-xs text-muted-foreground">
+                                        <div className="flex items-start gap-2">
+                                            <Calendar className="w-4 h-4 text-primary shrink-0" />
+                                            <span className="truncate">{displayEvent.startTime || t('eventDetail.dateUnknown', 'Date TBD')}</span>
+                                        </div>
+                                        <div className="flex items-start gap-2">
+                                            <MapPin className="w-4 h-4 text-primary shrink-0 mt-0.5" />
+                                            {isLoading && !venueName ? (
+                                                <span className="truncate">{t('eventDetail.loading', 'Loading...')}</span>
+                                            ) : venueId && venueName && onVenueSelect ? (
+                                                <button
+                                                    type="button"
+                                                    onClick={() =>
+                                                        onVenueSelect({
+                                                            id: venueId,
+                                                            name: venueName,
+                                                            lat: venueLat,
+                                                            lng: venueLng,
+                                                        })
+                                                    }
+                                                    className="text-left text-foreground hover:text-primary hover:underline underline-offset-2 transition-colors font-medium break-words cursor-pointer"
+                                                    title={t('eventDetail.searchByVenue', '이 공연장으로 검색 (6개월)')}
+                                                >
+                                                    {venueName}
+                                                </button>
+                                            ) : (
+                                                <span className="truncate">
+                                                    {venueName || t('eventDetail.venueUnknown', 'Venue TBD')}
+                                                </span>
+                                            )}
+                                        </div>
+                                        {typeof displayEvent.attendeeCount === 'number' && (
+                                            <div className="flex items-center gap-2">
+                                                <Users className="w-4 h-4 text-primary shrink-0" />
+                                                <span>{displayEvent.attendeeCount}</span>
+                                            </div>
+                                        )}
+                                        {averageScore !== null && (
+                                            <div className="flex items-center gap-2">
+                                                <Star className="w-4 h-4 fill-amber-400 text-amber-400 shrink-0" />
+                                                <span className="font-semibold text-foreground">
+                                                    {averageScore}
+                                                </span>
+                                                {typeof eventRatingCount === 'number' && eventRatingCount > 0 && (
+                                                    <span className="text-xs text-muted-foreground">
+                                                        ({eventRatingCount})
+                                                    </span>
+                                                )}
+                                            </div>
+                                        )}
+                                        {('artists' in displayEvent) && displayEvent.artists && displayEvent.artists.length > 0 && (
+                                            <div className="flex items-start gap-2">
+                                                < Mic2 className="w-4 h-4 text-primary shrink-0 mt-0.5" />
+                                                <div className="flex flex-wrap items-center gap-x-1.5 gap-y-1">
+                                                    {displayEvent.artists
+                                                        .filter((a) => Boolean(a.officialName))
+                                                        .map((a, idx, arr) => {
+                                                            const label = a.disambiguation
+                                                                ? `${a.officialName} (${a.disambiguation})`
+                                                                : a.officialName!;
+                                                            return (
+                                                                <span key={a.id || idx} className="inline-flex items-center">
+                                                                    {a.id && onArtistSelect ? (
+                                                                        <button
+                                                                            type="button"
+                                                                            onClick={() =>
+                                                                                onArtistSelect({
+                                                                                    id: a.id!,
+                                                                                    name: a.officialName!,
+                                                                                })
+                                                                            }
+                                                                            className="text-left text-foreground hover:text-primary hover:underline underline-offset-2 transition-colors font-medium break-words cursor-pointer"
+                                                                            title={t('eventDetail.searchByArtist', '이 출연자로 검색 (6개월)')}
+                                                                        >
+                                                                            {label}
+                                                                        </button>
+                                                                    ) : (
+                                                                        <span className="text-foreground">{label}</span>
+                                                                    )}
+                                                                    {idx < arr.length - 1 && (
+                                                                        <span className="text-muted-foreground">,</span>
+                                                                    )}
+                                                                </span>
+                                                            );
+                                                        })}
+                                                </div>
+                                            </div>
+                                        )}
+                                        {('relatedLinks' in displayEvent) && displayEvent.relatedLinks && displayEvent.relatedLinks.length > 0 && (
+                                            <div className="flex items-center gap-2 mt-2">
+                                                <ExternalLink className="w-4 h-4 shrink-0 text-primary/70" />
+                                                <a
+                                                    href={displayEvent.relatedLinks[0]}
+                                                    target="_blank"
+                                                    rel="noopener noreferrer"
+                                                    className="text-primary hover:underline hover:text-primary/80 transition-colors truncate"
+                                                >
+                                                    {t('eventDetail.relatedLink', 'Open Related Link')}
+                                                </a>
+                                            </div>
                                         )}
                                     </div>
 
-                                            <div className="flex items-center justify-between gap-2">
-                                                <div className="flex items-center gap-0.5">
-                                                    {[1, 2, 3, 4, 5].map((star) => {
-                                                        const isFilled = star <= activeScore;
-                                                        return (
-                                                            <button
-                                                                key={star}
-                                                                type="button"
-                                                                disabled={isRatingPending}
-                                                                onClick={() => handleRate(star)}
-                                                                onMouseEnter={() => setHoverScore(star)}
-                                                                onMouseLeave={() => setHoverScore(null)}
-                                                                className="p-0.5 rounded transition-transform focus:outline-none focus-visible:ring-1 focus-visible:ring-primary cursor-pointer hover:scale-125 duration-150"
-                                                                title={t('eventDetail.rating.score', { score: star, defaultValue: `${star}점` })}
-                                                                aria-label={`${star} stars`}
-                                                            >
-                                                                <Star
-                                                                    className={cn(
-                                                                        "w-4.5 h-4.5 transition-colors",
-                                                                        isFilled
-                                                                            ? "fill-amber-400 text-amber-400 drop-shadow-sm"
-                                                                            : "text-muted-foreground/30 hover:text-muted-foreground/60"
-                                                                    )}
-                                                                />
-                                                            </button>
-                                                        );
-                                                    })}
+                                    {/* 체크 -> 참가 -> 해제 상태 순환 버튼 */}
+                                        <div className="mt-2.5 pt-2.5 border-t border-border/50 flex flex-col gap-1.5">
+                                            {currentStatus !== 0 && (
+                                                <div className="flex items-center justify-between text-xs">
+                                                    <span
+                                                        className={
+                                                            currentStatus === 1
+                                                                ? 'inline-flex items-center gap-1 font-semibold text-amber-600 dark:text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded-full text-[11px]'
+                                                                : 'inline-flex items-center gap-1 font-semibold text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-full text-[11px]'
+                                                        }
+                                                    >
+                                                        {currentStatus === 1 ? (
+                                                            <>
+                                                                <Bookmark className="w-2.5 h-2.5 fill-current" />
+                                                                {t('eventDetail.action.statusChecked', '체크됨')}
+                                                            </>
+                                                        ) : (
+                                                            <>
+                                                                <UserCheck className="w-2.5 h-2.5" />
+                                                                {t('eventDetail.action.statusAttending', '참가중')}
+                                                            </>
+                                                        )}
+                                                    </span>
+                                                </div>
+                                            )}
+                                            <Button
+                                                type="button"
+                                                size="sm"
+                                                disabled={actionMutation.isPending}
+                                                onClick={handleCycleAction}
+                                                variant={currentStatus === 2 ? 'outline' : 'default'}
+                                                className={
+                                                    currentStatus === 0
+                                                        ? 'w-full h-8 text-xs font-semibold shadow-sm transition-all'
+                                                        : currentStatus === 1
+                                                            ? 'w-full h-8 text-xs font-semibold bg-gradient-to-r from-primary to-orange-500 hover:from-primary/90 hover:to-orange-500/90 text-white shadow-sm transition-all'
+                                                            : 'w-full h-8 text-xs font-semibold border-border text-muted-foreground hover:text-destructive hover:border-destructive/50 hover:bg-destructive/5 transition-all'
+                                                }
+                                            >
+                                                {actionMutation.isPending ? (
+                                                    <Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" />
+                                                ) : currentStatus === 0 ? (
+                                                    <Bookmark className="w-3.5 h-3.5 mr-1.5" />
+                                                ) : currentStatus === 1 ? (
+                                                    <UserCheck className="w-3.5 h-3.5 mr-1.5" />
+                                                ) : (
+                                                    <RotateCcw className="w-3.5 h-3.5 mr-1.5" />
+                                                )}
+                                                {currentStatus === 0
+                                                    ? t('eventDetail.action.check', '체크')
+                                                    : currentStatus === 1
+                                                        ? t('eventDetail.action.attend', '참가')
+                                                        : t('eventDetail.action.release', '해제')}
+                                            </Button>
+                                        </div>
+
+                                        {/* Rating Section (평점 등록 영역 — 참가중일 때만 노출) */}
+                                        {isAttending && (
+                                            <div className="mt-2 px-2.5 py-1.5 bg-muted/40 rounded-lg border border-border/50 flex items-center justify-between animate-in fade-in slide-in-from-top-1 duration-200">
+                                                <div className="flex items-center gap-2">
+                                                    <span className="text-[11px] font-bold text-foreground flex items-center gap-1 shrink-0">
+                                                        <Star className="w-3 h-3 fill-amber-400 text-amber-400" />
+                                                        {t('eventDetail.rating.title', '평점')}
+                                                    </span>
+                                                    <div className="flex items-center gap-0.5">
+                                                        {[1, 2, 3, 4, 5].map((star) => {
+                                                            const isFilled = star <= activeScore;
+                                                            return (
+                                                                <button
+                                                                    key={star}
+                                                                    type="button"
+                                                                    disabled={isRatingPending}
+                                                                    onClick={() => handleRate(star)}
+                                                                    onMouseEnter={() => setHoverScore(star)}
+                                                                    onMouseLeave={() => setHoverScore(null)}
+                                                                    className="p-0.5 rounded transition-transform focus:outline-none focus-visible:ring-1 focus-visible:ring-primary cursor-pointer hover:scale-125 duration-150"
+                                                                    title={t('eventDetail.rating.score', { score: star, defaultValue: `${star}점` })}
+                                                                    aria-label={`${star} stars`}
+                                                                >
+                                                                    <Star
+                                                                        className={cn(
+                                                                            "w-4 h-4 transition-colors",
+                                                                            isFilled
+                                                                                ? "fill-amber-400 text-amber-400 drop-shadow-sm"
+                                                                                : "text-muted-foreground/30 hover:text-muted-foreground/60"
+                                                                        )}
+                                                                    />
+                                                                </button>
+                                                            );
+                                                        })}
+                                                    </div>
+                                                    {isRatingPending && (
+                                                        <Loader2 className="w-3.5 h-3.5 animate-spin text-muted-foreground shrink-0" />
+                                                    )}
                                                 </div>
 
-                                                {isRatingPending ? (
-                                                    <Loader2 className="w-3.5 h-3.5 animate-spin text-muted-foreground" />
-                                                ) : currentRating !== undefined ? (
-                                                    <span className="text-[11px] font-semibold text-amber-600 dark:text-amber-400">
-                                                        {t('eventDetail.rating.myRating', { score: currentRating, defaultValue: `내 평점: ${currentRating}점` })}
-                                                    </span>
-                                                ) : null}
+                                                {currentRating !== undefined && (
+                                                    <button
+                                                        type="button"
+                                                        disabled={isRatingPending}
+                                                        onClick={handleDeleteRating}
+                                                        className="text-[10px] text-muted-foreground hover:text-destructive underline underline-offset-2 transition-colors cursor-pointer shrink-0"
+                                                    >
+                                                        {t('eventDetail.rating.delete', '평점 삭제')}
+                                                    </button>
+                                                )}
                                             </div>
-                                        </div>
-                    )}
+                                        )}
+                                    </div>
+
+
+                                    {/* Thread (커뮤니티) Section — 추천순 정렬 */}
+                                    {eventId && <EventThreadSection eventId={eventId} />}
+
                                 </div>
-
-
-                {/* Thread (커뮤니티) Section — 추천순 정렬 */}
-                            {eventId && <EventThreadSection eventId={eventId} />}
-
                         </div>
-                    </div>
-                    );
+                        );
 }

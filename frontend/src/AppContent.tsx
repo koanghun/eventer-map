@@ -64,7 +64,7 @@ export default function AppContent() {
 
     return (
         <LoadScript googleMapsApiKey={apiKey} libraries={GOOGLE_MAPS_LIBRARIES}>
-            <div className="min-h-screen flex flex-col bg-background text-foreground transition-colors duration-300">
+            <div className="min-h-screen md:h-screen md:overflow-hidden flex flex-col bg-background text-foreground transition-colors duration-300">
                 
                 <header className="sticky top-0 z-50 w-full bg-background/80 backdrop-blur-md border-b border-border shadow-sm px-4 md:px-8 py-3 flex flex-col md:flex-row justify-between items-center gap-4 transition-all duration-300">
                     <div className="flex-1 flex flex-col md:flex-row items-center gap-2 md:gap-4 text-center md:text-left justify-start">

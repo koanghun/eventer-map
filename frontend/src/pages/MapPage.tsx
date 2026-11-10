@@ -154,9 +154,9 @@ export default function MapPage() {
     };
 
     return (
-        <div className="flex-1 flex flex-col md:flex-row gap-4 p-4 md:p-6 w-full max-w-[2400px] mx-auto md:overflow-hidden md:h-[calc(100vh-73px)] relative overflow-x-hidden">
+        <div className="flex-1 flex flex-col md:flex-row gap-4 p-4 md:p-6 w-full max-w-[2400px] mx-auto md:overflow-hidden md:min-h-0 relative overflow-x-hidden">
             {/* 좌측 사이드바 영역 (기본 목록 / 이벤트 상세 / 이벤트 생성 폼 전환) */}
-            <aside className="w-full flex md:w-[20%] shrink-0 bg-card/50 backdrop-blur-sm border border-border rounded-xl shadow-md flex-col transition-all duration-500 overflow-hidden">
+            <aside className="w-full flex md:w-[20%] md:min-h-0 shrink-0 bg-card/50 backdrop-blur-sm border border-border rounded-xl shadow-md flex-col transition-all duration-500 overflow-hidden">
                 {isFormOpen ? (
                     <EventFormPane
                         key={editingEvent?.id ?? 'new'}
@@ -199,7 +199,7 @@ export default function MapPage() {
                                 </Button>
                             )}
                         </div>
-                        <div className="flex-1 overflow-auto min-h-[300px]">
+                        <div className="flex-1 min-h-[300px] md:min-h-0 overflow-y-auto">
                             <EventList
                                 events={filteredEvents}
                                 loading={isEventsLoading}

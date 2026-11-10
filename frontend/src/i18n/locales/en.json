@@ -134,6 +134,12 @@
         }
     },
     "eventDetail": {
+        "title": "Event Details",
+        "dateUnknown": "Date TBD",
+        "venueUnknown": "Venue TBD",
+        "loading": "Loading...",
+        "relatedLink": "Open Related Link",
+        "mapLink": "View on Google Maps",
         "thread": {
             "title": "Threads",
             "description": "Threads with the most recommendations are shown first.",

@@ -134,6 +134,12 @@
         }
     },
     "eventDetail": {
+        "title": "이벤트 상세",
+        "dateUnknown": "날짜 미정",
+        "venueUnknown": "공연장 미정",
+        "loading": "불러오는 중...",
+        "relatedLink": "관련 링크 열기",
+        "mapLink": "Google Maps에서 보기",
         "thread": {
             "title": "스레드",
             "description": "추천을 많이 받은 스레드가 위에 표시됩니다.",

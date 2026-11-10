@@ -133,6 +133,12 @@
         }
     },
     "eventDetail": {
+        "title": "活动详情",
+        "dateUnknown": "日期未定",
+        "venueUnknown": "场地未定",
+        "loading": "加载中...",
+        "relatedLink": "打开相关链接",
+        "mapLink": "在Google地图中查看",
         "thread": {
             "title": "讨论串",
             "description": "获得推荐最多的讨论串会显示在最上方。",
