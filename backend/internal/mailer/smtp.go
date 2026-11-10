@@ -36,19 +36,19 @@ func NewFromEnv() Mailer {
 	return &SMTPMailer{host: host, port: port, user: user, pass: os.Getenv("SMTP_PASSWORD"), from: from}
 }
 
-// SendVerificationEmail sends the verification code to the given address.
-func (m *SMTPMailer) SendVerificationEmail(ctx context.Context, toEmail string, code string) error {
+// SendVerificationEmail sends the localized verification code to the given address.
+func (m *SMTPMailer) SendVerificationEmail(ctx context.Context, toEmail string, code string, lang string) error {
 	// Prevent header injection.
 	if strings.ContainsAny(toEmail, "\r\n") {
 		return fmt.Errorf("invalid recipient")
 	}
 
 	addr := m.host + ":" + m.port
-	subject := "[Eventer Map] 이메일 인증 코드"
-	body := fmt.Sprintf("안녕하세요,\r\n\r\nEventer Map 이메일 인증 코드입니다:\r\n\r\n  %s\r\n\r\n인증 코드는 5분간 유효합니다.\r\n", code)
+	rawSubject, body := GetVerificationTemplate(lang, code)
+	encodedSubject := EncodeHeaderSubject(rawSubject)
 
-	msg := fmt.Sprintf("From: %s\r\nTo: %s\r\nSubject: %s\r\nMIME-Version: 1.0\r\nContent-Type: text/plain; charset=UTF-8\r\n\r\n%s",
-		m.from, toEmail, subject, body)
+	msg := fmt.Sprintf("From: %s\r\nTo: %s\r\nSubject: %s\r\nMIME-Version: 1.0\r\nContent-Type: text/plain; charset=UTF-8\r\nContent-Transfer-Encoding: 8bit\r\n\r\n%s",
+		m.from, toEmail, encodedSubject, body)
 
 	var auth smtp.Auth
 	if m.user != "" {

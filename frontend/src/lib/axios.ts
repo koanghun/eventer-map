@@ -15,17 +15,22 @@ export const setAccessToken = (token: string | null) => {
   accessToken = token;
 };
 
-// Request interceptor to add the bearer token
+// Request interceptor to add the bearer token and current language
 AXIOS_INSTANCE.interceptors.request.use(
   (config) => {
-    if (accessToken && config.headers) {
-      config.headers.Authorization = `Bearer ${accessToken}`;
+      if (config.headers) {
+        if (accessToken) {
+          config.headers.Authorization = `Bearer ${accessToken}`;
+        }
+        if (i18n.language) {
+          config.headers['Accept-Language'] = i18n.language;
+        }
+      }
+      return config;
+    },
+    (error) => {
+      return Promise.reject(error);
     }
-    return config;
-  },
-  (error) => {
-    return Promise.reject(error);
-  }
 );
 
 // Response interceptor to handle errors globally

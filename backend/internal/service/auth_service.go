@@ -112,7 +112,7 @@ func generateVerificationCode() (string, error) {
 }
 
 // issueVerificationCode creates a fresh code for the email and sends it.
-func (s *AuthService) issueVerificationCode(ctx context.Context, email string) error {
+func (s *AuthService) issueVerificationCode(ctx context.Context, email string, lang string) error {
 	code, err := generateVerificationCode()
 	if err != nil {
 		return err
@@ -125,11 +125,11 @@ func (s *AuthService) issueVerificationCode(ctx context.Context, email string) e
 	if err != nil {
 		return err
 	}
-	return s.mailer.SendVerificationEmail(ctx, email, code)
+	return s.mailer.SendVerificationEmail(ctx, email, code, lang)
 }
 
 // ResendVerificationCode re-issues a code for an unverified account.
-func (s *AuthService) ResendVerificationCode(ctx context.Context, email string) error {
+func (s *AuthService) ResendVerificationCode(ctx context.Context, email string, lang string) error {
 	user, err := s.repo.GetUserByEmail(ctx, sql.NullString{String: email, Valid: true})
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
@@ -146,10 +146,10 @@ func (s *AuthService) ResendVerificationCode(ctx context.Context, email string) 
 			return ErrResendTooSoon
 		}
 	}
-	return s.issueVerificationCode(ctx, email)
+	return s.issueVerificationCode(ctx, email, lang)
 }
 
-func (s *AuthService) Signup(ctx context.Context, email, displayName, password string) error {
+func (s *AuthService) Signup(ctx context.Context, email, displayName, password string, lang string) error {
 	// 1. Validate password complexity (at least 8 chars, letters + numbers)
 	if len(password) < 8 {
 		return ErrInvalidPassword
@@ -210,7 +210,7 @@ func (s *AuthService) Signup(ctx context.Context, email, displayName, password s
 	}
 
 	// 6. Generate, save and send verification code
-	return s.issueVerificationCode(ctx, email)
+	return s.issueVerificationCode(ctx, email, lang)
 }
 
 func (s *AuthService) VerifyEmail(ctx context.Context, email, code string) (*TokenResponse, error) {

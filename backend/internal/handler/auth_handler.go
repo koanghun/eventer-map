@@ -50,7 +50,8 @@ func (s *Server) PostAuthSignup(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err := s.services.Auth.Signup(r.Context(), string(req.Email), req.Nickname, req.Password)
+	lang := r.Header.Get("Accept-Language")
+	err := s.services.Auth.Signup(r.Context(), string(req.Email), req.Nickname, req.Password, lang)
 	if err != nil {
 		log.Printf("Signup error: %v", err)
 		if err == service.ErrUserExists {
@@ -108,7 +109,8 @@ func (s *Server) PostAuthSignupResend(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err := s.services.Auth.ResendVerificationCode(r.Context(), string(req.Email))
+	lang := r.Header.Get("Accept-Language")
+	err := s.services.Auth.ResendVerificationCode(r.Context(), string(req.Email), lang)
 	if err != nil {
 		switch err {
 		case service.ErrAlreadyVerified:

@@ -1,6 +1,6 @@
 # 🔐 구글 로그인 플로우 및 설계도
 
-[⬅️ 홈으로 돌아가기](./Home.md) | [관련 문서: API 상세 설계서](./API_SPECIFICATION.md)
+[⬅️ 홈으로 돌아가기](./Home.md) | [관련 문서: 이메일 인증 가이드](./EMAIL_VERIFICATION_GUIDE.md) | [API 상세 설계서](./API_SPECIFICATION.md)
 
 프론트엔드(React)와 서버리스 백엔드(AWS Lambda, Go 표준 라이브러리) 환경에서의 최적화된 구글 인증(OAuth 2.0 / OIDC) 흐름입니다.
 
