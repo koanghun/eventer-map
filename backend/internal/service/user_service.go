@@ -117,6 +117,46 @@ func (s *UserService) UpdateProfile(ctx context.Context, userID uuid.UUID, displ
 	})
 }
 
+var (
+	// ErrInvalidCurrentPassword is returned when the supplied password does not match.
+	ErrInvalidCurrentPassword = errors.New("invalid current password")
+	// ErrReauthRequired is returned when a passwordless account has not re-authenticated.
+	ErrReauthRequired = errors.New("re-authentication required")
+)
+
+// DeleteAccount permanently removes the user after verifying their identity:
+//   - accounts with a password must supply it;
+//   - passwordless Google accounts must supply the verified Google ID (googleID) of the same account.
+//
+// Related rows follow the FK policy (SET NULL for authored content, CASCADE for personal data).
+func (s *UserService) DeleteAccount(ctx context.Context, userID uuid.UUID, currentPassword, verifiedGoogleID string) error {
+	user, err := s.repo.GetUserByID(ctx, userID)
+	if err != nil {
+		return err
+	}
+
+	switch {
+	case user.PasswordHash.Valid:
+		if currentPassword == "" {
+			return ErrInvalidCurrentPassword
+		}
+		if err := bcrypt.CompareHashAndPassword([]byte(user.PasswordHash.String), []byte(currentPassword)); err != nil {
+			return ErrInvalidCurrentPassword
+		}
+	case user.GoogleID.Valid:
+		if verifiedGoogleID == "" || verifiedGoogleID != user.GoogleID.String {
+			return ErrReauthRequired
+		}
+	}
+
+	if user.Email.Valid {
+		// Best effort: drop any pending verification code for this email.
+		_ = s.repo.DeleteVerificationToken(ctx, user.Email.String)
+	}
+
+	return s.repo.DeleteUser(ctx, userID)
+}
+
 func (s *UserService) UpdatePassword(ctx context.Context, userID uuid.UUID, currentPassword, newPassword string) error {
 	user, err := s.repo.GetUserByID(ctx, userID)
 	if err != nil {

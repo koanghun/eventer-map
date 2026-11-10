@@ -23,6 +23,8 @@
         "searchError": "An error occurred while searching for performers."
     },
     "auth": {
+        "resendCode": "Resend code",
+        "resendFailed": "Failed to send the verification code.",
         "login": "Login",
         "loginWithGoogle": "Log in with Google",
         "logout": "Log out",
@@ -42,6 +44,19 @@
         "nickname": "Nickname"
     },
     "errors": {
+        "api": {
+            "REAUTH_REQUIRED": "Identity verification is required. Please re-authenticate.",
+            "INVALID_CURRENT_PASSWORD": "The current password is incorrect.",
+            "USER_EXISTS": "This email is already registered.",
+            "NICKNAME_EXISTS": "This nickname is already taken.",
+            "INVALID_PASSWORD": "Password must be at least 8 characters and include both letters and numbers.",
+            "INVALID_LOGIN": "Incorrect email or password.",
+            "EMAIL_NOT_VERIFIED": "Email verification is required. Please check your verification code.",
+            "ALREADY_VERIFIED": "This account is already verified.",
+            "RESEND_TOO_SOON": "Please wait a moment before requesting a new code.",
+            "INVALID_VERIFY_CODE": "The verification code is invalid or has expired.",
+            "TOO_MANY_ATTEMPTS": "Too many failed attempts. Please request a new code."
+        },
         "accessDenied": "Access denied.",
         "serverError": "A server error occurred. Please try again later.",
         "serverUnavailable": "Unable to connect to the server. Please try again later.",
@@ -429,6 +444,15 @@
         "manageReports": "Manage Reports"
     },
     "profile": {
+        "deleteReauthFailed": "Google re-authentication failed.",
+        "deleteWithGoogle": "Re-authenticate with Google and delete",
+        "deleteAccountCancel": "Cancel",
+        "deleteAccount": "Delete account",
+        "deleteAccountTitle": "Are you sure you want to delete your account?",
+        "deleteAccountDesc": "Your account and personal data (follows, participation records, etc.) will be deleted. This cannot be undone.",
+        "deleteAccountConfirm": "Delete",
+        "deleteAccountSuccess": "Your account has been deleted.",
+        "deleteAccountFailed": "Failed to delete your account.",
         "editTitle": "Edit Profile",
         "editDescription": "You can change your profile and account settings.",
         "basicInfo": "Basic Info",

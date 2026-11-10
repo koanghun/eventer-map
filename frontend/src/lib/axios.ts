@@ -1,6 +1,7 @@
 import Axios, { AxiosError, AxiosRequestConfig } from 'axios';
 import i18n from '../i18n/config';
 import { toast } from '../store/useToastStore';
+import { getLocalizedApiError } from './apiError';
 
 export const AXIOS_INSTANCE = Axios.create({
   baseURL: process.env.REACT_APP_API_URL || 'http://localhost:8080',
@@ -54,7 +55,7 @@ AXIOS_INSTANCE.interceptors.response.use(
     if (status === 401) {
       setAccessToken(null);
     } else if (status === 403) {
-      toast.error(message || i18n.t('errors.accessDenied', '접근 권한이 없습니다.'));
+      toast.error(getLocalizedApiError(error) || message || i18n.t('errors.accessDenied', '접근 권한이 없습니다.'));
       (error as any)._toastShown = true;
     } else if (status === 404) {
       // Silently ignore 404s — handled by individual components

@@ -2,10 +2,14 @@ package handler
 
 import (
 	"encoding/json"
+	"errors"
+	"io"
 	"log"
 	"net/http"
+	"time"
 
 	"eventer-map-backend/internal/middleware"
+	"eventer-map-backend/internal/service"
 
 	"github.com/google/uuid"
 	openapi_types "github.com/oapi-codegen/runtime/types"
@@ -412,6 +416,59 @@ func (s *Server) PatchUsersMe(w http.ResponseWriter, r *http.Request) {
 		"displayName":    user.DisplayName,
 		"createdAt":      user.CreatedAt,
 		"isGoogleLinked": user.GoogleID.Valid,
+	})
+}
+
+// DeleteUsersMe implements the DELETE /users/me endpoint
+func (s *Server) DeleteUsersMe(w http.ResponseWriter, r *http.Request) {
+	userID, ok := r.Context().Value(middleware.UserIDKey).(uuid.UUID)
+	if !ok {
+		RespondError(w, http.StatusUnauthorized, "user not authenticated")
+		return
+	}
+
+	var req DeleteAccountRequest
+	if r.Body != nil {
+		// An empty body is allowed (Google-only accounts have no password).
+		if err := json.NewDecoder(r.Body).Decode(&req); err != nil && err != io.EOF {
+			RespondError(w, http.StatusBadRequest, "Invalid JSON payload")
+			return
+		}
+	}
+	currentPassword := ""
+	if req.CurrentPassword != nil {
+		currentPassword = *req.CurrentPassword
+	}
+
+	googleID := ""
+	if req.GoogleAccessToken != nil && *req.GoogleAccessToken != "" {
+		id, _, err := s.services.Auth.VerifyGoogleAccessToken(r.Context(), *req.GoogleAccessToken)
+		if err != nil {
+			RespondErrorCode(w, http.StatusForbidden, "REAUTH_REQUIRED", "Re-authentication required")
+			return
+		}
+		googleID = id
+	}
+
+	if err := s.services.User.DeleteAccount(r.Context(), userID, currentPassword, googleID); err != nil {
+		if errors.Is(err, service.ErrInvalidCurrentPassword) {
+			RespondErrorCode(w, http.StatusBadRequest, "INVALID_CURRENT_PASSWORD", "Invalid current password")
+			return
+		}
+		if errors.Is(err, service.ErrReauthRequired) {
+			RespondErrorCode(w, http.StatusForbidden, "REAUTH_REQUIRED", "Re-authentication required")
+			return
+		}
+		log.Printf("[DeleteUsersMe] DeleteAccount error (userID=%s): %v", userID, err)
+		RespondError(w, http.StatusInternalServerError, "Failed to delete account")
+		return
+	}
+
+	// Clear the refresh token cookie
+	http.SetCookie(w, buildRefreshTokenCookie("", time.Unix(0, 0), -1))
+
+	RespondJSON(w, http.StatusOK, map[string]string{
+		"message": "Account deleted successfully",
 	})
 }
 

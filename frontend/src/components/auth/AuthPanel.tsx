@@ -16,7 +16,7 @@ interface AuthPanelProps {
 type AuthView = 'login' | 'signup' | 'verifyEmail' | 'findId' | 'findPassword';
 
 export default function AuthPanel({ onClose }: AuthPanelProps) {
-    const { login, signup, verifyEmail, googleLogin: contextGoogleLogin } = useAuth();
+    const { login, signup, verifyEmail, resendVerification, googleLogin: contextGoogleLogin } = useAuth();
     const { t } = useTranslation();
     const [view, setView] = useState<AuthView>('login');
     const [email, setEmail] = useState('');
@@ -52,7 +52,32 @@ export default function AuthPanel({ onClose }: AuthPanelProps) {
             await login(email, password);
             onClose();
         } catch (err: any) {
-            toast.apiError(err, t('auth.loginFailed', '로그인에 실패했습니다.'));
+            if (err?.response?.status === 403) {
+                // Email not verified yet: send a fresh code and move to verification.
+                setSignupEmail(email);
+                setVerificationCode('');
+                try {
+                    await resendVerification(email);
+                } catch (resendErr: any) {
+                    if (resendErr?.response?.status !== 429) {
+                        toast.apiError(resendErr, t('auth.resendFailed', '인증 코드 전송에 실패했습니다.'));
+                    }
+                }
+                setView('verifyEmail');
+            } else {
+                toast.apiError(err, t('auth.loginFailed', '로그인에 실패했습니다.'));
+            }
+        } finally {
+            setIsSubmitting(false);
+        }
+    };
+
+    const handleResend = async () => {
+        setIsSubmitting(true);
+        try {
+            await resendVerification(signupEmail);
+        } catch (err: any) {
+            toast.apiError(err, t('auth.resendFailed', '인증 코드 전송에 실패했습니다.'));
         } finally {
             setIsSubmitting(false);
         }
@@ -195,7 +220,10 @@ export default function AuthPanel({ onClose }: AuthPanelProps) {
                 {isSubmitting ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : null}
                 {t('auth.verifySubmit', 'Verify')}
             </Button>
-            <Button variant="ghost" onClick={() => setView('login')} className="w-full text-xs text-muted-foreground mt-2">
+            <Button type="button" variant="ghost" onClick={handleResend} disabled={isSubmitting} className="w-full text-xs text-muted-foreground">
+                {t('auth.resendCode', 'Resend code')}
+            </Button>
+            <Button type="button" variant="ghost" onClick={() => setView('login')} className="w-full text-xs text-muted-foreground">
                 {t('auth.backToLogin', 'Back to Login')}
             </Button>
         </form>

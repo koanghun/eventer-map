@@ -12,7 +12,7 @@ import { Input } from '../ui/input';
 import { Button } from '../ui/button';
 import { Label } from '../ui/label';
 import { toast } from '../../store/useToastStore';
-import { User, Mail, Lock, CheckCircle, AlertCircle } from 'lucide-react';
+import { User, Mail, Lock, CheckCircle, AlertCircle, UserX } from 'lucide-react';
 import { usePatchUsersMe, usePutUsersMePassword, usePostUsersMeLinkGoogle, usePostUsersMeUnlinkGoogle } from '../../api/generated/user/user';
 import { useGoogleLogin } from '@react-oauth/google';
 
@@ -23,7 +23,7 @@ interface ProfileSettingsModalProps {
 
 export default function ProfileSettingsModal({ isOpen, onClose }: ProfileSettingsModalProps) {
     const { t } = useTranslation();
-    const { user, refreshUser } = useAuth();
+    const { user, refreshUser, deleteAccount } = useAuth();
     // Let's just refresh page on profile update or leave it if AuthContext re-fetches
     const { mutateAsync: updateProfile } = usePatchUsersMe();
     const { mutateAsync: updatePassword } = usePutUsersMePassword();
@@ -34,6 +34,9 @@ export default function ProfileSettingsModal({ isOpen, onClose }: ProfileSetting
     const [confirmPassword, setConfirmPassword] = useState('');
     
     const [isSubmitting, setIsSubmitting] = useState(false);
+
+    const [isDeleteOpen, setIsDeleteOpen] = useState(false);
+    const [deletePassword, setDeletePassword] = useState('');
 
     const linkGoogleMutation = usePostUsersMeLinkGoogle();
     const unlinkGoogleMutation = usePostUsersMeUnlinkGoogle();
@@ -53,6 +56,12 @@ export default function ProfileSettingsModal({ isOpen, onClose }: ProfileSetting
         onError: () => {
             toast.error(t('profile.googleLinkFailed', '구글 계정 연동에 실패했습니다.'));
         }
+    });
+
+    // Passwordless Google accounts re-authenticate with Google before deletion
+    const googleReauth = useGoogleLogin({
+        onSuccess: (tokenResponse) => { void finishDelete(undefined, tokenResponse.access_token); },
+        onError: () => toast.error(t('profile.deleteReauthFailed', '구글 재인증에 실패했습니다.')),
     });
 
     if (!user) return null;
@@ -96,6 +105,22 @@ export default function ProfileSettingsModal({ isOpen, onClose }: ProfileSetting
             setIsSubmitting(false);
         }
     };
+
+    const finishDelete = async (password?: string, googleAccessToken?: string) => {
+        setIsSubmitting(true);
+        try {
+            await deleteAccount(password, googleAccessToken);
+            setIsDeleteOpen(false);
+            setDeletePassword('');
+            onClose();
+        } catch (error: any) {
+            toast.apiError(error, t('profile.deleteAccountFailed', '회원 탈퇴에 실패했습니다.'));
+        } finally {
+            setIsSubmitting(false);
+        }
+    };
+
+    const handleDeleteAccount = () => finishDelete(user.hasPassword ? deletePassword : undefined);
 
     const handleGoogleLink = async () => {
         if (isGoogleLinked) {
@@ -246,8 +271,70 @@ export default function ProfileSettingsModal({ isOpen, onClose }: ProfileSetting
                             </Button>
                         </div>
                     </div>
+
+                    {/* Delete Account Section */}
+                    <div className="pt-2 border-t">
+                        <Button
+                            variant="ghost"
+                            className="w-full text-destructive hover:text-destructive hover:bg-destructive/10"
+                            onClick={() => setIsDeleteOpen(true)}
+                        >
+                            <UserX className="w-4 h-4 mr-2" />
+                            {t('profile.deleteAccount', '회원 탈퇴')}
+                        </Button>
+                    </div>
                 </div>
             </DialogContent>
+
+            <Dialog
+                open={isDeleteOpen}
+                onOpenChange={(open) => {
+                    if (isSubmitting) return;
+                    setIsDeleteOpen(open);
+                    if (!open) setDeletePassword('');
+                }}
+            >
+                <DialogContent className="sm:max-w-[400px] bg-background text-foreground">
+                    <DialogHeader>
+                        <DialogTitle className="text-lg font-bold text-destructive">
+                            {t('profile.deleteAccountTitle', '정말 탈퇴하시겠습니까?')}
+                        </DialogTitle>
+                        <DialogDescription>
+                            {t('profile.deleteAccountDesc', '계정과 개인 데이터(팔로우, 참가 기록 등)가 삭제되며 되돌릴 수 없습니다.')}
+                        </DialogDescription>
+                    </DialogHeader>
+                    {user.hasPassword && (
+                        <div className="space-y-2">
+                            <Label htmlFor="delete-password">{t('profile.currentPassword', '현재 비밀번호')}</Label>
+                            <Input
+                                id="delete-password"
+                                type="password"
+                                value={deletePassword}
+                                onChange={(e) => setDeletePassword(e.target.value)}
+                                disabled={isSubmitting}
+                            />
+                        </div>
+                    )}
+                    <div className="flex justify-end gap-2 pt-2">
+                        <Button variant="outline" onClick={() => setIsDeleteOpen(false)} disabled={isSubmitting}>
+                            {t('profile.deleteAccountCancel', '취소')}
+                        </Button>
+                        {!user.hasPassword && isGoogleLinked ? (
+                            <Button variant="destructive" onClick={() => googleReauth()} disabled={isSubmitting}>
+                                {t('profile.deleteWithGoogle', 'Google 재인증 후 탈퇴')}
+                            </Button>
+                        ) : (
+                            <Button
+                                variant="destructive"
+                                onClick={handleDeleteAccount}
+                                disabled={isSubmitting || (user.hasPassword && !deletePassword)}
+                            >
+                                {t('profile.deleteAccountConfirm', '탈퇴하기')}
+                            </Button>
+                        )}
+                    </div>
+                </DialogContent>
+            </Dialog>
         </Dialog>
     );
 }

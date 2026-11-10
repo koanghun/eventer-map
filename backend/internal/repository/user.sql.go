@@ -60,6 +60,16 @@ func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (User, e
 	return i, err
 }
 
+const deleteUser = `-- name: DeleteUser :exec
+DELETE FROM users
+WHERE id = $1
+`
+
+func (q *Queries) DeleteUser(ctx context.Context, id uuid.UUID) error {
+	_, err := q.db.ExecContext(ctx, deleteUser, id)
+	return err
+}
+
 const getUserByEmail = `-- name: GetUserByEmail :one
 SELECT id, email, display_name, password_hash, google_id, is_banned, created_at, updated_at, is_email_verified, last_artist_feed_checked_at, role FROM users
 WHERE email = $1 LIMIT 1
@@ -130,6 +140,26 @@ func (q *Queries) GetUserByID(ctx context.Context, id uuid.UUID) (User, error) {
 		&i.Role,
 	)
 	return i, err
+}
+
+const updateUnverifiedUserSignup = `-- name: UpdateUnverifiedUserSignup :execrows
+UPDATE users
+SET display_name = $2, password_hash = $3
+WHERE id = $1 AND is_email_verified = false
+`
+
+type UpdateUnverifiedUserSignupParams struct {
+	ID           uuid.UUID
+	DisplayName  string
+	PasswordHash sql.NullString
+}
+
+func (q *Queries) UpdateUnverifiedUserSignup(ctx context.Context, arg UpdateUnverifiedUserSignupParams) (int64, error) {
+	result, err := q.db.ExecContext(ctx, updateUnverifiedUserSignup, arg.ID, arg.DisplayName, arg.PasswordHash)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected()
 }
 
 const updateUserBanStatus = `-- name: UpdateUserBanStatus :exec

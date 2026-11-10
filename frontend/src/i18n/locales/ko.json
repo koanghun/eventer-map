@@ -23,6 +23,8 @@
         "searchError": "출연자 검색 중 오류가 발생했습니다."
     },
     "auth": {
+        "resendCode": "코드 재전송",
+        "resendFailed": "인증 코드 전송에 실패했습니다.",
         "login": "로그인",
         "loginWithGoogle": "Google로 로그인",
         "logout": "로그아웃",
@@ -42,6 +44,19 @@
         "nickname": "닉네임"
     },
     "errors": {
+        "api": {
+            "REAUTH_REQUIRED": "본인 확인이 필요합니다. 다시 인증해주세요.",
+            "INVALID_CURRENT_PASSWORD": "현재 비밀번호가 올바르지 않습니다.",
+            "USER_EXISTS": "이미 가입된 이메일입니다.",
+            "NICKNAME_EXISTS": "이미 사용 중인 닉네임입니다.",
+            "INVALID_PASSWORD": "비밀번호는 8자 이상이며 영문과 숫자를 모두 포함해야 합니다.",
+            "INVALID_LOGIN": "이메일 또는 비밀번호가 올바르지 않습니다.",
+            "EMAIL_NOT_VERIFIED": "이메일 인증이 필요합니다. 인증 코드를 확인해주세요.",
+            "ALREADY_VERIFIED": "이미 인증된 계정입니다.",
+            "RESEND_TOO_SOON": "잠시 후 다시 요청해주세요.",
+            "INVALID_VERIFY_CODE": "인증 코드가 올바르지 않거나 만료되었습니다.",
+            "TOO_MANY_ATTEMPTS": "인증 시도 횟수를 초과했습니다. 새 코드를 요청해주세요."
+        },
         "accessDenied": "접근 권한이 없습니다.",
         "serverError": "서버 오류가 발생했습니다. 잠시 후 다시 시도해주세요.",
         "serverUnavailable": "서버에 연결할 수 없습니다. 잠시 후 다시 시도해주세요.",
@@ -429,6 +444,15 @@
         "manageReports": "신고 관리"
     },
     "profile": {
+        "deleteReauthFailed": "구글 재인증에 실패했습니다.",
+        "deleteWithGoogle": "Google 재인증 후 탈퇴",
+        "deleteAccountCancel": "취소",
+        "deleteAccount": "회원 탈퇴",
+        "deleteAccountTitle": "정말 탈퇴하시겠습니까?",
+        "deleteAccountDesc": "계정과 개인 데이터(팔로우, 참가 기록 등)가 삭제되며 되돌릴 수 없습니다.",
+        "deleteAccountConfirm": "탈퇴하기",
+        "deleteAccountSuccess": "회원 탈퇴가 완료되었습니다.",
+        "deleteAccountFailed": "회원 탈퇴에 실패했습니다.",
         "editTitle": "회원정보 수정",
         "editDescription": "프로필 및 계정 설정을 변경할 수 있습니다.",
         "basicInfo": "기본 정보",

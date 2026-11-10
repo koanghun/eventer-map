@@ -22,6 +22,8 @@
         "searchError": "搜索出演者时发生错误。"
     },
     "auth": {
+        "resendCode": "重新发送验证码",
+        "resendFailed": "验证码发送失败。",
         "login": "登录",
         "loginWithGoogle": "使用 Google 登录",
         "logout": "退出登录",
@@ -40,7 +42,31 @@
         "email": "电子邮箱",
         "nickname": "昵称"
     },
+    "profile": {
+        "deleteAccount": "注销账号",
+        "deleteAccountTitle": "确定要注销账号吗？",
+        "deleteAccountDesc": "账号及个人数据（关注、参加记录等）将被删除，且无法恢复。",
+        "deleteAccountConfirm": "确认注销",
+        "deleteAccountSuccess": "账号已注销。",
+        "deleteAccountFailed": "注销账号失败。",
+        "deleteReauthFailed": "Google 重新验证失败。",
+        "deleteWithGoogle": "通过 Google 重新验证并注销",
+        "deleteAccountCancel": "取消"
+    },
     "errors": {
+        "api": {
+            "REAUTH_REQUIRED": "需要验证身份，请重新验证。",
+            "INVALID_CURRENT_PASSWORD": "当前密码不正确。",
+            "USER_EXISTS": "该邮箱已注册。",
+            "NICKNAME_EXISTS": "该昵称已被使用。",
+            "INVALID_PASSWORD": "密码至少8位，且必须同时包含字母和数字。",
+            "INVALID_LOGIN": "邮箱或密码不正确。",
+            "EMAIL_NOT_VERIFIED": "需要验证邮箱，请查看验证码。",
+            "ALREADY_VERIFIED": "该账号已验证。",
+            "RESEND_TOO_SOON": "请稍后再重新请求。",
+            "INVALID_VERIFY_CODE": "验证码无效或已过期。",
+            "TOO_MANY_ATTEMPTS": "失败次数过多，请重新获取验证码。"
+        },
         "accessDenied": "没有访问权限。",
         "serverError": "发生服务器错误，请稍后重试。",
         "serverUnavailable": "无法连接到服务器，请稍后重试。",

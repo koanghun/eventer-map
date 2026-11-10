@@ -2,8 +2,13 @@ package service
 
 import (
 	"context"
+	"crypto/rand"
+	"crypto/subtle"
 	"database/sql"
 	"errors"
+	"fmt"
+	"log"
+	"math/big"
 	"regexp"
 	"time"
 
@@ -50,6 +55,18 @@ var (
 	ErrNicknameExists  = errors.New("nickname already exists")
 	ErrInvalidLogin    = errors.New("invalid email or password")
 	ErrInvalidPassword = errors.New("password must be at least 8 characters and contain both letters and numbers")
+
+	ErrEmailNotVerified  = errors.New("email not verified")
+	ErrAlreadyVerified   = errors.New("email already verified")
+	ErrResendTooSoon     = errors.New("please wait before requesting a new code")
+	ErrInvalidVerifyCode = errors.New("invalid or expired verification code")
+	ErrTooManyAttempts   = errors.New("too many failed attempts, please request a new code")
+)
+
+const (
+	verificationCodeTTL      = 5 * time.Minute
+	verificationResendWindow = 60 * time.Second
+	maxVerificationAttempts  = 5
 )
 
 type TokenResponse struct {
@@ -86,10 +103,50 @@ func (s *AuthService) generateTokens(userID string) (*TokenResponse, error) {
 	}, nil
 }
 
-func generateVerificationCode() string {
-	// Simple 6 digit code for mock
-	// In production use crypto/rand
-	return "123456" // Hardcoded for simplicity or generate random
+func generateVerificationCode() (string, error) {
+	n, err := rand.Int(rand.Reader, big.NewInt(1000000))
+	if err != nil {
+		return "", err
+	}
+	return fmt.Sprintf("%06d", n.Int64()), nil
+}
+
+// issueVerificationCode creates a fresh code for the email and sends it.
+func (s *AuthService) issueVerificationCode(ctx context.Context, email string) error {
+	code, err := generateVerificationCode()
+	if err != nil {
+		return err
+	}
+	_, err = s.repo.CreateVerificationToken(ctx, repository.CreateVerificationTokenParams{
+		Email:     email,
+		Code:      code,
+		ExpiresAt: time.Now().Add(verificationCodeTTL),
+	})
+	if err != nil {
+		return err
+	}
+	return s.mailer.SendVerificationEmail(ctx, email, code)
+}
+
+// ResendVerificationCode re-issues a code for an unverified account.
+func (s *AuthService) ResendVerificationCode(ctx context.Context, email string) error {
+	user, err := s.repo.GetUserByEmail(ctx, sql.NullString{String: email, Valid: true})
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			// Do not reveal whether the account exists.
+			return nil
+		}
+		return err
+	}
+	if user.IsEmailVerified {
+		return ErrAlreadyVerified
+	}
+	if tok, err := s.repo.GetVerificationTokenByEmail(ctx, email); err == nil {
+		if time.Until(tok.ExpiresAt) > verificationCodeTTL-verificationResendWindow {
+			return ErrResendTooSoon
+		}
+	}
+	return s.issueVerificationCode(ctx, email)
 }
 
 func (s *AuthService) Signup(ctx context.Context, email, displayName, password string) error {
@@ -104,21 +161,28 @@ func (s *AuthService) Signup(ctx context.Context, email, displayName, password s
 	}
 
 	// 2. Check if user email exists
-	_, err := s.repo.GetUserByEmail(ctx, sql.NullString{String: email, Valid: true})
-	if err == nil {
-		return ErrUserExists
-	}
-	if !errors.Is(err, sql.ErrNoRows) {
+	existing, err := s.repo.GetUserByEmail(ctx, sql.NullString{String: email, Valid: true})
+	var existingUnverified *repository.User
+	switch {
+	case err == nil:
+		// An unverified local account (e.g. the code was never entered) may re-signup.
+		if existing.IsEmailVerified || existing.GoogleID.Valid {
+			return ErrUserExists
+		}
+		existingUnverified = &existing
+	case !errors.Is(err, sql.ErrNoRows):
 		return err
 	}
 
-	// 3. Check if nickname exists
-	nicknameExists, err := s.repo.CheckNicknameExists(ctx, displayName)
-	if err != nil {
-		return err
-	}
-	if nicknameExists {
-		return ErrNicknameExists
+	// 3. Check if nickname exists (own nickname on a pending account is fine)
+	if existingUnverified == nil || existingUnverified.DisplayName != displayName {
+		nicknameExists, err := s.repo.CheckNicknameExists(ctx, displayName)
+		if err != nil {
+			return err
+		}
+		if nicknameExists {
+			return ErrNicknameExists
+		}
 	}
 
 	// 4. Hash password
@@ -127,42 +191,44 @@ func (s *AuthService) Signup(ctx context.Context, email, displayName, password s
 		return err
 	}
 
-	// 5. Create user (is_email_verified is false by default in DB)
-	_, err = s.repo.CreateUser(ctx, repository.CreateUserParams{
-		Email:        sql.NullString{String: email, Valid: true},
-		DisplayName:  displayName,
-		PasswordHash: sql.NullString{String: string(hashed), Valid: true},
-	})
+	// 5. Create user, or refresh the pending unverified one
+	if existingUnverified != nil {
+		_, err = s.repo.UpdateUnverifiedUserSignup(ctx, repository.UpdateUnverifiedUserSignupParams{
+			ID:           existingUnverified.ID,
+			DisplayName:  displayName,
+			PasswordHash: sql.NullString{String: string(hashed), Valid: true},
+		})
+	} else {
+		_, err = s.repo.CreateUser(ctx, repository.CreateUserParams{
+			Email:        sql.NullString{String: email, Valid: true},
+			DisplayName:  displayName,
+			PasswordHash: sql.NullString{String: string(hashed), Valid: true},
+		})
+	}
 	if err != nil {
 		return err
 	}
 
-	// 6. Generate and save verification token
-	code := generateVerificationCode()
-	_, err = s.repo.CreateVerificationToken(ctx, repository.CreateVerificationTokenParams{
-		Email:     email,
-		Code:      code,
-		ExpiresAt: time.Now().Add(5 * time.Minute),
-	})
-	if err != nil {
-		return err
-	}
-
-	// 7. Send email
-	return s.mailer.SendVerificationEmail(ctx, email, code)
+	// 6. Generate, save and send verification code
+	return s.issueVerificationCode(ctx, email)
 }
 
 func (s *AuthService) VerifyEmail(ctx context.Context, email, code string) (*TokenResponse, error) {
-	token, err := s.repo.GetVerificationToken(ctx, repository.GetVerificationTokenParams{
-		Email: email,
-		Code:  code,
-	})
+	token, err := s.repo.GetVerificationTokenByEmail(ctx, email)
 	if err != nil {
-		return nil, errors.New("invalid or expired verification code")
+		return nil, ErrInvalidVerifyCode
 	}
-
 	if time.Now().After(token.ExpiresAt) {
-		return nil, errors.New("verification code expired")
+		return nil, ErrInvalidVerifyCode
+	}
+	if token.Attempts >= maxVerificationAttempts {
+		return nil, ErrTooManyAttempts
+	}
+	if subtle.ConstantTimeCompare([]byte(token.Code), []byte(code)) != 1 {
+		if _, err := s.repo.IncrementVerificationAttempts(ctx, email); err != nil {
+			log.Printf("failed to increment verification attempts: %v", err)
+		}
+		return nil, ErrInvalidVerifyCode
 	}
 
 	// Update user status
@@ -177,7 +243,7 @@ func (s *AuthService) VerifyEmail(ctx context.Context, email, code string) (*Tok
 	// Delete token
 	err = s.repo.DeleteVerificationToken(ctx, email)
 	if err != nil {
-		// Log error but continue to return token
+		log.Printf("failed to delete verification token: %v", err)
 	}
 
 	// Get user to generate token
@@ -205,6 +271,10 @@ func (s *AuthService) Login(ctx context.Context, email, password string) (*Token
 	err = bcrypt.CompareHashAndPassword([]byte(user.PasswordHash.String), []byte(password))
 	if err != nil {
 		return nil, ErrInvalidLogin
+	}
+
+	if !user.IsEmailVerified {
+		return nil, ErrEmailNotVerified
 	}
 
 	return s.generateTokens(user.ID.String())

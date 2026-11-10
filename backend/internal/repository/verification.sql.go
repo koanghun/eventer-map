@@ -11,11 +11,11 @@ import (
 )
 
 const createVerificationToken = `-- name: CreateVerificationToken :one
-INSERT INTO verification_tokens (email, code, expires_at)
-VALUES ($1, $2, $3)
+INSERT INTO verification_tokens (email, code, expires_at, attempts)
+VALUES ($1, $2, $3, 0)
 ON CONFLICT (email) DO UPDATE 
-SET code = EXCLUDED.code, expires_at = EXCLUDED.expires_at
-RETURNING email, code, expires_at
+SET code = EXCLUDED.code, expires_at = EXCLUDED.expires_at, attempts = 0
+RETURNING email, code, expires_at, attempts
 `
 
 type CreateVerificationTokenParams struct {
@@ -27,7 +27,12 @@ type CreateVerificationTokenParams struct {
 func (q *Queries) CreateVerificationToken(ctx context.Context, arg CreateVerificationTokenParams) (VerificationToken, error) {
 	row := q.db.QueryRowContext(ctx, createVerificationToken, arg.Email, arg.Code, arg.ExpiresAt)
 	var i VerificationToken
-	err := row.Scan(&i.Email, &i.Code, &i.ExpiresAt)
+	err := row.Scan(
+		&i.Email,
+		&i.Code,
+		&i.ExpiresAt,
+		&i.Attempts,
+	)
 	return i, err
 }
 
@@ -41,19 +46,33 @@ func (q *Queries) DeleteVerificationToken(ctx context.Context, email string) err
 	return err
 }
 
-const getVerificationToken = `-- name: GetVerificationToken :one
-SELECT email, code, expires_at FROM verification_tokens
-WHERE email = $1 AND code = $2
+const getVerificationTokenByEmail = `-- name: GetVerificationTokenByEmail :one
+SELECT email, code, expires_at, attempts FROM verification_tokens
+WHERE email = $1
 `
 
-type GetVerificationTokenParams struct {
-	Email string
-	Code  string
+func (q *Queries) GetVerificationTokenByEmail(ctx context.Context, email string) (VerificationToken, error) {
+	row := q.db.QueryRowContext(ctx, getVerificationTokenByEmail, email)
+	var i VerificationToken
+	err := row.Scan(
+		&i.Email,
+		&i.Code,
+		&i.ExpiresAt,
+		&i.Attempts,
+	)
+	return i, err
 }
 
-func (q *Queries) GetVerificationToken(ctx context.Context, arg GetVerificationTokenParams) (VerificationToken, error) {
-	row := q.db.QueryRowContext(ctx, getVerificationToken, arg.Email, arg.Code)
-	var i VerificationToken
-	err := row.Scan(&i.Email, &i.Code, &i.ExpiresAt)
-	return i, err
+const incrementVerificationAttempts = `-- name: IncrementVerificationAttempts :one
+UPDATE verification_tokens
+SET attempts = attempts + 1
+WHERE email = $1
+RETURNING attempts
+`
+
+func (q *Queries) IncrementVerificationAttempts(ctx context.Context, email string) (int32, error) {
+	row := q.db.QueryRowContext(ctx, incrementVerificationAttempts, email)
+	var attempts int32
+	err := row.Scan(&attempts)
+	return attempts, err
 }

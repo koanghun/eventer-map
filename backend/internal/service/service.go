@@ -24,8 +24,8 @@ type Services struct {
 
 // NewServices initializes all domain services with the database repository
 func NewServices(repo *repository.Queries, db *sql.DB) *Services {
-	// Use MockMailer for development
-	m := mailer.NewMockMailer()
+	// SMTP when configured, otherwise MockMailer (logs to console) for development
+	m := mailer.NewFromEnv()
 
 	var uploader storage.Uploader
 	if s3Storage, err := storage.NewS3StorageFromEnv(context.Background()); err != nil {

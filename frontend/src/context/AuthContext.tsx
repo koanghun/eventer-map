@@ -1,7 +1,7 @@
 import { createContext, useContext, useState, useCallback, useEffect, ReactNode } from 'react';
 import { setAccessToken } from '../lib/axios';
-import { postAuthLogin, postAuthSignup, postAuthSignupVerify, postAuthGoogle, postAuthLogout, postAuthRefresh } from '../api/generated/auth/auth';
-import { getUsersMe } from '../api/generated/user/user';
+import { postAuthLogin, postAuthSignup, postAuthSignupVerify, postAuthSignupResend, postAuthGoogle, postAuthLogout, postAuthRefresh } from '../api/generated/auth/auth';
+import { getUsersMe, deleteUsersMe } from '../api/generated/user/user';
 import { toast } from '../store/useToastStore';
 import { useTranslation } from 'react-i18next';
 import type { UserProfile } from '../api/generated/model';
@@ -13,8 +13,10 @@ interface AuthContextType {
     login: (email: string, password: string) => Promise<void>;
     signup: (email: string, password: string, nickname: string) => Promise<void>;
     verifyEmail: (email: string, code: string) => Promise<void>;
+    resendVerification: (email: string) => Promise<void>;
     googleLogin: (idToken: string) => Promise<void>;
     logout: () => Promise<void>;
+    deleteAccount: (currentPassword?: string, googleAccessToken?: string) => Promise<void>;
     refreshUser: () => Promise<void>;
 }
 
@@ -69,6 +71,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         toast.success(t('auth.verifySuccess', '이메일 인증이 완료되었습니다.'));
     }, [fetchUser, t]);
 
+    const resendVerification = useCallback(async (email: string) => {
+        await postAuthSignupResend({ email });
+        toast.success(t('auth.signupSuccess', '인증 코드가 이메일로 발송되었습니다.'));
+    }, [t]);
+
     const googleLogin = useCallback(async (idToken: string) => {
         const res = await postAuthGoogle({ idToken });
         setAccessToken(res.accessToken);
@@ -87,6 +94,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         toast.info(t('auth.logoutSuccess', '로그아웃되었습니다.'));
     }, [t]);
 
+    const deleteAccount = useCallback(async (currentPassword?: string, googleAccessToken?: string) => {
+        await deleteUsersMe({
+            ...(currentPassword ? { currentPassword } : {}),
+            ...(googleAccessToken ? { googleAccessToken } : {}),
+        });
+        setAccessToken(null);
+        setUser(null);
+        toast.success(t('profile.deleteAccountSuccess', '회원 탈퇴가 완료되었습니다.'));
+    }, [t]);
+
     return (
         <AuthContext.Provider value={{
             user,
@@ -95,8 +112,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             login,
             signup,
             verifyEmail,
+            resendVerification,
             googleLogin,
             logout,
+            deleteAccount,
             refreshUser: fetchUser,
         }}>
             {children}

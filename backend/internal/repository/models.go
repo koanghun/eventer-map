@@ -133,4 +133,5 @@ type VerificationToken struct {
 	Email     string
 	Code      string
 	ExpiresAt time.Time
+	Attempts  int32
 }

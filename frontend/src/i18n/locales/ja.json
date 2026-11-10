@@ -23,6 +23,8 @@
         "searchError": "出演者の検索中にエラーが発生しました。"
     },
     "auth": {
+        "resendCode": "コードを再送信",
+        "resendFailed": "認証コードの送信に失敗しました。",
         "login": "ログイン",
         "loginWithGoogle": "Googleでログイン",
         "logout": "ログアウト",
@@ -42,6 +44,19 @@
         "nickname": "ニックネーム"
     },
     "errors": {
+        "api": {
+            "REAUTH_REQUIRED": "本人確認が必要です。再度認証してください。",
+            "INVALID_CURRENT_PASSWORD": "現在のパスワードが正しくありません。",
+            "USER_EXISTS": "このメールアドレスは既に登録されています。",
+            "NICKNAME_EXISTS": "このニックネームは既に使用されています。",
+            "INVALID_PASSWORD": "パスワードは8文字以上で、英字と数字を両方含める必要があります。",
+            "INVALID_LOGIN": "メールアドレスまたはパスワードが正しくありません。",
+            "EMAIL_NOT_VERIFIED": "メール認証が必要です。認証コードを確認してください。",
+            "ALREADY_VERIFIED": "既に認証済みのアカウントです。",
+            "RESEND_TOO_SOON": "しばらくしてから再度リクエストしてください。",
+            "INVALID_VERIFY_CODE": "認証コードが正しくないか、有効期限が切れています。",
+            "TOO_MANY_ATTEMPTS": "認証の試行回数を超えました。新しいコードをリクエストしてください。"
+        },
         "accessDenied": "アクセス権限がありません。",
         "serverError": "サーバーエラーが発生しました。しばらくしてから再度お試しください。",
         "serverUnavailable": "サーバーに接続できません。しばらくしてから再度お試しください。",
@@ -429,6 +444,15 @@
         "manageReports": "報告管理"
     },
     "profile": {
+        "deleteReauthFailed": "Google再認証に失敗しました。",
+        "deleteWithGoogle": "Googleで再認証して退会",
+        "deleteAccountCancel": "キャンセル",
+        "deleteAccount": "退会",
+        "deleteAccountTitle": "本当に退会しますか？",
+        "deleteAccountDesc": "アカウントと個人データ（フォロー、参加履歴など）が削除され、元に戻せません。",
+        "deleteAccountConfirm": "退会する",
+        "deleteAccountSuccess": "退会が完了しました。",
+        "deleteAccountFailed": "退会に失敗しました。",
         "editTitle": "会員情報修正",
         "editDescription": "プロフィールおよびアカウント設定を変更できます。",
         "basicInfo": "基本情報",

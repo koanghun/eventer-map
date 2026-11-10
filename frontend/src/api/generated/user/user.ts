@@ -19,6 +19,8 @@ import type {
 } from '@tanstack/react-query'
 import type {
   Artist,
+  DeleteAccountRequest,
+  DeleteUsersMe200,
   EventSummary,
   GetUsersMeFollowingArtistsEvents200,
   GetUsersMeFollowingArtistsEventsParams,
@@ -158,6 +160,64 @@ export const usePatchUsersMe = <TError = void,
       > => {
 
       const mutationOptions = getPatchUsersMeMutationOptions(options);
+
+      return useMutation(mutationOptions);
+    }
+    /**
+ * 현재 로그인된 사용자의 계정을 삭제합니다. 비밀번호가 설정된 계정은 현재 비밀번호, 비밀번호가 없는 구글 계정은 구글 재인증이 필요합니다.
+ * @summary 회원 탈퇴
+ */
+export const deleteUsersMe = (
+    deleteAccountRequest?: DeleteAccountRequest,
+ options?: SecondParameter<typeof customInstance>,) => {
+      
+      
+      return customInstance<DeleteUsersMe200>(
+      {url: `/users/me`, method: 'DELETE',
+      headers: {'Content-Type': 'application/json', },
+      data: deleteAccountRequest
+    },
+      options);
+    }
+  
+
+
+export const getDeleteUsersMeMutationOptions = <TError = void,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteUsersMe>>, TError,{data: DeleteAccountRequest}, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationOptions<Awaited<ReturnType<typeof deleteUsersMe>>, TError,{data: DeleteAccountRequest}, TContext> => {
+const {mutation: mutationOptions, request: requestOptions} = options ?? {};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof deleteUsersMe>>, {data: DeleteAccountRequest}> = (props) => {
+          const {data} = props ?? {};
+
+          return  deleteUsersMe(data,requestOptions)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type DeleteUsersMeMutationResult = NonNullable<Awaited<ReturnType<typeof deleteUsersMe>>>
+    export type DeleteUsersMeMutationBody = DeleteAccountRequest
+    export type DeleteUsersMeMutationError = void
+
+    /**
+ * @summary 회원 탈퇴
+ */
+export const useDeleteUsersMe = <TError = void,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteUsersMe>>, TError,{data: DeleteAccountRequest}, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationResult<
+        Awaited<ReturnType<typeof deleteUsersMe>>,
+        TError,
+        {data: DeleteAccountRequest},
+        TContext
+      > => {
+
+      const mutationOptions = getDeleteUsersMeMutationOptions(options);
 
       return useMutation(mutationOptions);
     }

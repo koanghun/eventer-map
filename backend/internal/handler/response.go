@@ -19,6 +19,11 @@ func RespondError(w http.ResponseWriter, status int, message string) {
 	RespondJSON(w, status, map[string]string{"error": message})
 }
 
+// RespondErrorCode writes an error with a machine-readable code so clients can localize the message.
+func RespondErrorCode(w http.ResponseWriter, status int, code string, message string) {
+	RespondJSON(w, status, map[string]string{"error": message, "code": code})
+}
+
 // ParseJSON decodes JSON from the request body.
 func ParseJSON(r *http.Request, v interface{}) error {
 	defer r.Body.Close()

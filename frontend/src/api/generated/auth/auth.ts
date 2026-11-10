@@ -17,6 +17,8 @@ import type {
   LocalLoginRequest,
   PostAuthLogout200,
   PostAuthSignup200,
+  PostAuthSignupResend200,
+  ResendVerificationRequest,
   SignupRequest,
   TokenResponse,
   VerifyEmailRequest
@@ -254,6 +256,64 @@ export const usePostAuthSignupVerify = <TError = void,
       > => {
 
       const mutationOptions = getPostAuthSignupVerifyMutationOptions(options);
+
+      return useMutation(mutationOptions);
+    }
+    /**
+ * 미인증 계정에 새 6자리 인증 코드를 발송 (60초 쿨다운)
+ * @summary 인증 코드 재전송
+ */
+export const postAuthSignupResend = (
+    resendVerificationRequest: ResendVerificationRequest,
+ options?: SecondParameter<typeof customInstance>,) => {
+      
+      
+      return customInstance<PostAuthSignupResend200>(
+      {url: `/auth/signup/resend`, method: 'POST',
+      headers: {'Content-Type': 'application/json', },
+      data: resendVerificationRequest
+    },
+      options);
+    }
+  
+
+
+export const getPostAuthSignupResendMutationOptions = <TError = void,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postAuthSignupResend>>, TError,{data: ResendVerificationRequest}, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationOptions<Awaited<ReturnType<typeof postAuthSignupResend>>, TError,{data: ResendVerificationRequest}, TContext> => {
+const {mutation: mutationOptions, request: requestOptions} = options ?? {};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof postAuthSignupResend>>, {data: ResendVerificationRequest}> = (props) => {
+          const {data} = props ?? {};
+
+          return  postAuthSignupResend(data,requestOptions)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type PostAuthSignupResendMutationResult = NonNullable<Awaited<ReturnType<typeof postAuthSignupResend>>>
+    export type PostAuthSignupResendMutationBody = ResendVerificationRequest
+    export type PostAuthSignupResendMutationError = void
+
+    /**
+ * @summary 인증 코드 재전송
+ */
+export const usePostAuthSignupResend = <TError = void,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postAuthSignupResend>>, TError,{data: ResendVerificationRequest}, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationResult<
+        Awaited<ReturnType<typeof postAuthSignupResend>>,
+        TError,
+        {data: ResendVerificationRequest},
+        TContext
+      > => {
+
+      const mutationOptions = getPostAuthSignupResendMutationOptions(options);
 
       return useMutation(mutationOptions);
     }

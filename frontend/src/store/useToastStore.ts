@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import { getLocalizedApiError } from '../lib/apiError';
 
 export type ToastType = 'success' | 'error' | 'info';
 
@@ -47,6 +48,6 @@ export const toast = {
         // 전역 Axios 인터셉터에서 이미 토스트를 표시한 경우 중복 호출 방지
         if (error?._toastShown) return;
         const serverMessage = error?.response?.data?.error;
-        useToastStore.getState().addToast(serverMessage || fallbackMessage, 'error');
+        useToastStore.getState().addToast(getLocalizedApiError(error) || serverMessage || fallbackMessage, 'error');
     },
 };

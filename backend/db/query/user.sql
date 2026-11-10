@@ -43,3 +43,12 @@ WHERE id = $1;
 UPDATE users
 SET google_id = $2, updated_at = NOW()
 WHERE id = $1;
+
+-- name: UpdateUnverifiedUserSignup :execrows
+UPDATE users
+SET display_name = $2, password_hash = $3
+WHERE id = $1 AND is_email_verified = false;
+
+-- name: DeleteUser :exec
+DELETE FROM users
+WHERE id = $1;

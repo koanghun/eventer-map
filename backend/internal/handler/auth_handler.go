@@ -53,12 +53,16 @@ func (s *Server) PostAuthSignup(w http.ResponseWriter, r *http.Request) {
 	err := s.services.Auth.Signup(r.Context(), string(req.Email), req.Nickname, req.Password)
 	if err != nil {
 		log.Printf("Signup error: %v", err)
-		if err == service.ErrUserExists || err == service.ErrNicknameExists {
-			RespondError(w, http.StatusConflict, err.Error())
+		if err == service.ErrUserExists {
+			RespondErrorCode(w, http.StatusConflict, "USER_EXISTS", err.Error())
+			return
+		}
+		if err == service.ErrNicknameExists {
+			RespondErrorCode(w, http.StatusConflict, "NICKNAME_EXISTS", err.Error())
 			return
 		}
 		if err == service.ErrInvalidPassword {
-			RespondError(w, http.StatusBadRequest, err.Error())
+			RespondErrorCode(w, http.StatusBadRequest, "INVALID_PASSWORD", err.Error())
 			return
 		}
 		RespondError(w, http.StatusInternalServerError, "Failed to create user")
@@ -80,12 +84,47 @@ func (s *Server) PostAuthSignupVerify(w http.ResponseWriter, r *http.Request) {
 
 	tokenResp, err := s.services.Auth.VerifyEmail(r.Context(), string(req.Email), req.Code)
 	if err != nil {
+		if err == service.ErrTooManyAttempts {
+			RespondErrorCode(w, http.StatusTooManyRequests, "TOO_MANY_ATTEMPTS", err.Error())
+			return
+		}
+		if err == service.ErrInvalidVerifyCode {
+			RespondErrorCode(w, http.StatusBadRequest, "INVALID_VERIFY_CODE", err.Error())
+			return
+		}
 		RespondError(w, http.StatusBadRequest, err.Error())
 		return
 	}
 
 	setRefreshTokenCookie(w, tokenResp.RefreshToken)
 	RespondJSON(w, http.StatusOK, tokenResp)
+}
+
+// PostAuthSignupResend implements the verification code resend endpoint
+func (s *Server) PostAuthSignupResend(w http.ResponseWriter, r *http.Request) {
+	var req PostAuthSignupResendJSONRequestBody
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		RespondError(w, http.StatusBadRequest, "Invalid request body")
+		return
+	}
+
+	err := s.services.Auth.ResendVerificationCode(r.Context(), string(req.Email))
+	if err != nil {
+		switch err {
+		case service.ErrAlreadyVerified:
+			RespondErrorCode(w, http.StatusBadRequest, "ALREADY_VERIFIED", err.Error())
+		case service.ErrResendTooSoon:
+			RespondErrorCode(w, http.StatusTooManyRequests, "RESEND_TOO_SOON", err.Error())
+		default:
+			log.Printf("Resend verification error: %v", err)
+			RespondError(w, http.StatusInternalServerError, "Failed to send verification code")
+		}
+		return
+	}
+
+	RespondJSON(w, http.StatusOK, map[string]string{
+		"message": "인증 코드가 이메일로 발송되었습니다.",
+	})
 }
 
 // PostAuthLogin implements the local login endpoint
@@ -99,7 +138,11 @@ func (s *Server) PostAuthLogin(w http.ResponseWriter, r *http.Request) {
 	tokenResp, err := s.services.Auth.Login(r.Context(), string(req.Email), req.Password)
 	if err != nil {
 		if err == service.ErrInvalidLogin {
-			RespondError(w, http.StatusUnauthorized, err.Error())
+			RespondErrorCode(w, http.StatusUnauthorized, "INVALID_LOGIN", err.Error())
+			return
+		}
+		if err == service.ErrEmailNotVerified {
+			RespondErrorCode(w, http.StatusForbidden, "EMAIL_NOT_VERIFIED", err.Error())
 			return
 		}
 		log.Printf("[PostAuthLogin] Login error: %v", err)
