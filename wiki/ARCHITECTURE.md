@@ -12,10 +12,11 @@
 
 ```mermaid
 flowchart LR
-    subgraph DB_Layer["데이터베이스 계층"]
+    subgraph DB_Layer["데이터베이스 & 상태 저장소"]
         SQLFiles[("SQL 정의<br/>(db/migration & db/query)")]
         SQLC{{"sqlc"}}
-        DB[(PostgreSQL / Neon)]
+        DB[(PostgreSQL / NAS)]
+        DDB[(DynamoDB<br/>OAuthStatesTable)]
     end
 
     subgraph Backend_Layer["백엔드 (Go net/http 4계층)"]
@@ -38,6 +39,7 @@ flowchart LR
     SQLC -->|"타입 안전 Go 코드 생성"| Repo
     Handler --> Service --> Repo
     Repo <-->|"Prepared SQL 실행"| DB
+    Service <-->|"OAuth PKCE/State"| DDB
 
     OpenAPI -->|"명세 로드"| GoCodegen
     GoCodegen -->|"ServerInterface & 모델 생성"| Handler
@@ -62,23 +64,30 @@ flowchart LR
 ### 2) `internal/middleware/` (공통 처리 계층)
 - 표준 `http.Handler` 래핑 패턴으로 구현되어 있습니다.
   - `logger.go`: 요청 메서드, 경로, 소요 시간 로깅
-  - `auth.go`: `Authorization: Bearer <token>` 검증 및 `context.WithValue`를 통한 `UserIDKey` 주입
+  - `auth.go`: `Authorization: Bearer <token>` 검증(`x_reauth`/`refresh` 토큰 오용 차단) 및 `context.WithValue`를 통한 `UserIDKey` 주입
   - `cors.go`: 브라우저 CORS 헤더 및 Preflight(`OPTIONS`) 처리
 
-### 3) `internal/handler/` (표현 계층)
+### 3) `internal/auth/` (외부 OAuth & PKCE 저장소)
+- `x_oauth.go`: X OAuth 2.0 Confidential Client (Basic Auth + PKCE `S256` 코드 검증기/챌린지 생성, 토큰 교환, `/2/users/me` 프로필 조회)
+- `oauth_state_store.go`: `OAuthStateStore` 인터페이스 구현체 — 프로덕션용 `DynamoDBOAuthStateStore` (TTL + 조건부 `DeleteItem` 원자 1회 소비) 및 로컬(`ENV=local` / 비-Lambda) 전용 `InMemoryOAuthStateStore`
+
+### 4) `internal/handler/` (표현 계층)
 - `oapi-codegen`이 생성한 `openapi.gen.go`의 `ServerInterface`를 도메인별 파일(`event_handler.go`, `thread_handler.go`, `artist_handler.go`, `venue_handler.go`, `auth_handler.go`, `user_handler.go` 등)에서 구현합니다.
 - 요청 파라미터/바디 파싱 및 입력값 검증(필수값, 본문 및 문자열 길이, 바디 크기 제한, 위경도 범위, 이미지 MIME/용량 등)만 수행하고 비즈니스 로직은 `Service`에 위임합니다.
 
-### 4) `internal/service/` (비즈니스 계층)
+### 5) `internal/service/` (비즈니스 계층)
 - HTTP 객체(`http.Request` 등)에 의존하지 않는 순수 Go 도메인 로직을 수행합니다.
 - 유저 권한(`ADMIN` 여부)에 따른 등록 상태 결정(`PENDING` vs `APPROVED`), 이벤트 평점/수정 시 공연장 및 출연자의 평균 평점 캐시(`rating_sum`, `rating_count`) 재계산, 스레드 복합 커서 인코딩/디코딩, 본인 스레드 추천 방지, 트랜잭션 처리를 담당합니다.
+- 인증/계정 도메인(`auth_service.go`, `x_auth_service.go`, `user_service.go`)에서는 이메일 인증 코드 검증, Google/X OAuth 로그인·계정 연동·해제(마지막 로그인 수단 해제 방지), 이메일 없는 X 가입(`NULL` 이메일 + 유니크 닉네임 자동 생성), 탈퇴 재인증 검증을 수행합니다.
 
-### 5) `internal/repository/` (데이터 접근 계층)
+### 6) `internal/repository/` (데이터 접근 계층)
 - `sqlc`가 `db/migration/*.sql`과 `db/query/*.sql`을 컴파일 타임에 검증하여 자동 생성한 패키지입니다.
 
 ---
 
-## 3. 🎨 프론트엔드 좌측 사이드바 & 지도 연동 아키텍처 (`frontend/`)
+## 3. 🎨 프론트엔드 좌측 사이드바, 인증 UX & 지도 연동 아키텍처 (`frontend/`)
+
+- **X OAuth 콜백 및 팝업 통신 (`lib/xOAuth.ts`, `pages/XOAuthCallbackPage.tsx`)**: `window.open` 팝업과 동일 오리진 `BroadcastChannel('eventer-map-x-oauth')`를 사용해 지도 상태나 `ProfileSettingsModal`을 유지한 채 인증을 처리하며, 팝업 차단 환경(모바일 인앱 브라우저 등)에서는 `sessionStorage` 임시 상태를 이용한 풀페이지 리다이렉트로 폴백합니다.
 
 지도 화면(`MapPage.tsx`)은 **좌측 사이드바 패널(20%)**과 **우측 인터랙티브 지도(`EventMap.tsx`, 80%)**로 구성됩니다.
 

@@ -21,7 +21,9 @@ import type {
   ResendVerificationRequest,
   SignupRequest,
   TokenResponse,
-  VerifyEmailRequest
+  VerifyEmailRequest,
+  XOAuthAuthorizeResponse,
+  XOAuthCallbackRequest
 } from '.././model'
 import { customInstance } from '../../../lib/axios';
 
@@ -84,6 +86,120 @@ export const usePostAuthGoogle = <TError = void,
       > => {
 
       const mutationOptions = getPostAuthGoogleMutationOptions(options);
+
+      return useMutation(mutationOptions);
+    }
+    /**
+ * X OAuth 2.0 PKCE 흐름을 시작하기 위한 인가 URL과 서버 측 state를 생성합니다.
+ * @summary X 로그인 인가 URL 발급
+ */
+export const postAuthXAuthorize = (
+    
+ options?: SecondParameter<typeof customInstance>,) => {
+      
+      
+      return customInstance<XOAuthAuthorizeResponse>(
+      {url: `/auth/x/authorize`, method: 'POST'
+    },
+      options);
+    }
+  
+
+
+export const getPostAuthXAuthorizeMutationOptions = <TError = void,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postAuthXAuthorize>>, TError,void, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationOptions<Awaited<ReturnType<typeof postAuthXAuthorize>>, TError,void, TContext> => {
+const {mutation: mutationOptions, request: requestOptions} = options ?? {};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof postAuthXAuthorize>>, void> = () => {
+          
+
+          return  postAuthXAuthorize(requestOptions)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type PostAuthXAuthorizeMutationResult = NonNullable<Awaited<ReturnType<typeof postAuthXAuthorize>>>
+    
+    export type PostAuthXAuthorizeMutationError = void
+
+    /**
+ * @summary X 로그인 인가 URL 발급
+ */
+export const usePostAuthXAuthorize = <TError = void,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postAuthXAuthorize>>, TError,void, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationResult<
+        Awaited<ReturnType<typeof postAuthXAuthorize>>,
+        TError,
+        void,
+        TContext
+      > => {
+
+      const mutationOptions = getPostAuthXAuthorizeMutationOptions(options);
+
+      return useMutation(mutationOptions);
+    }
+    /**
+ * X OAuth 2.0 인가 코드와 state를 검증하여 로그인하거나 신규 계정을 생성하고 자체 JWT(Access, Refresh)를 발급합니다.
+ * @summary X 로그인 / 회원가입 콜백 처리
+ */
+export const postAuthXLogin = (
+    xOAuthCallbackRequest: XOAuthCallbackRequest,
+ options?: SecondParameter<typeof customInstance>,) => {
+      
+      
+      return customInstance<TokenResponse>(
+      {url: `/auth/x/login`, method: 'POST',
+      headers: {'Content-Type': 'application/json', },
+      data: xOAuthCallbackRequest
+    },
+      options);
+    }
+  
+
+
+export const getPostAuthXLoginMutationOptions = <TError = void,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postAuthXLogin>>, TError,{data: XOAuthCallbackRequest}, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationOptions<Awaited<ReturnType<typeof postAuthXLogin>>, TError,{data: XOAuthCallbackRequest}, TContext> => {
+const {mutation: mutationOptions, request: requestOptions} = options ?? {};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof postAuthXLogin>>, {data: XOAuthCallbackRequest}> = (props) => {
+          const {data} = props ?? {};
+
+          return  postAuthXLogin(data,requestOptions)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type PostAuthXLoginMutationResult = NonNullable<Awaited<ReturnType<typeof postAuthXLogin>>>
+    export type PostAuthXLoginMutationBody = XOAuthCallbackRequest
+    export type PostAuthXLoginMutationError = void
+
+    /**
+ * @summary X 로그인 / 회원가입 콜백 처리
+ */
+export const usePostAuthXLogin = <TError = void,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postAuthXLogin>>, TError,{data: XOAuthCallbackRequest}, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationResult<
+        Awaited<ReturnType<typeof postAuthXLogin>>,
+        TError,
+        {data: XOAuthCallbackRequest},
+        TContext
+      > => {
+
+      const mutationOptions = getPostAuthXLoginMutationOptions(options);
 
       return useMutation(mutationOptions);
     }

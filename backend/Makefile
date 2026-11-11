@@ -39,7 +39,11 @@ deploy: build
 			JwtSecret="$${JWT_SECRET}" \
 			CorsOrigins="$${CORS_ORIGINS}" \
 			CookieDomain="$${COOKIE_DOMAIN}" \
-			CookieSameSite="$${COOKIE_SAMESITE:-None}"; \
+			CookieSameSite="$${COOKIE_SAMESITE:-None}" \
+			XClientId="$${X_CLIENT_ID}" \
+			XClientSecret="$${X_CLIENT_SECRET}" \
+			XRedirectUri="$${X_REDIRECT_URI}" \
+			XRequestEmail="$${X_REQUEST_EMAIL:-false}"; \
 	else \
 		echo "Deploying with AWS CLI (CloudFormation) in $(AWS_REGION)..."; \
 		if [ -z "$(ARTIFACT_BUCKET)" ]; then \
@@ -70,7 +74,11 @@ deploy: build
 			JwtSecret="$${JWT_SECRET}" \
 			CorsOrigins="$${CORS_ORIGINS}" \
 			CookieDomain="$${COOKIE_DOMAIN}" \
-			CookieSameSite="$${COOKIE_SAMESITE:-None}"; \
+			CookieSameSite="$${COOKIE_SAMESITE:-None}" \
+			XClientId="$${X_CLIENT_ID}" \
+			XClientSecret="$${X_CLIENT_SECRET}" \
+			XRedirectUri="$${X_REDIRECT_URI}" \
+			XRequestEmail="$${X_REQUEST_EMAIL:-false}"; \
 	fi
 
 local:

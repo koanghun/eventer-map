@@ -12,7 +12,7 @@
   - 외부 프레임워크(Echo, Gin, Fiber 등)를 사용하지 않고 표준 `http.ServeMux`와 미들웨어 체인을 사용하여 AWS Lambda 콜드 스타트를 최소화합니다.
 - **API 코드 생성:** **`oapi-codegen` (v2)**
   - `backend/api/openapi.yaml`로부터 `internal/handler/openapi.gen.go`(`types`, `std-http`, `spec`)를 자동 생성합니다.
-- **인프라 & 서버리스:** **AWS Lambda (`provided.al2023`, `arm64`) + Amazon API Gateway + Amazon S3 + CloudFront OAC (AWS SAM 단일 스택 관리)**
+- **인프라 & 서버리스:** **AWS Lambda (`provided.al2023`, `arm64`) + Amazon API Gateway + Amazon DynamoDB (`OAuthStatesTable`) + Amazon S3 + CloudFront OAC (AWS SAM 단일 스택 관리)**
   - 상세 아키텍처 및 원클릭 배포/CI·CD 설정은 [AWS 서버리스 & 정적 배포 가이드](./AWS_DEPLOYMENT_GUIDE.md)를 참고하세요.
 
 ---
@@ -48,10 +48,15 @@
 
 ## 4. 인증 및 보안 (Authentication & Security)
 - **방식:** 자체 JWT 이중 토큰 구조 (Access Token + Refresh Token)
-- **지원 방식:** 자체 이메일/비밀번호 인증(6자리 이메일 코드 검증) 및 Google OAuth(`idToken`) 로그인/계정 연동
+- **지원 방식:**
+  - 자체 이메일/비밀번호 인증(6자리 이메일 코드 검증)
+  - Google OAuth(`access_token` / `idToken`) 로그인 및 계정 연동/해제/재인증 탈퇴
+  - **X (Twitter) OAuth 2.0 + PKCE (Confidential Client / BFF)** 회원가입·로그인, 계정 연동/해제, 탈퇴 재인증 (`x_reauth` 단기 JWT)
+    - 서버 측 `DynamoDB OAuthStatesTable` (TTL + 조건부 `DeleteItem` 1회 소비, 로컬 개발 환경 전용 인메모리 폴백)로 `state_hash`와 PKCE `code_verifier` 관리
+    - 이메일 없는 X 가입(`users.email = NULL`) 및 `@username` 기반 유니크 닉네임 자동 생성 지원
 - **토큰 보관:**
   - **Access Token:** JSON 응답 바디로 전달받아 클라이언트 메모리(`src/lib/axios.ts`)에만 보관 (XSS/CSRF 방어)
   - **Refresh Token:** `HttpOnly`, `Secure`(배포 환경 자동 활성화) 쿠키에 저장 (`withCredentials: true`, 환경별 `SameSite`/`Domain` 분기 지원)
 
 ---
-*문서 최종 업데이트: 2026-11-09*
+*문서 최종 업데이트: 2026-11-11*

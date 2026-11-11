@@ -24,16 +24,19 @@ func (q *Queries) CheckNicknameExists(ctx context.Context, displayName string) (
 }
 
 const createUser = `-- name: CreateUser :one
-INSERT INTO users (email, display_name, password_hash, google_id)
-VALUES ($1, $2, $3, $4)
-RETURNING id, email, display_name, password_hash, google_id, is_banned, created_at, updated_at, is_email_verified, last_artist_feed_checked_at, role
+INSERT INTO users (email, display_name, password_hash, google_id, x_id, x_username, is_email_verified)
+VALUES ($1, $2, $3, $4, $5, $6, $7)
+RETURNING id, email, display_name, password_hash, google_id, is_banned, created_at, updated_at, is_email_verified, last_artist_feed_checked_at, role, x_id, x_username
 `
 
 type CreateUserParams struct {
-	Email        sql.NullString
-	DisplayName  string
-	PasswordHash sql.NullString
-	GoogleID     sql.NullString
+	Email           sql.NullString
+	DisplayName     string
+	PasswordHash    sql.NullString
+	GoogleID        sql.NullString
+	XID             sql.NullString
+	XUsername       sql.NullString
+	IsEmailVerified bool
 }
 
 func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (User, error) {
@@ -42,6 +45,9 @@ func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (User, e
 		arg.DisplayName,
 		arg.PasswordHash,
 		arg.GoogleID,
+		arg.XID,
+		arg.XUsername,
+		arg.IsEmailVerified,
 	)
 	var i User
 	err := row.Scan(
@@ -56,6 +62,8 @@ func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (User, e
 		&i.IsEmailVerified,
 		&i.LastArtistFeedCheckedAt,
 		&i.Role,
+		&i.XID,
+		&i.XUsername,
 	)
 	return i, err
 }
@@ -71,7 +79,7 @@ func (q *Queries) DeleteUser(ctx context.Context, id uuid.UUID) error {
 }
 
 const getUserByEmail = `-- name: GetUserByEmail :one
-SELECT id, email, display_name, password_hash, google_id, is_banned, created_at, updated_at, is_email_verified, last_artist_feed_checked_at, role FROM users
+SELECT id, email, display_name, password_hash, google_id, is_banned, created_at, updated_at, is_email_verified, last_artist_feed_checked_at, role, x_id, x_username FROM users
 WHERE email = $1 LIMIT 1
 `
 
@@ -90,12 +98,14 @@ func (q *Queries) GetUserByEmail(ctx context.Context, email sql.NullString) (Use
 		&i.IsEmailVerified,
 		&i.LastArtistFeedCheckedAt,
 		&i.Role,
+		&i.XID,
+		&i.XUsername,
 	)
 	return i, err
 }
 
 const getUserByGoogleID = `-- name: GetUserByGoogleID :one
-SELECT id, email, display_name, password_hash, google_id, is_banned, created_at, updated_at, is_email_verified, last_artist_feed_checked_at, role FROM users
+SELECT id, email, display_name, password_hash, google_id, is_banned, created_at, updated_at, is_email_verified, last_artist_feed_checked_at, role, x_id, x_username FROM users
 WHERE google_id = $1 LIMIT 1
 `
 
@@ -114,12 +124,14 @@ func (q *Queries) GetUserByGoogleID(ctx context.Context, googleID sql.NullString
 		&i.IsEmailVerified,
 		&i.LastArtistFeedCheckedAt,
 		&i.Role,
+		&i.XID,
+		&i.XUsername,
 	)
 	return i, err
 }
 
 const getUserByID = `-- name: GetUserByID :one
-SELECT id, email, display_name, password_hash, google_id, is_banned, created_at, updated_at, is_email_verified, last_artist_feed_checked_at, role FROM users
+SELECT id, email, display_name, password_hash, google_id, is_banned, created_at, updated_at, is_email_verified, last_artist_feed_checked_at, role, x_id, x_username FROM users
 WHERE id = $1 LIMIT 1
 `
 
@@ -138,6 +150,34 @@ func (q *Queries) GetUserByID(ctx context.Context, id uuid.UUID) (User, error) {
 		&i.IsEmailVerified,
 		&i.LastArtistFeedCheckedAt,
 		&i.Role,
+		&i.XID,
+		&i.XUsername,
+	)
+	return i, err
+}
+
+const getUserByXID = `-- name: GetUserByXID :one
+SELECT id, email, display_name, password_hash, google_id, is_banned, created_at, updated_at, is_email_verified, last_artist_feed_checked_at, role, x_id, x_username FROM users
+WHERE x_id = $1 LIMIT 1
+`
+
+func (q *Queries) GetUserByXID(ctx context.Context, xID sql.NullString) (User, error) {
+	row := q.db.QueryRowContext(ctx, getUserByXID, xID)
+	var i User
+	err := row.Scan(
+		&i.ID,
+		&i.Email,
+		&i.DisplayName,
+		&i.PasswordHash,
+		&i.GoogleID,
+		&i.IsBanned,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.IsEmailVerified,
+		&i.LastArtistFeedCheckedAt,
+		&i.Role,
+		&i.XID,
+		&i.XUsername,
 	)
 	return i, err
 }
@@ -230,7 +270,7 @@ const updateUserProfile = `-- name: UpdateUserProfile :one
 UPDATE users
 SET display_name = $2, updated_at = NOW()
 WHERE id = $1
-RETURNING id, email, display_name, password_hash, google_id, is_banned, created_at, updated_at, is_email_verified, last_artist_feed_checked_at, role
+RETURNING id, email, display_name, password_hash, google_id, is_banned, created_at, updated_at, is_email_verified, last_artist_feed_checked_at, role, x_id, x_username
 `
 
 type UpdateUserProfileParams struct {
@@ -253,6 +293,25 @@ func (q *Queries) UpdateUserProfile(ctx context.Context, arg UpdateUserProfilePa
 		&i.IsEmailVerified,
 		&i.LastArtistFeedCheckedAt,
 		&i.Role,
+		&i.XID,
+		&i.XUsername,
 	)
 	return i, err
+}
+
+const updateUserXAccount = `-- name: UpdateUserXAccount :exec
+UPDATE users
+SET x_id = $2, x_username = $3, updated_at = NOW()
+WHERE id = $1
+`
+
+type UpdateUserXAccountParams struct {
+	ID        uuid.UUID
+	XID       sql.NullString
+	XUsername sql.NullString
+}
+
+func (q *Queries) UpdateUserXAccount(ctx context.Context, arg UpdateUserXAccountParams) error {
+	_, err := q.db.ExecContext(ctx, updateUserXAccount, arg.ID, arg.XID, arg.XUsername)
+	return err
 }

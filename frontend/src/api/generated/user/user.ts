@@ -30,12 +30,17 @@ import type {
   GetUsersUserIdFollowersParams,
   LinkGoogleRequest,
   PostUsersMeLinkGoogle200,
+  PostUsersMeLinkX200,
   PostUsersMeUnlinkGoogle200,
+  PostUsersMeUnlinkX200,
   PutUsersMePassword200,
   UpdatePasswordRequest,
   UpdateProfileRequest,
   UserEventAction,
-  UserProfile
+  UserProfile,
+  XOAuthAuthorizeResponse,
+  XOAuthCallbackRequest,
+  XReauthResponse
 } from '.././model'
 import { customInstance } from '../../../lib/axios';
 
@@ -164,7 +169,7 @@ export const usePatchUsersMe = <TError = void,
       return useMutation(mutationOptions);
     }
     /**
- * 현재 로그인된 사용자의 계정을 삭제합니다. 비밀번호가 설정된 계정은 현재 비밀번호, 비밀번호가 없는 구글 계정은 구글 재인증이 필요합니다.
+ * 현재 로그인된 사용자의 계정을 삭제합니다. 비밀번호가 설정된 계정은 현재 비밀번호, 비밀번호가 없는 소셜 계정은 Google 또는 X 재인증이 필요합니다.
  * @summary 회원 탈퇴
  */
 export const deleteUsersMe = (
@@ -452,6 +457,290 @@ export const usePostUsersMeUnlinkGoogle = <TError = void,
       > => {
 
       const mutationOptions = getPostUsersMeUnlinkGoogleMutationOptions(options);
+
+      return useMutation(mutationOptions);
+    }
+    /**
+ * 현재 로그인된 계정에 X 계정을 연동하기 위한 OAuth 2.0 PKCE 인가 URL을 발급합니다.
+ * @summary X 계정 연동 인가 URL 발급
+ */
+export const postUsersMeLinkXAuthorize = (
+    
+ options?: SecondParameter<typeof customInstance>,) => {
+      
+      
+      return customInstance<XOAuthAuthorizeResponse>(
+      {url: `/users/me/link-x/authorize`, method: 'POST'
+    },
+      options);
+    }
+  
+
+
+export const getPostUsersMeLinkXAuthorizeMutationOptions = <TError = void,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postUsersMeLinkXAuthorize>>, TError,void, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationOptions<Awaited<ReturnType<typeof postUsersMeLinkXAuthorize>>, TError,void, TContext> => {
+const {mutation: mutationOptions, request: requestOptions} = options ?? {};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof postUsersMeLinkXAuthorize>>, void> = () => {
+          
+
+          return  postUsersMeLinkXAuthorize(requestOptions)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type PostUsersMeLinkXAuthorizeMutationResult = NonNullable<Awaited<ReturnType<typeof postUsersMeLinkXAuthorize>>>
+    
+    export type PostUsersMeLinkXAuthorizeMutationError = void
+
+    /**
+ * @summary X 계정 연동 인가 URL 발급
+ */
+export const usePostUsersMeLinkXAuthorize = <TError = void,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postUsersMeLinkXAuthorize>>, TError,void, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationResult<
+        Awaited<ReturnType<typeof postUsersMeLinkXAuthorize>>,
+        TError,
+        void,
+        TContext
+      > => {
+
+      const mutationOptions = getPostUsersMeLinkXAuthorizeMutationOptions(options);
+
+      return useMutation(mutationOptions);
+    }
+    /**
+ * X OAuth 2.0 인가 코드와 state를 검증하여 현재 로그인된 사용자 계정에 X 계정을 연동합니다.
+ * @summary X 계정 연동
+ */
+export const postUsersMeLinkX = (
+    xOAuthCallbackRequest: XOAuthCallbackRequest,
+ options?: SecondParameter<typeof customInstance>,) => {
+      
+      
+      return customInstance<PostUsersMeLinkX200>(
+      {url: `/users/me/link-x`, method: 'POST',
+      headers: {'Content-Type': 'application/json', },
+      data: xOAuthCallbackRequest
+    },
+      options);
+    }
+  
+
+
+export const getPostUsersMeLinkXMutationOptions = <TError = void,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postUsersMeLinkX>>, TError,{data: XOAuthCallbackRequest}, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationOptions<Awaited<ReturnType<typeof postUsersMeLinkX>>, TError,{data: XOAuthCallbackRequest}, TContext> => {
+const {mutation: mutationOptions, request: requestOptions} = options ?? {};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof postUsersMeLinkX>>, {data: XOAuthCallbackRequest}> = (props) => {
+          const {data} = props ?? {};
+
+          return  postUsersMeLinkX(data,requestOptions)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type PostUsersMeLinkXMutationResult = NonNullable<Awaited<ReturnType<typeof postUsersMeLinkX>>>
+    export type PostUsersMeLinkXMutationBody = XOAuthCallbackRequest
+    export type PostUsersMeLinkXMutationError = void
+
+    /**
+ * @summary X 계정 연동
+ */
+export const usePostUsersMeLinkX = <TError = void,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postUsersMeLinkX>>, TError,{data: XOAuthCallbackRequest}, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationResult<
+        Awaited<ReturnType<typeof postUsersMeLinkX>>,
+        TError,
+        {data: XOAuthCallbackRequest},
+        TContext
+      > => {
+
+      const mutationOptions = getPostUsersMeLinkXMutationOptions(options);
+
+      return useMutation(mutationOptions);
+    }
+    /**
+ * 현재 로그인된 사용자의 계정에 X 계정 연동을 해제합니다. 다른 로그인 수단이 없는 경우 해제할 수 없습니다.
+ * @summary X 계정 연동 해제
+ */
+export const postUsersMeUnlinkX = (
+    
+ options?: SecondParameter<typeof customInstance>,) => {
+      
+      
+      return customInstance<PostUsersMeUnlinkX200>(
+      {url: `/users/me/unlink-x`, method: 'POST'
+    },
+      options);
+    }
+  
+
+
+export const getPostUsersMeUnlinkXMutationOptions = <TError = void,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postUsersMeUnlinkX>>, TError,void, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationOptions<Awaited<ReturnType<typeof postUsersMeUnlinkX>>, TError,void, TContext> => {
+const {mutation: mutationOptions, request: requestOptions} = options ?? {};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof postUsersMeUnlinkX>>, void> = () => {
+          
+
+          return  postUsersMeUnlinkX(requestOptions)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type PostUsersMeUnlinkXMutationResult = NonNullable<Awaited<ReturnType<typeof postUsersMeUnlinkX>>>
+    
+    export type PostUsersMeUnlinkXMutationError = void
+
+    /**
+ * @summary X 계정 연동 해제
+ */
+export const usePostUsersMeUnlinkX = <TError = void,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postUsersMeUnlinkX>>, TError,void, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationResult<
+        Awaited<ReturnType<typeof postUsersMeUnlinkX>>,
+        TError,
+        void,
+        TContext
+      > => {
+
+      const mutationOptions = getPostUsersMeUnlinkXMutationOptions(options);
+
+      return useMutation(mutationOptions);
+    }
+    /**
+ * 비밀번호 없는 X 연동 계정의 회원 탈퇴 전 본인 재인증을 위한 X OAuth 2.0 PKCE 인가 URL을 발급합니다.
+ * @summary 회원 탈퇴용 X 재인증 인가 URL 발급
+ */
+export const postUsersMeReauthXAuthorize = (
+    
+ options?: SecondParameter<typeof customInstance>,) => {
+      
+      
+      return customInstance<XOAuthAuthorizeResponse>(
+      {url: `/users/me/reauth-x/authorize`, method: 'POST'
+    },
+      options);
+    }
+  
+
+
+export const getPostUsersMeReauthXAuthorizeMutationOptions = <TError = void,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postUsersMeReauthXAuthorize>>, TError,void, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationOptions<Awaited<ReturnType<typeof postUsersMeReauthXAuthorize>>, TError,void, TContext> => {
+const {mutation: mutationOptions, request: requestOptions} = options ?? {};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof postUsersMeReauthXAuthorize>>, void> = () => {
+          
+
+          return  postUsersMeReauthXAuthorize(requestOptions)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type PostUsersMeReauthXAuthorizeMutationResult = NonNullable<Awaited<ReturnType<typeof postUsersMeReauthXAuthorize>>>
+    
+    export type PostUsersMeReauthXAuthorizeMutationError = void
+
+    /**
+ * @summary 회원 탈퇴용 X 재인증 인가 URL 발급
+ */
+export const usePostUsersMeReauthXAuthorize = <TError = void,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postUsersMeReauthXAuthorize>>, TError,void, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationResult<
+        Awaited<ReturnType<typeof postUsersMeReauthXAuthorize>>,
+        TError,
+        void,
+        TContext
+      > => {
+
+      const mutationOptions = getPostUsersMeReauthXAuthorizeMutationOptions(options);
+
+      return useMutation(mutationOptions);
+    }
+    /**
+ * X OAuth 2.0 콜백을 검증하여 현재 사용자 본인임을 확인하고 단기 재인증 토큰을 발급합니다.
+ * @summary 회원 탈퇴용 X 재인증 완료
+ */
+export const postUsersMeReauthX = (
+    xOAuthCallbackRequest: XOAuthCallbackRequest,
+ options?: SecondParameter<typeof customInstance>,) => {
+      
+      
+      return customInstance<XReauthResponse>(
+      {url: `/users/me/reauth-x`, method: 'POST',
+      headers: {'Content-Type': 'application/json', },
+      data: xOAuthCallbackRequest
+    },
+      options);
+    }
+  
+
+
+export const getPostUsersMeReauthXMutationOptions = <TError = void,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postUsersMeReauthX>>, TError,{data: XOAuthCallbackRequest}, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationOptions<Awaited<ReturnType<typeof postUsersMeReauthX>>, TError,{data: XOAuthCallbackRequest}, TContext> => {
+const {mutation: mutationOptions, request: requestOptions} = options ?? {};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof postUsersMeReauthX>>, {data: XOAuthCallbackRequest}> = (props) => {
+          const {data} = props ?? {};
+
+          return  postUsersMeReauthX(data,requestOptions)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type PostUsersMeReauthXMutationResult = NonNullable<Awaited<ReturnType<typeof postUsersMeReauthX>>>
+    export type PostUsersMeReauthXMutationBody = XOAuthCallbackRequest
+    export type PostUsersMeReauthXMutationError = void
+
+    /**
+ * @summary 회원 탈퇴용 X 재인증 완료
+ */
+export const usePostUsersMeReauthX = <TError = void,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postUsersMeReauthX>>, TError,{data: XOAuthCallbackRequest}, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationResult<
+        Awaited<ReturnType<typeof postUsersMeReauthX>>,
+        TError,
+        {data: XOAuthCallbackRequest},
+        TContext
+      > => {
+
+      const mutationOptions = getPostUsersMeReauthXMutationOptions(options);
 
       return useMutation(mutationOptions);
     }

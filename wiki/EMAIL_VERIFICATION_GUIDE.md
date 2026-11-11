@@ -1,6 +1,6 @@
 # 📧 이메일 인증 서비스 및 SMTP 설정 가이드
 
-[⬅️ 홈으로 돌아가기](./Home.md) | [관련 문서: 구글 로그인 플로우](./AUTH_FLOW.md) | [API 상세 설계서](./API_SPECIFICATION.md)
+[⬅️ 홈으로 돌아가기](./Home.md) | [관련 문서: 인증 아키텍처 & OAuth 플로우](./AUTH_FLOW.md) | [API 상세 설계서](./API_SPECIFICATION.md)
 
 이 문서는 Eventer Map의 **회원가입 이메일 인증 시스템**의 설계, 보안 원리, 메일러 아키텍처 및 SMTP 연동 방법을 상세히 다룹니다.
 
@@ -86,7 +86,10 @@ CREATE TABLE verification_tokens (
 ```sql
 ALTER TABLE users ADD COLUMN is_email_verified BOOLEAN NOT NULL DEFAULT false;
 ```
-> **참고**: 구글 소셜 로그인 사용자는 구글 측에서 이미 이메일 인증을 마쳤으므로 `is_email_verified = true`로 기본 처리됩니다.
+> **참고**:
+> - **Google 소셜 로그인** 사용자는 Google이 이메일을 이미 검증했으므로 가입 시 `is_email_verified = true`로 처리됩니다 (`000017` 마이그레이션으로 기존 계정 보정).
+> - **X(Twitter) 소셜 로그인**은 기본 스코프에서 이메일을 수집하지 않으므로 `email = NULL`, `is_email_verified = false`로 가입되며 이메일 인증 코드 흐름을 거치지 않습니다 (이메일이 없으므로 비밀번호 설정도 비활성화됩니다). `X_REQUEST_EMAIL=true`로 확인된 이메일(`confirmed_email`)이 전달된 경우에만 `is_email_verified = true`가 됩니다.
+> - 이미 X 계정에 연결된 확인 이메일이나 검증 완료 계정과 같은 이메일로는 로컬 재가입(`POST /auth/signup`)을 덮어쓸 수 없습니다 (`409 USER_EXISTS`).
 
 ---
 
@@ -239,6 +242,9 @@ SMTP_FROM=your_naver_id@naver.com
 | `RESEND_TOO_SOON` | 429 Too Many Req | 잠시 후 다시 요청해주세요. (60초 쿨다운) | しばらくしてから再度リクエストしてください。 | Please wait a moment before requesting a new code. |
 | `INVALID_VERIFY_CODE` | 400 Bad Request | 인증 코드가 올바르지 않거나 만료되었습니다. | 認証コードが正しくないか、有効期限が切れています。 | The verification code is invalid or has expired. |
 | `TOO_MANY_ATTEMPTS` | 429 Too Many Req | 인증 시도 횟수를 초과했습니다. 새 코드를 요청해주세요. | 認証の試行回数を超えました。新しいコードをリクエストしてください。 | Too many failed attempts. Please request a new code. |
+| `EMAIL_REQUIRED_FOR_PASSWORD` | 400 Bad Request | 이메일이 없는 계정에서는 비밀번호를 설정할 수 없습니다. | メールアドレスが設定されていないアカウントではパスワードを設定できません。 | An email address is required to set a password. |
+
+> X OAuth, 계정 연동/해제 및 탈퇴 재인증 관련 전체 API 에러 코드 목록은 [API 상세 설계서](./API_SPECIFICATION.md)를 참고하세요.
 
 ---
 

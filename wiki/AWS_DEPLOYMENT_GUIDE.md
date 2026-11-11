@@ -18,9 +18,11 @@ flowchart LR
         S3[("Amazon S3 Bucket<br/>(React 정적 빌드본 · 비공개)")]
         APIGW["Amazon API Gateway<br/>(REST API Proxy)"]
         Lambda["AWS Lambda<br/>(Go arm64 · provided.al2023)"]
+        DDB[("Amazon DynamoDB<br/>(OAuthStatesTable · TTL)")]
 
         CF -->|"OAC (SigV4 서명)<br/>정적 파일 조회"| S3
         APIGW -->|"/{proxy+} & /"| Lambda
+        Lambda <-->|"PKCE state 저장/원자 소비"| DDB
     end
 
     subgraph NAS_Env["온프레미스 (Synology NAS - Docker)"]
@@ -75,11 +77,16 @@ db.SetConnMaxIdleTime(1 * time.Minute) // 4) 1분 이상 놀고 있는 유휴 �
 1. **`EventerMapApiFunction` (`AWS::Serverless::Function`)**:
    - **런타임/아키텍처**: `provided.al2023` + `arm64` (Graviton2 기반으로 x86 대비 가격 대비 성능 20% 이상 우수)
    - **빌드 방식**: `BuildMethod: makefile` (`GOOS=linux GOARCH=arm64 CGO_ENABLED=0 go build -tags lambda.norpc -ldflags="-s -w"`)로 바이너리 크기를 최소화하여 콜드 스타트를 단축합니다.
-2. **`FrontendBucket` (`AWS::S3::Bucket`) + `FrontendBucketPolicy`**:
+   - **최소 권한 IAM**: `MediaBucket` CRUD 권한과 `OAuthStatesTable`에 대한 `dynamodb:PutItem`, `dynamodb:DeleteItem` 권한만 부여합니다.
+2. **`OAuthStatesTable` (`AWS::DynamoDB::Table`)**:
+   - On-Demand(`PAY_PER_REQUEST`) 요금제, `state_hash` 파티션 키, `expires_at` TTL 자동 삭제 및 서버 측 암호화(`SSESpecification`)가 적용된 단기 OAuth PKCE/CSRF 상태 저장소입니다.
+3. **`FrontendBucket` (`AWS::S3::Bucket`) + `FrontendBucketPolicy`**:
    - 모든 퍼블릭 액세스를 차단(`PublicAccessBlockConfiguration: true`)하고, 오직 CloudFront OAC를 통한 읽기(`s3:GetObject`)만 허용합니다.
 3. **`FrontendOriginAccessControl` & `FrontendDistribution` (`AWS::CloudFront::Distribution`)**:
    - **HTTPS 강제 적용** (`ViewerProtocolPolicy: redirect-to-https`) 및 **HTTP/2 & HTTP/3** 활성화
    - **SPA 라우팅 지원 (`CustomErrorResponses`)**: React Router 경로(`/admin`, `/events/123` 등)로 직접 접속하거나 새로고침할 때 S3가 반환하는 `403`/`404` 응답을 `/index.html` (`200 OK`)로 변환하여 정상 렌더링합니다.
+4. **X OAuth 콜백과 CloudFront 라우팅**:
+   - X Developer Portal Callback URI를 `https://<프론트엔드 도메인>/auth/x/callback`으로 등록해야 합니다. CloudFront `CustomErrorResponses`로 S3 `403`/`404`를 `/index.html`로 서빙하므로 SPA 콜백 라우트가 정상 동작합니다.
 
 ---
 
@@ -124,10 +131,23 @@ make deploy-all
 | **Secrets** | `JWT_SECRET` | 프로덕션 JWT 서명 시크릿 키 |
 | **Secrets** | `CORS_ORIGINS` | 허용할 프론트엔드 Origin (예: `https://d1234.cloudfront.net`) |
 | **Secrets** | `COOKIE_SAMESITE` | 기본값 `None` (동일 루트 도메인 사용 시 `Lax`) |
+| **Secrets** | `X_CLIENT_ID` | X Developer Portal OAuth 2.0 Client ID |
+| **Secrets** | `X_CLIENT_SECRET` | X Developer Portal OAuth 2.0 Client Secret (백엔드 전용) |
+| **Secrets** | `X_REDIRECT_URI` | X OAuth 2.0 Callback URL (`https://<도메인>/auth/x/callback`) |
+| **Secrets** | `X_REQUEST_EMAIL` | 선택 사항 (`true` 설정 시 `users.email` 스코프 요청, 기본 `false`) |
 | **Secrets** | `REACT_APP_GOOGLE_MAPS_API_KEY` | 프론트엔드 Google Maps JavaScript API 키 |
 | **Secrets** | `REACT_APP_GOOGLE_CLIENT_ID` | 프론트엔드 Google OAuth Client ID |
+
+### 4.3. X Developer Portal & 로컬 개발 환경 설정 팁
+- **X Developer Portal 설정**:
+  - **Type of App**: `Web App, Automated App or Bot` (**Confidential client**)
+  - **Callback URI / Redirect URL**: 프로덕션은 `https://<CloudFront 또는 커스텀 도메인>/auth/x/callback`, 로컬은 `http://localhost:3000/auth/x/callback`
+  - **Request email from users** 옵션: 기본 `X_REQUEST_EMAIL=false`일 때는 꺼두어도 정상 가입·연동되며, `true`로 사용할 경우 Portal에서도 이메일 권한 및 이용약관/개인정보처리방침 URL을 활성화해야 합니다.
+- **로컬 개발(`ENV=local`) 환경변수**:
+  - `DYNAMODB_OAUTH_STATE_TABLE`을 비워두면 자동으로 단일 프로세스 `InMemoryOAuthStateStore`로 동작합니다. 로컬 DynamoDB(LocalStack/DynamoDB Local)를 연동하려면 `DYNAMODB_OAUTH_STATE_TABLE`과 `DYNAMODB_ENDPOINT_URL`을 함께 설정합니다.
+  - 비-로컬(`ENV != local` 또는 Lambda) 환경에서 `DYNAMODB_OAUTH_STATE_TABLE`이 누락되면 fail-closed로 X OAuth 요청을 거부(`503 X_OAUTH_NOT_CONFIGURED`)합니다.
 
 > **💡 DB 마이그레이션 보안 팁**: NAS의 PostgreSQL 포트를 GitHub Actions의 불특정 IP 대역에 개방하는 대신, 스키마 마이그레이션(`cd backend && make migrateup`)은 로컬 개발 PC 또는 NAS 내부망에서 실행하는 것을 권장합니다.
 
 ---
-*문서 최종 업데이트: 2026-11-08*
+*문서 최종 업데이트: 2026-11-11*

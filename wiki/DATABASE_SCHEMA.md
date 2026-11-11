@@ -2,7 +2,7 @@
 
 [⬅️ 홈으로 돌아가기](./Home.md) | [관련 문서: DB 마이그레이션 가이드](./DATABASE_MIGRATION_GUIDE.md) | [관련 문서: sqlc 가이드](./SQLC_GUIDE.md)
 
-이 문서는 `backend/db/migration/`(`000001` ~ `000016`)과 `backend/db/query/*.sql`을 기반으로 Eventer Map의 **PostgreSQL 전체 테이블 스키마(13개 테이블)**를 정의하고, 정리된 요소 및 잔여 검토 항목을 정리한 기술 위키입니다.
+이 문서는 `backend/db/migration/`(`000001` ~ `000018`)과 `backend/db/query/*.sql`을 기반으로 Eventer Map의 **PostgreSQL 전체 테이블 스키마(13개 테이블)**를 정의하고, 정리된 요소 및 잔여 검토 항목을 정리한 기술 위키입니다.
 
 ---
 
@@ -40,6 +40,8 @@ erDiagram
         VARCHAR display_name UK
         VARCHAR password_hash
         VARCHAR google_id UK
+        VARCHAR x_id UK
+        VARCHAR x_username
         BOOLEAN is_banned
         BOOLEAN is_email_verified
         VARCHAR role
@@ -107,10 +109,12 @@ erDiagram
 | 컬럼명 | 데이터 타입 | 제약 조건 | 기본값 | 설명 |
 | :--- | :--- | :--- | :--- | :--- |
 | `id` | `UUID` | `PRIMARY KEY` | `uuid_generate_v4()` | 사용자 고유 식별자 |
-| `email` | `VARCHAR` | `UNIQUE`, `NULL` | - | 이메일 주소 |
+| `email` | `VARCHAR` | `UNIQUE`, `NULL` | - | 이메일 주소 (이메일 없는 X OAuth 가입 시 `NULL` 허용; 다중 `NULL` 가능) |
 | `display_name` | `VARCHAR` | `NOT NULL`, `UNIQUE` (`000002`) | - | 사용자 닉네임 |
-| `password_hash` | `VARCHAR` | `NULL` | - | bcrypt 해시 비밀번호 (구글 전용 가입 시 `NULL`) |
+| `password_hash` | `VARCHAR` | `NULL` | - | bcrypt 해시 비밀번호 (소셜 전용 가입 시 `NULL`) |
 | `google_id` | `VARCHAR` | `UNIQUE`, `NULL` | - | Google OAuth `sub` 식별자 |
+| `x_id` | `VARCHAR` | `UNIQUE`, `NULL` (`000018`) | - | X(Twitter) OAuth `user.id` 불변 식별자 |
+| `x_username` | `VARCHAR` | `NULL` (`000018`) | - | 연동된 X `@username` 핸들 (표시 및 동기화용) |
 | `is_banned` | `BOOLEAN` | `NOT NULL` | `false` | 계정 정지(Ban) 여부 |
 | `is_email_verified` | `BOOLEAN` | `NOT NULL` (`000003`) | `false` | 이메일 인증 완료 여부 |
 | `last_artist_feed_checked_at` | `TIMESTAMPTZ` | `NOT NULL` (`000006`) | `'1970-01-01 00:00:00+00'` | 팔로우 아티스트 피드 마지막 확인 시각 (`CountUnreadFollowingArtistEvents`를 통한 미확인 신규 이벤트 수 집계 및 `UpdateLastArtistFeedCheckedAt` 읽음 처리에 사용) |
@@ -124,6 +128,7 @@ erDiagram
 | `email` | `VARCHAR` | `PRIMARY KEY` | - | 인증 대상 이메일 |
 | `code` | `VARCHAR(6)` | `NOT NULL` | - | 6자리 인증 번호 |
 | `expires_at` | `TIMESTAMPTZ` | `NOT NULL` | - | 만료 시각 (발급 후 5분) |
+| `attempts` | `INT` | `NOT NULL` (`000017`) | `0` | 검증 실패 누적 횟수 (최대 5회 제한) |
 
 ---
 
@@ -275,6 +280,20 @@ erDiagram
 2. **외래키 인덱스 보강**:
    - `idx_event_threads_author_id`: 유저 탈퇴 시 `ON DELETE SET NULL` 동작 가속.
    - `idx_thread_recommendations_thread_id`: `thread_recommendations`의 복합 PK가 `(user_id, thread_id)` 순서이므로, 스레드 삭제 시 `thread_id` 기준 CASCADE 삭제가 테이블 풀스캔 없이 즉시 처리되도록 인덱스를 추가했습니다.
+
+---
+
+## 5. 🐦 `000017` ~ `000018` 인증 및 X OAuth 확장 내역
+
+1. **`000017_add_verification_attempts`**:
+   - `verification_tokens.attempts` 컬럼 추가로 6자리 이메일 인증 코드 브루트포스 방어(최대 5회).
+   - 기존 Google 소셜 로그인 계정의 `users.is_email_verified = true` 일괄 보정.
+2. **`000018_add_x_oauth` (`users` 테이블)**:
+   - `x_id VARCHAR UNIQUE`: X의 불변 유저 ID 저장 및 `GetUserByXID` 1:1 계정 식별.
+   - `x_username VARCHAR`: UI 표시 및 로그인 시 최신 X 핸들(`@username`) 동기화용 컬럼.
+   - 이메일 없는 X 가입 계정은 PostgreSQL의 `UNIQUE` 컬럼 `NULL` 중복 허용 특성을 이용해 `email = NULL`, `is_email_verified = false`로 저장됩니다.
+3. **비관계형 단기 상태 저장소 (`DynamoDB OAuthStatesTable`)**:
+   - X OAuth 2.0의 PKCE `code_verifier`, SHA-256 해시 `state_hash`(PK), `mode` (`login` / `link` / `reauth`), `user_id`, `expires_at`(TTL)은 장기 데이터인 PostgreSQL이 아닌 AWS DynamoDB `OAuthStatesTable`에 저장하고 조건부 `DeleteItem`으로 원자적 1회 소비를 보장합니다.
 3. **데이터 무결성 제약조건 추가**:
    - `chk_event_threads_content_length`: 본문 길이 1~1,000자 제한.
    - `chk_event_threads_recommend_count_non_negative`: 추천수 음수 방지(`recommend_count >= 0`).

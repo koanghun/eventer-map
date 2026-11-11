@@ -55,6 +55,13 @@ func AuthMiddleware(next http.Handler) http.Handler {
 			return
 		}
 
+		// Reject single-purpose re-authentication or refresh tokens as API Bearer credentials.
+		if tokenType, _ := claims["type"].(string); tokenType == "x_reauth" || tokenType == "refresh" {
+			log.Printf("AuthMiddleware: rejected non-access token type: %s", tokenType)
+			http.Error(w, "invalid token type", http.StatusUnauthorized)
+			return
+		}
+
 		userIDStr, ok := claims["user_id"].(string)
 		if !ok {
 			log.Printf("AuthMiddleware: invalid user id in token")

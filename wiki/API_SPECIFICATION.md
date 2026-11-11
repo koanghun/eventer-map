@@ -13,18 +13,27 @@
 
 | Method | Endpoint | Description | Auth Required |
 | :--- | :--- | :--- | :---: |
-| `POST` | `/auth/signup` | **자체 회원가입**: 이메일, 비밀번호, 닉네임으로 가입 요청 후 인증 코드를 발송합니다. | ❌ |
-| `POST` | `/auth/verify-email` | **이메일 인증**: 수신한 6자리 인증 코드를 검증하여 계정을 활성화하고 토큰을 발급합니다. | ❌ |
+| `POST` | `/auth/signup` | **자체 회원가입**: 이메일, 비밀번호, 닉네임으로 가입 요청 후 6자리 인증 코드를 발송합니다. | ❌ |
+| `POST` | `/auth/signup/verify` | **이메일 인증**: 수신한 6자리 인증 코드를 검증하여 계정을 활성화하고 토큰을 발급합니다. | ❌ |
+| `POST` | `/auth/signup/resend` | **인증 코드 재전송**: 미인증 계정에 대해 60초 쿨다운 체크 후 새 인증 코드를 발송합니다. | ❌ |
 | `POST` | `/auth/login` | **자체 로그인**: 이메일과 비밀번호로 로그인하고 JWT(Access, Refresh Token)를 발급받습니다. | ❌ |
-| `POST` | `/auth/google` | **구글 로그인/가입**: Google `idToken`을 검증하여 로그인 또는 자동 가입을 처리합니다. | ❌ |
+| `POST` | `/auth/google` | **구글 로그인/가입**: Google 토큰을 검증하여 로그인 또는 자동 가입을 처리합니다. | ❌ |
+| `POST` | `/auth/x/authorize` | **X 로그인 인가 URL 발급**: X OAuth 2.0 PKCE 흐름용 `state`/`code_verifier`를 생성해 저장하고 `{ authorizeUrl }`을 반환합니다. | ❌ |
+| `POST` | `/auth/x/login` | **X 로그인/회원가입 완료**: 콜백 `code`와 `state`를 1회 소비 검증 후 로그인(또는 이메일 없는/있는 신규 가입)을 처리하고 JWT를 발급합니다. | ❌ |
 | `POST` | `/auth/refresh` | **토큰 갱신**: `HttpOnly` 쿠키의 Refresh Token으로 새 Access Token을 발급받습니다. | ❌ |
-| `POST` | `/auth/logout` | **로그아웃**: Refresh Token 쿠키를 만료시킵니다. | 🟢 |
-| `GET` | `/users/me` | **내 프로필 조회**: 현재 로그인한 사용자의 프로필 및 권한(`USER`/`ADMIN`)을 조회합니다. | 🟢 |
-| `PATCH` | `/users/me` | **프로필 수정**: 표시 이름(닉네임)을 변경합니다. | 🟢 |
-| `PUT` | `/users/me/password` | **비밀번호 변경**: 현재 비밀번호 확인 후 새 비밀번호로 변경합니다. | 🟢 |
+| `POST` | `/auth/logout` | **로그아웃**: Refresh Token 쿠키를 만료시킵니다. | ❌ |
+| `GET` | `/users/me` | **내 프로필 조회**: `id`, `email`(이메일 없는 X 계정은 생략/null), `displayName`, `isGoogleLinked`, `isXLinked`, `xUsername`, `hasPassword`, `role`을 조회합니다. | 🟢 |
+| `PATCH` | `/users/me` | **프로필 수정**: 표시 이름(닉네임)을 변경하고 갱신된 `UserProfile`을 반환합니다. | 🟢 |
+| `DELETE` | `/users/me` | **회원 탈퇴**: 비밀번호 확인 또는 Google(`googleAccessToken`) / X(`xReauthToken`) 재인증 후 계정을 삭제합니다. | 🟢 |
+| `PUT` | `/users/me/password` | **비밀번호 변경/설정**: 이메일이 등록된 계정에서 비밀번호를 변경·설정합니다 (이메일 없는 X 계정은 `400 EMAIL_REQUIRED_FOR_PASSWORD`). | 🟢 |
 | `GET` | `/users/me/events` | **내 이벤트 액션 목록 조회**: 체크(`1`)하거나 참가(`2`)한 이벤트 목록을 조회합니다. | 🟢 |
 | `POST` | `/users/me/link-google` | **구글 계정 연동**: 로그인된 계정에 Google 계정을 연동합니다. | 🟢 |
-| `POST` | `/users/me/unlink-google` | **구글 계정 연동 해제**: 연동된 Google 계정을 해제합니다. | 🟢 |
+| `POST` | `/users/me/unlink-google` | **구글 계정 연동 해제**: 다른 사용 가능한 로그인 수단이 남아있는 경우 Google 연동을 해제합니다 (`400 CANNOT_UNLINK_LAST_AUTH`). | 🟢 |
+| `POST` | `/users/me/link-x/authorize` | **X 계정 연동 인가 URL 발급**: 현재 로그인된 `user_id`가 바인딩된 PKCE/state를 생성해 `{ authorizeUrl }`을 반환합니다. | 🟢 |
+| `POST` | `/users/me/link-x` | **X 계정 연동 완료**: `code`/`state` 및 `user_id` 일치 여부를 검증한 뒤 현재 계정에 `x_id`, `x_username`을 연동합니다. | 🟢 |
+| `POST` | `/users/me/unlink-x` | **X 계정 연동 해제**: 다른 사용 가능한 로그인 수단이 남아있는 경우 `x_id`, `x_username`을 해제합니다. | 🟢 |
+| `POST` | `/users/me/reauth-x/authorize` | **회원 탈퇴용 X 재인증 URL 발급**: 탈퇴 본인 확인용 X OAuth 2.0 인가 URL을 반환합니다. | 🟢 |
+| `POST` | `/users/me/reauth-x` | **회원 탈퇴용 X 재인증 완료**: 연동된 동일 X 계정임을 검증한 뒤 단기(5분) `xReauthToken`을 발급합니다. | 🟢 |
 | `GET` | `/users/me/following` | **내가 팔로우하는 유저 목록 조회** | 🟢 |
 | `GET` | `/users/me/followers` | **나를 팔로우하는 유저 목록 조회** | 🟢 |
 | `GET` | `/users/me/following/artists` | **내가 팔로우하는 아티스트 목록 조회** | 🟢 |
@@ -35,6 +44,20 @@
 | `GET` | `/users/me/blocks` | **내가 차단한 유저 목록 조회** | 🟢 |
 | `POST` | `/users/{userId}/block` | **특정 유저 차단** | 🟢 |
 | `DELETE` | `/users/{userId}/block` | **특정 유저 차단 해제** | 🟢 |
+
+### 💡 X OAuth & 계정 연동 주요 에러 코드
+| Error Code | HTTP Status | 설명 |
+| :--- | :---: | :--- |
+| `X_OAUTH_NOT_CONFIGURED` | 503 Service Unavailable | 서버에 `X_CLIENT_ID`/`X_CLIENT_SECRET`/`X_REDIRECT_URI` 또는 상태 저장소가 설정되지 않음 |
+| `X_OAUTH_STATE_INVALID` | 400 Bad Request | `state` 만료, 이미 소비됨, 또는 요청 사용자 불일치 |
+| `X_OAUTH_EXCHANGE_FAILED` | 400 Bad Request | X 토큰 교환 또는 `/2/users/me` 조회 실패 |
+| `ACCOUNT_BANNED` | 403 Forbidden | 정지(`is_banned = true`)된 계정의 로그인 시도 |
+| `EMAIL_CONFLICT` | 409 Conflict | X 확인 이메일과 동일한 기존 계정이 존재함 (자동 병합 차단) |
+| `X_ACCOUNT_CONFLICT` | 409 Conflict | 해당 X 계정이 이미 다른 유저에게 연동됨 |
+| `X_ALREADY_LINKED` | 400 Bad Request | 현재 계정에 이미 X 계정이 연동되어 있음 |
+| `X_ACCOUNT_MISMATCH` | 403 Forbidden | 탈퇴 재인증 시 현재 계정에 연동된 X 계정과 다른 계정으로 인증됨 |
+| `CANNOT_UNLINK_LAST_AUTH` | 400 Bad Request | 마지막 로그인 수단은 연동 해제할 수 없음 |
+| `EMAIL_REQUIRED_FOR_PASSWORD` | 400 Bad Request | 이메일이 없는 계정에서는 비밀번호를 설정할 수 없음 |
 
 ---
 
@@ -115,9 +138,10 @@
 ---
 
 > [!TIP]
-> **API 응답 공통 에러 포맷**
+> **API 응답 공통 에러 포맷** (`code`가 포함된 경우 프론트엔드가 `errors.api.<code>` 다국어 메시지로 자동 변환)
 > ```json
 > {
->   "error": "에러 원인에 대한 상세 메시지 (예: officialName is required)"
+>   "error": "에러 원인에 대한 상세 메시지 (예: officialName is required)",
+>   "code": "X_ACCOUNT_CONFLICT"
 > }
 > ```

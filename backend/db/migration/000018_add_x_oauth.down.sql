@@ -1,0 +1,4 @@
+ALTER TABLE users
+    DROP COLUMN IF EXISTS x_username,
+    DROP COLUMN IF EXISTS x_id;
+

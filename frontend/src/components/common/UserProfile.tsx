@@ -29,7 +29,7 @@ export default function UserProfile() {
                 <PopoverTrigger asChild>
                     <button className="flex items-center justify-center w-10 h-10 rounded-full border-2 border-primary overflow-hidden hover:ring-2 hover:ring-primary/30 transition-all focus:outline-none">
                         {(user as any).profile_image ? (
-                            <img src={(user as any).profile_image} alt={user.displayName || user.email} className="w-full h-full object-cover" />
+                            <img src={(user as any).profile_image} alt={user.displayName || user.email || (user.xUsername ? `@${user.xUsername}` : undefined)} className="w-full h-full object-cover" />
                         ) : (
                             <div className="w-full h-full bg-primary/10 text-primary flex items-center justify-center font-bold text-lg">
                                 {(user.displayName?.[0] || user.email?.[0] || '?').toUpperCase()}
@@ -40,8 +40,8 @@ export default function UserProfile() {
                 <PopoverContent className="w-64 p-2 bg-popover text-popover-foreground border border-border shadow-xl rounded-2xl mt-2" align="end">
                     <div className="flex flex-col gap-4 p-2">
                         <div className="flex flex-col space-y-1 pb-3 border-b border-border">
-                            <p className="font-semibold text-sm leading-none">{user.displayName || user.email}</p>
-                            <p className="text-xs text-muted-foreground">{user?.email}</p>
+                            <p className="font-semibold text-sm leading-none">{user.displayName || user.email || (user.xUsername ? `@${user.xUsername}` : '')}</p>
+                            <p className="text-xs text-muted-foreground">{user?.email || (user?.xUsername ? `@${user.xUsername}` : '')}</p>
                         </div>
                         
                         <div className="flex flex-col gap-1">

@@ -11,7 +11,7 @@ Eventer Map 프로젝트의 통합 위키입니다. API-First 풀스택 아키�
 
 ### 🔌 API 및 인증
 - [API 상세 설계서 (API Specification)](./API_SPECIFICATION.md)
-- [구글 로그인 플로우 및 설계도 (Auth Flow)](./AUTH_FLOW.md)
+- [인증 아키텍처 & OAuth 플로우 (Google · X Auth Flow)](./AUTH_FLOW.md)
 - [이메일 인증 서비스 및 SMTP 설정 가이드 (Email Verification Guide)](./EMAIL_VERIFICATION_GUIDE.md)
 - [프론트엔드 Orval 라이브러리 가이드 (Orval Guide)](./ORVAL_GUIDE.md)
 

@@ -14,6 +14,7 @@ import { Popover, PopoverContent, PopoverTrigger } from './components/ui/popover
 import { format } from 'date-fns';
 
 import MapPage from './pages/MapPage';
+import XOAuthCallbackPage from './pages/XOAuthCallbackPage';
 
 const GOOGLE_MAPS_LIBRARIES: ("places")[] = ['places'];
 
@@ -61,6 +62,10 @@ export default function AppContent() {
             metaDesc.setAttribute('content', t('seo.description') || '');
         }
     }, [t, language]);
+
+    if (location.pathname === '/auth/x/callback') {
+        return <XOAuthCallbackPage />;
+    }
 
     return (
         <LoadScript googleMapsApiKey={apiKey} libraries={GOOGLE_MAPS_LIBRARIES}>
@@ -154,6 +159,7 @@ export default function AppContent() {
 
                 <Routes>
                     <Route path="/" element={<MapPage />} />
+                    <Route path="/auth/x/callback" element={<XOAuthCallbackPage />} />
                 </Routes>
 
                 <div className="fixed bottom-4 right-4 z-50 pointer-events-none">

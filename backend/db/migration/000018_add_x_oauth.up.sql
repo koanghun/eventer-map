@@ -1,0 +1,4 @@
+ALTER TABLE users
+    ADD COLUMN x_id VARCHAR UNIQUE,
+    ADD COLUMN x_username VARCHAR;
+

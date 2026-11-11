@@ -32,7 +32,7 @@ make migrateversion
 DB의 스키마 변경 사항은 `backend/db/migration/` 폴더 안의 `.sql` 파일들로 관리됩니다.
 새로운 테이블이나 컬럼, 인덱스를 추가할 때는 **이미 적용된 기존 파일을 절대 수정하지 않고** 새로운 시퀀스 번호의 마이그레이션 파일(`.up.sql`, `.down.sql`)을 생성합니다.
 
-### 현재 마이그레이션 버전 이력 (`000001` ~ `000016`)
+### 현재 마이그레이션 버전 이력 (`000001` ~ `000018`)
 
 | 버전 | 파일명 | 주요 변경 내용 |
 | :---: | :--- | :--- |
@@ -52,6 +52,8 @@ DB의 스키마 변경 사항은 `backend/db/migration/` 폴더 안의 `.sql` �
 | `000014` | `000014_add_artist_disambiguation` | 동명이인 출연자 구분을 위한 `artists.disambiguation VARCHAR(100)` 컬럼 추가 |
 | `000015` | `000015_cleanup_schema_and_indexes` | 미사용 이력 테이블(`event_histories`, `history_reports`), `events.poster_image_url`, 자체 신용평가(`user_artist_ratings`, `user_venue_ratings`, `credit_score`, `credit_count`) 및 중복 인덱스 3종 제거, 아티스트/공연장 평점 캐시 일원화 |
 | `000016` | `000016_enhance_event_threads` | 이벤트 스레드 추천순 복합 커서 랭킹 인덱스(`idx_event_threads_event_ranking`), 외래키 인덱스 2종, 본문 글자수(1~1,000자) 및 추천수 음수 방지 제약조건 추가 |
+| `000017` | `000017_add_verification_attempts` | `verification_tokens.attempts` (시도 횟수 제한) 컬럼 추가 및 Google 계정 `is_email_verified = true` 일괄 보정 |
+| `000018` | `000018_add_x_oauth` | X OAuth 2.0 지원을 위한 `users.x_id` (`UNIQUE`), `users.x_username` 컬럼 추가 |
 
 ### 새 마이그레이션 파일 생성 명령어
 ```bash

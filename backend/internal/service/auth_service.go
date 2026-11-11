@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"encoding/json"
+	"eventer-map-backend/internal/auth"
 	"eventer-map-backend/internal/mailer"
 	"eventer-map-backend/internal/repository"
 	"net/http"
@@ -31,7 +32,8 @@ const (
 	RefreshExp = time.Hour * 24 * 7 // 7 days for refresh token
 )
 
-// GetJWTSecret returns the JWT signing secret from environment or local fallback
+// GetJWTSecret returns the JWT signing secret from environment or local fallback.
+// TODO(security): fail closed instead of using a default fallback secret when ENV is not local.
 func GetJWTSecret() []byte {
 	if secret := os.Getenv("JWT_SECRET"); secret != "" {
 		return []byte(secret)
@@ -39,14 +41,50 @@ func GetJWTSecret() []byte {
 	return []byte(JWTSecret)
 }
 
+type authRepository interface {
+	CreateUser(ctx context.Context, arg repository.CreateUserParams) (repository.User, error)
+	GetUserByEmail(ctx context.Context, email sql.NullString) (repository.User, error)
+	GetUserByGoogleID(ctx context.Context, googleID sql.NullString) (repository.User, error)
+	GetUserByXID(ctx context.Context, xID sql.NullString) (repository.User, error)
+	GetUserByID(ctx context.Context, id uuid.UUID) (repository.User, error)
+	CheckNicknameExists(ctx context.Context, displayName string) (bool, error)
+	UpdateUserEmailVerifiedByEmail(ctx context.Context, arg repository.UpdateUserEmailVerifiedByEmailParams) error
+	UpdateUserGoogleID(ctx context.Context, arg repository.UpdateUserGoogleIDParams) error
+	UpdateUserXAccount(ctx context.Context, arg repository.UpdateUserXAccountParams) error
+	UpdateUnverifiedUserSignup(ctx context.Context, arg repository.UpdateUnverifiedUserSignupParams) (int64, error)
+	CreateVerificationToken(ctx context.Context, arg repository.CreateVerificationTokenParams) (repository.VerificationToken, error)
+	GetVerificationTokenByEmail(ctx context.Context, email string) (repository.VerificationToken, error)
+	IncrementVerificationAttempts(ctx context.Context, email string) (int32, error)
+	DeleteVerificationToken(ctx context.Context, email string) error
+}
+
+type xOAuthProvider interface {
+	IsConfigured() bool
+	BuildAuthorizeURL(state, codeChallenge string) (string, error)
+	ExchangeCode(ctx context.Context, code, codeVerifier string) (string, error)
+	FetchUser(ctx context.Context, accessToken string) (*auth.XUser, error)
+}
+
 // AuthService handles authentication logic
 type AuthService struct {
-	repo   *repository.Queries
-	mailer mailer.Mailer
+	repo       authRepository
+	mailer     mailer.Mailer
+	xClient    xOAuthProvider
+	stateStore auth.OAuthStateStore
 }
 
 func NewAuthService(repo *repository.Queries, mailer mailer.Mailer) *AuthService {
 	return &AuthService{repo: repo, mailer: mailer}
+}
+
+// NewAuthServiceWithXOAuth initializes AuthService with X OAuth provider and PKCE/state store.
+func NewAuthServiceWithXOAuth(repo authRepository, mailer mailer.Mailer, xClient xOAuthProvider, stateStore auth.OAuthStateStore) *AuthService {
+	return &AuthService{
+		repo:       repo,
+		mailer:     mailer,
+		xClient:    xClient,
+		stateStore: stateStore,
+	}
 }
 
 // Custom errors
@@ -61,6 +99,16 @@ var (
 	ErrResendTooSoon     = errors.New("please wait before requesting a new code")
 	ErrInvalidVerifyCode = errors.New("invalid or expired verification code")
 	ErrTooManyAttempts   = errors.New("too many failed attempts, please request a new code")
+
+	ErrXOAuthNotConfigured  = errors.New("X OAuth is not configured")
+	ErrOAuthStateInvalid    = errors.New("invalid or expired OAuth state")
+	ErrXOAuthExchangeFailed = errors.New("failed to authenticate with X")
+	ErrXAccountConflict     = errors.New("this X account is already linked to another user")
+	ErrXAlreadyLinked       = errors.New("X account is already linked")
+	ErrXAccountMismatch     = errors.New("authenticated X account does not match linked account")
+	ErrEmailConflict        = errors.New("an account with this email already exists")
+	ErrCannotUnlinkLastAuth = errors.New("cannot unlink the last login method")
+	ErrInvalidXReauthToken  = errors.New("invalid or expired X re-authentication token")
 )
 
 const (
@@ -166,7 +214,7 @@ func (s *AuthService) Signup(ctx context.Context, email, displayName, password s
 	switch {
 	case err == nil:
 		// An unverified local account (e.g. the code was never entered) may re-signup.
-		if existing.IsEmailVerified || existing.GoogleID.Valid {
+		if existing.IsEmailVerified || existing.GoogleID.Valid || existing.XID.Valid {
 			return ErrUserExists
 		}
 		existingUnverified = &existing
@@ -396,7 +444,19 @@ func (s *AuthService) LinkGoogleAccount(ctx context.Context, userID uuid.UUID, t
 	})
 }
 
+func hasUsablePasswordLogin(user repository.User) bool {
+	return user.PasswordHash.Valid && user.Email.Valid && user.IsEmailVerified
+}
+
 func (s *AuthService) UnlinkGoogleAccount(ctx context.Context, userID uuid.UUID) error {
+	user, err := s.repo.GetUserByID(ctx, userID)
+	if err != nil {
+		return err
+	}
+	if !hasUsablePasswordLogin(user) && !user.XID.Valid {
+		return ErrCannotUnlinkLastAuth
+	}
+
 	return s.repo.UpdateUserGoogleID(ctx, repository.UpdateUserGoogleIDParams{
 		ID:       userID,
 		GoogleID: sql.NullString{Valid: false},
@@ -419,6 +479,9 @@ func (s *AuthService) GoogleLogin(ctx context.Context, token string, isAccessTok
 	// Try to find by Google ID
 	user, err := s.repo.GetUserByGoogleID(ctx, sql.NullString{String: googleID, Valid: true})
 	if err == nil {
+		if user.IsBanned {
+			return nil, ErrUserBanned
+		}
 		return s.generateTokens(user.ID.String())
 	}
 
@@ -431,10 +494,11 @@ func (s *AuthService) GoogleLogin(ctx context.Context, token string, isAccessTok
 
 	// Create new user
 	newUser, err := s.repo.CreateUser(ctx, repository.CreateUserParams{
-		Email:        sql.NullString{String: email, Valid: true},
-		DisplayName:  email, // Use email as default display name
-		PasswordHash: sql.NullString{Valid: false},
-		GoogleID:     sql.NullString{String: googleID, Valid: true},
+		Email:           sql.NullString{String: email, Valid: true},
+		DisplayName:     email, // Use email as default display name
+		PasswordHash:    sql.NullString{Valid: false},
+		GoogleID:        sql.NullString{String: googleID, Valid: true},
+		IsEmailVerified: true,
 	})
 	if err != nil {
 		return nil, err

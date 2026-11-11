@@ -8,12 +8,51 @@ import (
 	"net/http"
 	"time"
 
+	"eventer-map-backend/internal/auth"
 	"eventer-map-backend/internal/middleware"
+	"eventer-map-backend/internal/repository"
 	"eventer-map-backend/internal/service"
 
 	"github.com/google/uuid"
 	openapi_types "github.com/oapi-codegen/runtime/types"
 )
+
+func respondUserProfile(w http.ResponseWriter, user *repository.User) {
+	var email *openapi_types.Email
+	if user.Email.Valid && user.Email.String != "" {
+		e := openapi_types.Email(user.Email.String)
+		email = &e
+	}
+
+	var xUsername *string
+	if user.XUsername.Valid && user.XUsername.String != "" {
+		u := user.XUsername.String
+		xUsername = &u
+	}
+
+	id := openapi_types.UUID(user.ID)
+	displayName := user.DisplayName
+	createdAt := user.CreatedAt
+	isGoogleLinked := user.GoogleID.Valid
+	isXLinked := user.XID.Valid
+	hasPassword := user.PasswordHash.Valid
+
+	resp := UserProfile{
+		Id:             &id,
+		Email:          email,
+		DisplayName:    &displayName,
+		CreatedAt:      &createdAt,
+		IsGoogleLinked: &isGoogleLinked,
+		IsXLinked:      &isXLinked,
+		XUsername:      xUsername,
+		HasPassword:    &hasPassword,
+	}
+	if role := UserProfileRole(user.Role); role.Valid() {
+		resp.Role = &role
+	}
+
+	RespondJSON(w, http.StatusOK, resp)
+}
 
 // GetUsersMe returns the profile of the currently authenticated user
 func (s *Server) GetUsersMe(w http.ResponseWriter, r *http.Request) {
@@ -29,14 +68,7 @@ func (s *Server) GetUsersMe(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	RespondJSON(w, http.StatusOK, map[string]interface{}{
-		"id":             user.ID,
-		"email":          user.Email.String,
-		"displayName":    user.DisplayName,
-		"createdAt":      user.CreatedAt,
-		"isGoogleLinked": user.GoogleID.Valid,
-		"hasPassword":    user.PasswordHash.Valid,
-	})
+	respondUserProfile(w, user)
 }
 
 // GetUsersMeEvents implements the GET /users/me/events endpoint
@@ -410,13 +442,7 @@ func (s *Server) PatchUsersMe(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	RespondJSON(w, http.StatusOK, map[string]interface{}{
-		"id":             user.ID,
-		"email":          user.Email.String,
-		"displayName":    user.DisplayName,
-		"createdAt":      user.CreatedAt,
-		"isGoogleLinked": user.GoogleID.Valid,
-	})
+	respondUserProfile(w, &user)
 }
 
 // DeleteUsersMe implements the DELETE /users/me endpoint
@@ -450,7 +476,17 @@ func (s *Server) DeleteUsersMe(w http.ResponseWriter, r *http.Request) {
 		googleID = id
 	}
 
-	if err := s.services.User.DeleteAccount(r.Context(), userID, currentPassword, googleID); err != nil {
+	xID := ""
+	if req.XReauthToken != nil && *req.XReauthToken != "" {
+		id, err := s.services.Auth.VerifyXReauthToken(r.Context(), userID, *req.XReauthToken)
+		if err != nil {
+			RespondErrorCode(w, http.StatusForbidden, "REAUTH_REQUIRED", "Re-authentication required")
+			return
+		}
+		xID = id
+	}
+
+	if err := s.services.User.DeleteAccount(r.Context(), userID, currentPassword, googleID, xID); err != nil {
 		if errors.Is(err, service.ErrInvalidCurrentPassword) {
 			RespondErrorCode(w, http.StatusBadRequest, "INVALID_CURRENT_PASSWORD", "Invalid current password")
 			return
@@ -493,6 +529,10 @@ func (s *Server) PutUsersMePassword(w http.ResponseWriter, r *http.Request) {
 
 	err := s.services.User.UpdatePassword(r.Context(), userID, currentPassword, req.NewPassword)
 	if err != nil {
+		if errors.Is(err, service.ErrEmailRequiredForPassword) {
+			RespondErrorCode(w, http.StatusBadRequest, "EMAIL_REQUIRED_FOR_PASSWORD", "Email is required to set a password")
+			return
+		}
 		if err.Error() == "invalid current password" {
 			RespondError(w, http.StatusBadRequest, "Invalid current password")
 			return
@@ -551,6 +591,10 @@ func (s *Server) PostUsersMeUnlinkGoogle(w http.ResponseWriter, r *http.Request)
 
 	err := s.services.Auth.UnlinkGoogleAccount(r.Context(), userID)
 	if err != nil {
+		if errors.Is(err, service.ErrCannotUnlinkLastAuth) {
+			RespondErrorCode(w, http.StatusBadRequest, "CANNOT_UNLINK_LAST_AUTH", "Cannot unlink the last login method")
+			return
+		}
 		log.Printf("[PostUsersMeUnlinkGoogle] UnlinkGoogleAccount error (userID=%s): %v", userID, err)
 		RespondError(w, http.StatusInternalServerError, "Failed to unlink Google account")
 		return
@@ -558,5 +602,110 @@ func (s *Server) PostUsersMeUnlinkGoogle(w http.ResponseWriter, r *http.Request)
 
 	RespondJSON(w, http.StatusOK, map[string]string{
 		"message": "Google account unlinked successfully",
+	})
+}
+
+// PostUsersMeLinkXAuthorize implements the POST /users/me/link-x/authorize endpoint.
+func (s *Server) PostUsersMeLinkXAuthorize(w http.ResponseWriter, r *http.Request) {
+	userID, ok := r.Context().Value(middleware.UserIDKey).(uuid.UUID)
+	if !ok {
+		RespondError(w, http.StatusUnauthorized, "user not authenticated")
+		return
+	}
+
+	authorizeURL, err := s.services.Auth.StartXOAuth(r.Context(), auth.ModeLink, &userID)
+	if err != nil {
+		handleXOAuthError(w, "PostUsersMeLinkXAuthorize", err)
+		return
+	}
+
+	RespondJSON(w, http.StatusOK, XOAuthAuthorizeResponse{
+		AuthorizeUrl: authorizeURL,
+	})
+}
+
+// PostUsersMeLinkX implements the POST /users/me/link-x endpoint.
+func (s *Server) PostUsersMeLinkX(w http.ResponseWriter, r *http.Request) {
+	userID, ok := r.Context().Value(middleware.UserIDKey).(uuid.UUID)
+	if !ok {
+		RespondError(w, http.StatusUnauthorized, "user not authenticated")
+		return
+	}
+
+	var req PostUsersMeLinkXJSONRequestBody
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		RespondError(w, http.StatusBadRequest, "Invalid JSON payload")
+		return
+	}
+
+	if err := s.services.Auth.LinkXAccount(r.Context(), userID, req.Code, req.State); err != nil {
+		handleXOAuthError(w, "PostUsersMeLinkX", err)
+		return
+	}
+
+	RespondJSON(w, http.StatusOK, map[string]string{
+		"message": "X account linked successfully",
+	})
+}
+
+// PostUsersMeUnlinkX implements the POST /users/me/unlink-x endpoint.
+func (s *Server) PostUsersMeUnlinkX(w http.ResponseWriter, r *http.Request) {
+	userID, ok := r.Context().Value(middleware.UserIDKey).(uuid.UUID)
+	if !ok {
+		RespondError(w, http.StatusUnauthorized, "user not authenticated")
+		return
+	}
+
+	if err := s.services.Auth.UnlinkXAccount(r.Context(), userID); err != nil {
+		handleXOAuthError(w, "PostUsersMeUnlinkX", err)
+		return
+	}
+
+	RespondJSON(w, http.StatusOK, map[string]string{
+		"message": "X account unlinked successfully",
+	})
+}
+
+// PostUsersMeReauthXAuthorize implements the POST /users/me/reauth-x/authorize endpoint.
+func (s *Server) PostUsersMeReauthXAuthorize(w http.ResponseWriter, r *http.Request) {
+	userID, ok := r.Context().Value(middleware.UserIDKey).(uuid.UUID)
+	if !ok {
+		RespondError(w, http.StatusUnauthorized, "user not authenticated")
+		return
+	}
+
+	authorizeURL, err := s.services.Auth.StartXOAuth(r.Context(), auth.ModeReauth, &userID)
+	if err != nil {
+		handleXOAuthError(w, "PostUsersMeReauthXAuthorize", err)
+		return
+	}
+
+	RespondJSON(w, http.StatusOK, XOAuthAuthorizeResponse{
+		AuthorizeUrl: authorizeURL,
+	})
+}
+
+// PostUsersMeReauthX implements the POST /users/me/reauth-x endpoint.
+func (s *Server) PostUsersMeReauthX(w http.ResponseWriter, r *http.Request) {
+	userID, ok := r.Context().Value(middleware.UserIDKey).(uuid.UUID)
+	if !ok {
+		RespondError(w, http.StatusUnauthorized, "user not authenticated")
+		return
+	}
+
+	var req PostUsersMeReauthXJSONRequestBody
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		RespondError(w, http.StatusBadRequest, "Invalid JSON payload")
+		return
+	}
+
+	reauthToken, err := s.services.Auth.CompleteXReauth(r.Context(), userID, req.Code, req.State)
+	if err != nil {
+		handleXOAuthError(w, "PostUsersMeReauthX", err)
+		return
+	}
+
+	RespondJSON(w, http.StatusOK, XReauthResponse{
+		XReauthToken: reauthToken,
 	})
 }

@@ -10,4 +10,6 @@ export interface DeleteAccountRequest {
   currentPassword?: string;
   /** 비밀번호가 없는 구글 연동 계정의 본인 재인증용 구글 액세스 토큰 */
   googleAccessToken?: string;
+  /** 비밀번호가 없는 X 연동 계정의 본인 재인증용 토큰 */
+  xReauthToken?: string;
 }

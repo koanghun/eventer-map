@@ -1,17 +1,25 @@
 import { useTranslation } from 'react-i18next';
 import { Button } from '../ui/button';
+import { cn } from '../../lib/utils';
 
 interface LoginButtonProps {
     onClick: () => void;
+    disabled?: boolean;
+    className?: string;
 }
 
-export default function LoginButton({ onClick }: LoginButtonProps) {
+export default function LoginButton({ onClick, disabled, className }: LoginButtonProps) {
     const { t } = useTranslation();
 
     return (
         <Button 
+            type="button"
             variant="outline" 
-            className="flex items-center gap-2 bg-white text-gray-700 hover:bg-gray-50 border-gray-300 shadow-sm transition-all"
+            disabled={disabled}
+            className={cn(
+                'flex items-center justify-center gap-2 bg-white text-gray-700 hover:bg-gray-50 border-gray-300 shadow-sm transition-all',
+                className
+            )}
             onClick={onClick}
         >
             <svg width="18" height="18" viewBox="0 0 18 18" fill="none" xmlns="http://www.w3.org/2000/svg">

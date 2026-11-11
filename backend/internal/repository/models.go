@@ -86,6 +86,8 @@ type User struct {
 	IsEmailVerified         bool
 	LastArtistFeedCheckedAt time.Time
 	Role                    string
+	XID                     sql.NullString
+	XUsername               sql.NullString
 }
 
 type UserArtistFollow struct {

@@ -11,14 +11,24 @@ export interface UserProfile {
   createdAt?: string;
   /** 표시 이름 (닉네임) */
   displayName?: string;
-  /** 사용자 이메일 */
-  email?: string;
+  /**
+   * 사용자 이메일 (이메일 없는 X 가입 시 null)
+   * @nullable
+   */
+  email?: string | null;
   /** 비밀번호 설정 여부 */
   hasPassword?: boolean;
   /** 사용자 고유 식별자 */
   id?: string;
   /** 구글 연동 여부 */
   isGoogleLinked?: boolean;
+  /** X 연동 여부 */
+  isXLinked?: boolean;
   /** 사용자 권한 */
   role?: UserProfileRole;
+  /**
+   * 연동된 X 사용자 핸들
+   * @nullable
+   */
+  xUsername?: string | null;
 }

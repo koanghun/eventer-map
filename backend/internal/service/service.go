@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"log"
 
+	"eventer-map-backend/internal/auth"
 	"eventer-map-backend/internal/mailer"
 	"eventer-map-backend/internal/repository"
 	"eventer-map-backend/internal/storage"
@@ -34,8 +35,22 @@ func NewServices(repo *repository.Queries, db *sql.DB) *Services {
 		uploader = s3Storage
 	}
 
+	xClient := auth.NewXOAuthClientFromEnv()
+	var xProvider xOAuthProvider
+	if xClient != nil && xClient.IsConfigured() {
+		xProvider = xClient
+	}
+
+	var stateStore auth.OAuthStateStore
+	store, err := auth.NewOAuthStateStoreFromEnv(context.Background())
+	if err != nil {
+		log.Printf("WARNING: Failed to initialize OAuth state store: %v", err)
+	} else {
+		stateStore = store
+	}
+
 	return &Services{
-		Auth:   NewAuthService(repo, m),
+		Auth:   NewAuthServiceWithXOAuth(repo, m, xProvider, stateStore),
 		Event:  NewEventService(repo, db),
 		User:   NewUserService(repo),
 		Artist: NewArtistService(repo, db, uploader),

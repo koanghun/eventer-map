@@ -2,12 +2,14 @@ package handler
 
 import (
 	"encoding/json"
+	"errors"
 	"log"
 	"net/http"
 	"os"
 	"strings"
 	"time"
 
+	"eventer-map-backend/internal/auth"
 	"eventer-map-backend/internal/service"
 )
 
@@ -178,6 +180,10 @@ func (s *Server) PostAuthGoogle(w http.ResponseWriter, r *http.Request) {
 
 	tokenResp, err := s.services.Auth.GoogleLogin(r.Context(), req.IdToken, true)
 	if err != nil {
+		if errors.Is(err, service.ErrUserBanned) {
+			RespondErrorCode(w, http.StatusForbidden, "ACCOUNT_BANNED", "This account has been suspended")
+			return
+		}
 		log.Printf("Google login error: %v", err)
 		RespondError(w, http.StatusUnauthorized, err.Error())
 		return
@@ -185,6 +191,65 @@ func (s *Server) PostAuthGoogle(w http.ResponseWriter, r *http.Request) {
 
 	setRefreshTokenCookie(w, tokenResp.RefreshToken)
 	RespondJSON(w, http.StatusOK, tokenResp)
+}
+
+// PostAuthXAuthorize implements the POST /auth/x/authorize endpoint.
+func (s *Server) PostAuthXAuthorize(w http.ResponseWriter, r *http.Request) {
+	authorizeURL, err := s.services.Auth.StartXOAuth(r.Context(), auth.ModeLogin, nil)
+	if err != nil {
+		handleXOAuthError(w, "PostAuthXAuthorize", err)
+		return
+	}
+
+	RespondJSON(w, http.StatusOK, XOAuthAuthorizeResponse{
+		AuthorizeUrl: authorizeURL,
+	})
+}
+
+// PostAuthXLogin implements the POST /auth/x/login endpoint.
+func (s *Server) PostAuthXLogin(w http.ResponseWriter, r *http.Request) {
+	var req PostAuthXLoginJSONRequestBody
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		RespondError(w, http.StatusBadRequest, "Invalid request body")
+		return
+	}
+
+	tokenResp, err := s.services.Auth.CompleteXLogin(r.Context(), req.Code, req.State)
+	if err != nil {
+		handleXOAuthError(w, "PostAuthXLogin", err)
+		return
+	}
+
+	setRefreshTokenCookie(w, tokenResp.RefreshToken)
+	RespondJSON(w, http.StatusOK, tokenResp)
+}
+
+func handleXOAuthError(w http.ResponseWriter, caller string, err error) {
+	switch {
+	case errors.Is(err, service.ErrXOAuthNotConfigured):
+		RespondErrorCode(w, http.StatusServiceUnavailable, "X_OAUTH_NOT_CONFIGURED", "X authentication is not configured")
+	case errors.Is(err, service.ErrOAuthStateInvalid):
+		RespondErrorCode(w, http.StatusBadRequest, "X_OAUTH_STATE_INVALID", "Invalid or expired X authentication session")
+	case errors.Is(err, service.ErrXOAuthExchangeFailed):
+		RespondErrorCode(w, http.StatusBadRequest, "X_OAUTH_EXCHANGE_FAILED", "Failed to authenticate with X")
+	case errors.Is(err, service.ErrUserBanned):
+		RespondErrorCode(w, http.StatusForbidden, "ACCOUNT_BANNED", "This account has been suspended")
+	case errors.Is(err, service.ErrEmailConflict):
+		RespondErrorCode(w, http.StatusConflict, "EMAIL_CONFLICT", "An account with this email already exists")
+	case errors.Is(err, service.ErrXAccountConflict):
+		RespondErrorCode(w, http.StatusConflict, "X_ACCOUNT_CONFLICT", "This X account is already linked to another user")
+	case errors.Is(err, service.ErrXAlreadyLinked):
+		RespondErrorCode(w, http.StatusBadRequest, "X_ALREADY_LINKED", "An X account is already linked")
+	case errors.Is(err, service.ErrXAccountMismatch):
+		RespondErrorCode(w, http.StatusForbidden, "X_ACCOUNT_MISMATCH", "Authenticated X account does not match linked account")
+	case errors.Is(err, service.ErrReauthRequired):
+		RespondErrorCode(w, http.StatusForbidden, "REAUTH_REQUIRED", "Re-authentication required")
+	case errors.Is(err, service.ErrCannotUnlinkLastAuth):
+		RespondErrorCode(w, http.StatusBadRequest, "CANNOT_UNLINK_LAST_AUTH", "Cannot unlink the last login method")
+	default:
+		log.Printf("[%s] X OAuth error: %v", caller, err)
+		RespondError(w, http.StatusInternalServerError, "Failed to process X authentication")
+	}
 }
 
 // PostAuthLogout implements the POST /auth/logout endpoint

@@ -1,6 +1,6 @@
 import { createContext, useContext, useState, useCallback, useEffect, ReactNode } from 'react';
 import { setAccessToken } from '../lib/axios';
-import { postAuthLogin, postAuthSignup, postAuthSignupVerify, postAuthSignupResend, postAuthGoogle, postAuthLogout, postAuthRefresh } from '../api/generated/auth/auth';
+import { postAuthLogin, postAuthSignup, postAuthSignupVerify, postAuthSignupResend, postAuthGoogle, postAuthXLogin, postAuthLogout, postAuthRefresh } from '../api/generated/auth/auth';
 import { getUsersMe, deleteUsersMe } from '../api/generated/user/user';
 import { toast } from '../store/useToastStore';
 import { useTranslation } from 'react-i18next';
@@ -15,8 +15,9 @@ interface AuthContextType {
     verifyEmail: (email: string, code: string) => Promise<void>;
     resendVerification: (email: string) => Promise<void>;
     googleLogin: (idToken: string) => Promise<void>;
+    xLogin: (code: string, state: string) => Promise<void>;
     logout: () => Promise<void>;
-    deleteAccount: (currentPassword?: string, googleAccessToken?: string) => Promise<void>;
+    deleteAccount: (currentPassword?: string, googleAccessToken?: string, xReauthToken?: string) => Promise<void>;
     refreshUser: () => Promise<void>;
 }
 
@@ -83,6 +84,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         toast.success(t('auth.googleLoginSuccess', '구글 로그인 성공!'));
     }, [fetchUser, t]);
 
+    const xLogin = useCallback(async (code: string, state: string) => {
+        const res = await postAuthXLogin({ code, state });
+        setAccessToken(res.accessToken);
+        await fetchUser();
+        toast.success(t('auth.xLoginSuccess', 'X 계정으로 로그인되었습니다.'));
+    }, [fetchUser, t]);
+
     const logout = useCallback(async () => {
         try {
             await postAuthLogout();
@@ -94,10 +102,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         toast.info(t('auth.logoutSuccess', '로그아웃되었습니다.'));
     }, [t]);
 
-    const deleteAccount = useCallback(async (currentPassword?: string, googleAccessToken?: string) => {
+    const deleteAccount = useCallback(async (currentPassword?: string, googleAccessToken?: string, xReauthToken?: string) => {
         await deleteUsersMe({
             ...(currentPassword ? { currentPassword } : {}),
             ...(googleAccessToken ? { googleAccessToken } : {}),
+            ...(xReauthToken ? { xReauthToken } : {}),
         });
         setAccessToken(null);
         setUser(null);
@@ -114,6 +123,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             verifyEmail,
             resendVerification,
             googleLogin,
+            xLogin,
             logout,
             deleteAccount,
             refreshUser: fetchUser,

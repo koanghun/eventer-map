@@ -13,8 +13,19 @@ import { Button } from '../ui/button';
 import { Label } from '../ui/label';
 import { toast } from '../../store/useToastStore';
 import { User, Mail, Lock, CheckCircle, AlertCircle, UserX } from 'lucide-react';
-import { usePatchUsersMe, usePutUsersMePassword, usePostUsersMeLinkGoogle, usePostUsersMeUnlinkGoogle } from '../../api/generated/user/user';
+import {
+    usePatchUsersMe,
+    usePutUsersMePassword,
+    usePostUsersMeLinkGoogle,
+    usePostUsersMeUnlinkGoogle,
+    usePostUsersMeLinkXAuthorize,
+    usePostUsersMeLinkX,
+    usePostUsersMeUnlinkX,
+    usePostUsersMeReauthXAuthorize,
+    usePostUsersMeReauthX,
+} from '../../api/generated/user/user';
 import { useGoogleLogin } from '@react-oauth/google';
+import { startXOAuthFlow, XOAuthCancelledError, XOAuthRedirectStartedError } from '../../lib/xOAuth';
 
 interface ProfileSettingsModalProps {
     isOpen: boolean;
@@ -40,6 +51,11 @@ export default function ProfileSettingsModal({ isOpen, onClose }: ProfileSetting
 
     const linkGoogleMutation = usePostUsersMeLinkGoogle();
     const unlinkGoogleMutation = usePostUsersMeUnlinkGoogle();
+    const linkXAuthorizeMutation = usePostUsersMeLinkXAuthorize();
+    const linkXMutation = usePostUsersMeLinkX();
+    const unlinkXMutation = usePostUsersMeUnlinkX();
+    const reauthXAuthorizeMutation = usePostUsersMeReauthXAuthorize();
+    const reauthXMutation = usePostUsersMeReauthX();
 
     const googleLogin = useGoogleLogin({
         onSuccess: async (tokenResponse) => {
@@ -67,6 +83,7 @@ export default function ProfileSettingsModal({ isOpen, onClose }: ProfileSetting
     if (!user) return null;
 
     const isGoogleLinked = user?.isGoogleLinked || false;
+    const isXLinked = user?.isXLinked || false;
 
     const handleSaveProfile = async () => {
         setIsSubmitting(true);
@@ -106,10 +123,10 @@ export default function ProfileSettingsModal({ isOpen, onClose }: ProfileSetting
         }
     };
 
-    const finishDelete = async (password?: string, googleAccessToken?: string) => {
+    const finishDelete = async (password?: string, googleAccessToken?: string, xReauthToken?: string) => {
         setIsSubmitting(true);
         try {
-            await deleteAccount(password, googleAccessToken);
+            await deleteAccount(password, googleAccessToken, xReauthToken);
             setIsDeleteOpen(false);
             setDeletePassword('');
             onClose();
@@ -121,6 +138,25 @@ export default function ProfileSettingsModal({ isOpen, onClose }: ProfileSetting
     };
 
     const handleDeleteAccount = () => finishDelete(user.hasPassword ? deletePassword : undefined);
+
+    const handleXReauthDelete = async () => {
+        setIsSubmitting(true);
+        try {
+            const { code, state } = await startXOAuthFlow('reauth', async () => {
+                const res = await reauthXAuthorizeMutation.mutateAsync();
+                return res.authorizeUrl;
+            });
+            const { xReauthToken } = await reauthXMutation.mutateAsync({ data: { code, state } });
+            await finishDelete(undefined, undefined, xReauthToken);
+        } catch (error: any) {
+            if (error instanceof XOAuthCancelledError || error instanceof XOAuthRedirectStartedError) {
+                return;
+            }
+            toast.apiError(error, t('profile.deleteXReauthFailed', 'X 재인증에 실패했습니다.'));
+        } finally {
+            setIsSubmitting(false);
+        }
+    };
 
     const handleGoogleLink = async () => {
         if (isGoogleLinked) {
@@ -134,6 +170,37 @@ export default function ProfileSettingsModal({ isOpen, onClose }: ProfileSetting
             }
         } else {
             googleLogin();
+        }
+    };
+
+    const handleXLink = async () => {
+        setIsSubmitting(true);
+        try {
+            if (isXLinked) {
+                await unlinkXMutation.mutateAsync();
+                await refreshUser();
+                toast.success(t('profile.xUnlinked', 'X 계정 연동이 해제되었습니다.'));
+            } else {
+                const { code, state } = await startXOAuthFlow('link', async () => {
+                    const res = await linkXAuthorizeMutation.mutateAsync();
+                    return res.authorizeUrl;
+                });
+                await linkXMutation.mutateAsync({ data: { code, state } });
+                await refreshUser();
+                toast.success(t('profile.xLinked', 'X 계정이 연동되었습니다.'));
+            }
+        } catch (error: any) {
+            if (error instanceof XOAuthCancelledError || error instanceof XOAuthRedirectStartedError) {
+                return;
+            }
+            toast.apiError(
+                error,
+                isXLinked
+                    ? t('profile.xUnlinkFailed', 'X 계정 연동 해제에 실패했습니다.')
+                    : t('profile.xLinkFailed', 'X 계정 연동에 실패했습니다.')
+            );
+        } finally {
+            setIsSubmitting(false);
         }
     };
 
@@ -163,6 +230,7 @@ export default function ProfileSettingsModal({ isOpen, onClose }: ProfileSetting
                             <Input
                                 id="email"
                                 value={user.email || ''}
+                                placeholder={t('profile.noEmailPlaceholder', '이메일 없음 (X 계정으로 가입)')}
                                 disabled
                                 className="bg-muted/50"
                             />
@@ -196,6 +264,11 @@ export default function ProfileSettingsModal({ isOpen, onClose }: ProfileSetting
                             {t('profile.changePassword', '비밀번호 변경')}
                         </h4>
                         
+                        {!user.email ? (
+                            <p className="text-xs text-muted-foreground bg-muted/40 border rounded-md p-3">
+                                {t('profile.passwordUnavailableNoEmail', '이메일 정보가 없는 X 계정은 비밀번호를 설정할 수 없습니다.')}
+                            </p>
+                        ) : (
                         <div className="space-y-3">
                             {user.hasPassword && (
                                 <div className="space-y-2">
@@ -235,6 +308,7 @@ export default function ProfileSettingsModal({ isOpen, onClose }: ProfileSetting
                                 {user.hasPassword ? t('profile.updatePassword', '비밀번호 변경하기') : t('profile.setPassword', '비밀번호 설정하기')}
                             </Button>
                         </div>
+                        )}
                     </div>
 
                     {/* Linked Accounts Section */}
@@ -266,8 +340,41 @@ export default function ProfileSettingsModal({ isOpen, onClose }: ProfileSetting
                                 variant={isGoogleLinked ? "outline" : "default"}
                                 size="sm"
                                 onClick={handleGoogleLink}
+                                disabled={isSubmitting}
                             >
                                 {isGoogleLinked ? t('profile.disconnect', '해제') : t('profile.connect', '연동하기')}
+                            </Button>
+                        </div>
+
+                        <div className="flex items-center justify-between p-3 border rounded-lg bg-card">
+                            <div className="flex items-center gap-3">
+                                <div className="w-8 h-8 bg-black text-white rounded-full flex items-center justify-center p-1.5 border border-border">
+                                    <svg viewBox="0 0 24 24" className="w-full h-full fill-current" aria-hidden="true">
+                                        <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
+                                    </svg>
+                                </div>
+                                <div className="flex flex-col">
+                                    <span className="font-medium text-sm">X (Twitter)</span>
+                                    <span className="text-xs text-muted-foreground flex items-center gap-1">
+                                        {isXLinked ? (
+                                            <>
+                                                <CheckCircle className="w-3 h-3 text-green-500" />
+                                                {t('profile.connected', '연동됨')}
+                                                {user.xUsername ? ` (@${user.xUsername})` : ''}
+                                            </>
+                                        ) : (
+                                            <><AlertCircle className="w-3 h-3 text-yellow-500" /> {t('profile.notConnected', '연동 안됨')}</>
+                                        )}
+                                    </span>
+                                </div>
+                            </div>
+                            <Button
+                                variant={isXLinked ? "outline" : "default"}
+                                size="sm"
+                                onClick={handleXLink}
+                                disabled={isSubmitting}
+                            >
+                                {isXLinked ? t('profile.disconnect', '해제') : t('profile.connect', '연동하기')}
                             </Button>
                         </div>
                     </div>
@@ -315,22 +422,31 @@ export default function ProfileSettingsModal({ isOpen, onClose }: ProfileSetting
                             />
                         </div>
                     )}
-                    <div className="flex justify-end gap-2 pt-2">
+                    <div className="flex justify-end flex-wrap gap-2 pt-2">
                         <Button variant="outline" onClick={() => setIsDeleteOpen(false)} disabled={isSubmitting}>
                             {t('profile.deleteAccountCancel', '취소')}
                         </Button>
-                        {!user.hasPassword && isGoogleLinked ? (
-                            <Button variant="destructive" onClick={() => googleReauth()} disabled={isSubmitting}>
-                                {t('profile.deleteWithGoogle', 'Google 재인증 후 탈퇴')}
-                            </Button>
-                        ) : (
+                        {user.hasPassword ? (
                             <Button
                                 variant="destructive"
                                 onClick={handleDeleteAccount}
-                                disabled={isSubmitting || (user.hasPassword && !deletePassword)}
+                                disabled={isSubmitting || !deletePassword}
                             >
                                 {t('profile.deleteAccountConfirm', '탈퇴하기')}
                             </Button>
+                        ) : (
+                            <>
+                                {isGoogleLinked && (
+                                    <Button variant="destructive" onClick={() => googleReauth()} disabled={isSubmitting}>
+                                        {t('profile.deleteWithGoogle', 'Google 재인증 후 탈퇴')}
+                                    </Button>
+                                )}
+                                {isXLinked && (
+                                    <Button variant="destructive" onClick={handleXReauthDelete} disabled={isSubmitting}>
+                                        {t('profile.deleteWithX', 'X 재인증 후 탈퇴')}
+                                    </Button>
+                                )}
+                            </>
                         )}
                     </div>
                 </DialogContent>

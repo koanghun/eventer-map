@@ -42,6 +42,31 @@ Parameters:
       - Strict
     Description: SameSite attribute for refreshToken cookie (use None when CloudFront and API Gateway use separate domains, Lax when sharing root domain)
 
+  # TODO(security): migrate sensitive parameters (DatabaseUrl, JwtSecret, XClientSecret) to AWS Secrets Manager or SSM SecureString
+  XClientId:
+    Type: String
+    Default: ""
+    Description: X (Twitter) OAuth 2.0 Client ID
+
+  XClientSecret:
+    Type: String
+    NoEcho: true
+    Default: ""
+    Description: X (Twitter) OAuth 2.0 Client Secret
+
+  XRedirectUri:
+    Type: String
+    Default: ""
+    Description: X (Twitter) OAuth 2.0 Callback URL (e.g., https://eventer-map.com/auth/x/callback)
+
+  XRequestEmail:
+    Type: String
+    Default: "false"
+    AllowedValues:
+      - "true"
+      - "false"
+    Description: Request users.email scope during X OAuth when enabled in X Developer Portal
+
 Globals:
   Function:
     Timeout: 30
@@ -62,6 +87,12 @@ Resources:
       Policies:
         - S3CrudPolicy:
             BucketName: !Ref MediaBucket
+        - Statement:
+            - Effect: Allow
+              Action:
+                - dynamodb:PutItem
+                - dynamodb:DeleteItem
+              Resource: !GetAtt OAuthStatesTable.Arn
       Environment:
         Variables:
           ENV: !Ref Stage
@@ -71,6 +102,11 @@ Resources:
           COOKIE_DOMAIN: !Ref CookieDomain
           COOKIE_SAMESITE: !Ref CookieSameSite
           S3_MEDIA_BUCKET: !Ref MediaBucket
+          DYNAMODB_OAUTH_STATE_TABLE: !Ref OAuthStatesTable
+          X_CLIENT_ID: !Ref XClientId
+          X_CLIENT_SECRET: !Ref XClientSecret
+          X_REDIRECT_URI: !Ref XRedirectUri
+          X_REQUEST_EMAIL: !Ref XRequestEmail
       Events:
         CatchAll:
           Type: Api
@@ -113,6 +149,25 @@ Resources:
             Principal: "*"
             Action: s3:GetObject
             Resource: !Sub "${MediaBucket.Arn}/artists/profiles/*"
+
+  # ============================================================================
+  # 1-2. OAuth State Store: DynamoDB Table for Short-Lived PKCE & CSRF States
+  # ============================================================================
+  OAuthStatesTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: state_hash
+          AttributeType: S
+      KeySchema:
+        - AttributeName: state_hash
+          KeyType: HASH
+      TimeToLiveSpecification:
+        AttributeName: expires_at
+        Enabled: true
+      SSESpecification:
+        SSEEnabled: true
 
   # ============================================================================
   # 2. Frontend: S3 Bucket (Private) + CloudFront (OAC)

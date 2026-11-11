@@ -1,6 +1,6 @@
 -- name: CreateUser :one
-INSERT INTO users (email, display_name, password_hash, google_id)
-VALUES ($1, $2, $3, $4)
+INSERT INTO users (email, display_name, password_hash, google_id, x_id, x_username, is_email_verified)
+VALUES ($1, $2, $3, $4, $5, $6, $7)
 RETURNING *;
 
 -- name: GetUserByEmail :one
@@ -10,6 +10,10 @@ WHERE email = $1 LIMIT 1;
 -- name: GetUserByGoogleID :one
 SELECT * FROM users
 WHERE google_id = $1 LIMIT 1;
+
+-- name: GetUserByXID :one
+SELECT * FROM users
+WHERE x_id = $1 LIMIT 1;
 
 -- name: GetUserByID :one
 SELECT * FROM users
@@ -42,6 +46,11 @@ WHERE id = $1;
 -- name: UpdateUserGoogleID :exec
 UPDATE users
 SET google_id = $2, updated_at = NOW()
+WHERE id = $1;
+
+-- name: UpdateUserXAccount :exec
+UPDATE users
+SET x_id = $2, x_username = $3, updated_at = NOW()
 WHERE id = $1;
 
 -- name: UpdateUnverifiedUserSignup :execrows

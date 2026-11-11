@@ -10,11 +10,30 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
-type UserService struct {
-	repo *repository.Queries
+type userRepository interface {
+	ListUserEventActions(ctx context.Context, userID uuid.UUID) ([]repository.ListUserEventActionsRow, error)
+	CheckBlockExists(ctx context.Context, arg repository.CheckBlockExistsParams) (bool, error)
+	FollowUser(ctx context.Context, arg repository.FollowUserParams) error
+	UnfollowUser(ctx context.Context, arg repository.UnfollowUserParams) error
+	BlockUser(ctx context.Context, arg repository.BlockUserParams) error
+	DeleteMutualFollows(ctx context.Context, arg repository.DeleteMutualFollowsParams) error
+	UnblockUser(ctx context.Context, arg repository.UnblockUserParams) error
+	ListFollowing(ctx context.Context, arg repository.ListFollowingParams) ([]repository.ListFollowingRow, error)
+	ListFollowers(ctx context.Context, arg repository.ListFollowersParams) ([]repository.ListFollowersRow, error)
+	ListFollowingEvents(ctx context.Context, arg repository.ListFollowingEventsParams) ([]repository.Event, error)
+	CheckNicknameExists(ctx context.Context, displayName string) (bool, error)
+	UpdateUserProfile(ctx context.Context, arg repository.UpdateUserProfileParams) (repository.User, error)
+	GetUserByID(ctx context.Context, id uuid.UUID) (repository.User, error)
+	DeleteVerificationToken(ctx context.Context, email string) error
+	DeleteUser(ctx context.Context, id uuid.UUID) error
+	UpdateUserPassword(ctx context.Context, arg repository.UpdateUserPasswordParams) error
 }
 
-func NewUserService(repo *repository.Queries) *UserService {
+type UserService struct {
+	repo userRepository
+}
+
+func NewUserService(repo userRepository) *UserService {
 	return &UserService{repo: repo}
 }
 func (s *UserService) ListUserEventActions(ctx context.Context, userID uuid.UUID) ([]repository.ListUserEventActionsRow, error) {
@@ -122,14 +141,16 @@ var (
 	ErrInvalidCurrentPassword = errors.New("invalid current password")
 	// ErrReauthRequired is returned when a passwordless account has not re-authenticated.
 	ErrReauthRequired = errors.New("re-authentication required")
+	// ErrEmailRequiredForPassword is returned when an email-less account attempts to set a password.
+	ErrEmailRequiredForPassword = errors.New("email is required to set a password")
 )
 
 // DeleteAccount permanently removes the user after verifying their identity:
 //   - accounts with a password must supply it;
-//   - passwordless Google accounts must supply the verified Google ID (googleID) of the same account.
+//   - passwordless social accounts must supply a matching verified Google or X ID.
 //
 // Related rows follow the FK policy (SET NULL for authored content, CASCADE for personal data).
-func (s *UserService) DeleteAccount(ctx context.Context, userID uuid.UUID, currentPassword, verifiedGoogleID string) error {
+func (s *UserService) DeleteAccount(ctx context.Context, userID uuid.UUID, currentPassword, verifiedGoogleID, verifiedXID string) error {
 	user, err := s.repo.GetUserByID(ctx, userID)
 	if err != nil {
 		return err
@@ -143,10 +164,22 @@ func (s *UserService) DeleteAccount(ctx context.Context, userID uuid.UUID, curre
 		if err := bcrypt.CompareHashAndPassword([]byte(user.PasswordHash.String), []byte(currentPassword)); err != nil {
 			return ErrInvalidCurrentPassword
 		}
+	case user.GoogleID.Valid && user.XID.Valid:
+		googleMatch := verifiedGoogleID != "" && verifiedGoogleID == user.GoogleID.String
+		xMatch := verifiedXID != "" && verifiedXID == user.XID.String
+		if !googleMatch && !xMatch {
+			return ErrReauthRequired
+		}
 	case user.GoogleID.Valid:
 		if verifiedGoogleID == "" || verifiedGoogleID != user.GoogleID.String {
 			return ErrReauthRequired
 		}
+	case user.XID.Valid:
+		if verifiedXID == "" || verifiedXID != user.XID.String {
+			return ErrReauthRequired
+		}
+	default:
+		return ErrReauthRequired
 	}
 
 	if user.Email.Valid {
@@ -161,6 +194,9 @@ func (s *UserService) UpdatePassword(ctx context.Context, userID uuid.UUID, curr
 	user, err := s.repo.GetUserByID(ctx, userID)
 	if err != nil {
 		return err
+	}
+	if !user.Email.Valid {
+		return ErrEmailRequiredForPassword
 	}
 
 	if user.PasswordHash.Valid {

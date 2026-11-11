@@ -77,6 +77,55 @@ paths:
                 $ref: "#/components/schemas/TokenResponse"
         "401":
           description: 인증 실패 (유효하지 않은 구글 토큰)
+  /auth/x/authorize:
+    post:
+      tags:
+        - Auth
+      operationId: PostAuthXAuthorize
+      summary: X 로그인 인가 URL 발급
+      description: X OAuth 2.0 PKCE 흐름을 시작하기 위한 인가 URL과 서버 측 state를 생성합니다.
+      responses:
+        "200":
+          description: 인가 URL 발급 성공
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/XOAuthAuthorizeResponse"
+        "503":
+          description: X OAuth 설정이 구성되지 않음
+  /auth/x/login:
+    post:
+      tags:
+        - Auth
+      operationId: PostAuthXLogin
+      summary: X 로그인 / 회원가입 콜백 처리
+      description: X OAuth 2.0 인가 코드와 state를 검증하여 로그인하거나 신규 계정을 생성하고 자체 JWT(Access, Refresh)를 발급합니다.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/XOAuthCallbackRequest"
+      responses:
+        "200":
+          description: 인증 성공
+          headers:
+            Set-Cookie:
+              schema:
+                type: string
+              description: HttpOnly 리프레시 토큰
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TokenResponse"
+        "400":
+          description: 잘못된 요청 또는 유효하지 않은 state
+        "401":
+          description: X 토큰 교환 또는 사용자 조회 실패
+        "403":
+          description: 정지된 계정
+        "409":
+          description: 이미 가입된 이메일과 충돌
   /auth/refresh:
     post:
       tags:
@@ -254,7 +303,7 @@ paths:
         - User
       operationId: DeleteUsersMe
       summary: 회원 탈퇴
-      description: 현재 로그인된 사용자의 계정을 삭제합니다. 비밀번호가 설정된 계정은 현재 비밀번호, 비밀번호가 없는 구글 계정은 구글 재인증이 필요합니다.
+      description: 현재 로그인된 사용자의 계정을 삭제합니다. 비밀번호가 설정된 계정은 현재 비밀번호, 비밀번호가 없는 소셜 계정은 Google 또는 X 재인증이 필요합니다.
       security:
         - bearerAuth: []
       requestBody:
@@ -278,7 +327,7 @@ paths:
         "401":
           description: 인증 실패
         "403":
-          description: 본인 재인증 실패 (구글 재인증 필요 또는 다른 구글 계정)
+          description: 본인 재인증 실패 (소셜 재인증 필요 또는 다른 소셜 계정)
   /users/me/password:
     put:
       tags:
@@ -374,6 +423,130 @@ paths:
           description: 잘못된 요청
         "401":
           description: 인증 실패 (유효하지 않은 JWT)
+  /users/me/link-x/authorize:
+    post:
+      tags:
+        - User
+      operationId: PostUsersMeLinkXAuthorize
+      summary: X 계정 연동 인가 URL 발급
+      description: 현재 로그인된 계정에 X 계정을 연동하기 위한 OAuth 2.0 PKCE 인가 URL을 발급합니다.
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: 인가 URL 발급 성공
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/XOAuthAuthorizeResponse"
+        "401":
+          description: 인증 실패
+        "503":
+          description: X OAuth 설정이 구성되지 않음
+  /users/me/link-x:
+    post:
+      tags:
+        - User
+      operationId: PostUsersMeLinkX
+      summary: X 계정 연동
+      description: X OAuth 2.0 인가 코드와 state를 검증하여 현재 로그인된 사용자 계정에 X 계정을 연동합니다.
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/XOAuthCallbackRequest"
+      responses:
+        "200":
+          description: X 계정 연동 성공
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+        "400":
+          description: 잘못된 요청이거나 이미 X 계정이 연동됨
+        "401":
+          description: 인증 실패 (유효하지 않은 JWT 또는 X 인증 실패)
+        "409":
+          description: 이미 다른 사용자에게 연동된 X 계정
+  /users/me/unlink-x:
+    post:
+      tags:
+        - User
+      operationId: PostUsersMeUnlinkX
+      summary: X 계정 연동 해제
+      description: 현재 로그인된 사용자의 계정에 X 계정 연동을 해제합니다. 다른 로그인 수단이 없는 경우 해제할 수 없습니다.
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: X 계정 연동 해제 성공
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+        "400":
+          description: 마지막 로그인 수단이므로 해제 불가
+        "401":
+          description: 인증 실패 (유효하지 않은 JWT)
+  /users/me/reauth-x/authorize:
+    post:
+      tags:
+        - User
+      operationId: PostUsersMeReauthXAuthorize
+      summary: 회원 탈퇴용 X 재인증 인가 URL 발급
+      description: 비밀번호 없는 X 연동 계정의 회원 탈퇴 전 본인 재인증을 위한 X OAuth 2.0 PKCE 인가 URL을 발급합니다.
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: 인가 URL 발급 성공
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/XOAuthAuthorizeResponse"
+        "400":
+          description: X 계정이 연동되어 있지 않음
+        "401":
+          description: 인증 실패
+        "503":
+          description: X OAuth 설정이 구성되지 않음
+  /users/me/reauth-x:
+    post:
+      tags:
+        - User
+      operationId: PostUsersMeReauthX
+      summary: 회원 탈퇴용 X 재인증 완료
+      description: X OAuth 2.0 콜백을 검증하여 현재 사용자 본인임을 확인하고 단기 재인증 토큰을 발급합니다.
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/XOAuthCallbackRequest"
+      responses:
+        "200":
+          description: 재인증 성공
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/XReauthResponse"
+        "400":
+          description: 잘못된 요청 또는 state 불일치
+        "401":
+          description: 인증 실패
+        "403":
+          description: 연동된 X 계정과 일치하지 않음
   /users/me/following-artists:
     get:
       tags:
@@ -1750,6 +1923,39 @@ components:
         idToken:
           type: string
           description: 클라이언트로부터 전달받은 구글 ID 토큰
+    XOAuthAuthorizeResponse:
+      type: object
+      required:
+        - authorizeUrl
+      properties:
+        authorizeUrl:
+          type: string
+          format: uri
+          description: X OAuth 2.0 인가 페이지 URL
+    XOAuthCallbackRequest:
+      type: object
+      required:
+        - code
+        - state
+      properties:
+        code:
+          type: string
+          minLength: 1
+          maxLength: 512
+          description: X OAuth 2.0 인가 코드
+        state:
+          type: string
+          minLength: 1
+          maxLength: 256
+          description: CSRF 검증용 state 토큰
+    XReauthResponse:
+      type: object
+      required:
+        - xReauthToken
+      properties:
+        xReauthToken:
+          type: string
+          description: 회원 탈퇴 본인 확인용 단기 X 재인증 토큰
     TokenResponse:
       type: object
       required:
@@ -1786,6 +1992,9 @@ components:
         googleAccessToken:
           type: string
           description: 비밀번호가 없는 구글 연동 계정의 본인 재인증용 구글 액세스 토큰
+        xReauthToken:
+          type: string
+          description: 비밀번호가 없는 X 연동 계정의 본인 재인증용 토큰
     ResendVerificationRequest:
       type: object
       required:
@@ -1831,7 +2040,8 @@ components:
         email:
           type: string
           format: email
-          description: 사용자 이메일
+          nullable: true
+          description: 사용자 이메일 (이메일 없는 X 가입 시 null)
         displayName:
           type: string
           description: 표시 이름 (닉네임)
@@ -1842,6 +2052,13 @@ components:
         isGoogleLinked:
           type: boolean
           description: 구글 연동 여부
+        isXLinked:
+          type: boolean
+          description: X 연동 여부
+        xUsername:
+          type: string
+          nullable: true
+          description: 연동된 X 사용자 핸들
         role:
           type: string
           enum: [USER, ADMIN]

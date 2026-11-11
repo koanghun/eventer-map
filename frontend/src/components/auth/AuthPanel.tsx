@@ -4,10 +4,13 @@ import { Button } from '../ui/button';
 import { Input } from '../ui/input';
 import { Label } from '../ui/label';
 import LoginButton from '../common/LoginButton';
+import XLoginButton from '../common/XLoginButton';
 import { useAuth } from '../../context/AuthContext';
 import { toast } from '../../store/useToastStore';
 import { useTranslation } from 'react-i18next';
 import { useGoogleLogin } from '@react-oauth/google';
+import { postAuthXAuthorize } from '../../api/generated/auth/auth';
+import { startXOAuthFlow, XOAuthCancelledError, XOAuthRedirectStartedError } from '../../lib/xOAuth';
 
 interface AuthPanelProps {
     onClose: () => void;
@@ -16,7 +19,7 @@ interface AuthPanelProps {
 type AuthView = 'login' | 'signup' | 'verifyEmail' | 'findId' | 'findPassword';
 
 export default function AuthPanel({ onClose }: AuthPanelProps) {
-    const { login, signup, verifyEmail, resendVerification, googleLogin: contextGoogleLogin } = useAuth();
+    const { login, signup, verifyEmail, resendVerification, googleLogin: contextGoogleLogin, xLogin: contextXLogin } = useAuth();
     const { t } = useTranslation();
     const [view, setView] = useState<AuthView>('login');
     const [email, setEmail] = useState('');
@@ -43,6 +46,40 @@ export default function AuthPanel({ onClose }: AuthPanelProps) {
             toast.error(t('auth.loginFailed', '로그인에 실패했습니다.'));
         }
     });
+
+    const handleXLogin = async () => {
+        setIsSubmitting(true);
+        try {
+            const { code, state } = await startXOAuthFlow('login', async () => {
+                const res = await postAuthXAuthorize();
+                return res.authorizeUrl;
+            });
+            await contextXLogin(code, state);
+            onClose();
+        } catch (err: any) {
+            if (err instanceof XOAuthCancelledError || err instanceof XOAuthRedirectStartedError) {
+                return;
+            }
+            toast.apiError(err, t('auth.loginFailed', '로그인에 실패했습니다.'));
+        } finally {
+            setIsSubmitting(false);
+        }
+    };
+
+    const renderSocialDividerAndButtons = () => (
+        <>
+            <div className="relative flex items-center py-2">
+                <div className="flex-grow border-t border-border"></div>
+                <span className="flex-shrink-0 mx-4 text-xs text-muted-foreground">{t('auth.or', 'or')}</span>
+                <div className="flex-grow border-t border-border"></div>
+            </div>
+
+            <div className="flex flex-col gap-2 w-full">
+                <LoginButton onClick={() => googleLogin()} disabled={isSubmitting} className="w-full" />
+                <XLoginButton onClick={handleXLogin} disabled={isSubmitting} className="w-full" />
+            </div>
+        </>
+    );
 
     const handleLogin = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -148,15 +185,7 @@ export default function AuthPanel({ onClose }: AuthPanelProps) {
                 </Button>
             </form>
 
-            <div className="relative flex items-center py-2">
-                <div className="flex-grow border-t border-border"></div>
-                <span className="flex-shrink-0 mx-4 text-xs text-muted-foreground">{t('auth.or', 'or')}</span>
-                <div className="flex-grow border-t border-border"></div>
-            </div>
-
-            <div className="flex justify-center w-full">
-                <LoginButton onClick={() => googleLogin()} />
-            </div>
+            {renderSocialDividerAndButtons()}
 
             <div className="flex items-center justify-center gap-4 text-xs font-medium mt-2">
                 <button onClick={() => setView('signup')} className="text-muted-foreground hover:text-primary transition-colors">{t('auth.signup', 'Sign up')}</button>
@@ -191,7 +220,8 @@ export default function AuthPanel({ onClose }: AuthPanelProps) {
                 {isSubmitting ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : null}
                 {t('auth.signupSubmit', 'Sign up')}
             </Button>
-            <Button variant="ghost" onClick={() => setView('login')} className="w-full text-xs text-muted-foreground mt-2">
+            {renderSocialDividerAndButtons()}
+            <Button type="button" variant="ghost" onClick={() => setView('login')} className="w-full text-xs text-muted-foreground mt-2">
                 {t('auth.backToLogin', 'Back to Login')}
             </Button>
         </form>
