@@ -6,10 +6,13 @@ import { Plus } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useEventStore } from '../store/useEventStore';
 import { useGetEvents } from '../api/generated/events/events';
+import { useGetArtistsArtistId } from '../api/generated/artists/artists';
+import { useGetVenuesVenueId } from '../api/generated/venues/venues';
 import type { EventSummary } from '../api/generated/model';
 import { Button } from '../components/ui/button';
 import DatePicker from '../components/common/DatePicker';
 import ArtistSearch from '../components/events/ArtistSearch';
+import { ArtistInfoCard, VenueInfoCard } from '../components/events/EntityInfoCard';
 import EventList from '../components/events/EventList';
 import EventMap from '../components/map/EventMap';
 import EventFormPane from '../components/events/EventFormPane';
@@ -60,6 +63,30 @@ export default function MapPage() {
     );
 
     const filteredEvents: EventSummary[] = eventsData?.events || [];
+
+    const {
+        data: selectedArtistDetail,
+        isLoading: isArtistDetailLoading,
+        isError: isArtistDetailError,
+        refetch: refetchArtistDetail,
+    } = useGetArtistsArtistId(artistId || '', {
+        query: {
+            enabled: Boolean(artistId),
+            staleTime: 60 * 1000,
+        },
+    });
+
+    const {
+        data: selectedVenueDetail,
+        isLoading: isVenueDetailLoading,
+        isError: isVenueDetailError,
+        refetch: refetchVenueDetail,
+    } = useGetVenuesVenueId(venueId || '', {
+        query: {
+            enabled: Boolean(venueId),
+            staleTime: 60 * 1000,
+        },
+    });
 
     // 지도 등에서 이벤트가 선택되면 생성 폼을 닫고 상세 화면을 좌측 사이드바에 표시
     useEffect(() => {
@@ -123,6 +150,8 @@ export default function MapPage() {
             venueId: null,
             venueName: null,
         });
+        setIsFormOpen(false);
+        setEditingEvent(null);
         clearSelection();
     };
 
@@ -140,6 +169,8 @@ export default function MapPage() {
         if (typeof venue.lat === 'number' && typeof venue.lng === 'number') {
             setMapCenterTarget({ lat: venue.lat, lng: venue.lng });
         }
+        setIsFormOpen(false);
+        setEditingEvent(null);
         clearSelection();
     };
 
@@ -182,15 +213,22 @@ export default function MapPage() {
                             <ArtistSearch
                                 selectedArtist={
                                     artistId
-                                        ? { id: artistId, name: artistName || artistId }
-                                        : null
+                                            ? {
+                                                id: artistId,
+                                                name: selectedArtistDetail?.officialName || artistName || t('eventDetail.loading', '불러오는 중...'),
+                                            }
+                                            : null
                                 }
                                 selectedVenue={
                                     venueId
-                                        ? { id: venueId, name: venueName || venueId }
-                                        : null
+                                            ? {
+                                                id: venueId,
+                                                name: selectedVenueDetail?.officialName || venueName || t('eventDetail.loading', '불러오는 중...'),
+                                            }
+                                            : null
                                 }
                                 onSelectArtist={handleSearchByArtist}
+                                onSelectVenue={handleSearchByVenue}
                                 onClearFilter={handleClearEntityFilter}
                             />
                             {isAuthenticated && (
@@ -200,6 +238,33 @@ export default function MapPage() {
                             )}
                         </div>
                         <div className="flex-1 min-h-[300px] md:min-h-0 overflow-y-auto">
+                            {artistId && (
+                                <ArtistInfoCard
+                                    artistId={artistId}
+                                    artist={selectedArtistDetail}
+                                    initialName={artistName}
+                                    isLoading={isArtistDetailLoading}
+                                    isError={isArtistDetailError}
+                                    onRetry={() => {
+                                        void refetchArtistDetail();
+                                    }}
+                                    onClear={handleClearEntityFilter}
+                                />
+                            )}
+                            {venueId && (
+                                <VenueInfoCard
+                                    venueId={venueId}
+                                    venue={selectedVenueDetail}
+                                    initialName={venueName}
+                                    isLoading={isVenueDetailLoading}
+                                    isError={isVenueDetailError}
+                                    onRetry={() => {
+                                        void refetchVenueDetail();
+                                    }}
+                                    onCenterMap={(coords) => setMapCenterTarget(coords)}
+                                    onClear={handleClearEntityFilter}
+                                />
+                            )}
                             <EventList
                                 events={filteredEvents}
                                 loading={isEventsLoading}

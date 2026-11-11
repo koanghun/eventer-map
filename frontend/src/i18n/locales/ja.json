@@ -16,11 +16,12 @@
         "isRange": "期間選択"
     },
     "performerFilter": {
-        "label": "出演者検索",
-        "placeholder": "出演者名または別名を入力",
+        "label": "出演者・会場検索",
+        "placeholder": "出演者名または会場名を入力",
         "clearFilter": "フィルター解除",
-        "noResults": "一致する登録済みの出演者がありません。",
-        "searchError": "出演者の検索中にエラーが発生しました。"
+        "searchError": "検索中にエラーが発生しました。",
+        "artistsGroup": "出演者",
+        "venuesGroup": "会場"
     },
     "auth": {
         "resendCode": "コードを再送信",
@@ -563,5 +564,27 @@
         "invalidCapacity": "収容人数は1以上の数値で入力してください。",
         "createSuccess": "新規会場が登録され、選択されました。",
         "createFail": "会場の登録に失敗しました。"
+    },
+    "entityInfo": {
+        "artistTitle": "出演者情報",
+        "venueTitle": "会場情報",
+        "loadArtistError": "出演者情報の読み込みに失敗しました。",
+        "loadVenueError": "会場情報の読み込みに失敗しました。",
+        "noRatings": "評価なし",
+        "followersCount": "フォロワー {{count}}人",
+        "followersCountPlus": "フォロワー {{count}}+人",
+        "follow": "フォロー",
+        "following": "フォロー中",
+        "followSuccess": "出演者をフォローしました。",
+        "unfollowSuccess": "出演者のフォローを解除しました。",
+        "followFailed": "フォロー状態の更新に失敗しました。",
+        "capacity": "収容人数 {{capacity}}人",
+        "addressUnknown": "住所情報なし",
+        "centerOnMap": "地図で位置を見る",
+        "status": {
+            "PENDING": "承認待ち",
+            "APPROVED": "承認済み",
+            "REJECTED": "却下"
+        }
     }
 }

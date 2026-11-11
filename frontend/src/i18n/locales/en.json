@@ -16,11 +16,12 @@
         "isRange": "Date Range"
     },
     "performerFilter": {
-        "label": "出演者検索",
-        "placeholder": "出演者名または別名を入力",
-        "clearFilter": "フィルター解除",
-        "noResults": "No matching registered performers found.",
-        "searchError": "An error occurred while searching for performers."
+        "placeholder": "Search performer or venue name",
+        "clearFilter": "Clear filter",
+        "noResults": "No matching performers or venues found.",
+        "searchError": "An error occurred while searching.",
+        "artistsGroup": "Performers",
+        "venuesGroup": "Venues"
     },
     "auth": {
         "resendCode": "Resend code",
@@ -563,5 +564,29 @@
         "invalidCapacity": "Capacity must be a positive number.",
         "createSuccess": "New venue registered and selected.",
         "createFail": "Failed to register venue."
+    },
+    "entityInfo": {
+        "artistTitle": "Performer Info",
+        "venueTitle": "Venue Info",
+        "loadArtistError": "Failed to load performer information.",
+        "loadVenueError": "Failed to load venue information.",
+        "noRatings": "No ratings",
+        "followersCount": "{{count}} followers",
+        "followersCount_one": "{{count}} follower",
+        "followersCount_other": "{{count}} followers",
+        "followersCountPlus": "{{count}}+ followers",
+        "follow": "Follow",
+        "following": "Following",
+        "followSuccess": "Followed performer.",
+        "unfollowSuccess": "Unfollowed performer.",
+        "followFailed": "Failed to update follow status.",
+        "capacity": "Capacity: {{capacity}}",
+        "addressUnknown": "No address available",
+        "centerOnMap": "Center on map",
+        "status": {
+            "PENDING": "Pending",
+            "APPROVED": "Approved",
+            "REJECTED": "Rejected"
+        }
     }
 }

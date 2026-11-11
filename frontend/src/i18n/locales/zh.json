@@ -15,11 +15,12 @@
         "label": "日付選択"
     },
     "performerFilter": {
-        "label": "出演者検索",
-        "placeholder": "出演者名または別名を入力",
-        "clearFilter": "フィルター解除",
-        "noResults": "未找到匹配的已登录出演者。",
-        "searchError": "搜索出演者时发生错误。"
+        "placeholder": "输入出演者或会场名称",
+        "clearFilter": "清除筛选",
+        "noResults": "未找到匹配的出演者或会场。",
+        "searchError": "搜索时发生错误。",
+        "artistsGroup": "出演者",
+        "venuesGroup": "会场"
     },
     "auth": {
         "resendCode": "重新发送验证码",
@@ -536,5 +537,27 @@
         "invalidCapacity": "容纳人数必须为大于 0 的数字。",
         "createSuccess": "新会场已登录并选中。",
         "createFail": "会场登录失败。"
+    },
+    "entityInfo": {
+        "artistTitle": "出演者信息",
+        "venueTitle": "会场信息",
+        "loadArtistError": "加载出演者信息失败。",
+        "loadVenueError": "加载会场信息失败。",
+        "noRatings": "暂无评分",
+        "followersCount": "{{count}} 位关注者",
+        "followersCountPlus": "{{count}}+ 位关注者",
+        "follow": "关注",
+        "following": "已关注",
+        "followSuccess": "已关注该出演者。",
+        "unfollowSuccess": "已取消关注该出演者。",
+        "followFailed": "更新关注状态失败。",
+        "capacity": "容纳人数 {{capacity}}人",
+        "addressUnknown": "暂无地址信息",
+        "centerOnMap": "在地图上定位",
+        "status": {
+            "PENDING": "待审核",
+            "APPROVED": "已通过",
+            "REJECTED": "已驳回"
+        }
     }
 }

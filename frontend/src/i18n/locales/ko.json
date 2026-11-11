@@ -16,11 +16,12 @@
         "isRange": "기간 선택"
     },
     "performerFilter": {
-        "label": "출연자 검색",
-        "placeholder": "출연자명 또는 별칭 입력",
+        "label": "출연자 / 공연장 검색",
+        "placeholder": "출연자명 또는 공연장명 입력",
         "clearFilter": "필터 해제",
-        "noResults": "일치하는 등록된 출연자가 없습니다.",
-        "searchError": "출연자 검색 중 오류가 발생했습니다."
+        "searchError": "검색 중 오류가 발생했습니다.",
+        "artistsGroup": "출연자",
+        "venuesGroup": "공연장"
     },
     "auth": {
         "resendCode": "코드 재전송",
@@ -563,5 +564,27 @@
         "invalidCapacity": "수용 인원은 1 이상의 숫자여야 합니다.",
         "createSuccess": "신규 회장이 등록되어 선택되었습니다.",
         "createFail": "회장 등록에 실패했습니다."
+    },
+    "entityInfo": {
+        "artistTitle": "출연자 정보",
+        "venueTitle": "공연장 정보",
+        "loadArtistError": "출연자 정보를 불러오지 못했습니다.",
+        "loadVenueError": "공연장 정보를 불러오지 못했습니다.",
+        "noRatings": "평가 없음",
+        "followersCount": "팔로워 {{count}}명",
+        "followersCountPlus": "팔로워 {{count}}+명",
+        "follow": "팔로우",
+        "following": "팔로잉",
+        "followSuccess": "출연자를 팔로우했습니다.",
+        "unfollowSuccess": "출연자 팔로우를 해제했습니다.",
+        "followFailed": "팔로우 상태 변경에 실패했습니다.",
+        "capacity": "수용 인원 {{capacity}}명",
+        "addressUnknown": "주소 정보 없음",
+        "centerOnMap": "지도에서 위치 보기",
+        "status": {
+            "PENDING": "승인 대기",
+            "APPROVED": "승인됨",
+            "REJECTED": "반려됨"
+        }
     }
 }
