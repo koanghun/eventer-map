@@ -151,6 +151,21 @@ SMTP_PASSWORD=your_app_password
 SMTP_FROM=your_service_account@gmail.com
 ```
 
+### 환경 변수 상세 설명 (`backend/internal/mailer/smtp.go`)
+
+| 환경 변수 | 역할 | 기본값 | 비어 있을 때의 동작 |
+| :--- | :--- | :--- | :--- |
+| **`SMTP_HOST`** | SMTP 메일 서버 호스트 주소 | 없음 | 실제 발송을 하지 않고 콘솔에 로그만 출력하는 **`MockMailer`로 전환** |
+| **`SMTP_PORT`** | SMTP 서버 통신 포트 번호 | `587` | `587` 포트(STARTTLS)로 연결 |
+| **`SMTP_USER`** | SMTP 서버 로그인(인증) 아이디 | 없음 | 서버 로그인 인증(`AUTH`)을 생략하고 발송 시도 |
+| **`SMTP_PASSWORD`** | SMTP 서버 로그인 비밀번호 / 앱 비밀번호 | 없음 | 빈 비밀번호로 처리 |
+| **`SMTP_FROM`** | 수신자에게 표시되는 '보낸 사람(From)' 이메일 | `SMTP_USER` 값 | `SMTP_USER` 값을 발신자 주소로 자동 사용 |
+
+- **`SMTP_HOST`**: 실제 발송과 개발 Mock 모드를 전환하는 스위치 역할도 겸합니다. (예: `smtp.gmail.com`, `smtp.naver.com`, `email-smtp.ap-northeast-2.amazonaws.com`)
+- **`SMTP_PORT`**: `587`(STARTTLS, 일반 연결 후 TLS 업그레이드)과 `465`(Implicit SSL/TLS, `tls.Dial`로 처음부터 암호화 연결)를 모두 지원합니다.
+- **`SMTP_USER` vs `SMTP_FROM`**: Gmail/Naver처럼 이메일 계정 자체로 로그인할 때는 두 값이 동일하므로 `SMTP_FROM`을 생략할 수 있습니다. 반면 **AWS SES, SendGrid, Mailgun** 등은 로그인 ID(`SMTP_USER` = IAM/API Key ID)가 이메일 형식이 아니므로, 실제 표시할 발신 주소(`SMTP_FROM` = `noreply@yourdomain.com`)를 별도로 지정해야 합니다. (*참고: Gmail 등 일반 메일 계정은 스팸 악용 방지를 위해 로그인한 `SMTP_USER`와 다른 `SMTP_FROM`을 지정해도 원래 계정 주소로 덮어쓰거나 발송을 거부할 수 있습니다.*)
+- **`SMTP_PASSWORD`**: Gmail이나 Naver 등 2단계 인증이 적용된 서비스는 일반 계정 비밀번호 대신 반드시 발급받은 **앱 비밀번호(애플리케이션 비밀번호)**를 입력해야 합니다.
+
 ### 🅰️ Google Gmail 연동 가이드 (권장: 포트 587)
 일반 구글 계정 비밀번호는 보안상 직접 사용할 수 없습니다. 반드시 **앱 비밀번호**를 생성해야 합니다.
 
