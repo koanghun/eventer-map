@@ -8,4 +8,8 @@
 export type GetUsersMeFollowingArtistsEventsParams = {
 limit?: number;
 offset?: number;
+/**
+ * true인 경우 미확인 신규 이벤트(미종료, 타인 등록, 체크 이후 등록)만 최신 등록순으로 반환
+ */
+unreadOnly?: boolean;
 };

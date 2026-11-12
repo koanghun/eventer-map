@@ -39,11 +39,13 @@ export default function UserProfile() {
         if (isTogglingOff) {
             nextParams.delete('myAction');
             nextParams.delete('followingArtists');
+            nextParams.delete('newEventsSince');
             nextParams.delete('start');
             nextParams.delete('end');
         } else {
             nextParams.set('myAction', action);
             nextParams.delete('followingArtists');
+            nextParams.delete('newEventsSince');
             nextParams.delete('artistId');
             nextParams.delete('artistName');
             nextParams.delete('venueId');
@@ -64,10 +66,12 @@ export default function UserProfile() {
 
         if (isFollowingArtistsActive) {
             nextParams.delete('followingArtists');
+            nextParams.delete('newEventsSince');
             nextParams.delete('start');
             nextParams.delete('end');
         } else {
             nextParams.set('followingArtists', 'true');
+            nextParams.delete('newEventsSince');
             nextParams.delete('myAction');
             nextParams.delete('artistId');
             nextParams.delete('artistName');

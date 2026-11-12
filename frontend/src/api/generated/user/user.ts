@@ -29,6 +29,7 @@ import type {
   GetUsersMeFollowingParams,
   GetUsersUserIdFollowersParams,
   LinkGoogleRequest,
+  PostUsersMeFollowingArtistsEventsReadBody,
   PostUsersMeLinkGoogle200,
   PostUsersMeLinkX200,
   PostUsersMeUnlinkGoogle200,
@@ -869,34 +870,36 @@ export const useGetUsersMeFollowingArtistsEvents = <TData = Awaited<ReturnType<t
 
 
 /**
- * 마지막 피드 확인 시간을 현재로 갱신하여 새 이벤트 알림을 초기화합니다.
+ * 마지막 피드 확인 시간을 현재 또는 전달된 readBefore 시각(최대 현재 시각)으로 갱신하여 새 이벤트 알림을 초기화합니다.
  * @summary 아티스트 피드 새 이벤트 읽음 처리
  */
 export const postUsersMeFollowingArtistsEventsRead = (
-    
+    postUsersMeFollowingArtistsEventsReadBody?: PostUsersMeFollowingArtistsEventsReadBody,
  options?: SecondParameter<typeof customInstance>,) => {
       
       
       return customInstance<void>(
-      {url: `/users/me/following-artists/events/read`, method: 'POST'
+      {url: `/users/me/following-artists/events/read`, method: 'POST',
+      headers: {'Content-Type': 'application/json', },
+      data: postUsersMeFollowingArtistsEventsReadBody
     },
       options);
     }
   
 
 
-export const getPostUsersMeFollowingArtistsEventsReadMutationOptions = <TError = unknown,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postUsersMeFollowingArtistsEventsRead>>, TError,void, TContext>, request?: SecondParameter<typeof customInstance>}
-): UseMutationOptions<Awaited<ReturnType<typeof postUsersMeFollowingArtistsEventsRead>>, TError,void, TContext> => {
+export const getPostUsersMeFollowingArtistsEventsReadMutationOptions = <TError = void,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postUsersMeFollowingArtistsEventsRead>>, TError,{data: PostUsersMeFollowingArtistsEventsReadBody}, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationOptions<Awaited<ReturnType<typeof postUsersMeFollowingArtistsEventsRead>>, TError,{data: PostUsersMeFollowingArtistsEventsReadBody}, TContext> => {
 const {mutation: mutationOptions, request: requestOptions} = options ?? {};
 
       
 
 
-      const mutationFn: MutationFunction<Awaited<ReturnType<typeof postUsersMeFollowingArtistsEventsRead>>, void> = () => {
-          
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof postUsersMeFollowingArtistsEventsRead>>, {data: PostUsersMeFollowingArtistsEventsReadBody}> = (props) => {
+          const {data} = props ?? {};
 
-          return  postUsersMeFollowingArtistsEventsRead(requestOptions)
+          return  postUsersMeFollowingArtistsEventsRead(data,requestOptions)
         }
 
         
@@ -905,18 +908,18 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
   return  { mutationFn, ...mutationOptions }}
 
     export type PostUsersMeFollowingArtistsEventsReadMutationResult = NonNullable<Awaited<ReturnType<typeof postUsersMeFollowingArtistsEventsRead>>>
-    
-    export type PostUsersMeFollowingArtistsEventsReadMutationError = unknown
+    export type PostUsersMeFollowingArtistsEventsReadMutationBody = PostUsersMeFollowingArtistsEventsReadBody
+    export type PostUsersMeFollowingArtistsEventsReadMutationError = void
 
     /**
  * @summary 아티스트 피드 새 이벤트 읽음 처리
  */
-export const usePostUsersMeFollowingArtistsEventsRead = <TError = unknown,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postUsersMeFollowingArtistsEventsRead>>, TError,void, TContext>, request?: SecondParameter<typeof customInstance>}
+export const usePostUsersMeFollowingArtistsEventsRead = <TError = void,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postUsersMeFollowingArtistsEventsRead>>, TError,{data: PostUsersMeFollowingArtistsEventsReadBody}, TContext>, request?: SecondParameter<typeof customInstance>}
 ): UseMutationResult<
         Awaited<ReturnType<typeof postUsersMeFollowingArtistsEventsRead>>,
         TError,
-        void,
+        {data: PostUsersMeFollowingArtistsEventsReadBody},
         TContext
       > => {
 

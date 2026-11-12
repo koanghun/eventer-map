@@ -4,6 +4,19 @@
         "subtitle": "날짜를 선택하여 이벤트를 확인하세요",
         "themeToggle": "테마 변경"
     },
+    "notifications": {
+        "ariaLabel": "신규 이벤트 알림",
+        "title": "신규 이벤트 알림",
+        "markAllRead": "모두 읽음",
+        "viewAllNew": "전체 신규 이벤트 확인",
+        "empty": "새로운 이벤트 알림이 없습니다.",
+        "emptyDesc": "팔로우한 출연자의 신규 예정 이벤트가 등록되면 여기에 표시됩니다.",
+        "loadError": "알림을 불러오지 못했습니다.",
+        "retry": "다시 시도",
+        "markReadError": "읽음 처리에 실패했습니다.",
+        "moreArtists": "{{names}} 외 {{count}}명",
+        "moreAvailableHint": "전체 목록({{count}}건)은 '전체 신규 이벤트 확인'에서 볼 수 있습니다."
+    },
     "nav": {
         "map": "지도"
     },
@@ -317,8 +330,12 @@
         },
         "followingArtists": {
             "title": "팔로우한 출연자",
+            "newEventsTitle": "팔로우 출연자 신규 이벤트",
+            "newEventsSubtitle": "새로 등록된 예정 이벤트",
+            "viewAllFollowing": "팔로우 전체 보기",
             "empty": "예정된 이벤트가 없습니다",
-            "emptyDesc": "팔로우한 출연자의 검색일 이후 일정이 없거나, 다른 날짜를 선택해보세요."
+            "newEventsEmpty": "표시할 신규 이벤트가 없습니다",
+            "newEventsEmptyDesc": "팔로우 전체 보기로 전환하거나 다른 기간을 선택해보세요."
         }
     },
     "duplicateModal": {

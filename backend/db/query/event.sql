@@ -173,7 +173,17 @@ WITH followed_event_ids AS (
     SELECT DISTINCT ea.event_id
     FROM user_artist_follows uaf
     JOIN event_artists ea ON ea.artist_id = uaf.artist_id
+    JOIN events e_check ON e_check.id = ea.event_id
     WHERE uaf.user_id = sqlc.arg('user_id')
+      AND e_check.status <> 'REJECTED'
+      AND (
+          sqlc.narg('created_after')::timestamptz IS NULL
+          OR (
+              e_check.created_at > GREATEST(sqlc.narg('created_after')::timestamptz, uaf.created_at)
+              AND e_check.end_time >= NOW()
+              AND e_check.author_id IS DISTINCT FROM sqlc.arg('user_id')
+          )
+      )
 )
 SELECT
     e.id,

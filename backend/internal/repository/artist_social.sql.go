@@ -21,7 +21,10 @@ JOIN event_artists ea ON e.id = ea.event_id
 JOIN user_artist_follows uaf ON ea.artist_id = uaf.artist_id
 JOIN users u ON uaf.user_id = u.id
 WHERE uaf.user_id = $1
-  AND e.created_at > u.last_artist_feed_checked_at
+  AND e.status <> 'REJECTED'
+  AND e.end_time >= NOW()
+  AND e.author_id IS DISTINCT FROM u.id
+  AND e.created_at > GREATEST(u.last_artist_feed_checked_at, uaf.created_at)
 `
 
 func (q *Queries) CountUnreadFollowingArtistEvents(ctx context.Context, userID uuid.UUID) (int64, error) {
@@ -48,14 +51,21 @@ func (q *Queries) FollowArtist(ctx context.Context, arg FollowArtistParams) erro
 }
 
 const getLastArtistFeedCheckedAt = `-- name: GetLastArtistFeedCheckedAt :one
-SELECT last_artist_feed_checked_at FROM users WHERE id = $1
+SELECT last_artist_feed_checked_at, NOW()::timestamptz AS fetched_at
+FROM users
+WHERE id = $1
 `
 
-func (q *Queries) GetLastArtistFeedCheckedAt(ctx context.Context, id uuid.UUID) (time.Time, error) {
+type GetLastArtistFeedCheckedAtRow struct {
+	LastArtistFeedCheckedAt time.Time
+	FetchedAt               time.Time
+}
+
+func (q *Queries) GetLastArtistFeedCheckedAt(ctx context.Context, id uuid.UUID) (GetLastArtistFeedCheckedAtRow, error) {
 	row := q.db.QueryRowContext(ctx, getLastArtistFeedCheckedAt, id)
-	var last_artist_feed_checked_at time.Time
-	err := row.Scan(&last_artist_feed_checked_at)
-	return last_artist_feed_checked_at, err
+	var i GetLastArtistFeedCheckedAtRow
+	err := row.Scan(&i.LastArtistFeedCheckedAt, &i.FetchedAt)
+	return i, err
 }
 
 const listArtistFollowers = `-- name: ListArtistFollowers :many
@@ -109,44 +119,122 @@ func (q *Queries) ListArtistFollowers(ctx context.Context, arg ListArtistFollowe
 }
 
 const listFollowingArtistEvents = `-- name: ListFollowingArtistEvents :many
-SELECT DISTINCT e.id, e.title, e.venue_id, e.opening_time, e.start_time, e.end_time, e.related_links, e.rating_sum, e.rating_count, e.status, e.author_id, e.created_at, e.updated_at
-FROM events e
-JOIN event_artists ea ON e.id = ea.event_id
-JOIN user_artist_follows uaf ON ea.artist_id = uaf.artist_id
-WHERE uaf.user_id = $1
-ORDER BY e.start_time DESC
-LIMIT $2 OFFSET $3
+WITH matched_events AS (
+    SELECT
+        e.id,
+        COALESCE(ARRAY_AGG(DISTINCT a.official_name ORDER BY a.official_name), '{}')::text[] AS matched_artist_names
+    FROM events e
+    JOIN event_artists ea ON e.id = ea.event_id
+    JOIN user_artist_follows uaf ON ea.artist_id = uaf.artist_id
+    JOIN artists a ON a.id = uaf.artist_id
+    JOIN users u ON uaf.user_id = u.id
+    WHERE uaf.user_id = $3
+      AND e.status <> 'REJECTED'
+      AND (
+          NOT $4::boolean
+          OR (
+              e.end_time >= NOW()
+              AND e.author_id IS DISTINCT FROM u.id
+              AND e.created_at > GREATEST(u.last_artist_feed_checked_at, uaf.created_at)
+          )
+      )
+    GROUP BY e.id
+)
+SELECT
+    e.id,
+    e.title,
+    e.venue_id,
+    COALESCE(v.official_name, '')::varchar AS venue_name,
+    COALESCE(v.latitude, 0)::double precision AS latitude,
+    COALESCE(v.longitude, 0)::double precision AS longitude,
+    e.start_time,
+    e.end_time,
+    e.created_at,
+    e.rating_sum,
+    e.rating_count,
+    (SELECT COUNT(*)::int FROM event_user_actions eua WHERE eua.event_id = e.id AND eua.status = 2) AS attendee_count,
+    e.status,
+    COALESCE(ta.official_name, '')::varchar AS top_artist_name,
+    COALESCE(ta.profile_image_url, '')::varchar AS top_artist_profile_image_url,
+    me.matched_artist_names
+FROM matched_events me
+JOIN events e ON e.id = me.id
+LEFT JOIN venues v ON e.venue_id = v.id
+LEFT JOIN LATERAL (
+    SELECT
+        a.official_name,
+        a.profile_image_url,
+        CASE WHEN a.rating_count > 0 THEN a.rating_sum / a.rating_count ELSE 0 END AS artist_avg_rating
+    FROM event_artists ea
+    JOIN artists a ON ea.artist_id = a.id
+    WHERE ea.event_id = e.id
+    ORDER BY
+        artist_avg_rating DESC,
+        a.rating_count DESC,
+        a.official_name ASC
+    LIMIT 1
+) ta ON true
+ORDER BY e.created_at DESC, e.id ASC
+LIMIT $2 OFFSET $1
 `
 
 type ListFollowingArtistEventsParams struct {
-	UserID uuid.UUID
-	Limit  int32
-	Offset int32
+	Offset     int32
+	Limit      int32
+	UserID     uuid.UUID
+	UnreadOnly bool
 }
 
-func (q *Queries) ListFollowingArtistEvents(ctx context.Context, arg ListFollowingArtistEventsParams) ([]Event, error) {
-	rows, err := q.db.QueryContext(ctx, listFollowingArtistEvents, arg.UserID, arg.Limit, arg.Offset)
+type ListFollowingArtistEventsRow struct {
+	ID                       uuid.UUID
+	Title                    string
+	VenueID                  uuid.NullUUID
+	VenueName                string
+	Latitude                 float64
+	Longitude                float64
+	StartTime                time.Time
+	EndTime                  time.Time
+	CreatedAt                time.Time
+	RatingSum                float64
+	RatingCount              int32
+	AttendeeCount            int32
+	Status                   string
+	TopArtistName            string
+	TopArtistProfileImageUrl string
+	MatchedArtistNames       []string
+}
+
+func (q *Queries) ListFollowingArtistEvents(ctx context.Context, arg ListFollowingArtistEventsParams) ([]ListFollowingArtistEventsRow, error) {
+	rows, err := q.db.QueryContext(ctx, listFollowingArtistEvents,
+		arg.Offset,
+		arg.Limit,
+		arg.UserID,
+		arg.UnreadOnly,
+	)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	var items []Event
+	var items []ListFollowingArtistEventsRow
 	for rows.Next() {
-		var i Event
+		var i ListFollowingArtistEventsRow
 		if err := rows.Scan(
 			&i.ID,
 			&i.Title,
 			&i.VenueID,
-			&i.OpeningTime,
+			&i.VenueName,
+			&i.Latitude,
+			&i.Longitude,
 			&i.StartTime,
 			&i.EndTime,
-			pq.Array(&i.RelatedLinks),
+			&i.CreatedAt,
 			&i.RatingSum,
 			&i.RatingCount,
+			&i.AttendeeCount,
 			&i.Status,
-			&i.AuthorID,
-			&i.CreatedAt,
-			&i.UpdatedAt,
+			&i.TopArtistName,
+			&i.TopArtistProfileImageUrl,
+			pq.Array(&i.MatchedArtistNames),
 		); err != nil {
 			return nil, err
 		}
@@ -229,11 +317,19 @@ func (q *Queries) UnfollowArtist(ctx context.Context, arg UnfollowArtistParams) 
 
 const updateLastArtistFeedCheckedAt = `-- name: UpdateLastArtistFeedCheckedAt :exec
 UPDATE users
-SET last_artist_feed_checked_at = NOW()
-WHERE id = $1
+SET last_artist_feed_checked_at = GREATEST(
+    last_artist_feed_checked_at,
+    LEAST(COALESCE($1::timestamptz, NOW()), NOW())
+)
+WHERE id = $2
 `
 
-func (q *Queries) UpdateLastArtistFeedCheckedAt(ctx context.Context, id uuid.UUID) error {
-	_, err := q.db.ExecContext(ctx, updateLastArtistFeedCheckedAt, id)
+type UpdateLastArtistFeedCheckedAtParams struct {
+	ReadBefore sql.NullTime
+	ID         uuid.UUID
+}
+
+func (q *Queries) UpdateLastArtistFeedCheckedAt(ctx context.Context, arg UpdateLastArtistFeedCheckedAtParams) error {
+	_, err := q.db.ExecContext(ctx, updateLastArtistFeedCheckedAt, arg.ReadBefore, arg.ID)
 	return err
 }

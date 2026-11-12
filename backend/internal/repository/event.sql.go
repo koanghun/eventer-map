@@ -457,7 +457,17 @@ WITH followed_event_ids AS (
     SELECT DISTINCT ea.event_id
     FROM user_artist_follows uaf
     JOIN event_artists ea ON ea.artist_id = uaf.artist_id
+    JOIN events e_check ON e_check.id = ea.event_id
     WHERE uaf.user_id = $10
+      AND e_check.status <> 'REJECTED'
+      AND (
+          $11::timestamptz IS NULL
+          OR (
+              e_check.created_at > GREATEST($11::timestamptz, uaf.created_at)
+              AND e_check.end_time >= NOW()
+              AND e_check.author_id IS DISTINCT FROM $10
+          )
+      )
 )
 SELECT
     e.id,
@@ -515,6 +525,7 @@ type ListFollowingArtistsEventsForMapParams struct {
 	Status        sql.NullString
 	Limit         int32
 	UserID        uuid.UUID
+	CreatedAfter  sql.NullTime
 }
 
 type ListFollowingArtistsEventsForMapRow struct {
@@ -546,6 +557,7 @@ func (q *Queries) ListFollowingArtistsEventsForMap(ctx context.Context, arg List
 		arg.Status,
 		arg.Limit,
 		arg.UserID,
+		arg.CreatedAfter,
 	)
 	if err != nil {
 		return nil, err

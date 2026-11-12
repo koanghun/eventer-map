@@ -4,6 +4,19 @@
         "subtitle": "日付を選択してイベントを確認してください",
         "themeToggle": "テーマ変更"
     },
+    "notifications": {
+        "ariaLabel": "New event notifications",
+        "title": "New Event Alerts",
+        "markAllRead": "Mark all read",
+        "viewAllNew": "View all new events",
+        "empty": "No new event notifications.",
+        "emptyDesc": "New upcoming events by performers you follow will appear here.",
+        "loadError": "Failed to load notifications.",
+        "retry": "Retry",
+        "markReadError": "Failed to mark notifications as read.",
+        "moreArtists": "{{names}} +{{count}}",
+        "moreAvailableHint": "Click 'View all new events' to see all {{count}} events."
+    },
     "nav": {
         "map": "地図"
     },
@@ -317,8 +330,12 @@
         },
         "followingArtists": {
             "title": "Followed Performers",
+            "newEventsTitle": "New Events from Followed Performers",
+            "newEventsSubtitle": "Newly added upcoming events",
+            "viewAllFollowing": "View all followed",
             "empty": "No upcoming events",
-            "emptyDesc": "No upcoming events for your followed performers from the selected date, or try another date range."
+            "newEventsEmpty": "No new events to display",
+            "newEventsEmptyDesc": "Switch to all followed events or select another date range."
         }
     },
     "duplicateModal": {

@@ -27,6 +27,7 @@ import {
 } from '../../api/generated/artists/artists';
 import { getGetEventsQueryKey } from '../../api/generated/events/events';
 import {
+    getGetUsersMeFollowingArtistsEventsQueryKey,
     getGetUsersMeFollowingArtistsQueryKey,
     useGetUsersMeFollowingArtists,
 } from '../../api/generated/user/user';
@@ -36,6 +37,7 @@ const FOLLOWERS_FETCH_LIMIT = 50;
 
 function invalidateFollowCaches(queryClient: QueryClient, artistId?: string) {
     queryClient.invalidateQueries({ queryKey: getGetUsersMeFollowingArtistsQueryKey() });
+    queryClient.invalidateQueries({ queryKey: getGetUsersMeFollowingArtistsEventsQueryKey() });
     if (artistId) {
         queryClient.invalidateQueries({ queryKey: getGetArtistsArtistIdFollowersQueryKey(artistId) });
     }

@@ -357,44 +357,72 @@ func (s *Server) GetUsersMeFollowingArtistsEvents(w http.ResponseWriter, r *http
 	if params.Offset != nil {
 		offset = int32(*params.Offset)
 	}
+	unreadOnly := params.UnreadOnly != nil && *params.UnreadOnly
 
-	events, err := s.services.Artist.ListFollowingArtistEvents(r.Context(), myID, limit, offset)
+	feed, err := s.services.Artist.GetFollowingArtistsEventFeed(r.Context(), myID, unreadOnly, limit, offset)
 	if err != nil {
-		log.Printf("[GetUsersMeFollowingArtistsEvents] ListFollowingArtistEvents error (userID=%s): %v", myID, err)
+		log.Printf("[GetUsersMeFollowingArtistsEvents] GetFollowingArtistsEventFeed error (userID=%s): %v", myID, err)
 		RespondError(w, http.StatusInternalServerError, "Failed to retrieve artist events")
 		return
 	}
 
-	unreadCount, err := s.services.Artist.CountUnreadFollowingArtistEvents(r.Context(), myID)
-	if err != nil {
-		log.Printf("[GetUsersMeFollowingArtistsEvents] CountUnreadFollowingArtistEvents error (userID=%s): %v", myID, err)
-		unreadCount = 0
-	}
+	responseEvents := make([]FollowingArtistNotificationEvent, 0, len(feed.Events))
+	for _, row := range feed.Events {
+		summary := mapListEventRowToSummary(repository.ListEventsRow{
+			ID:                       row.ID,
+			Title:                    row.Title,
+			VenueID:                  row.VenueID,
+			VenueName:                row.VenueName,
+			Latitude:                 row.Latitude,
+			Longitude:                row.Longitude,
+			StartTime:                row.StartTime,
+			EndTime:                  row.EndTime,
+			RatingSum:                row.RatingSum,
+			RatingCount:              row.RatingCount,
+			AttendeeCount:            row.AttendeeCount,
+			Status:                   row.Status,
+			TopArtistName:            row.TopArtistName,
+			TopArtistProfileImageUrl: row.TopArtistProfileImageUrl,
+		})
 
-	responseEvents := make([]EventSummary, 0)
-	for _, e := range events {
-		id := openapi_types.UUID(e.ID)
-		title := e.Title
-		venueId := openapi_types.UUID(e.VenueID.UUID)
-		startTime := e.StartTime
-		endTime := e.EndTime
+		var status *FollowingArtistNotificationEventStatus
+		if summary.Status != nil {
+			st := FollowingArtistNotificationEventStatus(*summary.Status)
+			status = &st
+		}
+		createdAt := row.CreatedAt
+		matchedNames := make([]string, len(row.MatchedArtistNames))
+		copy(matchedNames, row.MatchedArtistNames)
 
-		responseEvents = append(responseEvents, EventSummary{
-			Id:        &id,
-			Title:     &title,
-			VenueId:   &venueId,
-			StartTime: &startTime,
-			EndTime:   &endTime,
-			Rating:    nil,
+		responseEvents = append(responseEvents, FollowingArtistNotificationEvent{
+			Id:                       summary.Id,
+			Title:                    summary.Title,
+			VenueId:                  summary.VenueId,
+			VenueName:                summary.VenueName,
+			Latitude:                 summary.Latitude,
+			Longitude:                summary.Longitude,
+			StartTime:                summary.StartTime,
+			EndTime:                  summary.EndTime,
+			Rating:                   summary.Rating,
+			AttendeeCount:            summary.AttendeeCount,
+			TopArtistName:            summary.TopArtistName,
+			TopArtistProfileImageUrl: summary.TopArtistProfileImageUrl,
+			Status:                   status,
+			CreatedAt:                &createdAt,
+			MatchedArtistNames:       &matchedNames,
 		})
 	}
 
 	response := struct {
-		Events      []EventSummary `json:"events"`
-		UnreadCount int            `json:"unreadCount"`
+		Events      []FollowingArtistNotificationEvent `json:"events"`
+		UnreadCount int                                `json:"unreadCount"`
+		CheckedAt   time.Time                          `json:"checkedAt"`
+		FetchedAt   time.Time                          `json:"fetchedAt"`
 	}{
 		Events:      responseEvents,
-		UnreadCount: unreadCount,
+		UnreadCount: feed.UnreadCount,
+		CheckedAt:   feed.CheckedAt,
+		FetchedAt:   feed.FetchedAt,
 	}
 
 	RespondJSON(w, http.StatusOK, response)
@@ -408,7 +436,18 @@ func (s *Server) PostUsersMeFollowingArtistsEventsRead(w http.ResponseWriter, r 
 		return
 	}
 
-	if err := s.services.Artist.UpdateLastArtistFeedCheckedAt(r.Context(), myID); err != nil {
+	var readBefore *time.Time
+	if r.Body != nil {
+		var body PostUsersMeFollowingArtistsEventsReadJSONRequestBody
+		err := json.NewDecoder(http.MaxBytesReader(w, r.Body, 4096)).Decode(&body)
+		if err != nil && !errors.Is(err, io.EOF) {
+			RespondError(w, http.StatusBadRequest, "Invalid request body")
+			return
+		}
+		readBefore = body.ReadBefore
+	}
+
+	if err := s.services.Artist.UpdateLastArtistFeedCheckedAt(r.Context(), myID, readBefore); err != nil {
 		log.Printf("[PostUsersMeFollowingArtistsEventsRead] UpdateLastArtistFeedCheckedAt error (userID=%s): %v", myID, err)
 		RespondError(w, http.StatusInternalServerError, "Failed to update read timestamp")
 		return

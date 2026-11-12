@@ -587,11 +587,20 @@ paths:
           schema:
             type: integer
             default: 20
+            minimum: 1
+            maximum: 50
         - in: query
           name: offset
           schema:
             type: integer
             default: 0
+            minimum: 0
+        - in: query
+          name: unreadOnly
+          schema:
+            type: boolean
+            default: false
+          description: "true인 경우 미확인 신규 이벤트(미종료, 타인 등록, 체크 이후 등록)만 최신 등록순으로 반환"
       responses:
         "200":
           description: 조회 성공
@@ -599,25 +608,52 @@ paths:
             application/json:
               schema:
                 type: object
+                required:
+                  - events
+                  - unreadCount
+                  - checkedAt
+                  - fetchedAt
                 properties:
                   events:
                     type: array
                     items:
-                      $ref: "#/components/schemas/EventSummary"
+                      $ref: "#/components/schemas/FollowingArtistNotificationEvent"
                   unreadCount:
                     type: integer
                     description: "조회하지 않은(새로운) 이벤트 개수"
+                  checkedAt:
+                    type: string
+                    format: date-time
+                    description: "현재 사용자의 마지막 피드 확인 기준 시각"
+                  fetchedAt:
+                    type: string
+                    format: date-time
+                    description: "서버 조회 기준 시각 (읽음 처리 시 readBefore로 사용)"
   /users/me/following-artists/events/read:
     post:
       tags:
         - User
       summary: 아티스트 피드 새 이벤트 읽음 처리
-      description: 마지막 피드 확인 시간을 현재로 갱신하여 새 이벤트 알림을 초기화합니다.
+      description: 마지막 피드 확인 시간을 현재 또는 전달된 readBefore 시각(최대 현재 시각)으로 갱신하여 새 이벤트 알림을 초기화합니다.
       security:
         - bearerAuth: []
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                readBefore:
+                  type: string
+                  format: date-time
       responses:
         "200":
           description: 성공
+        "400":
+          description: 잘못된 요청 본문
+        "401":
+          description: 인증 필요
   /users/{userId}/follow:
     post:
       tags:
@@ -1307,6 +1343,13 @@ paths:
             type: boolean
           description: "true인 경우 현재 로그인한 유저가 팔로우 중인 출연자들이 참가하는 이벤트를 조회합니다 (인증 필요, myAction/artistId와 동시 사용 불가)"
         - in: query
+          name: createdAfter
+          required: false
+          schema:
+            type: string
+            format: date-time
+          description: "followingArtists=true와 함께 사용 시 해당 시각 이후 등록된 미종료/타인 등록 신규 이벤트만 조회합니다"
+        - in: query
           name: limit
           required: false
           schema:
@@ -1760,6 +1803,20 @@ components:
             $ref: "#/components/schemas/EventSummary"
         hasMore:
           type: boolean
+    FollowingArtistNotificationEvent:
+      allOf:
+        - $ref: "#/components/schemas/EventSummary"
+        - type: object
+          properties:
+            createdAt:
+              type: string
+              format: date-time
+              description: 이벤트 등록 시각
+            matchedArtistNames:
+              type: array
+              items:
+                type: string
+              description: 알림 대상이 된 팔로우 중인 출연자 이름 목록
     Event:
       type: object
       properties:

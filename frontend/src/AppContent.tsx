@@ -5,6 +5,7 @@ import { useTheme } from './context/ThemeContext';
 import { useLanguage } from './context/LanguageContext';
 import { useAuth } from './context/AuthContext';
 import UserProfile from './components/common/UserProfile';
+import { ArtistNotificationBell } from './components/common/ArtistNotificationBell';
 import DailyVisitCounter from './components/common/DailyVisitCounter';
 import AuthPanel from './components/auth/AuthPanel';
 import { useLocation, useNavigate, Routes, Route } from 'react-router-dom';
@@ -95,7 +96,10 @@ export default function AppContent() {
                                 <span className="text-sm">...</span>
                             </div>
                         ) : isAuthenticated ? (
-                            <UserProfile />
+                            <div className="flex items-center gap-2">
+                                <ArtistNotificationBell />
+                                <UserProfile />
+                            </div>
                         ) : (
                             <Popover open={isAuthPanelOpen} onOpenChange={setIsAuthPanelOpen}>
                                 <PopoverTrigger asChild>

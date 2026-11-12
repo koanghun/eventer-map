@@ -195,7 +195,15 @@ func (s *Server) GetEvents(w http.ResponseWriter, r *http.Request, params GetEve
 
 	isFollowingArtists := params.FollowingArtists != nil && *params.FollowingArtists
 	if isFollowingArtists {
-		if params.MyAction != nil {
+		if params.CreatedAfter != nil {
+		if !isFollowingArtists {
+			RespondError(w, http.StatusBadRequest, "createdAfter can only be used with followingArtists=true")
+			return
+		}
+		filter.CreatedAfter = params.CreatedAfter
+	}
+
+	if params.MyAction != nil {
 			RespondError(w, http.StatusBadRequest, "Cannot combine myAction and followingArtists")
 			return
 		}
@@ -210,6 +218,14 @@ func (s *Server) GetEvents(w http.ResponseWriter, r *http.Request, params GetEve
 		}
 		filter.UserID = &userID
 		filter.FollowingArtists = true
+	}
+
+	if params.CreatedAfter != nil {
+		if !isFollowingArtists {
+			RespondError(w, http.StatusBadRequest, "createdAfter can only be used with followingArtists=true")
+			return
+		}
+		filter.CreatedAfter = params.CreatedAfter
 	}
 
 	if params.MyAction != nil {

@@ -297,4 +297,38 @@ func TestListEventsFollowingArtistsValidation(t *testing.T) {
 	if len(repo.listFollowingArtistEventCalls) != 0 {
 		t.Fatalf("expected no repo calls on validation errors")
 	}
+
+	createdAfter := time.Date(2026, 11, 10, 12, 0, 0, 0, time.UTC)
+	if _, _, err := svc.ListEvents(ctx, ListEventsFilter{
+		FollowingArtists: false,
+		CreatedAfter:     &createdAfter,
+	}); !errors.Is(err, ErrConflictingEventFilters) {
+		t.Fatalf("expected ErrConflictingEventFilters when CreatedAfter is set without FollowingArtists, got %v", err)
+	}
+}
+
+func TestListEventsFollowingArtistsCreatedAfterPassThrough(t *testing.T) {
+	ctx := context.Background()
+	userID := uuid.New()
+	createdAfter := time.Date(2026, 11, 10, 15, 30, 0, 123456000, time.FixedZone("UTC+9", 9*3600))
+
+	repo := &fakeEventListRepo{}
+	svc := newEventServiceWithListRepo(repo, nil)
+
+	if _, _, err := svc.ListEvents(ctx, ListEventsFilter{
+		UserID:           &userID,
+		FollowingArtists: true,
+		CreatedAfter:     &createdAfter,
+		Limit:            50,
+	}); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	if len(repo.listFollowingArtistEventCalls) != 1 {
+		t.Fatalf("expected 1 call, got %d", len(repo.listFollowingArtistEventCalls))
+	}
+	call := repo.listFollowingArtistEventCalls[0]
+	if !call.CreatedAfter.Valid || !call.CreatedAfter.Time.Equal(createdAfter.UTC()) {
+		t.Fatalf("expected CreatedAfter=%v, got %+v", createdAfter.UTC(), call.CreatedAfter)
+	}
 }

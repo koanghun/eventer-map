@@ -4,6 +4,19 @@
         "subtitle": "日付を選択してイベントを確認してください",
         "themeToggle": "テーマ変更"
     },
+    "notifications": {
+        "ariaLabel": "新規イベント通知",
+        "title": "新規イベント通知",
+        "markAllRead": "すべて既読",
+        "viewAllNew": "すべての新規イベントを確認",
+        "empty": "新しいイベント通知はありません。",
+        "emptyDesc": "フォロー中の出演者の新規予定イベントが登録されるとここに表示されます。",
+        "loadError": "通知の読み込みに失敗しました。",
+        "retry": "再試行",
+        "markReadError": "既読処理に失敗しました。",
+        "moreArtists": "{{names}} ほか{{count}}名",
+        "moreAvailableHint": "全{{count}}件は「すべての新規イベントを確認」から表示できます。"
+    },
     "nav": {
         "map": "地図"
     },
@@ -317,8 +330,12 @@
         },
         "followingArtists": {
             "title": "フォロー中の出演者",
+            "newEventsTitle": "フォロー出演者の新規イベント",
+            "newEventsSubtitle": "新しく登録された予定イベント",
+            "viewAllFollowing": "フォロー全件を見る",
             "empty": "予定されているイベントがありません",
-            "emptyDesc": "フォロー中の出演者の検索日以降の予定がないか、別の日付を選択してください。"
+            "newEventsEmpty": "表示できる新規イベントがありません",
+            "newEventsEmptyDesc": "フォロー全件表示に切り替えるか、別の期間を選択してください。"
         }
     },
     "duplicateModal": {

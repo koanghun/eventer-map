@@ -46,6 +46,10 @@ myAction?: GetEventsMyAction;
  */
 followingArtists?: boolean;
 /**
+ * followingArtists=true와 함께 사용 시 해당 시각 이후 등록된 미종료/타인 등록 신규 이벤트만 조회합니다
+ */
+createdAfter?: string;
+/**
  * 최대 반환 이벤트 수 (기본값 50, 최대 100)
  */
 limit?: number;

@@ -4,6 +4,19 @@
         "subtitle": "日付を選択してイベントを確認してください",
         "themeToggle": "テーマ変更"
     },
+    "notifications": {
+        "ariaLabel": "新活动通知",
+        "title": "新活动通知",
+        "markAllRead": "全部已读",
+        "viewAllNew": "查看全部新活动",
+        "empty": "暂无新活动通知。",
+        "emptyDesc": "当您关注的艺人发布新活动时，将在此处显示。",
+        "loadError": "加载通知失败。",
+        "retry": "重试",
+        "markReadError": "标记已读失败。",
+        "moreArtists": "{{names}} 等{{count}}人",
+        "moreAvailableHint": "点击“查看全部新活动”可查看全部{{count}}个活动。"
+    },
     "nav": {
         "map": "地図"
     },
@@ -361,8 +374,12 @@
         },
         "followingArtists": {
             "title": "已关注的艺人",
+            "newEventsTitle": "关注艺人的新活动",
+            "newEventsSubtitle": "新发布的即将举行活动",
+            "viewAllFollowing": "查看全部关注活动",
             "empty": "暂无即将举行的活动",
-            "emptyDesc": "已关注艺人在该日期之后暂无日程，或请尝试选择其他日期。"
+            "newEventsEmpty": "暂无可显示的新活动",
+            "newEventsEmptyDesc": "请切换为查看全部关注活动，或选择其他日期范围。"
         }
     },
     "duplicateModal": {

@@ -40,6 +40,7 @@ type ListEventsFilter struct {
 	UserID           *uuid.UUID
 	ActionStatus     *int32
 	FollowingArtists bool
+	CreatedAfter     *time.Time
 	Limit            int32
 }
 
@@ -149,14 +150,23 @@ func (s *EventService) ListEvents(ctx context.Context, filter ListEventsFilter) 
 	if filter.FollowingArtists && (filter.ActionStatus != nil || (filter.ArtistID != nil && *filter.ArtistID != uuid.Nil)) {
 		return nil, false, ErrConflictingEventFilters
 	}
+	if !filter.FollowingArtists && filter.CreatedAfter != nil {
+		return nil, false, ErrConflictingEventFilters
+	}
 
 	if filter.FollowingArtists {
 		if filter.UserID == nil || *filter.UserID == uuid.Nil {
 			return nil, false, ErrFollowingArtistsAuthRequired
 		}
 
+		var createdAfter sql.NullTime
+		if filter.CreatedAfter != nil {
+			createdAfter = sql.NullTime{Time: filter.CreatedAfter.UTC(), Valid: true}
+		}
+
 		followedRows, err := s.listRepo.ListFollowingArtistsEventsForMap(ctx, repository.ListFollowingArtistsEventsForMapParams{
 			UserID:        *filter.UserID,
+			CreatedAfter:  createdAfter,
 			MinLat:        common.MinLat,
 			MaxLat:        common.MaxLat,
 			MinLng:        common.MinLng,

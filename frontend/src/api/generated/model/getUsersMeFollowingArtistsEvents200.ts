@@ -4,10 +4,14 @@
  * Eventer Map API
  * OpenAPI spec version: 1.0.0
  */
-import type { EventSummary } from './eventSummary';
+import type { FollowingArtistNotificationEvent } from './followingArtistNotificationEvent';
 
 export type GetUsersMeFollowingArtistsEvents200 = {
-  events?: EventSummary[];
+  /** 현재 사용자의 마지막 피드 확인 기준 시각 */
+  checkedAt: string;
+  events: FollowingArtistNotificationEvent[];
+  /** 서버 조회 기준 시각 (읽음 처리 시 readBefore로 사용) */
+  fetchedAt: string;
   /** 조회하지 않은(새로운) 이벤트 개수 */
-  unreadCount?: number;
+  unreadCount: number;
 };

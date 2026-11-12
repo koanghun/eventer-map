@@ -6,6 +6,7 @@ import (
 	"errors"
 	"io"
 	"strings"
+	"time"
 
 	"eventer-map-backend/internal/repository"
 	"eventer-map-backend/internal/storage"
@@ -27,14 +28,30 @@ type CreateArtistInput struct {
 	AuthorID                uuid.UUID
 }
 
+type artistFeedRepository interface {
+	GetLastArtistFeedCheckedAt(ctx context.Context, id uuid.UUID) (repository.GetLastArtistFeedCheckedAtRow, error)
+	ListFollowingArtistEvents(ctx context.Context, arg repository.ListFollowingArtistEventsParams) ([]repository.ListFollowingArtistEventsRow, error)
+	CountUnreadFollowingArtistEvents(ctx context.Context, userID uuid.UUID) (int64, error)
+	UpdateLastArtistFeedCheckedAt(ctx context.Context, arg repository.UpdateLastArtistFeedCheckedAtParams) error
+}
+
 type ArtistService struct {
 	repo     *repository.Queries
+	feedRepo artistFeedRepository
 	db       *sql.DB
 	uploader storage.Uploader
 }
 
 func NewArtistService(repo *repository.Queries, db *sql.DB, uploader storage.Uploader) *ArtistService {
-	return &ArtistService{repo: repo, db: db, uploader: uploader}
+	var feedRepo artistFeedRepository
+	if repo != nil {
+		feedRepo = repo
+	}
+	return &ArtistService{repo: repo, feedRepo: feedRepo, db: db, uploader: uploader}
+}
+
+func newArtistServiceWithFeedRepo(feedRepo artistFeedRepository) *ArtistService {
+	return &ArtistService{feedRepo: feedRepo}
 }
 
 func (s *ArtistService) ListArtists(ctx context.Context, limit int32, status string, nameKeyword string, cursorID uuid.UUID) ([]repository.Artist, error) {
@@ -130,32 +147,60 @@ func (s *ArtistService) ListArtistFollowers(ctx context.Context, artistID uuid.U
 	})
 }
 
-func (s *ArtistService) ListFollowingArtistEvents(ctx context.Context, userID uuid.UUID, limit, offset int32) ([]repository.Event, error) {
-	return s.repo.ListFollowingArtistEvents(ctx, repository.ListFollowingArtistEventsParams{
-		UserID: userID,
-		Limit:  limit,
-		Offset: offset,
+type FollowingArtistFeedResult struct {
+	Events      []repository.ListFollowingArtistEventsRow
+	UnreadCount int
+	CheckedAt   time.Time
+	FetchedAt   time.Time
+}
+
+func (s *ArtistService) GetFollowingArtistsEventFeed(ctx context.Context, userID uuid.UUID, unreadOnly bool, limit, offset int32) (*FollowingArtistFeedResult, error) {
+	if limit <= 0 {
+		limit = 20
+	} else if limit > MaxArtistLimit {
+		limit = MaxArtistLimit
+	}
+	if offset < 0 {
+		offset = 0
+	}
+
+	times, err := s.feedRepo.GetLastArtistFeedCheckedAt(ctx, userID)
+	if err != nil {
+		return nil, err
+	}
+
+	events, err := s.feedRepo.ListFollowingArtistEvents(ctx, repository.ListFollowingArtistEventsParams{
+		UserID:     userID,
+		UnreadOnly: unreadOnly,
+		Limit:      limit,
+		Offset:     offset,
 	})
-}
-
-func (s *ArtistService) CountUnreadFollowingArtistEvents(ctx context.Context, userID uuid.UUID) (int, error) {
-	count, err := s.repo.CountUnreadFollowingArtistEvents(ctx, userID)
 	if err != nil {
-		return 0, err
+		return nil, err
 	}
-	return int(count), nil
-}
 
-func (s *ArtistService) GetLastArtistFeedCheckedAt(ctx context.Context, userID uuid.UUID) (string, error) {
-	checkedAt, err := s.repo.GetLastArtistFeedCheckedAt(ctx, userID)
+	unreadCount, err := s.feedRepo.CountUnreadFollowingArtistEvents(ctx, userID)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
-	return checkedAt.Format("2006-01-02T15:04:05Z07:00"), nil
+
+	return &FollowingArtistFeedResult{
+		Events:      events,
+		UnreadCount: int(unreadCount),
+		CheckedAt:   times.LastArtistFeedCheckedAt,
+		FetchedAt:   times.FetchedAt,
+	}, nil
 }
 
-func (s *ArtistService) UpdateLastArtistFeedCheckedAt(ctx context.Context, userID uuid.UUID) error {
-	return s.repo.UpdateLastArtistFeedCheckedAt(ctx, userID)
+func (s *ArtistService) UpdateLastArtistFeedCheckedAt(ctx context.Context, userID uuid.UUID, readBefore *time.Time) error {
+	var rb sql.NullTime
+	if readBefore != nil {
+		rb = sql.NullTime{Time: readBefore.UTC(), Valid: true}
+	}
+	return s.feedRepo.UpdateLastArtistFeedCheckedAt(ctx, repository.UpdateLastArtistFeedCheckedAtParams{
+		ID:         userID,
+		ReadBefore: rb,
+	})
 }
 
 func (s *ArtistService) CanUpdateArtist(ctx context.Context, artistID, userID uuid.UUID, userRole string) error {
