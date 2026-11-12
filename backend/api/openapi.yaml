@@ -1294,6 +1294,19 @@ paths:
             type: string
             enum: [PENDING, APPROVED, REJECTED]
         - in: query
+          name: myAction
+          required: false
+          schema:
+            type: string
+            enum: [bookmarked, attending]
+          description: "현재 로그인한 유저의 이벤트 액션 필터 (bookmarked: 북마크/체크, attending: 참가)"
+        - in: query
+          name: followingArtists
+          required: false
+          schema:
+            type: boolean
+          description: "true인 경우 현재 로그인한 유저가 팔로우 중인 출연자들이 참가하는 이벤트를 조회합니다 (인증 필요, myAction/artistId와 동시 사용 불가)"
+        - in: query
           name: limit
           required: false
           schema:
@@ -1309,6 +1322,10 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/EventListResponse"
+        "400":
+          description: 잘못된 요청 파라미터
+        "401":
+          description: myAction 또는 followingArtists 필터 사용 시 인증 필요
     post:
       tags:
         - Events

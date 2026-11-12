@@ -12,10 +12,14 @@ import (
 )
 
 var (
-	ErrUserBanned    = errors.New("user is banned")
-	ErrEventNotEnded = errors.New("event has not ended yet")
-	ErrNotAttendee   = errors.New("only attendees can rate the event")
-	ErrInvalidScore  = errors.New("score must be between 1 and 5")
+	ErrUserBanned                    = errors.New("user is banned")
+	ErrEventNotEnded                 = errors.New("event has not ended yet")
+	ErrNotAttendee                   = errors.New("only attendees can rate the event")
+	ErrInvalidScore                  = errors.New("score must be between 1 and 5")
+	ErrMyActionAuthRequired          = errors.New("authenticated user is required for myAction filter")
+	ErrFollowingArtistsAuthRequired  = errors.New("authenticated user is required for followingArtists filter")
+	ErrConflictingEventFilters       = errors.New("conflicting event filters")
+	ErrInvalidActionStatus           = errors.New("action status must be 1 or 2")
 )
 
 const (
@@ -24,16 +28,25 @@ const (
 )
 
 type ListEventsFilter struct {
-	MinLat        *float64
-	MaxLat        *float64
-	MinLng        *float64
-	MaxLng        *float64
-	StartTimeFrom *time.Time
-	StartTimeTo   *time.Time
-	VenueID       *uuid.UUID
-	ArtistID      *uuid.UUID
-	Status        *string
-	Limit         int32
+	MinLat           *float64
+	MaxLat           *float64
+	MinLng           *float64
+	MaxLng           *float64
+	StartTimeFrom    *time.Time
+	StartTimeTo      *time.Time
+	VenueID          *uuid.UUID
+	ArtistID         *uuid.UUID
+	Status           *string
+	UserID           *uuid.UUID
+	ActionStatus     *int32
+	FollowingArtists bool
+	Limit            int32
+}
+
+type eventListRepository interface {
+	ListEvents(ctx context.Context, arg repository.ListEventsParams) ([]repository.ListEventsRow, error)
+	ListMyActionEvents(ctx context.Context, arg repository.ListMyActionEventsParams) ([]repository.ListMyActionEventsRow, error)
+	ListFollowingArtistsEventsForMap(ctx context.Context, arg repository.ListFollowingArtistsEventsForMapParams) ([]repository.ListFollowingArtistsEventsForMapRow, error)
 }
 
 type CreateEventInput struct {
@@ -56,12 +69,68 @@ type EventDetail struct {
 }
 
 type EventService struct {
-	repo *repository.Queries
-	db   *sql.DB
+	repo     *repository.Queries
+	listRepo eventListRepository
+	db       *sql.DB
 }
 
 func NewEventService(repo *repository.Queries, db *sql.DB) *EventService {
-	return &EventService{repo: repo, db: db}
+	var listRepo eventListRepository
+	if repo != nil {
+		listRepo = repo
+	}
+	return &EventService{repo: repo, listRepo: listRepo, db: db}
+}
+
+func newEventServiceWithListRepo(listRepo eventListRepository, db *sql.DB) *EventService {
+	return &EventService{listRepo: listRepo, db: db}
+}
+
+type commonEventListFilter struct {
+	MinLat        sql.NullFloat64
+	MaxLat        sql.NullFloat64
+	MinLng        sql.NullFloat64
+	MaxLng        sql.NullFloat64
+	StartTimeFrom sql.NullTime
+	StartTimeTo   sql.NullTime
+	VenueID       uuid.NullUUID
+	ArtistID      uuid.NullUUID
+	Status        sql.NullString
+	QueryLimit    int32
+}
+
+func buildCommonEventListFilter(filter ListEventsFilter, queryLimit int32) commonEventListFilter {
+	out := commonEventListFilter{
+		QueryLimit: queryLimit,
+	}
+	if filter.MinLat != nil {
+		out.MinLat = sql.NullFloat64{Float64: *filter.MinLat, Valid: true}
+	}
+	if filter.MaxLat != nil {
+		out.MaxLat = sql.NullFloat64{Float64: *filter.MaxLat, Valid: true}
+	}
+	if filter.MinLng != nil {
+		out.MinLng = sql.NullFloat64{Float64: *filter.MinLng, Valid: true}
+	}
+	if filter.MaxLng != nil {
+		out.MaxLng = sql.NullFloat64{Float64: *filter.MaxLng, Valid: true}
+	}
+	if filter.StartTimeFrom != nil {
+		out.StartTimeFrom = sql.NullTime{Time: *filter.StartTimeFrom, Valid: true}
+	}
+	if filter.StartTimeTo != nil {
+		out.StartTimeTo = sql.NullTime{Time: *filter.StartTimeTo, Valid: true}
+	}
+	if filter.VenueID != nil && *filter.VenueID != uuid.Nil {
+		out.VenueID = uuid.NullUUID{UUID: *filter.VenueID, Valid: true}
+	}
+	if filter.ArtistID != nil && *filter.ArtistID != uuid.Nil {
+		out.ArtistID = uuid.NullUUID{UUID: *filter.ArtistID, Valid: true}
+	}
+	if filter.Status != nil && *filter.Status != "" {
+		out.Status = sql.NullString{String: *filter.Status, Valid: true}
+	}
+	return out
 }
 
 func (s *EventService) ListEvents(ctx context.Context, filter ListEventsFilter) ([]repository.ListEventsRow, bool, error) {
@@ -73,41 +142,86 @@ func (s *EventService) ListEvents(ctx context.Context, filter ListEventsFilter) 
 		limit = MaxEventLimit
 	}
 
-	params := repository.ListEventsParams{
-		Limit: limit + 1, // Fetch 1 extra row to determine hasMore without COUNT(*) query
+	// Fetch 1 extra row to determine hasMore without COUNT(*) query
+	common := buildCommonEventListFilter(filter, limit+1)
+
+	var rows []repository.ListEventsRow
+	if filter.FollowingArtists && (filter.ActionStatus != nil || (filter.ArtistID != nil && *filter.ArtistID != uuid.Nil)) {
+		return nil, false, ErrConflictingEventFilters
 	}
 
-	if filter.MinLat != nil {
-		params.MinLat = sql.NullFloat64{Float64: *filter.MinLat, Valid: true}
-	}
-	if filter.MaxLat != nil {
-		params.MaxLat = sql.NullFloat64{Float64: *filter.MaxLat, Valid: true}
-	}
-	if filter.MinLng != nil {
-		params.MinLng = sql.NullFloat64{Float64: *filter.MinLng, Valid: true}
-	}
-	if filter.MaxLng != nil {
-		params.MaxLng = sql.NullFloat64{Float64: *filter.MaxLng, Valid: true}
-	}
-	if filter.StartTimeFrom != nil {
-		params.StartTimeFrom = sql.NullTime{Time: *filter.StartTimeFrom, Valid: true}
-	}
-	if filter.StartTimeTo != nil {
-		params.StartTimeTo = sql.NullTime{Time: *filter.StartTimeTo, Valid: true}
-	}
-	if filter.VenueID != nil && *filter.VenueID != uuid.Nil {
-		params.VenueID = uuid.NullUUID{UUID: *filter.VenueID, Valid: true}
-	}
-	if filter.ArtistID != nil && *filter.ArtistID != uuid.Nil {
-		params.ArtistID = uuid.NullUUID{UUID: *filter.ArtistID, Valid: true}
-	}
-	if filter.Status != nil && *filter.Status != "" {
-		params.Status = sql.NullString{String: *filter.Status, Valid: true}
-	}
+	if filter.FollowingArtists {
+		if filter.UserID == nil || *filter.UserID == uuid.Nil {
+			return nil, false, ErrFollowingArtistsAuthRequired
+		}
 
-	rows, err := s.repo.ListEvents(ctx, params)
-	if err != nil {
-		return nil, false, err
+		followedRows, err := s.listRepo.ListFollowingArtistsEventsForMap(ctx, repository.ListFollowingArtistsEventsForMapParams{
+			UserID:        *filter.UserID,
+			MinLat:        common.MinLat,
+			MaxLat:        common.MaxLat,
+			MinLng:        common.MinLng,
+			MaxLng:        common.MaxLng,
+			StartTimeFrom: common.StartTimeFrom,
+			StartTimeTo:   common.StartTimeTo,
+			VenueID:       common.VenueID,
+			Status:        common.Status,
+			Limit:         common.QueryLimit,
+		})
+		if err != nil {
+			return nil, false, err
+		}
+
+		rows = make([]repository.ListEventsRow, len(followedRows))
+		for i, r := range followedRows {
+			rows[i] = repository.ListEventsRow(r)
+		}
+	} else if filter.ActionStatus != nil || filter.UserID != nil {
+		if filter.UserID == nil || *filter.UserID == uuid.Nil {
+			return nil, false, ErrMyActionAuthRequired
+		}
+		if filter.ActionStatus == nil || (*filter.ActionStatus != 1 && *filter.ActionStatus != 2) {
+			return nil, false, ErrInvalidActionStatus
+		}
+
+		actionRows, err := s.listRepo.ListMyActionEvents(ctx, repository.ListMyActionEventsParams{
+			UserID:        *filter.UserID,
+			ActionStatus:  *filter.ActionStatus,
+			MinLat:        common.MinLat,
+			MaxLat:        common.MaxLat,
+			MinLng:        common.MinLng,
+			MaxLng:        common.MaxLng,
+			StartTimeFrom: common.StartTimeFrom,
+			StartTimeTo:   common.StartTimeTo,
+			VenueID:       common.VenueID,
+			ArtistID:      common.ArtistID,
+			Status:        common.Status,
+			Limit:         common.QueryLimit,
+		})
+		if err != nil {
+			return nil, false, err
+		}
+
+		rows = make([]repository.ListEventsRow, len(actionRows))
+		for i, r := range actionRows {
+			rows[i] = repository.ListEventsRow(r)
+		}
+	} else {
+		var err error
+		rows, err = s.listRepo.ListEvents(ctx, repository.ListEventsParams{
+			MinLat:        common.MinLat,
+			MaxLat:        common.MaxLat,
+			MinLng:        common.MinLng,
+			MaxLng:        common.MaxLng,
+			StartTimeFrom: common.StartTimeFrom,
+			StartTimeTo:   common.StartTimeTo,
+			VenueID:       common.VenueID,
+			ArtistID:      common.ArtistID,
+			Status:        common.Status,
+			Limit:         common.QueryLimit,
+		})
+		if err != nil {
+			return nil, false, err
+		}
 	}
 
 	hasMore := false

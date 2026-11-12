@@ -5,8 +5,8 @@
 프론트엔드(React)와 서버리스 백엔드(AWS Lambda, Go 표준 라이브러리) 환경에서의 소셜 인증(Google OAuth 2.0 & X OAuth 2.0 PKCE) 및 계정 연동 아키텍처입니다.
 
 ## 📌 1. Google OAuth 2.0 로그인·연동
-- **프론트엔드 (React):** `@react-oauth/google`의 `useGoogleLogin`으로 구글로부터 `access_token`을 발급받아 백엔드에 전달합니다.
-- **백엔드 (Go Lambda):** Google UserInfo/Token 검증 후 자체 JWT(`Access Token` JSON 바디 + `Refresh Token` `HttpOnly` 쿠키)를 발급합니다. 신규 가입 시 `is_email_verified = true`로 생성됩니다.
+- **프론트엔드 (React):** `@react-oauth/google`의 `useGoogleLogin`으로 구글로부터 `access_token`을 발급받아 백엔드에 전달합니다(요청 JSON 필드명은 스키마 호환을 위해 `idToken` 사용).
+- **백엔드 (Go Lambda):** `PostAuthGoogle` 핸들러(`isAccessToken = true`)가 Google UserInfo API(`https://www.googleapis.com/oauth2/v3/userinfo`, `VerifyGoogleAccessToken`)로 토큰을 검증한 뒤 자체 JWT(`Access Token` JSON 바디 + `Refresh Token` `HttpOnly` 쿠키)를 발급합니다. 신규 가입 시 `is_email_verified = true`로 생성됩니다.
 
 ---
 
@@ -17,29 +17,29 @@ sequenceDiagram
     autonumber
     actor User as 사용자
     participant React as Frontend (React)
-    participant Google as Google Auth Server
+    participant Google as Google OAuth / UserInfo
     participant Lambda as Backend (Go Lambda)
-    participant DB as Neon DB (PostgreSQL)
+    participant DB as PostgreSQL
 
-    Note over User, DB: 1단계: 구글 인증 및 ID 토큰 획득
+    Note over User, DB: 1단계: 구글 인증 및 Access Token 획득
     User->>React: 구글 로그인 버튼 클릭
-    React->>Google: 인증 요청 (OAuth 2.0)
-    Google-->>React: 구글 idToken 반환 (JWT)
+    React->>Google: 인증 요청 (useGoogleLogin)
+    Google-->>React: 구글 access_token 반환
 
     Note over User, DB: 2단계: 서비스 자체 토큰 발급
-    React->>Lambda: POST /auth/google<br>(body: idToken)
-    Lambda->>Google: idToken 서명 유효성 검증<br>(google.golang.org/api/idtoken)
-    Google-->>Lambda: 검증 완료 및 사용자 정보
-    Lambda->>DB: 사용자 정보 조회 (email/sub)
+    React->>Lambda: POST /auth/google<br>(body: { idToken: access_token })
+    Lambda->>Google: GET /oauth2/v3/userinfo 검증<br>(VerifyGoogleAccessToken)
+    Google-->>Lambda: 검증 완료 및 sub/email 반환
+    Lambda->>DB: 사용자 정보 조회 (google_id / email)
     alt 신규 사용자일 경우
-        Lambda->>DB: 새 사용자 레코드 생성
+        Lambda->>DB: 새 사용자 레코드 생성 (is_email_verified = true)
     end
-    Lambda->>Lambda: 자체 AccessToken & RefreshToken 생성 (HS256 JWT)
+    Lambda->>Lambda: 자체 AccessToken(1h) & RefreshToken(7d) 생성 (HS256 JWT)
     Lambda-->>React: AccessToken (JSON) + RefreshToken (HttpOnly Cookie) 반환
 
     Note over User, DB: 3단계: API 통신
     React->>Lambda: 보호된 API 요청<br>(Header: Authorization: Bearer <AccessToken>)
-    Lambda->>Lambda: 미들웨어: AccessToken 검증
+    Lambda->>Lambda: AuthMiddleware: AccessToken 검증 (type != x_reauth, refresh)
     Lambda-->>React: API 응답
 ```
 
@@ -47,12 +47,12 @@ sequenceDiagram
 
 ## 🛠️ 백엔드(Go) 구현 핵심 포인트
 
-**1. ID 토큰 검증 패키지**
-Go 표준 라이브러리를 지향하더라도, 구글 토큰 검증은 보안상 매우 중요하므로 구글에서 공식 제공하는 `google.golang.org/api/idtoken` 패키지 사용을 권장합니다.
+**1. Google 토큰 검증**
+현재 `POST /auth/google` 핸들러와 구글 계정 연동·재인증은 프론트엔드 `useGoogleLogin`이 발급하는 `access_token`을 `VerifyGoogleAccessToken`(Google `/oauth2/v3/userinfo`)으로 검증하며, 필요 시 `google.golang.org/api/idtoken`을 사용하는 `VerifyGoogleIDToken` 경로도 `AuthService`에 준비되어 있습니다.
 
-**2. 자체 JWT 토큰 설계**
-- `Access Token`: 수명이 짧은 토큰 (예: 1시간). 매 API 요청 시 검증.
-- `Refresh Token`: 수명이 긴 토큰 (예: 14일). `Access Token` 만료 시 갱신을 위해 사용. DB에 저장하여 언제든 강제 로그아웃(토큰 무효화) 처리 가능.
+**2. 자체 JWT 토큰 설계 (`auth_service.go`)**
+- `Access Token`: 유효기간 **1시간 (`TokenExp`)**. JSON 바디로 전달되어 프론트엔드 메모리(`src/lib/axios.ts`)에만 보관되며 매 보호된 API 요청의 `Authorization: Bearer` 헤더로 검증됩니다.
+- `Refresh Token`: 유효기간 **7일 (`RefreshExp`)**. Stateless HS256 JWT(`type="refresh"`)를 **`HttpOnly` 쿠키**에 저장하며, `POST /auth/refresh` 시 재발급되고 `POST /auth/logout` 및 `DELETE /users/me` 시 쿠키를 즉시 만료(`MaxAge = -1`)시킵니다. (로그아웃/탈퇴 시 프론트엔드 `AuthContext`에서도 `/users/me*` 및 개인화 `GET /events` 캐시를 함께 비웁니다.)
 
 **3. 표준 라이브러리(`net/http`) 기반 미들웨어**
 보호된 엔드포인트(예: 프로필 조회, 마커 생성 등)에 접근할 때 토큰을 검사할 수 있도록, Go의 표준 `http.Handler`를 감싸는 미들웨어(Middleware) 패턴을 작성해야 합니다.

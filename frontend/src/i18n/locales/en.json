@@ -13,7 +13,16 @@
     },
     "datePicker": {
         "label": "日付選択",
-        "isRange": "Date Range"
+        "isRange": "Date Range",
+        "allDates": "All dates",
+        "quickSearch": {
+            "groupLabel": "Quick date selection",
+            "today": "Today",
+            "oneWeek": "1 Week",
+            "oneMonth": "1 Month"
+        },
+        "fromDateOnward": "From {{date}}",
+        "clearEndDate": "All onward"
     },
     "performerFilter": {
         "placeholder": "Search performer or venue name",
@@ -295,9 +304,21 @@
         "searchByVenue": "Search by this venue (6 months)"
     },
     "filter": {
-        "flags": {
-            "showAll": "全てのイベントを表示",
-            "showFlagsOnly": "フラグしたイベントのみ表示"
+        "myEvents": {
+            "bookmarkedTitle": "Bookmarked Events",
+            "participatedTitle": "Participated Events",
+            "clear": "Clear",
+            "count": "{{count}}",
+            "hasMoreHint": "Showing up to 100 events. Use the date picker to narrow the range.",
+            "emptyBookmarked": "No bookmarked events",
+            "emptyBookmarkedDesc": "Bookmark events you're interested in to view them together on the map and list.",
+            "emptyParticipated": "No participated events",
+            "emptyParticipatedDesc": "Mark events you're attending or have attended to view them together on the map and list."
+        },
+        "followingArtists": {
+            "title": "Followed Performers",
+            "empty": "No upcoming events",
+            "emptyDesc": "No upcoming events for your followed performers from the selected date, or try another date range."
         }
     },
     "duplicateModal": {
@@ -501,7 +522,10 @@
         "deleteXReauthFailed": "X re-authentication failed.",
         "noEmailPlaceholder": "No email address (signed up with X)",
         "passwordUnavailableNoEmail": "Accounts without an email address cannot set a password.",
-        "setPassword": "Set Password"
+        "setPassword": "Set Password",
+        "bookmarkedEvents": "Bookmarked Events",
+        "participatedEvents": "Participated Events",
+        "followingArtists": "Followed Performers"
     },
     "seo": {
         "title": "Event Map - イベントマップ",
@@ -613,6 +637,12 @@
             "PENDING": "Pending",
             "APPROVED": "Approved",
             "REJECTED": "Rejected"
-        }
+        },
+        "expand": "Expand",
+        "collapse": "Collapse",
+        "collapsedHint": "Collapsed",
+        "followingArtistsCountBadge": "{{count}}",
+        "noFollowingArtists": "You are not following any performers yet.",
+        "unfollowButton": "Unfollow"
     }
 }

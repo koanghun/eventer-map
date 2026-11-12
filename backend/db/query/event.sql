@@ -117,6 +117,108 @@ WHERE
 ORDER BY attendee_count DESC, e.start_time ASC, e.id ASC
 LIMIT sqlc.arg('limit');
 
+-- name: ListMyActionEvents :many
+SELECT
+    e.id,
+    e.title,
+    e.venue_id,
+    COALESCE(v.official_name, '')::varchar AS venue_name,
+    COALESCE(v.latitude, 0)::double precision AS latitude,
+    COALESCE(v.longitude, 0)::double precision AS longitude,
+    e.start_time,
+    e.end_time,
+    e.rating_sum,
+    e.rating_count,
+    (SELECT COUNT(*)::int FROM event_user_actions eua2 WHERE eua2.event_id = e.id AND eua2.status = 2) AS attendee_count,
+    e.status,
+    COALESCE(ta.official_name, '')::varchar AS top_artist_name,
+    COALESCE(ta.profile_image_url, '')::varchar AS top_artist_profile_image_url
+FROM event_user_actions eua
+JOIN events e ON e.id = eua.event_id
+LEFT JOIN venues v ON e.venue_id = v.id
+LEFT JOIN LATERAL (
+    SELECT
+        a.official_name,
+        a.profile_image_url,
+        CASE WHEN a.rating_count > 0 THEN a.rating_sum / a.rating_count ELSE 0 END AS artist_avg_rating
+    FROM event_artists ea
+    JOIN artists a ON ea.artist_id = a.id
+    WHERE ea.event_id = e.id
+    ORDER BY
+        artist_avg_rating DESC,
+        a.rating_count DESC,
+        a.official_name ASC
+    LIMIT 1
+) ta ON true
+WHERE
+    eua.user_id = sqlc.arg('user_id')
+    AND eua.status = sqlc.arg('action_status')
+    AND (sqlc.narg('min_lat')::double precision IS NULL OR v.latitude >= sqlc.narg('min_lat'))
+    AND (sqlc.narg('max_lat')::double precision IS NULL OR v.latitude <= sqlc.narg('max_lat'))
+    AND (sqlc.narg('min_lng')::double precision IS NULL OR v.longitude >= sqlc.narg('min_lng'))
+    AND (sqlc.narg('max_lng')::double precision IS NULL OR v.longitude <= sqlc.narg('max_lng'))
+    AND (sqlc.narg('start_time_from')::timestamptz IS NULL OR e.end_time >= sqlc.narg('start_time_from'))
+    AND (sqlc.narg('start_time_to')::timestamptz IS NULL OR e.start_time <= sqlc.narg('start_time_to'))
+    AND (sqlc.narg('venue_id')::uuid IS NULL OR e.venue_id = sqlc.narg('venue_id'))
+    AND (sqlc.narg('artist_id')::uuid IS NULL OR EXISTS (
+        SELECT 1 FROM event_artists ea
+        WHERE ea.event_id = e.id AND ea.artist_id = sqlc.narg('artist_id')
+    ))
+    AND (sqlc.narg('status')::varchar IS NULL OR e.status = sqlc.narg('status'))
+ORDER BY e.start_time DESC, e.id ASC
+LIMIT sqlc.arg('limit');
+
+-- name: ListFollowingArtistsEventsForMap :many
+WITH followed_event_ids AS (
+    SELECT DISTINCT ea.event_id
+    FROM user_artist_follows uaf
+    JOIN event_artists ea ON ea.artist_id = uaf.artist_id
+    WHERE uaf.user_id = sqlc.arg('user_id')
+)
+SELECT
+    e.id,
+    e.title,
+    e.venue_id,
+    COALESCE(v.official_name, '')::varchar AS venue_name,
+    COALESCE(v.latitude, 0)::double precision AS latitude,
+    COALESCE(v.longitude, 0)::double precision AS longitude,
+    e.start_time,
+    e.end_time,
+    e.rating_sum,
+    e.rating_count,
+    (SELECT COUNT(*)::int FROM event_user_actions eua WHERE eua.event_id = e.id AND eua.status = 2) AS attendee_count,
+    e.status,
+    COALESCE(ta.official_name, '')::varchar AS top_artist_name,
+    COALESCE(ta.profile_image_url, '')::varchar AS top_artist_profile_image_url
+FROM followed_event_ids fe
+JOIN events e ON e.id = fe.event_id
+LEFT JOIN venues v ON e.venue_id = v.id
+LEFT JOIN LATERAL (
+    SELECT
+        a.official_name,
+        a.profile_image_url,
+        CASE WHEN a.rating_count > 0 THEN a.rating_sum / a.rating_count ELSE 0 END AS artist_avg_rating
+    FROM event_artists ea
+    JOIN artists a ON ea.artist_id = a.id
+    WHERE ea.event_id = e.id
+    ORDER BY
+        artist_avg_rating DESC,
+        a.rating_count DESC,
+        a.official_name ASC
+    LIMIT 1
+) ta ON true
+WHERE
+    (sqlc.narg('min_lat')::double precision IS NULL OR v.latitude >= sqlc.narg('min_lat'))
+    AND (sqlc.narg('max_lat')::double precision IS NULL OR v.latitude <= sqlc.narg('max_lat'))
+    AND (sqlc.narg('min_lng')::double precision IS NULL OR v.longitude >= sqlc.narg('min_lng'))
+    AND (sqlc.narg('max_lng')::double precision IS NULL OR v.longitude <= sqlc.narg('max_lng'))
+    AND (sqlc.narg('start_time_from')::timestamptz IS NULL OR e.end_time >= sqlc.narg('start_time_from'))
+    AND (sqlc.narg('start_time_to')::timestamptz IS NULL OR e.start_time <= sqlc.narg('start_time_to'))
+    AND (sqlc.narg('venue_id')::uuid IS NULL OR e.venue_id = sqlc.narg('venue_id'))
+    AND (sqlc.narg('status')::varchar IS NULL OR e.status = sqlc.narg('status'))
+ORDER BY e.start_time ASC, e.id ASC
+LIMIT sqlc.arg('limit');
+
 -- name: UpdateEvent :one
 UPDATE events
 SET title = COALESCE(sqlc.narg('title'), title),

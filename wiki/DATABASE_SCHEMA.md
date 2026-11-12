@@ -2,7 +2,7 @@
 
 [⬅️ 홈으로 돌아가기](./Home.md) | [관련 문서: DB 마이그레이션 가이드](./DATABASE_MIGRATION_GUIDE.md) | [관련 문서: sqlc 가이드](./SQLC_GUIDE.md)
 
-이 문서는 `backend/db/migration/`(`000001` ~ `000018`)과 `backend/db/query/*.sql`을 기반으로 Eventer Map의 **PostgreSQL 전체 테이블 스키마(13개 테이블)**를 정의하고, 정리된 요소 및 잔여 검토 항목을 정리한 기술 위키입니다.
+이 문서는 `backend/db/migration/`(`000001` ~ `000019`)과 `backend/db/query/*.sql`을 기반으로 Eventer Map의 **PostgreSQL 전체 테이블 스키마(13개 테이블)**를 정의하고, 정리된 요소 및 인덱스 최적화 내역을 정리한 기술 위키입니다.
 
 ---
 
@@ -244,7 +244,9 @@ erDiagram
 - `idx_thread_recommendations_thread_id`: `ON thread_recommendations (thread_id)` (스레드 삭제 시 CASCADE 처리 가속)
 
 #### 9) 기타 상호작용 및 시스템 테이블
-- **`event_user_actions`**: `user_id (UUID PK, FK)`, `event_id (UUID PK, FK)`, `status (INT: 1=체크, 2=참가)` — Partial Index `idx_event_user_actions_event_attendees ON event_user_actions (event_id) WHERE status = 2`
+- **`event_user_actions`**: `user_id (UUID PK, FK)`, `event_id (UUID PK, FK)`, `status (INT: 1=체크/북마크, 2=참가)`
+  - `idx_event_user_actions_event_attendees`: `ON event_user_actions (event_id) WHERE status = 2` (이벤트별 참가자 카운트/목록 조회용 Partial Index)
+  - `idx_event_user_actions_user_status_event` (`000019`): `ON event_user_actions (user_id, status, event_id)` (유저별 북마크/참가 이벤트 맵 필터 조회 최적화)
 - **`user_event_ratings`**: `user_id (UUID PK, FK)`, `event_id (UUID PK, FK)`, `score (INT CHECK 1..5)`
 - **`user_follows`**: `follower_id (UUID PK, FK)`, `followee_id (UUID PK, FK)`, `created_at (TIMESTAMPTZ)`
 - **`user_blocks`**: `blocker_id (UUID PK, FK)`, `blocked_id (UUID PK, FK)`, `created_at (TIMESTAMPTZ)`
@@ -280,6 +282,10 @@ erDiagram
 2. **외래키 인덱스 보강**:
    - `idx_event_threads_author_id`: 유저 탈퇴 시 `ON DELETE SET NULL` 동작 가속.
    - `idx_thread_recommendations_thread_id`: `thread_recommendations`의 복합 PK가 `(user_id, thread_id)` 순서이므로, 스레드 삭제 시 `thread_id` 기준 CASCADE 삭제가 테이블 풀스캔 없이 즉시 처리되도록 인덱스를 추가했습니다.
+3. **데이터 무결성 제약조건 및 타임스탬프 추가**:
+   - `chk_event_threads_content_length`: 본문 길이 1~1,000자 제한 (`NOT VALID`).
+   - `chk_event_threads_recommend_count_non_negative`: 추천수 음수 방지(`recommend_count >= 0`, `NOT VALID`).
+   - `thread_recommendations.created_at`: 추천 발생 시각 타임스탬프 컬럼 추가.
 
 ---
 
@@ -294,7 +300,13 @@ erDiagram
    - 이메일 없는 X 가입 계정은 PostgreSQL의 `UNIQUE` 컬럼 `NULL` 중복 허용 특성을 이용해 `email = NULL`, `is_email_verified = false`로 저장됩니다.
 3. **비관계형 단기 상태 저장소 (`DynamoDB OAuthStatesTable`)**:
    - X OAuth 2.0의 PKCE `code_verifier`, SHA-256 해시 `state_hash`(PK), `mode` (`login` / `link` / `reauth`), `user_id`, `expires_at`(TTL)은 장기 데이터인 PostgreSQL이 아닌 AWS DynamoDB `OAuthStatesTable`에 저장하고 조건부 `DeleteItem`으로 원자적 1회 소비를 보장합니다.
-3. **데이터 무결성 제약조건 추가**:
-   - `chk_event_threads_content_length`: 본문 길이 1~1,000자 제한.
-   - `chk_event_threads_recommend_count_non_negative`: 추천수 음수 방지(`recommend_count >= 0`).
-   - `thread_recommendations.created_at`: 추천 발생 시각 타임스탬프 컬럼 추가.
+
+---
+
+## 6. 🗺️ `000019` 개인화 맵 필터 인덱스 및 쿼리 최적화 내역
+
+1. **`000019_add_event_user_actions_user_status_index`**:
+   - `idx_event_user_actions_user_status_event ON event_user_actions (user_id, status, event_id)` 복합 인덱스를 추가했습니다.
+   - 기존 `event_user_actions`의 PK `(user_id, event_id)` 및 Partial Index `(event_id) WHERE status = 2`만으로는 특정 유저의 북마크(`status = 1`) 또는 참가(`status = 2`) 이벤트만 선별할 때 불필요한 행 스캔이 발생하던 점을 개선해 DS920+ NAS 디스크 I/O를 절감합니다.
+2. **팔로우한 출연자 이벤트 다중 조인 최적화 (`ListFollowingArtistsEventsForMap`)**:
+   - `user_artist_follows`의 PK `(user_id, artist_id)` ➔ `event_artists`의 `idx_event_artists_artist_id` ➔ `events`의 `idx_events_start_time` 기존 인덱스를 조합하고, `followed_event_ids` CTE로 `DISTINCT ea.event_id`를 먼저 추출해 여러 팔로우 출연자가 함께 참가하는 이벤트의 중복 노출을 방지합니다.

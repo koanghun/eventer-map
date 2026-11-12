@@ -61,7 +61,7 @@ db.SetConnMaxIdleTime(1 * time.Minute) // 4) 1분 이상 놀고 있는 유휴 �
 - `buildRefreshTokenCookie()` 헬퍼를 통해 로컬(`ENV=local`)과 배포 환경(`ENV=prod`)의 쿠키 정책을 자동 분기합니다.
   - **`Secure` 플래그**: `ENV != "local"`일 때 자동으로 `Secure: true`가 적용되어 HTTPS 통신에서만 쿠키가 전송됩니다.
   - **`SameSite` 모드 (`COOKIE_SAMESITE`)**:
-    - CloudFront 기본 도메인(`*.cloudfront.net`)과 API Gateway 기본 도메인(`*.execute-api.ap-northeast-2.amazonaws.com`)을 각각 사용할 경우 Cross-Origin 요청에서 쿠키가 전송되도록 `COOKIE_SAMESITE=None`(`Secure: true` 필수)을 지원합니다.
+    - CloudFront 기본 도메인(`*.cloudfront.net`)과 API Gateway 기본 도메인(`*.execute-api.ap-northeast-1.amazonaws.com`)을 각각 사용할 경우 Cross-Origin 요청에서 쿠키가 전송되도록 `COOKIE_SAMESITE=None`(`Secure: true` 필수)을 지원합니다.
     - 커스텀 도메인(`eventermap.com` + `api.eventermap.com`)을 연결한 경우 `COOKIE_SAMESITE=Lax`와 `COOKIE_DOMAIN=.eventermap.com`으로 전환할 수 있습니다.
 
 ### 2.3. JWT 서명 시크릿 환경변수 분리 (`internal/service/auth_service.go`)
@@ -71,29 +71,30 @@ db.SetConnMaxIdleTime(1 * time.Minute) // 4) 1분 이상 놀고 있는 유휴 �
 
 ## 3. 🏗️ 2단계: AWS SAM 통합 인프라 템플릿 (`backend/template.yaml`)
 
-별도의 서드파티 IaC 도구 없이 **`backend/template.yaml` 단일 파일**로 백엔드와 프론트엔드 리소스를 한 번에 관리합니다.
+별도의 서드파티 IaC 도구 없이 **`backend/template.yaml` 단일 파일**로 백엔드와 프론트엔드 리소스를 한 번에 관리합니다 (기본 리전: `ap-northeast-1` Tokyo).
 
 ### 주요 프로비저닝 리소스
 1. **`EventerMapApiFunction` (`AWS::Serverless::Function`)**:
    - **런타임/아키텍처**: `provided.al2023` + `arm64` (Graviton2 기반으로 x86 대비 가격 대비 성능 20% 이상 우수)
    - **빌드 방식**: `BuildMethod: makefile` (`GOOS=linux GOARCH=arm64 CGO_ENABLED=0 go build -tags lambda.norpc -ldflags="-s -w"`)로 바이너리 크기를 최소화하여 콜드 스타트를 단축합니다.
-   - **최소 권한 IAM**: `MediaBucket` CRUD 권한과 `OAuthStatesTable`에 대한 `dynamodb:PutItem`, `dynamodb:DeleteItem` 권한만 부여합니다.
-2. **`OAuthStatesTable` (`AWS::DynamoDB::Table`)**:
+   - **최소 권한 IAM**: `MediaBucket` CRUD 권한(`S3CrudPolicy`)과 `OAuthStatesTable`에 대한 `dynamodb:PutItem`, `dynamodb:DeleteItem` 권한만 부여합니다.
+2. **`MediaBucket` (`AWS::S3::Bucket`) + `MediaBucketPolicy`**:
+   - 출연자 프로필 이미지 등 업로드 미디어 저장용 버킷이며, `MediaBucketPolicy`로 `/artists/profiles/*` 경로의 공개 읽기(`s3:GetObject`)만 허용합니다.
+3. **`OAuthStatesTable` (`AWS::DynamoDB::Table`)**:
    - On-Demand(`PAY_PER_REQUEST`) 요금제, `state_hash` 파티션 키, `expires_at` TTL 자동 삭제 및 서버 측 암호화(`SSESpecification`)가 적용된 단기 OAuth PKCE/CSRF 상태 저장소입니다.
-3. **`FrontendBucket` (`AWS::S3::Bucket`) + `FrontendBucketPolicy`**:
+4. **`FrontendBucket` (`AWS::S3::Bucket`) + `FrontendBucketPolicy`**:
    - 모든 퍼블릭 액세스를 차단(`PublicAccessBlockConfiguration: true`)하고, 오직 CloudFront OAC를 통한 읽기(`s3:GetObject`)만 허용합니다.
-3. **`FrontendOriginAccessControl` & `FrontendDistribution` (`AWS::CloudFront::Distribution`)**:
-   - **HTTPS 강제 적용** (`ViewerProtocolPolicy: redirect-to-https`) 및 **HTTP/2 & HTTP/3** 활성화
-   - **SPA 라우팅 지원 (`CustomErrorResponses`)**: React Router 경로(`/admin`, `/events/123` 등)로 직접 접속하거나 새로고침할 때 S3가 반환하는 `403`/`404` 응답을 `/index.html` (`200 OK`)로 변환하여 정상 렌더링합니다.
-4. **X OAuth 콜백과 CloudFront 라우팅**:
-   - X Developer Portal Callback URI를 `https://<프론트엔드 도메인>/auth/x/callback`으로 등록해야 합니다. CloudFront `CustomErrorResponses`로 S3 `403`/`404`를 `/index.html`로 서빙하므로 SPA 콜백 라우트가 정상 동작합니다.
+5. **`FrontendOriginAccessControl` & `FrontendDistribution` (`AWS::CloudFront::Distribution`)**:
+   - **HTTPS 강제 적용** (`ViewerProtocolPolicy: redirect-to-https`) 및 **HTTP/2 & HTTP/3** 활성화 (`PriceClass_200`)
+   - **SPA 라우팅 지원 (`CustomErrorResponses`)**: React Router 경로(`/auth/x/callback` 등)로 직접 접속하거나 새로고침할 때 S3가 반환하는 `403`/`404` 응답을 `/index.html` (`200 OK`)로 변환하여 정상 렌더링합니다.
+   - X Developer Portal Callback URI도 동일하게 `https://<프론트엔드 도메인>/auth/x/callback`으로 등록해야 합니다.
 
 ---
 
 ## 4. 🚀 3단계: 원클릭 배포 스크립트 및 GitHub Actions CI/CD
 
 ### 4.1. 로컬 원클릭 배포 (`Makefile`)
-루트 [`Makefile`](../Makefile)은 CloudFormation Stack Output(`EventerMapApi`, `FrontendBucketName`, `CloudFrontDistributionId`)을 자동으로 조회하여 수동 복사/붙여넣기 없이 배포를 수행합니다.
+루트 [`Makefile`](../Makefile)은 CloudFormation Stack Output(`EventerMapApi`, `FrontendBucketName`, `CloudFrontDistributionId`)을 자동으로 조회하여 수동 복사/붙여넣기 없이 배포합니다. (`backend/Makefile`의 `make deploy`는 SAM CLI가 없으면 AWS CLI `cloudformation package + deploy`로 자동 폴백합니다.)
 
 #### 프론트엔드 차등 캐싱 전략 (`make deploy-fe`)
 - **해시된 정적 에셋 (`build/static/*`)**: 파일명에 콘텐츠 해시가 포함되므로 `Cache-Control: public, max-age=31536000, immutable` 헤더를 부여해 브라우저와 CloudFront에 **1년간 영구 캐싱**합니다.
@@ -123,20 +124,21 @@ make deploy-all
    - 전달받은 `api_url`을 `REACT_APP_API_URL`에 자동 주입하여 `npm run build`를 수행합니다.
    - S3 차등 캐싱 업로드 및 CloudFront 캐시 무효화를 자동으로 완료합니다.
 
-#### GitHub Repository Secrets 등록 목록
-| 구분 | 이름 | 설명 |
-| :--- | :--- | :--- |
-| **Secrets** | `AWS_ROLE_ARN` | GitHub OIDC 연동용 AWS IAM Role ARN |
-| **Secrets** | `DATABASE_URL` | NAS PostgreSQL 접속 URL (`?sslmode=require&connect_timeout=5` 권장) |
-| **Secrets** | `JWT_SECRET` | 프로덕션 JWT 서명 시크릿 키 |
-| **Secrets** | `CORS_ORIGINS` | 허용할 프론트엔드 Origin (예: `https://d1234.cloudfront.net`) |
-| **Secrets** | `COOKIE_SAMESITE` | 기본값 `None` (동일 루트 도메인 사용 시 `Lax`) |
-| **Secrets** | `X_CLIENT_ID` | X Developer Portal OAuth 2.0 Client ID |
-| **Secrets** | `X_CLIENT_SECRET` | X Developer Portal OAuth 2.0 Client Secret (백엔드 전용) |
-| **Secrets** | `X_REDIRECT_URI` | X OAuth 2.0 Callback URL (`https://<도메인>/auth/x/callback`) |
-| **Secrets** | `X_REQUEST_EMAIL` | 선택 사항 (`true` 설정 시 `users.email` 스코프 요청, 기본 `false`) |
-| **Secrets** | `REACT_APP_GOOGLE_MAPS_API_KEY` | 프론트엔드 Google Maps JavaScript API 키 |
-| **Secrets** | `REACT_APP_GOOGLE_CLIENT_ID` | 프론트엔드 Google OAuth Client ID |
+#### 배포 환경변수 / GitHub Secrets 목록
+| 구분 | 이름 | 설명 | 비고 |
+| :--- | :--- | :--- | :--- |
+| **Secrets** | `AWS_ROLE_ARN` | GitHub OIDC 연동용 AWS IAM Role ARN | 워크플로우 사용 중 |
+| **Secrets** | `DATABASE_URL` | NAS PostgreSQL 접속 URL (`?sslmode=require&connect_timeout=5` 권장) | 워크플로우·`Makefile` 공통 |
+| **Secrets** | `JWT_SECRET` | 프로덕션 JWT 서명 시크릿 키 | 워크플로우·`Makefile` 공통 |
+| **Secrets** | `CORS_ORIGINS` | 허용할 프론트엔드 Origin (예: `https://d1234.cloudfront.net`) | 워크플로우·`Makefile` 공통 |
+| **Secrets** | `COOKIE_DOMAIN` | 선택 사항 (커스텀 도메인 공유 시 예: `.eventermap.com`) | 워크플로우·`Makefile` 공통 |
+| **Secrets** | `COOKIE_SAMESITE` | 기본값 `None` (동일 루트 도메인 사용 시 `Lax`) | 워크플로우·`Makefile` 공통 |
+| **Backend Env** | `X_CLIENT_ID` | X Developer Portal OAuth 2.0 Client ID | 현재 `backend/Makefile` 전달 (Actions 반영 시 `deploy.yml` `env` 추가 필요) |
+| **Backend Env** | `X_CLIENT_SECRET` | X Developer Portal OAuth 2.0 Client Secret (백엔드 전용) | 현재 `backend/Makefile` 전달 |
+| **Backend Env** | `X_REDIRECT_URI` | X OAuth 2.0 Callback URL (`https://<도메인>/auth/x/callback`) | 현재 `backend/Makefile` 전달 |
+| **Backend Env** | `X_REQUEST_EMAIL` | 선택 사항 (`true` 설정 시 `users.email` 스코프 요청, 기본 `false`) | 현재 `backend/Makefile` 전달 |
+| **Secrets** | `REACT_APP_GOOGLE_MAPS_API_KEY` | 프론트엔드 Google Maps JavaScript API 키 | 워크플로우 사용 중 |
+| **Secrets** | `REACT_APP_GOOGLE_CLIENT_ID` | 프론트엔드 Google OAuth Client ID | 워크플로우 사용 중 |
 
 ### 4.3. X Developer Portal & 로컬 개발 환경 설정 팁
 - **X Developer Portal 설정**:
@@ -150,4 +152,4 @@ make deploy-all
 > **💡 DB 마이그레이션 보안 팁**: NAS의 PostgreSQL 포트를 GitHub Actions의 불특정 IP 대역에 개방하는 대신, 스키마 마이그레이션(`cd backend && make migrateup`)은 로컬 개발 PC 또는 NAS 내부망에서 실행하는 것을 권장합니다.
 
 ---
-*문서 최종 업데이트: 2026-11-11*
+*문서 최종 업데이트: 2026-11-12*

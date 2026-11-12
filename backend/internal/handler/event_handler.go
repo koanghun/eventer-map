@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"eventer-map-backend/internal/middleware"
+	"eventer-map-backend/internal/repository"
 	"eventer-map-backend/internal/service"
 
 	"github.com/google/uuid"
@@ -117,6 +118,69 @@ func mapEventDetailToResponse(detail *service.EventDetail) Event {
 	}
 }
 
+func mapListEventRowToSummary(row repository.ListEventsRow) EventSummary {
+	id := openapi_types.UUID(row.ID)
+	title := row.Title
+	startTime := row.StartTime
+	endTime := row.EndTime
+	attendeeCount := int(row.AttendeeCount)
+	status := EventSummaryStatus(row.Status)
+
+	var venueID *openapi_types.UUID
+	if row.VenueID.Valid {
+		vID := openapi_types.UUID(row.VenueID.UUID)
+		venueID = &vID
+	}
+
+	var venueName *string
+	if row.VenueName != "" {
+		vName := row.VenueName
+		venueName = &vName
+	}
+
+	var lat, lng *float64
+	if row.VenueID.Valid {
+		l1 := row.Latitude
+		l2 := row.Longitude
+		lat = &l1
+		lng = &l2
+	}
+
+	var rating *float64
+	if row.RatingCount > 0 {
+		avg := row.RatingSum / float64(row.RatingCount)
+		rating = &avg
+	}
+
+	var topArtistName *string
+	if row.TopArtistName != "" {
+		n := row.TopArtistName
+		topArtistName = &n
+	}
+
+	var topArtistProfileImageURL *string
+	if row.TopArtistProfileImageUrl != "" {
+		u := row.TopArtistProfileImageUrl
+		topArtistProfileImageURL = &u
+	}
+
+	return EventSummary{
+		Id:                       &id,
+		Title:                    &title,
+		VenueId:                  venueID,
+		VenueName:                venueName,
+		Latitude:                 lat,
+		Longitude:                lng,
+		StartTime:                &startTime,
+		EndTime:                  &endTime,
+		Rating:                   rating,
+		AttendeeCount:            &attendeeCount,
+		TopArtistName:            topArtistName,
+		TopArtistProfileImageUrl: topArtistProfileImageURL,
+		Status:                   &status,
+	}
+}
+
 // GetEvents implements the GET /events endpoint
 func (s *Server) GetEvents(w http.ResponseWriter, r *http.Request, params GetEventsParams) {
 	filter := service.ListEventsFilter{
@@ -127,6 +191,46 @@ func (s *Server) GetEvents(w http.ResponseWriter, r *http.Request, params GetEve
 		Limit:    service.DefaultEventLimit,
 		VenueID:  params.VenueId,
 		ArtistID: params.ArtistId,
+	}
+
+	isFollowingArtists := params.FollowingArtists != nil && *params.FollowingArtists
+	if isFollowingArtists {
+		if params.MyAction != nil {
+			RespondError(w, http.StatusBadRequest, "Cannot combine myAction and followingArtists")
+			return
+		}
+		if params.ArtistId != nil {
+			RespondError(w, http.StatusBadRequest, "Cannot combine artistId and followingArtists")
+			return
+		}
+		userID, ok := r.Context().Value(middleware.UserIDKey).(uuid.UUID)
+		if !ok || userID == uuid.Nil {
+			RespondError(w, http.StatusUnauthorized, "user not authenticated")
+			return
+		}
+		filter.UserID = &userID
+		filter.FollowingArtists = true
+	}
+
+	if params.MyAction != nil {
+		if !params.MyAction.Valid() {
+			RespondError(w, http.StatusBadRequest, "Invalid myAction parameter")
+			return
+		}
+		userID, ok := r.Context().Value(middleware.UserIDKey).(uuid.UUID)
+		if !ok || userID == uuid.Nil {
+			RespondError(w, http.StatusUnauthorized, "user not authenticated")
+			return
+		}
+		var actionStatus int32
+		switch *params.MyAction {
+		case Bookmarked:
+			actionStatus = 1
+		case Attending:
+			actionStatus = 2
+		}
+		filter.UserID = &userID
+		filter.ActionStatus = &actionStatus
 	}
 
 	if params.Limit != nil {
@@ -166,73 +270,21 @@ func (s *Server) GetEvents(w http.ResponseWriter, r *http.Request, params GetEve
 
 	rows, hasMore, err := s.services.Event.ListEvents(r.Context(), filter)
 	if err != nil {
-		log.Printf("[GetEvents] ListEvents error: %v", err)
-		RespondError(w, http.StatusInternalServerError, "Failed to retrieve events")
+		switch {
+		case errors.Is(err, service.ErrMyActionAuthRequired), errors.Is(err, service.ErrFollowingArtistsAuthRequired):
+			RespondError(w, http.StatusUnauthorized, "user not authenticated")
+		case errors.Is(err, service.ErrInvalidActionStatus), errors.Is(err, service.ErrConflictingEventFilters):
+			RespondError(w, http.StatusBadRequest, err.Error())
+		default:
+			log.Printf("[GetEvents] ListEvents error: %v", err)
+			RespondError(w, http.StatusInternalServerError, "Failed to retrieve events")
+		}
 		return
 	}
 
 	summaries := make([]EventSummary, 0, len(rows))
 	for _, row := range rows {
-		id := openapi_types.UUID(row.ID)
-		title := row.Title
-		startTime := row.StartTime
-		endTime := row.EndTime
-		attendeeCount := int(row.AttendeeCount)
-		status := EventSummaryStatus(row.Status)
-
-		var venueID *openapi_types.UUID
-		if row.VenueID.Valid {
-			vID := openapi_types.UUID(row.VenueID.UUID)
-			venueID = &vID
-		}
-
-		var venueName *string
-		if row.VenueName != "" {
-			vName := row.VenueName
-			venueName = &vName
-		}
-
-		var lat, lng *float64
-		if row.VenueID.Valid {
-			l1 := row.Latitude
-			l2 := row.Longitude
-			lat = &l1
-			lng = &l2
-		}
-
-		var rating *float64
-		if row.RatingCount > 0 {
-			avg := row.RatingSum / float64(row.RatingCount)
-			rating = &avg
-		}
-
-		var topArtistName *string
-		if row.TopArtistName != "" {
-			n := row.TopArtistName
-			topArtistName = &n
-		}
-
-		var topArtistProfileImageURL *string
-		if row.TopArtistProfileImageUrl != "" {
-			u := row.TopArtistProfileImageUrl
-			topArtistProfileImageURL = &u
-		}
-
-		summaries = append(summaries, EventSummary{
-			Id:                       &id,
-			Title:                    &title,
-			VenueId:                  venueID,
-			VenueName:                venueName,
-			Latitude:                 lat,
-			Longitude:                lng,
-			StartTime:                &startTime,
-			EndTime:                  &endTime,
-			Rating:                   rating,
-			AttendeeCount:            &attendeeCount,
-			TopArtistName:            topArtistName,
-			TopArtistProfileImageUrl: topArtistProfileImageURL,
-			Status:                   &status,
-		})
+		summaries = append(summaries, mapListEventRowToSummary(row))
 	}
 
 	RespondJSON(w, http.StatusOK, EventListResponse{

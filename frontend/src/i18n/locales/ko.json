@@ -13,7 +13,16 @@
     },
     "datePicker": {
         "label": "날짜 선택",
-        "isRange": "기간 선택"
+        "isRange": "기간 선택",
+        "allDates": "전체 기간",
+        "quickSearch": {
+            "groupLabel": "날짜 빠른 선택",
+            "today": "오늘",
+            "oneWeek": "일주일 후",
+            "oneMonth": "한달 후"
+        },
+        "fromDateOnward": "{{date}} 이후",
+        "clearEndDate": "이후 전체"
     },
     "performerFilter": {
         "label": "출연자 / 공연장 검색",
@@ -295,9 +304,21 @@
         "searchByVenue": "이 공연장으로 검색 (6개월)"
     },
     "filter": {
-        "flags": {
-            "showAll": "전체 이벤트 보기",
-            "showFlagsOnly": "플래그한 이벤트만 보기"
+        "myEvents": {
+            "bookmarkedTitle": "북마크한 이벤트",
+            "participatedTitle": "참가한 이벤트",
+            "clear": "해제",
+            "count": "{{count}}건",
+            "hasMoreHint": "최대 100건까지 표시됩니다. 날짜 필터로 범위를 좁힐 수 있습니다.",
+            "emptyBookmarked": "북마크한 이벤트가 없습니다",
+            "emptyBookmarkedDesc": "관심 있는 이벤트를 북마크하면 지도와 목록에서 모아볼 수 있습니다.",
+            "emptyParticipated": "참가한 이벤트가 없습니다",
+            "emptyParticipatedDesc": "참가 예정이거나 참가한 이벤트를 표시하면 지도와 목록에서 모아볼 수 있습니다."
+        },
+        "followingArtists": {
+            "title": "팔로우한 출연자",
+            "empty": "예정된 이벤트가 없습니다",
+            "emptyDesc": "팔로우한 출연자의 검색일 이후 일정이 없거나, 다른 날짜를 선택해보세요."
         }
     },
     "duplicateModal": {
@@ -501,7 +522,10 @@
         "deleteXReauthFailed": "X 재인증에 실패했습니다.",
         "noEmailPlaceholder": "이메일 없음 (X 계정으로 가입)",
         "passwordUnavailableNoEmail": "이메일 정보가 없는 X 계정은 비밀번호를 설정할 수 없습니다.",
-        "setPassword": "비밀번호 설정하기"
+        "setPassword": "비밀번호 설정하기",
+        "bookmarkedEvents": "북마크한 이벤트",
+        "participatedEvents": "참가한 이벤트",
+        "followingArtists": "팔로우한 출연자"
     },
     "seo": {
         "title": "Event Map - 이벤트 지도",
@@ -611,6 +635,12 @@
             "PENDING": "승인 대기",
             "APPROVED": "승인됨",
             "REJECTED": "반려됨"
-        }
+        },
+        "expand": "펼치기",
+        "collapse": "접기",
+        "collapsedHint": "접힘",
+        "followingArtistsCountBadge": "{{count}}명",
+        "noFollowingArtists": "팔로우 중인 출연자가 없습니다.",
+        "unfollowButton": "팔로우 취소"
     }
 }

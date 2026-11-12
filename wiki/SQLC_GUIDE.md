@@ -151,3 +151,6 @@ sql:
    - 공연장(`SearchVenues`) 및 출연자(`ListArtists`) 검색은 `LOWER(official_name) LIKE LOWER(@query) || '%'` 형태로 작성하여 `varchar_pattern_ops` B-Tree 인덱스를 타도록 유지합니다.
 4. **차단 유저 서브쿼리 필터링 (`NOT EXISTS`)**:
    - 커뮤니티 및 참가자 목록 조회 시 조회자와 상호 차단 관계에 있는 유저의 데이터는 SQL 레벨에서 제외합니다.
+5. **다중 엔티티 CTE 중복 제거 패턴 (`ListFollowingArtistsEventsForMap`)**:
+   - 팔로우 중인 여러 출연자가 같은 이벤트에 동시에 참가할 경우 행 중복이 발생하지 않도록 `WITH followed_event_ids AS (SELECT DISTINCT ea.event_id FROM user_artist_follows uaf JOIN event_artists ea ON ea.artist_id = uaf.artist_id WHERE uaf.user_id = sqlc.arg('user_id'))` CTE로 먼저 이벤트 ID를 추린 뒤 `events`와 조인합니다.
+   - 내 액션 필터(`ListMyActionEvents`)처럼 동일 테이블을 다른 목적으로 조회하는 쿼리에서는 `sqlc.arg('user_id')` / `sqlc.arg('action_status')`를 활용해 `idx_event_user_actions_user_status_event` 복합 인덱스를 직접 타도록 설계합니다.

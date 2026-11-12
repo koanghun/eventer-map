@@ -72,12 +72,13 @@ flowchart LR
 - `oauth_state_store.go`: `OAuthStateStore` 인터페이스 구현체 — 프로덕션용 `DynamoDBOAuthStateStore` (TTL + 조건부 `DeleteItem` 원자 1회 소비) 및 로컬(`ENV=local` / 비-Lambda) 전용 `InMemoryOAuthStateStore`
 
 ### 4) `internal/handler/` (표현 계층)
-- `oapi-codegen`이 생성한 `openapi.gen.go`의 `ServerInterface`를 도메인별 파일(`event_handler.go`, `thread_handler.go`, `artist_handler.go`, `venue_handler.go`, `auth_handler.go`, `user_handler.go` 등)에서 구현합니다.
-- 요청 파라미터/바디 파싱 및 입력값 검증(필수값, 본문 및 문자열 길이, 바디 크기 제한, 위경도 범위, 이미지 MIME/용량 등)만 수행하고 비즈니스 로직은 `Service`에 위임합니다.
+- `oapi-codegen`이 생성한 `openapi.gen.go`의 `ServerInterface`를 도메인별 파일(`common_handler.go`, `event_handler.go`, `thread_handler.go`, `artist_handler.go`, `venue_handler.go`, `auth_handler.go`, `user_handler.go`)에서 구현합니다.
+- 요청 파라미터/바디 파싱 및 입력값 검증(필수값, 본문 및 문자열 길이, 바디 크기 제한, 위경도 범위, 이미지 MIME/용량, `GET /events`의 `myAction`·`followingArtists`·`artistId` 충돌 및 인증 여부 등)만 수행하고 비즈니스 로직은 `Service`에 위임합니다.
 
 ### 5) `internal/service/` (비즈니스 계층)
 - HTTP 객체(`http.Request` 등)에 의존하지 않는 순수 Go 도메인 로직을 수행합니다.
-- 유저 권한(`ADMIN` 여부)에 따른 등록 상태 결정(`PENDING` vs `APPROVED`), 이벤트 평점/수정 시 공연장 및 출연자의 평균 평점 캐시(`rating_sum`, `rating_count`) 재계산, 스레드 복합 커서 인코딩/디코딩, 본인 스레드 추천 방지, 트랜잭션 처리를 담당합니다.
+- 유저 권한(`ADMIN` 여부)에 따른 등록 상태 결정(`PENDING` vs `APPROVED`), 이벤트 평점 등록/수정/삭제(`RateEvent` / `DeleteRate`) 및 이벤트 수정 시 공연장·출연자의 평균 평점 캐시(`rating_sum`, `rating_count`) 재계산, 스레드 복합 커서 인코딩/디코딩, 본인 스레드 추천 방지, 트랜잭션 처리를 담당합니다.
+- 이벤트 조회(`event_service.go` `ListEvents`)에서는 일반 지도 조회(`ListEvents`), 내 북마크/참가 조회(`ListMyActionEvents`), 팔로우한 출연자 이벤트 조회(`ListFollowingArtistsEventsForMap`) 경로를 분기하며, 개인화 필터의 인증 누락·충돌 조합에 대해 fail-closed 에러를 반환합니다.
 - 인증/계정 도메인(`auth_service.go`, `x_auth_service.go`, `user_service.go`)에서는 이메일 인증 코드 검증, Google/X OAuth 로그인·계정 연동·해제(마지막 로그인 수단 해제 방지), 이메일 없는 X 가입(`NULL` 이메일 + 유니크 닉네임 자동 생성), 탈퇴 재인증 검증을 수행합니다.
 
 ### 6) `internal/repository/` (데이터 접근 계층)
@@ -85,24 +86,36 @@ flowchart LR
 
 ---
 
-## 3. 🎨 프론트엔드 좌측 사이드바, 인증 UX & 지도 연동 아키텍처 (`frontend/`)
+## 3. 🎨 프론트엔드 좌측 사이드바, 개인화 필터 & 지도 연동 아키텍처 (`frontend/`)
 
 - **X OAuth 콜백 및 팝업 통신 (`lib/xOAuth.ts`, `pages/XOAuthCallbackPage.tsx`)**: `window.open` 팝업과 동일 오리진 `BroadcastChannel('eventer-map-x-oauth')`를 사용해 지도 상태나 `ProfileSettingsModal`을 유지한 채 인증을 처리하며, 팝업 차단 환경(모바일 인앱 브라우저 등)에서는 `sessionStorage` 임시 상태를 이용한 풀페이지 리다이렉트로 폴백합니다.
+- **세션 종료·탈퇴 시 비공개 캐시 격리 (`context/AuthContext.tsx`)**: 로그아웃 및 회원 탈퇴 시 `clearPrivateClientState()`로 `/users/me*` 및 개인화 `GET /events`(`myAction`, `followingArtists`) TanStack Query 캐시를 즉시 제거하고 메모리 `accessToken`을 초기화합니다.
 
-지도 화면(`MapPage.tsx`)은 **좌측 사이드바 패널(20%)**과 **우측 인터랙티브 지도(`EventMap.tsx`, 80%)**로 구성됩니다.
+지도 화면(`MapPage.tsx`)은 **좌측 사이드바 패널(`md:w-[20%]`)**과 **우측 인터랙티브 지도(`EventMap.tsx`, `md:w-[80%]`)**로 구성됩니다.
 
-### 1) 좌측 사이드바 단일 컨테이너 전환 구조
+### 1) 좌측 사이드바 단일 컨테이너 전환 & 통합 검색 구조
 좌측 사이드바는 별도의 모달 팝업을 띄우지 않고, 상황에 따라 패널 컴포넌트를 매끄럽게 전환합니다:
-- **기본 목록 뷰**: 날짜 필터(`DatePicker`), 출연자 필터(`ArtistSearch`), 이벤트 목록(`EventList`)
+- **기본 목록 & 통합 필터 뷰**:
+  - **기간 필터 (`DatePicker.tsx`)**: 범위 드래그 선택, 빠른 기간 프리셋(`오늘` / `일주일 후` / `한달 후`), 개방형 시작일 표기(`{{date}} 이후`), 기간/종료일 초기화(`allDatesLabel`, `clearLabel`) 지원.
+  - **출연자 & 공연장 통합 검색 (`ArtistSearch.tsx`)**: `GET /artists`와 `GET /venues/search`를 동시에 디바운스(`300ms`) + IME(`isComposing`) 가드로 자동완성 조회하고, 선택 시 URL 쿼리(`artistId`/`venueId`, 기본 6개월 범위)와 동기화합니다.
+  - **엔티티 정보 & 다중 출연자 접힘 카드 (`EntityInfoCard.tsx`)**:
+    - 단일 출연자 선택 시 **`ArtistInfoCard`**가 기본 펼침 상태로 표시되어 팔로우 토글, 팔로워 목록 팝오버, 동명이인 설명(`disambiguation`)을 제공합니다.
+    - 공연장 선택 시 **`VenueInfoCard`**가 표시되어 주소, Google Maps 이동, 지도 포커싱(`setMapCenterTarget`), 수용 인원, 관련 링크를 제공합니다.
+    - 프로필 팝오버의 `'팔로우한 출연자'` 모드에서는 복수 출연자가 검색되므로 **`FollowingArtistsInfoCard`**(`EntityInfoShell` 기반)가 **`defaultCollapsed = true`('접어서 숨김')** 상태로 렌더링되어 이벤트 리스트 가시성을 우선 확보하며, 헤더 클릭 시 펼쳐 팔로우 목록/언팔로우를 관리할 수 있습니다.
+  - **프로필 팝오버 개인화 맵 필터 (`UserProfile.tsx` + `MapPage.tsx`)**:
+    - 프로필 아이콘 팝오버에서 **`북마크한 이벤트` (`?myAction=bookmarked`)**, **`참가한 이벤트` (`?myAction=attending`)**, **`팔로우한 출연자` (`?followingArtists=true`)** 필터를 전환할 수 있습니다.
+    - `myAction` 모드는 과거+예정 전체 기간을 기본 조회(날짜 필터로 축소 가능)하며, `followingArtists` 모드는 검색일(기본 오늘) 이후 전체(`startDate = today`, `endDate = undefined`)를 기본 조회합니다.
+    - 엔티티 필터 또는 개인화 필터 활성화 시 지도 바운딩 박스 제한을 해제하고, [`EventMap.tsx`](./ARCHITECTURE.md)에서 `activeFilterKey`·`isFilterDataReady`에 맞춰 결과 좌표로 자동 `fitBounds` / `panTo`를 수행합니다.
+  - **이벤트 목록 (`EventList.tsx`)**: 필터 상태별 빈 목록 안내 문구(`emptyTitle`/`emptyDescription`) 및 참가자 수 뱃지를 표시합니다.
 - **이벤트 상세 뷰 (`EventDetailPane.tsx`)**:
-  - 지도 마커 또는 리스트에서 이벤트 선택 시 상세 정보 및 출연자(`공식 이름 (식별 설명)`) 표시
-  - 체크/참가 상태 원클릭 순환(`usePutEventsEventIdAction`)
+  - 지도 마커(`SingleEventInfoWindow`, `GroupEventInfoWindow`) 또는 리스트에서 이벤트 선택 시 상세 정보, 출연자(`공식 이름 (식별 설명)`), 공연장을 표시하며, 출연자/공연장 클릭 시 즉시 6개월 일정 검색으로 연동됩니다.
+  - 체크/참가 상태 3단계 원클릭 순환(`usePutEventsEventIdAction`, `0 ➔ 1(북마크) ➔ 2(참가)`) 낙관적 업데이트 및 참가자(`status=2`) 전용 평점 등록/수정/삭제(`usePostEventsEventIdRate`, `useDeleteEventsEventIdRate`) 지원.
   - **이벤트 스레드 & 커뮤니티 서브 섹션 (`EventThreadSection.tsx`)**:
     - **추천순 랭킹 & BEST 뱃지**: 추천 수가 많은 고품질 스레드가 상단에 정렬되며 상위 스레드에 BEST 뱃지 표시
     - **커서 기반 무한 스크롤**: TanStack Query v5 `useInfiniteQuery`를 활용한 지연 로딩
     - **낙관적 업데이트 (Optimistic Update)**: 추천/추천 취소 토글 시 UI에 즉각 반영하고 오류 발생 시 롤백
     - **스레드 작성 & 본인 글 제어**: 1~1,000자 실시간 카운팅, 본인 작성 글 식별 및 삭제 확인 UI 제공 (XSS 방지를 위한 React JSX 안전 텍스트 바인딩)
-- **새 이벤트 등록 뷰 (`EventFormPane.tsx`)**:
+- **새 이벤트/수정 폼 뷰 (`EventFormPane.tsx`)**:
   - 작성 중인 모든 폼 상태를 브라우저 `sessionStorage`(`eventer_map_event_form_draft`)에 실시간 보존합니다.
   - **`'회장'` 및 `'출연자'` 저부하 자동완성**:
     - `300ms` 디바운스 + IME 조합(`isComposing`) 가드 + TanStack Query 5분 캐시(`staleTime`)로 서버 부하를 최소화합니다.

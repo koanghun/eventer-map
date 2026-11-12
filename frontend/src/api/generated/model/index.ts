@@ -29,6 +29,7 @@ export * from './getArtistsArtistIdFollowersParams';
 export * from './getArtistsParams';
 export * from './getArtistsStatus';
 export * from './getEventsEventIdAttendeesParams';
+export * from './getEventsMyAction';
 export * from './getEventsParams';
 export * from './getEventsStatus';
 export * from './getEventsTimeRange';

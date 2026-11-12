@@ -1,7 +1,10 @@
 import { createContext, useContext, useState, useCallback, useEffect, ReactNode } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { setAccessToken } from '../lib/axios';
 import { postAuthLogin, postAuthSignup, postAuthSignupVerify, postAuthSignupResend, postAuthGoogle, postAuthXLogin, postAuthLogout, postAuthRefresh } from '../api/generated/auth/auth';
 import { getUsersMe, deleteUsersMe } from '../api/generated/user/user';
+import { getGetEventsQueryKey } from '../api/generated/events/events';
+import { useEventStore } from '../store/useEventStore';
 import { toast } from '../store/useToastStore';
 import { useTranslation } from 'react-i18next';
 import type { UserProfile } from '../api/generated/model';
@@ -25,8 +28,25 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
     const { t } = useTranslation();
+    const queryClient = useQueryClient();
     const [user, setUser] = useState<UserProfile | null>(null);
     const [isLoading, setIsLoading] = useState(true);
+
+    const clearPrivateClientState = useCallback(() => {
+        setAccessToken(null);
+        setUser(null);
+        useEventStore.getState().clearSelection();
+        queryClient.removeQueries({
+            predicate: (q) => typeof q.queryKey[0] === 'string' && q.queryKey[0].startsWith('/users/me'),
+        });
+        queryClient.removeQueries({
+            queryKey: getGetEventsQueryKey(),
+            predicate: (q) => {
+                const params = q.queryKey[1] as { myAction?: string; followingArtists?: boolean } | undefined;
+                return Boolean(params?.myAction || params?.followingArtists);
+            },
+        });
+    }, [queryClient]);
 
     const fetchUser = useCallback(async () => {
         try {
@@ -97,10 +117,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         } catch {
             // Ignore logout errors
         }
-        setAccessToken(null);
-        setUser(null);
+        clearPrivateClientState();
         toast.info(t('auth.logoutSuccess', '로그아웃되었습니다.'));
-    }, [t]);
+    }, [clearPrivateClientState, t]);
 
     const deleteAccount = useCallback(async (currentPassword?: string, googleAccessToken?: string, xReauthToken?: string) => {
         await deleteUsersMe({
@@ -108,10 +127,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             ...(googleAccessToken ? { googleAccessToken } : {}),
             ...(xReauthToken ? { xReauthToken } : {}),
         });
-        setAccessToken(null);
-        setUser(null);
+        clearPrivateClientState();
         toast.success(t('profile.deleteAccountSuccess', '회원 탈퇴가 완료되었습니다.'));
-    }, [t]);
+    }, [clearPrivateClientState, t]);
 
     return (
         <AuthContext.Provider value={{

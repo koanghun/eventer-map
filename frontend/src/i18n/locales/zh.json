@@ -12,7 +12,16 @@
         "ja": "日本語"
     },
     "datePicker": {
-        "label": "日付選択"
+        "label": "日付選択",
+        "allDates": "全部日期",
+        "quickSearch": {
+            "groupLabel": "快速选择日期",
+            "today": "今天",
+            "oneWeek": "一周后",
+            "oneMonth": "一个月后"
+        },
+        "fromDateOnward": "{{date}} 起",
+        "clearEndDate": "之后全部"
     },
     "performerFilter": {
         "placeholder": "输入出演者或会场名称",
@@ -90,7 +99,10 @@
         "xUnlinked": "已解除 X 账号关联。",
         "xUnlinkFailed": "解除 X 账号关联失败。",
         "noEmailPlaceholder": "无电子邮箱（使用 X 账号注册）",
-        "passwordUnavailableNoEmail": "未绑定电子邮箱的 X 账号无法设置密码。"
+        "passwordUnavailableNoEmail": "未绑定电子邮箱的 X 账号无法设置密码。",
+        "bookmarkedEvents": "收藏的活动",
+        "participatedEvents": "参加的活动",
+        "followingArtists": "已关注的艺人"
     },
     "errors": {
         "api": {
@@ -336,9 +348,21 @@
         "searchByVenue": "按此会场搜索（6个月）"
     },
     "filter": {
-        "flags": {
-            "showAll": "全てのイベントを表示",
-            "showFlagsOnly": "フラグしたイベントのみ表示"
+        "myEvents": {
+            "bookmarkedTitle": "收藏的活动",
+            "participatedTitle": "参加的活动",
+            "clear": "取消",
+            "count": "{{count}}个",
+            "hasMoreHint": "最多显示100个活动。可使用日期选择器缩小范围。",
+            "emptyBookmarked": "暂无收藏的活动",
+            "emptyBookmarkedDesc": "收藏感兴趣的活动后，可在地图和列表中集中查看。",
+            "emptyParticipated": "暂无参加的活动",
+            "emptyParticipatedDesc": "标记计划参加或已参加的活动后，可在地图和列表中集中查看。"
+        },
+        "followingArtists": {
+            "title": "已关注的艺人",
+            "empty": "暂无即将举行的活动",
+            "emptyDesc": "已关注艺人在该日期之后暂无日程，或请尝试选择其他日期。"
         }
     },
     "duplicateModal": {
@@ -606,6 +630,12 @@
             "PENDING": "待审核",
             "APPROVED": "已通过",
             "REJECTED": "已驳回"
-        }
+        },
+        "expand": "展开",
+        "collapse": "收起",
+        "collapsedHint": "已收起",
+        "followingArtistsCountBadge": "{{count}}位",
+        "noFollowingArtists": "暂无已关注的艺人。",
+        "unfollowButton": "取消关注"
     }
 }

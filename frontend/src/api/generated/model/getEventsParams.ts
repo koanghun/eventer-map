@@ -6,6 +6,7 @@
  */
 import type { GetEventsTimeRange } from './getEventsTimeRange';
 import type { GetEventsStatus } from './getEventsStatus';
+import type { GetEventsMyAction } from './getEventsMyAction';
 
 export type GetEventsParams = {
 /**
@@ -36,6 +37,14 @@ artistId?: string;
 venueId?: string;
 timeRange?: GetEventsTimeRange;
 status?: GetEventsStatus;
+/**
+ * 현재 로그인한 유저의 이벤트 액션 필터 (bookmarked: 북마크/체크, attending: 참가)
+ */
+myAction?: GetEventsMyAction;
+/**
+ * true인 경우 현재 로그인한 유저가 팔로우 중인 출연자들이 참가하는 이벤트를 조회합니다 (인증 필요, myAction/artistId와 동시 사용 불가)
+ */
+followingArtists?: boolean;
 /**
  * 최대 반환 이벤트 수 (기본값 50, 최대 100)
  */

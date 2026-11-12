@@ -28,20 +28,24 @@
   - 지도 바운딩 박스 조회용 공간/좌표 인덱스(`latitude`, `longitude`)
   - 회장/출연자 저부하 전방 일치 자동완성용 `LOWER(official_name) varchar_pattern_ops` 및 `hiragana varchar_pattern_ops` B-Tree 인덱스
   - 이벤트 하위 스레드 추천순 정렬 및 복합 커서 페이지네이션용 `(event_id, recommend_count DESC, created_at DESC, id DESC)` 복합 인덱스
+  - 유저별 북마크/참가 이벤트 맵 필터링 최적화용 `(user_id, status, event_id)` 복합 인덱스(`idx_event_user_actions_user_status_event`)
 
 ---
 
 ## 3. 프론트엔드 (Frontend - React + TypeScript)
-- **코어 프레임워크:** **React 18 + TypeScript**
+- **코어 프레임워크:** **React 18 + TypeScript + React Compiler (`babel-plugin-react-compiler`)**
+- **라우팅 & URL 상태 동기화:** **React Router v7 (`react-router-dom`)**
+  - 지도 필터 쿼리 파라미터(`?start=&end=`, `artistId`, `venueId`, `myAction`, `followingArtists`) 동기화 및 `/auth/x/callback` OAuth 콜백 라우트 처리
 - **API 클라이언트 자동 생성:** **`Orval`**
   - `backend/api/openapi.yaml`을 파싱하여 `src/api/generated/model`에 TypeScript 모델을, `src/api/generated/<tag>/`에 **TanStack Query v5** 커스텀 훅을 `tags-split` 모드로 자동 생성합니다.
 - **서버 상태 관리:** **TanStack Query (v5)**
-  - API 응답 캐싱(`staleTime`, `gcTime`), 자동완성 검색 결과 캐싱, 쿼리 무효화(`invalidateQueries`)를 전담합니다.
-- **클라이언트 전역 상태 관리:** **Zustand**
-  - 선택된 이벤트(`selectedEvent`), 지도 뷰포트(`mapBounds`), 신규 회장 등록 시 지도 클릭 좌표(`venueDraftLocation`) 등 순수 클라이언트 상태만 `src/store/`에서 관리합니다.
+  - API 응답 캐싱(`staleTime`, `gcTime`), 자동완성 검색 결과 캐싱, 스레드 `useInfiniteQuery` 커서 무한 스크롤, 추천/액션 낙관적 업데이트, 로그아웃·탈퇴 시 개인화 캐시 정리를 전담합니다.
+- **클라이언트 전역 상태 관리:** **Zustand (v5)**
+  - 선택된 이벤트(`selectedEvent`), 지도 뷰포트(`mapBounds`), 지도 이동 타깃(`mapCenterTarget`), 신규 회장 등록 시 좌표 피킹 상태(`isPickingVenueLocation`, `venueDraftLocation`) 등 순수 클라이언트 상태만 `src/store/`에서 관리합니다.
 - **지도 & 지오코딩:** **`@react-google-maps/api` + OpenStreetMap Nominatim 폴백**
-  - Google Maps 기반 이벤트 마커/클러스터 렌더링 및 신규 회장 등록 시 Google Places/Geocoder + OpenStreetMap Nominatim 다단계 장소 검색 및 역지오코딩을 지원합니다.
-- **UI & 스타일링:** **Tailwind CSS + Radix UI + Lucide Icons**
+  - 참가자 수 기반 동적 크기 아바타 마커, 동일 좌표 이벤트 그룹 인포윈도우, 필터 전환 시 자동 `fitBounds`/`panTo` 포커싱 및 신규 회장 등록 시 Google Places/Geocoder + OpenStreetMap Nominatim 다단계 검색·역지오코딩 지원
+- **날짜 & UI 컴포넌트:** **Tailwind CSS + Radix UI + Lucide Icons + `react-day-picker` v10 (`date-fns`)**
+  - 드래그 범위 선택·빠른 프리셋·개방형 종료일(`{{date}} 이후`) 지원 커스텀 `DatePicker` 및 접힘/펼침(`EntityInfoShell`) 사이드바 카드 제공
 - **다국어 지원 (i18n):** **`i18next` / `react-i18next`** (`ko`, `ja`, `en`, `zh` 4개 국어 지원)
 
 ---
@@ -59,4 +63,4 @@
   - **Refresh Token:** `HttpOnly`, `Secure`(배포 환경 자동 활성화) 쿠키에 저장 (`withCredentials: true`, 환경별 `SameSite`/`Domain` 분기 지원)
 
 ---
-*문서 최종 업데이트: 2026-11-11*
+*문서 최종 업데이트: 2026-11-12*

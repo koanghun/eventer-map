@@ -6,7 +6,7 @@ Eventer Map 프로젝트의 통합 위키입니다. API-First 풀스택 아키�
 
 ### 🏗️ 아키텍처 및 기술 스택
 - [기술 스택 명세서 (Tech Stack)](./TECH_STACK.md)
-- [시스템 아키텍처 (System Architecture - 백엔드 4계층 & 프론트엔드 사이드바/지도 연동)](./ARCHITECTURE.md)
+- [시스템 아키텍처 (System Architecture - 백엔드 4계층 & 프론트엔드 통합 검색/개인화 필터/지도 연동)](./ARCHITECTURE.md)
 - [AWS 서버리스 & 정적 배포 가이드 (AWS Deployment Guide - S3/CloudFront/Lambda/NAS DB)](./AWS_DEPLOYMENT_GUIDE.md)
 
 ### 🔌 API 및 인증
@@ -16,7 +16,7 @@ Eventer Map 프로젝트의 통합 위키입니다. API-First 풀스택 아키�
 - [프론트엔드 Orval 라이브러리 가이드 (Orval Guide)](./ORVAL_GUIDE.md)
 
 ### 🗄️ 데이터베이스
-- [DB 테이블 스키마 명세 및 미사용 요소 분석 (Database Schema)](./DATABASE_SCHEMA.md)
+- [DB 테이블 스키마 명세 및 인덱스 최적화 (Database Schema)](./DATABASE_SCHEMA.md)
 - [DB 마이그레이션 가이드 및 버전 이력 (Database Migration Guide)](./DATABASE_MIGRATION_GUIDE.md)
 - [sqlc 가이드 및 사용 설명서 (SQLC Guide)](./SQLC_GUIDE.md)
 

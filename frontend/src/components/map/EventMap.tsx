@@ -9,6 +9,8 @@ import type { EventSummary } from '../../api/generated/model';
 
 interface EventMapProps {
     events: EventSummary[];
+    activeFilterKey?: string;
+    isFilterDataReady?: boolean;
     onArtistSelect?: (artist: { id: string; name: string }) => void;
     onVenueSelect?: (venue: { id: string; name: string; lat?: number; lng?: number }) => void;
 }
@@ -273,283 +275,367 @@ const mapStyles = [
     },
 ];
 
-function EventMap({ events, onArtistSelect, onVenueSelect }: EventMapProps) {
-    const { theme } = useTheme();
+    function EventMap({ events, activeFilterKey, isFilterDataReady = false, onArtistSelect, onVenueSelect }: EventMapProps) {
+        const { theme } = useTheme();
 
-    const selectedEvent = useEventStore((state) => state.selectedEvent);
-    const selectEvent = useEventStore((state) => state.selectEvent);
-    const clearSelection = useEventStore((state) => state.clearSelection);
-    const setMapBounds = useEventStore((state) => state.setMapBounds);
-    const mapCenterTarget = useEventStore((state) => state.mapCenterTarget);
-    const isPickingVenueLocation = useEventStore((state) => state.isPickingVenueLocation);
-    const venueDraftLocation = useEventStore((state) => state.venueDraftLocation);
-    const setVenueDraftLocation = useEventStore((state) => state.setVenueDraftLocation);
+        const selectedEvent = useEventStore((state) => state.selectedEvent);
+        const selectEvent = useEventStore((state) => state.selectEvent);
+        const clearSelection = useEventStore((state) => state.clearSelection);
+        const setMapBounds = useEventStore((state) => state.setMapBounds);
+        const mapCenterTarget = useEventStore((state) => state.mapCenterTarget);
+        const isPickingVenueLocation = useEventStore((state) => state.isPickingVenueLocation);
+        const venueDraftLocation = useEventStore((state) => state.venueDraftLocation);
+        const setVenueDraftLocation = useEventStore((state) => state.setVenueDraftLocation);
 
-    const mapRef = useRef<google.maps.Map | null>(null);
-    const idleTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-    const [infoWindowStack, setInfoWindowStack] = useState<InfoWindowState | null>(null);
-    const [center, setCenter] = useState<{ lat: number; lng: number }>(defaultCenter);
-    const [zoom, setZoom] = useState(12);
+        const mapRef = useRef<google.maps.Map | null>(null);
+        const idleTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+        const lastAutoFitKeyRef = useRef<string | null>(null);
+        const [isMapLoaded, setIsMapLoaded] = useState(false);
+        const [infoWindowStack, setInfoWindowStack] = useState<InfoWindowState | null>(null);
+        const [center, setCenter] = useState<{ lat: number; lng: number }>(defaultCenter);
+        const [zoom, setZoom] = useState(12);
 
-    const updateBoundsFromMap = useCallback(() => {
-        if (!mapRef.current) return;
-        const bounds = mapRef.current.getBounds();
-        if (!bounds) return;
+        const updateBoundsFromMap = useCallback(() => {
+            if (!mapRef.current) return;
+            const bounds = mapRef.current.getBounds();
+            if (!bounds) return;
 
-        const sw = bounds.getSouthWest();
-        const ne = bounds.getNorthEast();
+            const sw = bounds.getSouthWest();
+            const ne = bounds.getNorthEast();
 
-        // 소수점 3자리(~110m 단위)로 반올림하여 미세한 지도 흔들림으로 인한 불필요한 API 재호출을 방지하고 캐시 적중률을 높임
-        const minLat = Math.floor(sw.lat() * 1000) / 1000;
-        const maxLat = Math.ceil(ne.lat() * 1000) / 1000;
-        const minLng = Math.floor(sw.lng() * 1000) / 1000;
-        const maxLng = Math.ceil(ne.lng() * 1000) / 1000;
+            // 소수점 3자리(~110m 단위)로 반올림하여 미세한 지도 흔들림으로 인한 불필요한 API 재호출을 방지하고 캐시 적중률을 높임
+            const minLat = Math.floor(sw.lat() * 1000) / 1000;
+            const maxLat = Math.ceil(ne.lat() * 1000) / 1000;
+            const minLng = Math.floor(sw.lng() * 1000) / 1000;
+            const maxLng = Math.ceil(ne.lng() * 1000) / 1000;
 
-        setMapBounds({ minLat, maxLat, minLng, maxLng });
-    }, [setMapBounds]);
+            setMapBounds({ minLat, maxLat, minLng, maxLng });
+        }, [setMapBounds]);
 
-    const onMapLoad = useCallback((map: google.maps.Map) => {
-        mapRef.current = map;
-        updateBoundsFromMap();
-    }, [updateBoundsFromMap]);
-
-    const onMapIdle = useCallback(() => {
-        const currentZoom = mapRef.current?.getZoom();
-        if (currentZoom !== undefined) setZoom(currentZoom);
-        if (idleTimerRef.current) {
-            clearTimeout(idleTimerRef.current);
-        }
-        // 드래그/줌 종료(Idle) 후 300ms 디바운스를 적용해 AWS Lambda 및 DS920+ NAS DB 호출 횟수를 최소화
-        idleTimerRef.current = setTimeout(() => {
+        const onMapLoad = useCallback((map: google.maps.Map) => {
+            mapRef.current = map;
+            setIsMapLoaded(true);
             updateBoundsFromMap();
-        }, 300);
-    }, [updateBoundsFromMap]);
+        }, [updateBoundsFromMap]);
 
-    useEffect(() => {
-        return () => {
+        useEffect(() => {
+            setInfoWindowStack(null);
+        }, [activeFilterKey]);
+
+        useEffect(() => {
+            if (!activeFilterKey) {
+                lastAutoFitKeyRef.current = null;
+                return;
+            }
+            if (!isMapLoaded || !isFilterDataReady || !mapRef.current) return;
+            if (lastAutoFitKeyRef.current === activeFilterKey) return;
+
+            lastAutoFitKeyRef.current = activeFilterKey;
+
+            const coords = events
+                .map((ev) => {
+                    const anyEv = ev as any;
+                    const lat = anyEv.latitude ?? anyEv.place?.latitude;
+                    const lng = anyEv.longitude ?? anyEv.place?.longitude;
+                    return typeof lat === 'number' && typeof lng === 'number' && !(lat === 0 && lng === 0)
+                        ? { lat, lng }
+                        : null;
+                })
+                .filter((coord): coord is { lat: number; lng: number } => coord !== null);
+
+            if (coords.length === 0) return;
+
+            const uniqueKeys = new Set(coords.map((c) => `${c.lat},${c.lng}`));
+            if (uniqueKeys.size === 1) {
+                mapRef.current.panTo(coords[0]);
+                const currentZoom = mapRef.current.getZoom();
+                if (currentZoom !== undefined && currentZoom < 13) {
+                    mapRef.current.setZoom(14);
+                }
+                return;
+            }
+
+            const bounds = new google.maps.LatLngBounds();
+            coords.forEach((c) => bounds.extend(c));
+            mapRef.current.fitBounds(bounds, 80);
+        }, [activeFilterKey, isFilterDataReady, isMapLoaded, events]);
+
+        const onMapIdle = useCallback(() => {
+            const currentZoom = mapRef.current?.getZoom();
+            if (currentZoom !== undefined) setZoom(currentZoom);
             if (idleTimerRef.current) {
                 clearTimeout(idleTimerRef.current);
             }
-        };
-    }, []);
+            // 드래그/줌 종료(Idle) 후 300ms 디바운스를 적용해 AWS Lambda 및 DS920+ NAS DB 호출 횟수를 최소화
+            idleTimerRef.current = setTimeout(() => {
+                updateBoundsFromMap();
+            }, 300);
+        }, [updateBoundsFromMap]);
 
-    useEffect(() => {
-        if (selectedEvent && mapRef.current) {
-            const ev = selectedEvent as any;
-            const lat = ev.place?.latitude ?? ev.latitude;
-            const lng = ev.place?.longitude ?? ev.longitude;
-            if (lat !== undefined && lng !== undefined) {
-                mapRef.current.panTo({ lat, lng });
-            }
-        }
-    }, [selectedEvent]);
-
-    useEffect(() => {
-        if (venueDraftLocation && mapRef.current) {
-            mapRef.current.panTo({ lat: venueDraftLocation.lat, lng: venueDraftLocation.lng });
-        }
-    }, [venueDraftLocation]);
-
-    useEffect(() => {
-        if (mapCenterTarget && mapRef.current) {
-            mapRef.current.panTo({ lat: mapCenterTarget.lat, lng: mapCenterTarget.lng });
-            updateBoundsFromMap();
-        }
-    }, [mapCenterTarget, updateBoundsFromMap]);
-
-    const handleMapClick = useCallback((e: google.maps.MapMouseEvent) => {
-        if (!isPickingVenueLocation || !e.latLng) return;
-
-        const lat = Number(e.latLng.lat().toFixed(6));
-        const lng = Number(e.latLng.lng().toFixed(6));
-
-        const fallbackReverseGeocode = async () => {
-            try {
-                const res = await fetch(
-                    `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lng}`
-                );
-                if (res.ok) {
-                    const data = await res.json();
-                    if (data && typeof data.display_name === 'string') {
-                        setVenueDraftLocation({ lat, lng, address: data.display_name });
-                        return;
-                    }
+        useEffect(() => {
+            return () => {
+                if (idleTimerRef.current) {
+                    clearTimeout(idleTimerRef.current);
                 }
-            } catch {
-                // Ignore network errors
-            }
-            setVenueDraftLocation({ lat, lng });
-        };
+            };
+        }, []);
 
-        if (window.google?.maps?.Geocoder) {
-            const geocoder = new window.google.maps.Geocoder();
-            geocoder.geocode({ location: { lat, lng } }, (results, status) => {
-                if (status === 'OK' && results && results[0]) {
-                    setVenueDraftLocation({
-                        lat,
-                        lng,
-                        address: results[0].formatted_address,
-                        googleMapId: results[0].place_id,
-                    });
-                } else {
-                    fallbackReverseGeocode();
+        useEffect(() => {
+            if (selectedEvent && mapRef.current) {
+                const ev = selectedEvent as any;
+                const lat = ev.place?.latitude ?? ev.latitude;
+                const lng = ev.place?.longitude ?? ev.longitude;
+                if (lat !== undefined && lng !== undefined) {
+                    mapRef.current.panTo({ lat, lng });
                 }
-            });
-        } else {
-            fallbackReverseGeocode();
-        }
-    }, [isPickingVenueLocation, setVenueDraftLocation]);
+            }
+        }, [selectedEvent]);
 
-    useEffect(() => {
-        const fetchLocation = async () => {
-            if ("geolocation" in navigator) {
-                navigator.geolocation.getCurrentPosition(
-                    (position) => {
-                        setCenter({
-                            lat: position.coords.latitude,
-                            lng: position.coords.longitude
-                        });
-                    },
-                    async (error) => {
-                        console.log('GPS Geolocation failed, trying IP...', error);
-                        try {
-                            const response = await fetch('https://ipapi.co/json/');
-                            const data = await response.json();
-                            if (data.latitude && data.longitude) {
-                                setCenter({ lat: data.latitude, lng: data.longitude });
-                            }
-                        } catch (ipError) {
-                            console.error('IP Location failed too:', ipError);
+        useEffect(() => {
+            if (venueDraftLocation && mapRef.current) {
+                mapRef.current.panTo({ lat: venueDraftLocation.lat, lng: venueDraftLocation.lng });
+            }
+        }, [venueDraftLocation]);
+
+        useEffect(() => {
+            if (mapCenterTarget && mapRef.current) {
+                mapRef.current.panTo({ lat: mapCenterTarget.lat, lng: mapCenterTarget.lng });
+                updateBoundsFromMap();
+            }
+        }, [mapCenterTarget, updateBoundsFromMap]);
+
+        const handleMapClick = useCallback((e: google.maps.MapMouseEvent) => {
+            if (!isPickingVenueLocation || !e.latLng) return;
+
+            const lat = Number(e.latLng.lat().toFixed(6));
+            const lng = Number(e.latLng.lng().toFixed(6));
+
+            const fallbackReverseGeocode = async () => {
+                try {
+                    const res = await fetch(
+                        `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lng}`
+                    );
+                    if (res.ok) {
+                        const data = await res.json();
+                        if (data && typeof data.display_name === 'string') {
+                            setVenueDraftLocation({ lat, lng, address: data.display_name });
+                            return;
                         }
                     }
+                } catch {
+                    // Ignore network errors
+                }
+                setVenueDraftLocation({ lat, lng });
+            };
+
+            if (window.google?.maps?.Geocoder) {
+                const geocoder = new window.google.maps.Geocoder();
+                geocoder.geocode({ location: { lat, lng } }, (results, status) => {
+                    if (status === 'OK' && results && results[0]) {
+                        setVenueDraftLocation({
+                            lat,
+                            lng,
+                            address: results[0].formatted_address,
+                            googleMapId: results[0].place_id,
+                        });
+                    } else {
+                        fallbackReverseGeocode();
+                    }
+                });
+            } else {
+                fallbackReverseGeocode();
+            }
+        }, [isPickingVenueLocation, setVenueDraftLocation]);
+
+        useEffect(() => {
+            let cancelled = false;
+            const fetchLocation = async () => {
+                if ("geolocation" in navigator) {
+                    navigator.geolocation.getCurrentPosition(
+                        (position) => {
+                            if (cancelled || lastAutoFitKeyRef.current !== null) return;
+                            setCenter({
+                                lat: position.coords.latitude,
+                                lng: position.coords.longitude
+                            });
+                        },
+                        async (error) => {
+                            console.log('GPS Geolocation failed, trying IP...', error);
+                            try {
+                                const response = await fetch('https://ipapi.co/json/');
+                                const data = await response.json();
+                                    if (!cancelled && lastAutoFitKeyRef.current === null && data.latitude && data.longitude) {
+                                        setCenter({ lat: data.latitude, lng: data.longitude });
+                                    }
+                                } catch (ipError) {
+                                    console.error('IP Location failed too:', ipError);
+                                }
+                            }
                 );
+                }
+            };
+            fetchLocation();
+            return () => {
+                cancelled = true;
+            };
+        }, []);
+
+        const eventGroups = useMemo(() => {
+            const groups = new Map<string, any[]>();
+
+            events.forEach(event => {
+                const ev = event as any;
+                const lat = ev.latitude ?? ev.place?.latitude;
+                const lng = ev.longitude ?? ev.place?.longitude;
+                if (lat === undefined || lng === undefined || (lat === 0 && lng === 0)) {
+                    return;
+                }
+                const key = `${lat},${lng}`;
+                if (!groups.has(key)) {
+                    groups.set(key, []);
+                }
+                groups.get(key)!.push(event);
+            });
+
+            // 동일 좌표에 복수의 이벤트가 있을 때 참가자 수(attendeeCount)가 가장 많은 이벤트가 맨 앞(대표)에 오도록 정렬
+            groups.forEach((groupEvents) => {
+                groupEvents.sort((a, b) => {
+                    const countDiff = (b.attendeeCount ?? 0) - (a.attendeeCount ?? 0);
+                    if (countDiff !== 0) return countDiff;
+                    const timeA = a.startTime ? new Date(a.startTime).getTime() : 0;
+                    const timeB = b.startTime ? new Date(b.startTime).getTime() : 0;
+                    return timeA - timeB;
+                });
+            });
+
+            return groups;
+        }, [events]);
+
+        // 줌 레벨에 따라 화면상 가까운 좌표 그룹들을 하나의 클러스터로 병합 (픽셀 그리드 기반)
+        const clusters = useMemo(() => {
+            const cells = new Map<string, MapCluster>();
+            const worldSize = 256 * Math.pow(2, zoom);
+
+            eventGroups.forEach((groupEvents, coordKey) => {
+                const first = groupEvents[0];
+                const lat = first.place?.latitude ?? first.latitude ?? 0;
+                const lng = first.place?.longitude ?? first.longitude ?? 0;
+
+                let cellKey = coordKey;
+                if (zoom < CLUSTER_MAX_ZOOM) {
+                    const sinLat = Math.min(Math.max(Math.sin((lat * Math.PI) / 180), -0.9999), 0.9999);
+                    const px = ((lng + 180) / 360) * worldSize;
+                    const py = (0.5 - Math.log((1 + sinLat) / (1 - sinLat)) / (4 * Math.PI)) * worldSize;
+                    cellKey = `${Math.floor(px / CLUSTER_GRID_PX)}:${Math.floor(py / CLUSTER_GRID_PX)}`;
+                }
+
+                const member = { coordKey, events: groupEvents, lat, lng };
+                const existing = cells.get(cellKey);
+                if (existing) {
+                    existing.members.push(member);
+                } else {
+                    cells.set(cellKey, { key: cellKey, lat, lng, members: [member] });
+                }
+            });
+
+            cells.forEach((cluster) => {
+                if (cluster.members.length > 1) {
+                    cluster.lat = cluster.members.reduce((s, m) => s + m.lat, 0) / cluster.members.length;
+                    cluster.lng = cluster.members.reduce((s, m) => s + m.lng, 0) / cluster.members.length;
+                }
+            });
+
+            return Array.from(cells.values());
+        }, [eventGroups, zoom]);
+
+        const handleClusterClick = (cluster: MapCluster) => {
+            const map = mapRef.current;
+            if (!map) return;
+            setInfoWindowStack(null);
+            const bounds = new google.maps.LatLngBounds();
+            cluster.members.forEach((m) => bounds.extend({ lat: m.lat, lng: m.lng }));
+            map.fitBounds(bounds, 80);
+        };
+
+        const handleMarkerClick = (eventsAtLocation: any[]) => {
+            if (eventsAtLocation.length === 1) {
+                setInfoWindowStack(null);
+                selectEvent(eventsAtLocation[0]);
+            } else {
+                const firstEvent = eventsAtLocation[0];
+                const location = {
+                    lat: firstEvent.latitude ?? firstEvent.place?.latitude ?? 0,
+                    lng: firstEvent.longitude ?? firstEvent.place?.longitude ?? 0
+                };
+                setInfoWindowStack({ type: 'group', events: eventsAtLocation, location });
+                clearSelection();
+
+                if (mapRef.current) {
+                    mapRef.current.panTo(location);
+                }
             }
         };
-        fetchLocation();
-    }, []);
 
-    const eventGroups = useMemo(() => {
-        const groups = new Map<string, any[]>();
+        const handleEventSelectFromGroup = (event: any) => {
+            setInfoWindowStack(null);
+            selectEvent(event);
+        };
 
-        events.forEach(event => {
-            const ev = event as any;
-            const lat = ev.latitude ?? ev.place?.latitude;
-            const lng = ev.longitude ?? ev.place?.longitude;
-            if (lat === undefined || lng === undefined || (lat === 0 && lng === 0)) {
-                return;
-            }
-            const key = `${lat},${lng}`;
-            if (!groups.has(key)) {
-                groups.set(key, []);
-            }
-            groups.get(key)!.push(event);
-        });
-
-        // 동일 좌표에 복수의 이벤트가 있을 때 참가자 수(attendeeCount)가 가장 많은 이벤트가 맨 앞(대표)에 오도록 정렬
-        groups.forEach((groupEvents) => {
-            groupEvents.sort((a, b) => {
-                const countDiff = (b.attendeeCount ?? 0) - (a.attendeeCount ?? 0);
-                if (countDiff !== 0) return countDiff;
-                const timeA = a.startTime ? new Date(a.startTime).getTime() : 0;
-                const timeB = b.startTime ? new Date(b.startTime).getTime() : 0;
-                return timeA - timeB;
-            });
-        });
-
-        return groups;
-    }, [events]);
-
-    // 줌 레벨에 따라 화면상 가까운 좌표 그룹들을 하나의 클러스터로 병합 (픽셀 그리드 기반)
-    const clusters = useMemo(() => {
-        const cells = new Map<string, MapCluster>();
-        const worldSize = 256 * Math.pow(2, zoom);
-
-        eventGroups.forEach((groupEvents, coordKey) => {
-            const first = groupEvents[0];
-            const lat = first.place?.latitude ?? first.latitude ?? 0;
-            const lng = first.place?.longitude ?? first.longitude ?? 0;
-
-            let cellKey = coordKey;
-            if (zoom < CLUSTER_MAX_ZOOM) {
-                const sinLat = Math.min(Math.max(Math.sin((lat * Math.PI) / 180), -0.9999), 0.9999);
-                const px = ((lng + 180) / 360) * worldSize;
-                const py = (0.5 - Math.log((1 + sinLat) / (1 - sinLat)) / (4 * Math.PI)) * worldSize;
-                cellKey = `${Math.floor(px / CLUSTER_GRID_PX)}:${Math.floor(py / CLUSTER_GRID_PX)}`;
-            }
-
-            const member = { coordKey, events: groupEvents, lat, lng };
-            const existing = cells.get(cellKey);
-            if (existing) {
-                existing.members.push(member);
+        const handleInfoWindowClose = () => {
+            if (infoWindowStack?.type === 'group') {
+                setInfoWindowStack(null);
             } else {
-                cells.set(cellKey, { key: cellKey, lat, lng, members: [member] });
+                clearSelection();
             }
-        });
+        };
 
-        cells.forEach((cluster) => {
-            if (cluster.members.length > 1) {
-                cluster.lat = cluster.members.reduce((s, m) => s + m.lat, 0) / cluster.members.length;
-                cluster.lng = cluster.members.reduce((s, m) => s + m.lng, 0) / cluster.members.length;
+        const renderInfoWindow = () => {
+            if (infoWindowStack?.type === 'group') {
+                const { events: groupEvents, location } = infoWindowStack;
+                const topEvent = groupEvents[0] as any;
+                const offsetPx = Math.round(getMarkerSize(topEvent?.attendeeCount ?? 0) / 2) + 10;
+                return (
+                    <GroupEventInfoWindow
+                        events={groupEvents}
+                        location={location}
+                        locationName={topEvent.venueName ?? topEvent.place?.canonical_name ?? topEvent.location ?? ''}
+                        offsetPx={offsetPx}
+                        onClose={handleInfoWindowClose}
+                        onEventSelect={handleEventSelectFromGroup}
+                        onVenueSelect={
+                            onVenueSelect
+                                ? (venue) => {
+                                    setInfoWindowStack(null);
+                                    onVenueSelect(venue);
+                                }
+                                : undefined
+                        }
+                    />
+                );
             }
-        });
 
-        return Array.from(cells.values());
-    }, [eventGroups, zoom]);
+            if (!selectedEvent) return null;
 
-    const handleClusterClick = (cluster: MapCluster) => {
-        const map = mapRef.current;
-        if (!map) return;
-        setInfoWindowStack(null);
-        const bounds = new google.maps.LatLngBounds();
-        cluster.members.forEach((m) => bounds.extend({ lat: m.lat, lng: m.lng }));
-        map.fitBounds(bounds, 80);
-    };
+            const lat = (selectedEvent as any).latitude ?? (selectedEvent as any).place?.latitude;
+            const lng = (selectedEvent as any).longitude ?? (selectedEvent as any).place?.longitude;
+            if (lat === undefined || lng === undefined) return null;
 
-    const handleMarkerClick = (eventsAtLocation: any[]) => {
-        if (eventsAtLocation.length === 1) {
-            setInfoWindowStack(null);
-            selectEvent(eventsAtLocation[0]);
-        } else {
-            const firstEvent = eventsAtLocation[0];
-            const location = {
-                lat: firstEvent.latitude ?? firstEvent.place?.latitude ?? 0,
-                lng: firstEvent.longitude ?? firstEvent.place?.longitude ?? 0
-            };
-            setInfoWindowStack({ type: 'group', events: eventsAtLocation, location });
-            clearSelection();
+            const offsetPx = Math.round(getMarkerSize(selectedEvent.attendeeCount ?? 0) / 2) + 10;
 
-            if (mapRef.current) {
-                mapRef.current.panTo(location);
-            }
-        }
-    };
-
-    const handleEventSelectFromGroup = (event: any) => {
-        setInfoWindowStack(null);
-        selectEvent(event);
-    };
-
-    const handleInfoWindowClose = () => {
-        if (infoWindowStack?.type === 'group') {
-            setInfoWindowStack(null);
-        } else {
-            clearSelection();
-        }
-    };
-
-    const renderInfoWindow = () => {
-        if (infoWindowStack?.type === 'group') {
-            const { events: groupEvents, location } = infoWindowStack;
-            const topEvent = groupEvents[0] as any;
-            const offsetPx = Math.round(getMarkerSize(topEvent?.attendeeCount ?? 0) / 2) + 10;
             return (
-                <GroupEventInfoWindow
-                    events={groupEvents}
-                    location={location}
-                    locationName={topEvent.venueName ?? topEvent.place?.canonical_name ?? topEvent.location ?? ''}
+                <SingleEventInfoWindow
+                    event={selectedEvent}
+                    position={{ lat, lng }}
                     offsetPx={offsetPx}
                     onClose={handleInfoWindowClose}
-                    onEventSelect={handleEventSelectFromGroup}
+                    onArtistSelect={
+                        onArtistSelect
+                            ? (artist) => {
+                                setInfoWindowStack(null);
+                                onArtistSelect(artist);
+                            }
+                            : undefined
+                    }
                     onVenueSelect={
                         onVenueSelect
                             ? (venue) => {
@@ -560,68 +646,34 @@ function EventMap({ events, onArtistSelect, onVenueSelect }: EventMapProps) {
                     }
                 />
             );
-        }
-
-        if (!selectedEvent) return null;
-
-        const lat = (selectedEvent as any).latitude ?? (selectedEvent as any).place?.latitude;
-        const lng = (selectedEvent as any).longitude ?? (selectedEvent as any).place?.longitude;
-        if (lat === undefined || lng === undefined) return null;
-
-        const offsetPx = Math.round(getMarkerSize(selectedEvent.attendeeCount ?? 0) / 2) + 10;
+        };
 
         return (
-            <SingleEventInfoWindow
-                event={selectedEvent}
-                position={{ lat, lng }}
-                offsetPx={offsetPx}
-                onClose={handleInfoWindowClose}
-                onArtistSelect={
-                    onArtistSelect
-                        ? (artist) => {
-                            setInfoWindowStack(null);
-                            onArtistSelect(artist);
-                        }
-                        : undefined
-                }
-                onVenueSelect={
-                    onVenueSelect
-                        ? (venue) => {
-                            setInfoWindowStack(null);
-                            onVenueSelect(venue);
-                        }
-                        : undefined
-                }
-            />
-        );
-    };
-
-    return (
-        <div className="w-full h-full relative z-0">
-            <GoogleMap
-                mapContainerStyle={mapContainerStyle}
-                center={center}
-                zoom={12}
-                onLoad={onMapLoad}
-                onIdle={onMapIdle}
-                onClick={handleMapClick}
-                options={{
-                    zoomControl: true,
-                    streetViewControl: false,
-                    mapTypeControl: false,
-                    fullscreenControl: true,
-                    draggableCursor: isPickingVenueLocation ? 'crosshair' : undefined,
-                    styles: [
-                        ...baseMapStyles,
-                        ...(theme === 'dark' ? mapStyles : [])
-                    ],
-                }}
-            >
-                {isPickingVenueLocation && venueDraftLocation && (
-                    <Marker
-                        position={{ lat: venueDraftLocation.lat, lng: venueDraftLocation.lng }}
-                    />
-                )}
+            <div className="w-full h-full relative z-0">
+                <GoogleMap
+                    mapContainerStyle={mapContainerStyle}
+                    center={center}
+                    zoom={12}
+                    onLoad={onMapLoad}
+                    onIdle={onMapIdle}
+                    onClick={handleMapClick}
+                    options={{
+                        zoomControl: true,
+                        streetViewControl: false,
+                        mapTypeControl: false,
+                        fullscreenControl: true,
+                        draggableCursor: isPickingVenueLocation ? 'crosshair' : undefined,
+                        styles: [
+                            ...baseMapStyles,
+                            ...(theme === 'dark' ? mapStyles : [])
+                        ],
+                    }}
+                >
+                    {isPickingVenueLocation && venueDraftLocation && (
+                        <Marker
+                            position={{ lat: venueDraftLocation.lat, lng: venueDraftLocation.lng }}
+                        />
+                    )}
                     {
                         clusters.map((cluster) => {
                             if (cluster.members.length > 1) {
@@ -669,10 +721,10 @@ function EventMap({ events, onArtistSelect, onVenueSelect }: EventMapProps) {
                         })
                     }
 
-                    { renderInfoWindow() }
+                    {renderInfoWindow()}
                 </GoogleMap>
-        </div>
-    );
-}
+            </div>
+        );
+    }
 
-export default EventMap;
+    export default EventMap;

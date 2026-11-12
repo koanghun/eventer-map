@@ -119,6 +119,32 @@ const recommendMutation = useRecommendEventThread({
 });
 ```
 
+### 📌 4) URL 쿼리 기반 개인화 필터 조회 & 캐시 격리 (`useGetEvents`)
+`openapi.yaml`의 `GET /events` enum/boolean 파라미터가 Orval을 통해 `GetEventsMyAction` 상수·타입 및 `GetEventsParams.followingArtists`로 자동 생성되므로, `MapPage.tsx`와 `AuthContext.tsx`에서 타입 안전하게 필터링과 비공개 캐시 정리를 수행할 수 있습니다.
+
+```tsx
+import { useGetEvents, getGetEventsQueryKey } from '../../api/generated/events/events';
+import { GetEventsMyAction } from '../../api/generated/model';
+
+const { data } = useGetEvents({
+  myAction: isMyAction ? GetEventsMyAction.bookmarked : undefined,
+  followingArtists: isFollowingArtists ? true : undefined,
+  startDate,
+  endDate,
+  limit: 100,
+});
+
+// 로그아웃/회원 탈퇴 시 개인화 이벤트 캐시(myAction, followingArtists) 제거 예시
+queryClient.removeQueries({
+  predicate: (query) => {
+    const key = query.queryKey;
+    if (!Array.isArray(key) || key[0] !== '/events') return false;
+    const params = key[1] as { myAction?: unknown; followingArtists?: unknown } | undefined;
+    return Boolean(params?.myAction || params?.followingArtists);
+  },
+});
+```
+
 ---
 
 ## 4. 커스텀 설정 (`frontend/orval.config.js`)

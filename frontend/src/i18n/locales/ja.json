@@ -13,7 +13,16 @@
     },
     "datePicker": {
         "label": "日付選択",
-        "isRange": "期間選択"
+        "isRange": "期間選択",
+        "allDates": "全期間",
+        "quickSearch": {
+            "groupLabel": "日付クイック選択",
+            "today": "今日",
+            "oneWeek": "1週間後",
+            "oneMonth": "1ヶ月後"
+        },
+        "fromDateOnward": "{{date}} 以降",
+        "clearEndDate": "以降すべて"
     },
     "performerFilter": {
         "label": "出演者・会場検索",
@@ -295,9 +304,21 @@
         "searchByVenue": "この会場で検索（6ヶ月）"
     },
     "filter": {
-        "flags": {
-            "showAll": "全てのイベントを表示",
-            "showFlagsOnly": "フラグしたイベントのみ表示"
+        "myEvents": {
+            "bookmarkedTitle": "ブックマークしたイベント",
+            "participatedTitle": "参加したイベント",
+            "clear": "解除",
+            "count": "{{count}}件",
+            "hasMoreHint": "最大100件まで表示されます。日付フィルターで絞り込むことができます。",
+            "emptyBookmarked": "ブックマークしたイベントがありません",
+            "emptyBookmarkedDesc": "気になるイベントをブックマークすると、地図や一覧でまとめて確認できます。",
+            "emptyParticipated": "参加したイベントがありません",
+            "emptyParticipatedDesc": "参加予定または参加したイベントを設定すると、地図や一覧でまとめて確認できます。"
+        },
+        "followingArtists": {
+            "title": "フォロー中の出演者",
+            "empty": "予定されているイベントがありません",
+            "emptyDesc": "フォロー中の出演者の検索日以降の予定がないか、別の日付を選択してください。"
         }
     },
     "duplicateModal": {
@@ -501,7 +522,10 @@
         "deleteXReauthFailed": "X再認証に失敗しました。",
         "noEmailPlaceholder": "メールアドレスなし（Xアカウントで登録）",
         "passwordUnavailableNoEmail": "メールアドレスが登録されていないXアカウントではパスワードを設定できません。",
-        "setPassword": "パスワードを設定する"
+        "setPassword": "パスワードを設定する",
+        "bookmarkedEvents": "ブックマークしたイベント",
+        "participatedEvents": "参加したイベント",
+        "followingArtists": "フォロー中の出演者"
     },
     "seo": {
         "title": "Event Map - イベントマップ",
@@ -611,6 +635,12 @@
             "PENDING": "承認待ち",
             "APPROVED": "承認済み",
             "REJECTED": "却下"
-        }
+        },
+        "expand": "展開",
+        "collapse": "折りたたむ",
+        "collapsedHint": "折りたたみ中",
+        "followingArtistsCountBadge": "{{count}}名",
+        "noFollowingArtists": "フォロー中の出演者がいません。",
+        "unfollowButton": "フォロー解除"
     }
 }

@@ -26,7 +26,7 @@
 | `PATCH` | `/users/me` | **프로필 수정**: 표시 이름(닉네임)을 변경하고 갱신된 `UserProfile`을 반환합니다. | 🟢 |
 | `DELETE` | `/users/me` | **회원 탈퇴**: 비밀번호 확인 또는 Google(`googleAccessToken`) / X(`xReauthToken`) 재인증 후 계정을 삭제합니다. | 🟢 |
 | `PUT` | `/users/me/password` | **비밀번호 변경/설정**: 이메일이 등록된 계정에서 비밀번호를 변경·설정합니다 (이메일 없는 X 계정은 `400 EMAIL_REQUIRED_FOR_PASSWORD`). | 🟢 |
-| `GET` | `/users/me/events` | **내 이벤트 액션 목록 조회**: 체크(`1`)하거나 참가(`2`)한 이벤트 목록을 조회합니다. | 🟢 |
+| `GET` | `/users/me/events` | **내 이벤트 액션 목록 조회**: 체크(`1`), 참가(`2`) 상태 및 내가 남긴 평점(`rating`)을 포함한 `UserEventAction[]`을 조회합니다. | 🟢 |
 | `POST` | `/users/me/link-google` | **구글 계정 연동**: 로그인된 계정에 Google 계정을 연동합니다. | 🟢 |
 | `POST` | `/users/me/unlink-google` | **구글 계정 연동 해제**: 다른 사용 가능한 로그인 수단이 남아있는 경우 Google 연동을 해제합니다 (`400 CANNOT_UNLINK_LAST_AUTH`). | 🟢 |
 | `POST` | `/users/me/link-x/authorize` | **X 계정 연동 인가 URL 발급**: 현재 로그인된 `user_id`가 바인딩된 PKCE/state를 생성해 `{ authorizeUrl }`을 반환합니다. | 🟢 |
@@ -35,13 +35,13 @@
 | `POST` | `/users/me/reauth-x/authorize` | **회원 탈퇴용 X 재인증 URL 발급**: 탈퇴 본인 확인용 X OAuth 2.0 인가 URL을 반환합니다. | 🟢 |
 | `POST` | `/users/me/reauth-x` | **회원 탈퇴용 X 재인증 완료**: 연동된 동일 X 계정임을 검증한 뒤 단기(5분) `xReauthToken`을 발급합니다. | 🟢 |
 | `GET` | `/users/me/following` | **내가 팔로우하는 유저 목록 조회** | 🟢 |
-| `GET` | `/users/me/followers` | **나를 팔로우하는 유저 목록 조회** | 🟢 |
-| `GET` | `/users/me/following/artists` | **내가 팔로우하는 아티스트 목록 조회** | 🟢 |
+| `GET` | `/users/me/following-events` | **팔로우 유저 참가 이벤트 피드**: 내가 팔로우하는 유저가 참가(`status=2`)하는 이벤트 목록을 조회합니다. | 🟢 |
+| `GET` | `/users/{userId}/followers` | **특정 유저의 팔로워 목록 조회**: `limit`/`offset` 기반으로 해당 유저의 팔로워(`UserProfile[]`)를 조회합니다. | ❌ |
+| `GET` | `/users/me/following-artists` | **내가 팔로우하는 아티스트 목록 조회**: `limit`/`offset` 기반으로 팔로우 중인 아티스트(`Artist[]`)를 조회합니다. | 🟢 |
 | `GET` | `/users/me/following-artists/events` | **팔로우 아티스트 이벤트 피드 및 미확인 카운트 조회**: 팔로우한 아티스트들의 이벤트 목록(`events`)과 `last_artist_feed_checked_at` 이후 등록된 미확인 이벤트 수(`unreadCount`)를 반환합니다. | 🟢 |
 | `POST` | `/users/me/following-artists/events/read` | **팔로우 아티스트 피드 읽음 처리**: `users.last_artist_feed_checked_at`을 현재 시각(`NOW()`)으로 갱신하여 `unreadCount`를 `0`으로 초기화합니다. | 🟢 |
 | `POST` | `/users/{userId}/follow` | **특정 유저 팔로우** | 🟢 |
 | `DELETE` | `/users/{userId}/follow` | **특정 유저 언팔로우** | 🟢 |
-| `GET` | `/users/me/blocks` | **내가 차단한 유저 목록 조회** | 🟢 |
 | `POST` | `/users/{userId}/block` | **특정 유저 차단** | 🟢 |
 | `DELETE` | `/users/{userId}/block` | **특정 유저 차단 해제** | 🟢 |
 
@@ -102,32 +102,43 @@
 
 ## 4. 🎫 이벤트 (Events)
 
-공연장과 출연자를 연결하여 이벤트를 생성하고, 지도 바운딩 박스 및 날짜 범위로 조회합니다.
+공연장과 출연자를 연결하여 이벤트를 생성하고, 지도 바운딩 박스·날짜 범위·출연자/공연장·개인화 필터(북마크/참가/팔로우 출연자)로 조회합니다.
 
 | Method | Endpoint | Description | Auth Required |
 | :--- | :--- | :--- | :---: |
-| `GET` | `/events` | **이벤트 목록 조회**: 지도 바운딩 박스(`minLat`, `maxLat`, `minLng`, `maxLng`), 날짜 범위(`startDate`, `endDate`), `artistId`, `venueId`, `limit`으로 필터링하여 참가자 수 순으로 조회합니다. | ❌ |
-| `POST` | `/events` | **새 이벤트 등록**: `title`, `venueId`, `startTime`, `endTime`(이상 필수), `openingTime`, `artistIds`, `relatedLinks`를 전달받아 이벤트를 생성합니다. | 🟢 |
-| `GET` | `/events/{eventId}` | **이벤트 단건 상세 조회**: 이벤트 기본 정보, 공연장 요약(`VenueSummary`), 출연자 목록(`ArtistSummary[]`), 참가자 수, 평점 통계를 반환합니다. | ❌ |
-| `PUT` | `/events/{eventId}` | **이벤트 정보 수정**: 이벤트 정보를 수정하고 공연장/출연자 평점 통계를 재동기화합니다. | 🟢 |
+| `GET` | `/events` | **이벤트 목록 조회**: 바운딩 박스(`minLat`, `maxLat`, `minLng`, `maxLng`), 날짜(`startDate`, `endDate`), `artistId`, `venueId`, `timeRange` (`upcoming` \| `past`), `status`, **`myAction`** (`bookmarked` \| `attending`), **`followingArtists`** (`boolean`), `limit` (기본 50, 최대 100, `hasMore` 반환)으로 필터링 조회합니다. | ⚪️ (`myAction` / `followingArtists` 사용 시 🟢) |
+| `POST` | `/events` | **새 이벤트 등록 (`multipart/form-data`)**: `title`, `venueId`, `startTime`, `endTime`(이상 필수), `openingTime`, `artistIds`, `relatedLinks`를 전달받아 이벤트를 생성합니다. | 🟢 |
+| `GET` | `/events/{eventId}` | **이벤트 단건 상세 조회**: 이벤트 기본 정보, 공연장 요약(`VenueSummary`), 출연자 목록(`ArtistSummary[]`), 참가자 수(`attendeeCount`), 평점 통계 및 본인 평점(`myRating`)을 반환합니다. | ⚪️ (`myRating` 포함 시 🟢) |
+| `PUT` | `/events/{eventId}` | **이벤트 정보 수정 (`multipart/form-data`)**: 이벤트 정보를 수정하고 공연장/출연자 평점 통계를 재동기화합니다. | 🟢 |
 | `POST` | `/events/{eventId}/delete-request` | **이벤트 삭제 요청**: 이벤트 삭제 요청을 접수합니다. | 🟢 |
+| `GET` | `/events/{eventId}/attendees` | **이벤트 참가자 목록 조회**: 해당 이벤트에 참가(`status=2`)한 유저 목록(`UserProfile[]`, `limit`/`offset`)을 반환하며 상호 차단 유저는 제외됩니다. | 🟢 |
+
+### 💡 `GET /events` 필터 모드별 조회 및 정렬 규칙
+- **일반 지도 조회 (`ListEvents`)**: 화면 바운딩 박스 및 날짜 범위 내 이벤트를 `attendee_count DESC, e.start_time ASC, e.id ASC` 순으로 정렬합니다.
+- **내 북마크/참가 이벤트 (`myAction=bookmarked|attending`, `ListMyActionEvents`)**:
+  - 인증 필수 (`401`), `followingArtists=true`와 동시 사용 불가 (`400`).
+  - 지도 바운딩 박스 제한 없이 조회 가능하며, 최신 일정 순(`e.start_time DESC, e.id ASC`)으로 반환합니다. (프론트엔드 기본 조회 기간은 과거+예정 `전체 기간`이며 `DatePicker`로 축소 가능)
+- **팔로우한 출연자 이벤트 (`followingArtists=true`, `ListFollowingArtistsEventsForMap`)**:
+  - 인증 필수 (`401`), `myAction` 또는 `artistId`와 동시 사용 불가 (`400`).
+  - `followed_event_ids` CTE로 팔로우 중인 모든 출연자의 이벤트를 중복 없이 모아 다가오는 일정 순(`e.start_time ASC, e.id ASC`)으로 반환합니다. (프론트엔드 기본 조회 기간은 `오늘(검색일) 이후` 전체)
 
 ---
 
-## 5. ⭐️ 상호작용 및 통계 (Interaction, Threads & Stats)
+## 5. ⭐️ 상호작용, 스레드 및 시스템 (Interaction, Threads & System)
 
 | Method | Endpoint | Description | Auth Required |
 | :--- | :--- | :--- | :---: |
-| `POST` | `/events/{eventId}/action` | **이벤트 체크/참가 등록**: `status: 1`(체크/북마크) 또는 `status: 2`(참가)를 설정합니다. | 🟢 |
-| `DELETE` | `/events/{eventId}/action` | **이벤트 체크/참가 취소**: 설정한 액션을 해제합니다. | 🟢 |
-| `POST` | `/events/{eventId}/rate` | **이벤트 평점 매기기**: 1~5점 사이의 평점을 부여합니다. | 🟢 |
+| `PUT` | `/events/{eventId}/action` | **이벤트 체크/참가 상태 변경**: `status` (`0`: 없음/해제, `1`: 체크/북마크, `2`: 참가)를 명시적으로 설정합니다. | 🟢 |
+| `POST` | `/events/{eventId}/rate` | **이벤트 평점 등록/수정**: 이벤트 참가자(`status=2`)만 1~5점 평점을 부여할 수 있습니다 (`operationId: postEventsEventIdRate`). | 🟢 |
+| `DELETE` | `/events/{eventId}/rate` | **이벤트 평점 삭제**: 본인이 등록한 평점을 삭제하고 공연장·출연자 평점 통계를 재계산합니다 (`operationId: deleteEventsEventIdRate`). | 🟢 |
 | `GET` | `/events/{eventId}/threads` | **이벤트 스레드 목록 조회**: 추천수 순 및 커서 기반 페이지네이션으로 스레드를 조회합니다. 로그인 시 추천 여부(`isRecommended`) 및 본인 작성 여부(`isMine`)가 포함됩니다. | ⚪️ |
 | `POST` | `/events/{eventId}/threads` | **이벤트 스레드 작성**: 이벤트에 스레드를 작성합니다 (최대 1,000자). | 🟢 |
 | `DELETE` | `/event-threads/{threadId}` | **이벤트 스레드 삭제**: 작성자 본인 또는 관리자가 스레드를 삭제합니다. | 🟢 |
 | `PUT` | `/event-threads/{threadId}/recommend` | **스레드 추천**: 유용한 스레드를 추천합니다 (본인 글 제외, 멱등). | 🟢 |
 | `DELETE` | `/event-threads/{threadId}/recommend` | **스레드 추천 취소**: 추천을 취소합니다 (멱등). | 🟢 |
-| `POST` | `/stats/visit` | **일일 방문 기록 및 카운트 반환** | ❌ |
-| `GET` | `/stats/visit` | **오늘의 일일 방문자 수 조회** | ❌ |
+| `GET` | `/visits` | **오늘의 일일 방문자 수 조회** | ❌ |
+| `POST` | `/visits` | **오늘의 일일 방문자 수 기록(+1) 및 카운트 반환** | ❌ |
+| `GET` | `/ping` | **서버 헬스 체크** | ❌ |
 
 ### 💡 이벤트 스레드(커뮤니티) 핵심 스펙 및 정책
 - **정렬 및 랭킹**: 누적 추천수(`recommendCount`) 내림차순 ➔ 작성 시각(`createdAt`) 최신순 ➔ `id` 내림차순으로 정렬되어 양질의 정보가 자연스럽게 상단에 노출됩니다.

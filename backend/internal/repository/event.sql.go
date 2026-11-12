@@ -452,6 +452,272 @@ func (q *Queries) ListEvents(ctx context.Context, arg ListEventsParams) ([]ListE
 	return items, nil
 }
 
+const listFollowingArtistsEventsForMap = `-- name: ListFollowingArtistsEventsForMap :many
+WITH followed_event_ids AS (
+    SELECT DISTINCT ea.event_id
+    FROM user_artist_follows uaf
+    JOIN event_artists ea ON ea.artist_id = uaf.artist_id
+    WHERE uaf.user_id = $10
+)
+SELECT
+    e.id,
+    e.title,
+    e.venue_id,
+    COALESCE(v.official_name, '')::varchar AS venue_name,
+    COALESCE(v.latitude, 0)::double precision AS latitude,
+    COALESCE(v.longitude, 0)::double precision AS longitude,
+    e.start_time,
+    e.end_time,
+    e.rating_sum,
+    e.rating_count,
+    (SELECT COUNT(*)::int FROM event_user_actions eua WHERE eua.event_id = e.id AND eua.status = 2) AS attendee_count,
+    e.status,
+    COALESCE(ta.official_name, '')::varchar AS top_artist_name,
+    COALESCE(ta.profile_image_url, '')::varchar AS top_artist_profile_image_url
+FROM followed_event_ids fe
+JOIN events e ON e.id = fe.event_id
+LEFT JOIN venues v ON e.venue_id = v.id
+LEFT JOIN LATERAL (
+    SELECT
+        a.official_name,
+        a.profile_image_url,
+        CASE WHEN a.rating_count > 0 THEN a.rating_sum / a.rating_count ELSE 0 END AS artist_avg_rating
+    FROM event_artists ea
+    JOIN artists a ON ea.artist_id = a.id
+    WHERE ea.event_id = e.id
+    ORDER BY
+        artist_avg_rating DESC,
+        a.rating_count DESC,
+        a.official_name ASC
+    LIMIT 1
+) ta ON true
+WHERE
+    ($1::double precision IS NULL OR v.latitude >= $1)
+    AND ($2::double precision IS NULL OR v.latitude <= $2)
+    AND ($3::double precision IS NULL OR v.longitude >= $3)
+    AND ($4::double precision IS NULL OR v.longitude <= $4)
+    AND ($5::timestamptz IS NULL OR e.end_time >= $5)
+    AND ($6::timestamptz IS NULL OR e.start_time <= $6)
+    AND ($7::uuid IS NULL OR e.venue_id = $7)
+    AND ($8::varchar IS NULL OR e.status = $8)
+ORDER BY e.start_time ASC, e.id ASC
+LIMIT $9
+`
+
+type ListFollowingArtistsEventsForMapParams struct {
+	MinLat        sql.NullFloat64
+	MaxLat        sql.NullFloat64
+	MinLng        sql.NullFloat64
+	MaxLng        sql.NullFloat64
+	StartTimeFrom sql.NullTime
+	StartTimeTo   sql.NullTime
+	VenueID       uuid.NullUUID
+	Status        sql.NullString
+	Limit         int32
+	UserID        uuid.UUID
+}
+
+type ListFollowingArtistsEventsForMapRow struct {
+	ID                       uuid.UUID
+	Title                    string
+	VenueID                  uuid.NullUUID
+	VenueName                string
+	Latitude                 float64
+	Longitude                float64
+	StartTime                time.Time
+	EndTime                  time.Time
+	RatingSum                float64
+	RatingCount              int32
+	AttendeeCount            int32
+	Status                   string
+	TopArtistName            string
+	TopArtistProfileImageUrl string
+}
+
+func (q *Queries) ListFollowingArtistsEventsForMap(ctx context.Context, arg ListFollowingArtistsEventsForMapParams) ([]ListFollowingArtistsEventsForMapRow, error) {
+	rows, err := q.db.QueryContext(ctx, listFollowingArtistsEventsForMap,
+		arg.MinLat,
+		arg.MaxLat,
+		arg.MinLng,
+		arg.MaxLng,
+		arg.StartTimeFrom,
+		arg.StartTimeTo,
+		arg.VenueID,
+		arg.Status,
+		arg.Limit,
+		arg.UserID,
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []ListFollowingArtistsEventsForMapRow
+	for rows.Next() {
+		var i ListFollowingArtistsEventsForMapRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.Title,
+			&i.VenueID,
+			&i.VenueName,
+			&i.Latitude,
+			&i.Longitude,
+			&i.StartTime,
+			&i.EndTime,
+			&i.RatingSum,
+			&i.RatingCount,
+			&i.AttendeeCount,
+			&i.Status,
+			&i.TopArtistName,
+			&i.TopArtistProfileImageUrl,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listMyActionEvents = `-- name: ListMyActionEvents :many
+SELECT
+    e.id,
+    e.title,
+    e.venue_id,
+    COALESCE(v.official_name, '')::varchar AS venue_name,
+    COALESCE(v.latitude, 0)::double precision AS latitude,
+    COALESCE(v.longitude, 0)::double precision AS longitude,
+    e.start_time,
+    e.end_time,
+    e.rating_sum,
+    e.rating_count,
+    (SELECT COUNT(*)::int FROM event_user_actions eua2 WHERE eua2.event_id = e.id AND eua2.status = 2) AS attendee_count,
+    e.status,
+    COALESCE(ta.official_name, '')::varchar AS top_artist_name,
+    COALESCE(ta.profile_image_url, '')::varchar AS top_artist_profile_image_url
+FROM event_user_actions eua
+JOIN events e ON e.id = eua.event_id
+LEFT JOIN venues v ON e.venue_id = v.id
+LEFT JOIN LATERAL (
+    SELECT
+        a.official_name,
+        a.profile_image_url,
+        CASE WHEN a.rating_count > 0 THEN a.rating_sum / a.rating_count ELSE 0 END AS artist_avg_rating
+    FROM event_artists ea
+    JOIN artists a ON ea.artist_id = a.id
+    WHERE ea.event_id = e.id
+    ORDER BY
+        artist_avg_rating DESC,
+        a.rating_count DESC,
+        a.official_name ASC
+    LIMIT 1
+) ta ON true
+WHERE
+    eua.user_id = $1
+    AND eua.status = $2
+    AND ($3::double precision IS NULL OR v.latitude >= $3)
+    AND ($4::double precision IS NULL OR v.latitude <= $4)
+    AND ($5::double precision IS NULL OR v.longitude >= $5)
+    AND ($6::double precision IS NULL OR v.longitude <= $6)
+    AND ($7::timestamptz IS NULL OR e.end_time >= $7)
+    AND ($8::timestamptz IS NULL OR e.start_time <= $8)
+    AND ($9::uuid IS NULL OR e.venue_id = $9)
+    AND ($10::uuid IS NULL OR EXISTS (
+        SELECT 1 FROM event_artists ea
+        WHERE ea.event_id = e.id AND ea.artist_id = $10
+    ))
+    AND ($11::varchar IS NULL OR e.status = $11)
+ORDER BY e.start_time DESC, e.id ASC
+LIMIT $12
+`
+
+type ListMyActionEventsParams struct {
+	UserID        uuid.UUID
+	ActionStatus  int32
+	MinLat        sql.NullFloat64
+	MaxLat        sql.NullFloat64
+	MinLng        sql.NullFloat64
+	MaxLng        sql.NullFloat64
+	StartTimeFrom sql.NullTime
+	StartTimeTo   sql.NullTime
+	VenueID       uuid.NullUUID
+	ArtistID      uuid.NullUUID
+	Status        sql.NullString
+	Limit         int32
+}
+
+type ListMyActionEventsRow struct {
+	ID                       uuid.UUID
+	Title                    string
+	VenueID                  uuid.NullUUID
+	VenueName                string
+	Latitude                 float64
+	Longitude                float64
+	StartTime                time.Time
+	EndTime                  time.Time
+	RatingSum                float64
+	RatingCount              int32
+	AttendeeCount            int32
+	Status                   string
+	TopArtistName            string
+	TopArtistProfileImageUrl string
+}
+
+func (q *Queries) ListMyActionEvents(ctx context.Context, arg ListMyActionEventsParams) ([]ListMyActionEventsRow, error) {
+	rows, err := q.db.QueryContext(ctx, listMyActionEvents,
+		arg.UserID,
+		arg.ActionStatus,
+		arg.MinLat,
+		arg.MaxLat,
+		arg.MinLng,
+		arg.MaxLng,
+		arg.StartTimeFrom,
+		arg.StartTimeTo,
+		arg.VenueID,
+		arg.ArtistID,
+		arg.Status,
+		arg.Limit,
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []ListMyActionEventsRow
+	for rows.Next() {
+		var i ListMyActionEventsRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.Title,
+			&i.VenueID,
+			&i.VenueName,
+			&i.Latitude,
+			&i.Longitude,
+			&i.StartTime,
+			&i.EndTime,
+			&i.RatingSum,
+			&i.RatingCount,
+			&i.AttendeeCount,
+			&i.Status,
+			&i.TopArtistName,
+			&i.TopArtistProfileImageUrl,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const listUserEventActions = `-- name: ListUserEventActions :many
 SELECT eua.user_id, eua.event_id, eua.status, uer.score AS rating
 FROM event_user_actions eua

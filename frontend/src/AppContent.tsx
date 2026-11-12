@@ -7,11 +7,10 @@ import { useAuth } from './context/AuthContext';
 import UserProfile from './components/common/UserProfile';
 import DailyVisitCounter from './components/common/DailyVisitCounter';
 import AuthPanel from './components/auth/AuthPanel';
-import { useLocation, useNavigate, Routes, Route, useSearchParams } from 'react-router-dom';
-import { Sun, Moon, Map as MapIcon, Flag, Loader2, LogIn } from 'lucide-react';
+import { useLocation, useNavigate, Routes, Route } from 'react-router-dom';
+import { Sun, Moon, Map as MapIcon, Loader2, LogIn } from 'lucide-react';
 import { Button } from './components/ui/button';
 import { Popover, PopoverContent, PopoverTrigger } from './components/ui/popover';
-import { format } from 'date-fns';
 
 import MapPage from './pages/MapPage';
 import XOAuthCallbackPage from './pages/XOAuthCallbackPage';
@@ -22,10 +21,6 @@ export default function AppContent() {
     const { t } = useTranslation();
     const location = useLocation();
     const navigate = useNavigate();
-    const [searchParams, setSearchParams] = useSearchParams();
-
-    const today = format(new Date(), 'yyyy-MM-dd');
-    const showFlagsOnly = searchParams.get('flags') === 'true';
 
     const { theme, toggleTheme } = useTheme();
     const { language, changeLanguage } = useLanguage();
@@ -33,27 +28,6 @@ export default function AppContent() {
     const [isAuthPanelOpen, setIsAuthPanelOpen] = useState(false);
 
     const apiKey = process.env.REACT_APP_GOOGLE_MAPS_API_KEY || '';
-
-    const updateQueryParams = (updates: Record<string, string | null>) => {
-        const newParams = new URLSearchParams(searchParams);
-        Object.entries(updates).forEach(([key, value]) => {
-            if (value === null) {
-                newParams.delete(key);
-            } else {
-                newParams.set(key, value);
-            }
-        });
-        setSearchParams(newParams, { replace: true });
-    };
-
-    const handleFlagsToggle = () => {
-        const nextFlags = !showFlagsOnly;
-        if (nextFlags) {
-            updateQueryParams({ flags: 'true', start: today, end: today });
-        } else {
-            updateQueryParams({ flags: null, start: null, end: null });
-        }
-    };
 
     useEffect(() => {
         document.title = t('seo.title') || 'Event Map';
@@ -70,7 +44,7 @@ export default function AppContent() {
     return (
         <LoadScript googleMapsApiKey={apiKey} libraries={GOOGLE_MAPS_LIBRARIES}>
             <div className="min-h-screen md:h-screen md:overflow-hidden flex flex-col bg-background text-foreground transition-colors duration-300">
-                
+
                 <header className="sticky top-0 z-50 w-full bg-background/80 backdrop-blur-md border-b border-border shadow-sm px-4 md:px-8 py-3 flex flex-col md:flex-row justify-between items-center gap-4 transition-all duration-300">
                     <div className="flex-1 flex flex-col md:flex-row items-center gap-2 md:gap-4 text-center md:text-left justify-start">
                         <div className="flex items-center gap-2">
@@ -98,7 +72,7 @@ export default function AppContent() {
                             </Button>
                         </div>
                     </div>
-                    
+
                     <div className="flex-1 flex items-center justify-end gap-3">
                         <select
                             value={language}
@@ -110,22 +84,10 @@ export default function AppContent() {
                             <option value="en">{t('language.en', 'English')}</option>
                             <option value="zh">{t('language.zh', '中文')}</option>
                         </select>
-                        
+
                         <Button variant="outline" size="icon" onClick={toggleTheme} className="rounded-full w-9 h-9" title={t('header.themeToggle')}>
                             {theme === 'dark' ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
                         </Button>
-
-                        {isAuthenticated && (
-                            <Button 
-                                variant={showFlagsOnly ? "default" : "outline"} 
-                                size="icon"
-                                className={`rounded-full w-9 h-9 ${showFlagsOnly ? 'bg-orange-500 hover:bg-orange-600 border-orange-500 text-white' : ''}`}
-                                onClick={handleFlagsToggle}
-                                title={showFlagsOnly ? t('filter.flags.showAll') : t('filter.flags.showFlagsOnly')}
-                            >
-                                <Flag className={`w-4 h-4 ${showFlagsOnly ? 'fill-current' : ''}`} />
-                            </Button>
-                        )}
 
                         {isLoading ? (
                             <div className="flex items-center gap-2 text-muted-foreground mr-2">
@@ -137,9 +99,9 @@ export default function AppContent() {
                         ) : (
                             <Popover open={isAuthPanelOpen} onOpenChange={setIsAuthPanelOpen}>
                                 <PopoverTrigger asChild>
-                                    <Button 
-                                        variant={isAuthPanelOpen ? "default" : "outline"} 
-                                        size="sm" 
+                                    <Button
+                                        variant={isAuthPanelOpen ? "default" : "outline"}
+                                        size="sm"
                                         className="rounded-full h-9 px-4"
                                     >
                                         <LogIn className="w-4 h-4 mr-2" />

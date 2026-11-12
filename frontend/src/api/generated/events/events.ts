@@ -56,7 +56,7 @@ export const getGetEventsQueryKey = (params?: GetEventsParams,) => {
     }
 
     
-export const getGetEventsQueryOptions = <TData = Awaited<ReturnType<typeof getEvents>>, TError = unknown>(params?: GetEventsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getEvents>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
+export const getGetEventsQueryOptions = <TData = Awaited<ReturnType<typeof getEvents>>, TError = void>(params?: GetEventsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getEvents>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 ) => {
 
 const {query: queryOptions, request: requestOptions} = options ?? {};
@@ -75,12 +75,12 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 }
 
 export type GetEventsQueryResult = NonNullable<Awaited<ReturnType<typeof getEvents>>>
-export type GetEventsQueryError = unknown
+export type GetEventsQueryError = void
 
 /**
  * @summary 이벤트 목록 조회 (지도 좌표 범위 및 참가자 순 정렬 지원)
  */
-export const useGetEvents = <TData = Awaited<ReturnType<typeof getEvents>>, TError = unknown>(
+export const useGetEvents = <TData = Awaited<ReturnType<typeof getEvents>>, TError = void>(
  params?: GetEventsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getEvents>>, TError, TData>>, request?: SecondParameter<typeof customInstance>}
 
   ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } => {
