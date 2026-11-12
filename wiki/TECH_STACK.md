@@ -29,13 +29,14 @@
   - 회장/출연자 저부하 전방 일치 자동완성용 `LOWER(official_name) varchar_pattern_ops` 및 `hiragana varchar_pattern_ops` B-Tree 인덱스
   - 이벤트 하위 스레드 추천순 정렬 및 복합 커서 페이지네이션용 `(event_id, recommend_count DESC, created_at DESC, id DESC)` 복합 인덱스
   - 유저별 북마크/참가 이벤트 맵 필터링 최적화용 `(user_id, status, event_id)` 복합 인덱스(`idx_event_user_actions_user_status_event`)
+  - 팔로우 출연자의 신규 이벤트 알림 및 `createdAfter` 조회 최적화용 `(created_at DESC, id) WHERE status <> 'REJECTED'` 부분 인덱스(`idx_events_active_created_at`)
 
 ---
 
 ## 3. 프론트엔드 (Frontend - React + TypeScript)
 - **코어 프레임워크:** **React 18 + TypeScript + React Compiler (`babel-plugin-react-compiler`)**
 - **라우팅 & URL 상태 동기화:** **React Router v7 (`react-router-dom`)**
-  - 지도 필터 쿼리 파라미터(`?start=&end=`, `artistId`, `venueId`, `myAction`, `followingArtists`) 동기화 및 `/auth/x/callback` OAuth 콜백 라우트 처리
+  - 지도 필터 쿼리 파라미터(`?start=&end=`, `artistId`, `venueId`, `myAction`, `followingArtists`, `newEventsSince`) 동기화 및 `/auth/x/callback` OAuth 콜백 라우트 처리
 - **API 클라이언트 자동 생성:** **`Orval`**
   - `backend/api/openapi.yaml`을 파싱하여 `src/api/generated/model`에 TypeScript 모델을, `src/api/generated/<tag>/`에 **TanStack Query v5** 커스텀 훅을 `tags-split` 모드로 자동 생성합니다.
 - **서버 상태 관리:** **TanStack Query (v5)**

@@ -2,7 +2,7 @@
 
 [⬅️ 홈으로 돌아가기](./Home.md) | [관련 문서: DB 마이그레이션 가이드](./DATABASE_MIGRATION_GUIDE.md) | [관련 문서: sqlc 가이드](./SQLC_GUIDE.md)
 
-이 문서는 `backend/db/migration/`(`000001` ~ `000019`)과 `backend/db/query/*.sql`을 기반으로 Eventer Map의 **PostgreSQL 전체 테이블 스키마(13개 테이블)**를 정의하고, 정리된 요소 및 인덱스 최적화 내역을 정리한 기술 위키입니다.
+이 문서는 `backend/db/migration/`(`000001` ~ `000020`)과 `backend/db/query/*.sql`을 기반으로 Eventer Map의 **PostgreSQL 전체 테이블 스키마(13개 테이블)**를 정의하고, 정리된 요소 및 인덱스 최적화 내역을 정리한 기술 위키입니다.
 
 ---
 
@@ -117,7 +117,7 @@ erDiagram
 | `x_username` | `VARCHAR` | `NULL` (`000018`) | - | 연동된 X `@username` 핸들 (표시 및 동기화용) |
 | `is_banned` | `BOOLEAN` | `NOT NULL` | `false` | 계정 정지(Ban) 여부 |
 | `is_email_verified` | `BOOLEAN` | `NOT NULL` (`000003`) | `false` | 이메일 인증 완료 여부 |
-| `last_artist_feed_checked_at` | `TIMESTAMPTZ` | `NOT NULL` (`000006`) | `'1970-01-01 00:00:00+00'` | 팔로우 아티스트 피드 마지막 확인 시각 (`CountUnreadFollowingArtistEvents`를 통한 미확인 신규 이벤트 수 집계 및 `UpdateLastArtistFeedCheckedAt` 읽음 처리에 사용) |
+| `last_artist_feed_checked_at` | `TIMESTAMPTZ` | `NOT NULL` (`000006`, `000020`) | `NOW()` | 팔로우 아티스트 피드 마지막 확인 시각 (`000020`에서 기본값을 `'1970-01-01'` ➔ `NOW()`로 변경 및 기존 미체크 행 보정; `CountUnreadFollowingArtistEvents`, `ListFollowingArtistEvents`, `GetLastArtistFeedCheckedAt`, `UpdateLastArtistFeedCheckedAt`에 사용) |
 | `role` | `VARCHAR` | `NOT NULL` (`000008`) | `'USER'` | 권한 (`USER`, `ADMIN`) |
 | `created_at` | `TIMESTAMPTZ` | `NOT NULL` | `NOW()` | 가입 시각 |
 | `updated_at` | `TIMESTAMPTZ` | `NOT NULL` | `NOW()` | 프로필/비밀번호 수정 시각 |
@@ -200,6 +200,7 @@ erDiagram
 **활성 인덱스**:
 - `idx_events_start_time`: `ON events (start_time)`
 - `idx_events_time_venue`: `ON events (venue_id, start_time, end_time)`
+- `idx_events_active_created_at` (`000020`): `ON events (created_at DESC, id) WHERE status <> 'REJECTED'` (신규 이벤트 알림/필터 조회용 부분 인덱스)
 
 #### 6) `event_artists` — 이벤트-출연자 N:M 매핑
 | 컬럼명 | 데이터 타입 | 제약 조건 | 설명 |
@@ -303,10 +304,14 @@ erDiagram
 
 ---
 
-## 6. 🗺️ `000019` 개인화 맵 필터 인덱스 및 쿼리 최적화 내역
+## 6. 🗺️ `000019` ~ `000020` 개인화 맵 필터·신규 이벤트 알림 인덱스 및 쿼리 최적화 내역
 
 1. **`000019_add_event_user_actions_user_status_index`**:
    - `idx_event_user_actions_user_status_event ON event_user_actions (user_id, status, event_id)` 복합 인덱스를 추가했습니다.
    - 기존 `event_user_actions`의 PK `(user_id, event_id)` 및 Partial Index `(event_id) WHERE status = 2`만으로는 특정 유저의 북마크(`status = 1`) 또는 참가(`status = 2`) 이벤트만 선별할 때 불필요한 행 스캔이 발생하던 점을 개선해 DS920+ NAS 디스크 I/O를 절감합니다.
-2. **팔로우한 출연자 이벤트 다중 조인 최적화 (`ListFollowingArtistsEventsForMap`)**:
-   - `user_artist_follows`의 PK `(user_id, artist_id)` ➔ `event_artists`의 `idx_event_artists_artist_id` ➔ `events`의 `idx_events_start_time` 기존 인덱스를 조합하고, `followed_event_ids` CTE로 `DISTINCT ea.event_id`를 먼저 추출해 여러 팔로우 출연자가 함께 참가하는 이벤트의 중복 노출을 방지합니다.
+2. **`000020_add_artist_notification_indexes_and_default`**:
+   - `idx_events_active_created_at ON events (created_at DESC, id) WHERE status <> 'REJECTED'` 부분 인덱스를 추가해 팔로우 출연자의 신규 등록 이벤트 알림 피드 및 `createdAfter` 지도 필터 조회 속도를 개선했습니다.
+   - `users.last_artist_feed_checked_at` 기본값을 `NOW()`로 변경하고 기존 `'1970-01-01 00:00:00+00'` 행을 현재 시각으로 보정해 신규 가입자·기존 사용자에게 과거 이벤트가 대량 미확인으로 노출되는 현상을 방지했습니다.
+3. **팔로우한 출연자 이벤트 및 신규 알림 다중 조인 최적화 (`ListFollowingArtistsEventsForMap`, `ListFollowingArtistEvents`, `CountUnreadFollowingArtistEvents`)**:
+   - `user_artist_follows`의 PK `(user_id, artist_id)` ➔ `event_artists`의 `idx_event_artists_artist_id` ➔ `events`의 `idx_events_start_time`·`idx_events_active_created_at` 인덱스를 조합하고, `followed_event_ids` / `matched_events` CTE로 중복 없이 이벤트를 집계합니다.
+   - 알림 피드 및 `createdAfter` 스냅샷 모드에서는 `e.status <> 'REJECTED'`, `e.end_time >= NOW()`, `e.author_id IS DISTINCT FROM user_id`, `e.created_at > GREATEST(threshold, uaf.created_at)` 조건으로 이미 종료된 일정, 본인 등록 이벤트, 팔로우 이전 등록 이벤트를 제외합니다.

@@ -119,22 +119,38 @@ const recommendMutation = useRecommendEventThread({
 });
 ```
 
-### 📌 4) URL 쿼리 기반 개인화 필터 조회 & 캐시 격리 (`useGetEvents`)
-`openapi.yaml`의 `GET /events` enum/boolean 파라미터가 Orval을 통해 `GetEventsMyAction` 상수·타입 및 `GetEventsParams.followingArtists`로 자동 생성되므로, `MapPage.tsx`와 `AuthContext.tsx`에서 타입 안전하게 필터링과 비공개 캐시 정리를 수행할 수 있습니다.
+### 📌 4) URL 쿼리 기반 개인화 필터 & 신규 이벤트 알림 (`useGetEvents`, `user` 훅)
+`openapi.yaml`의 `GET /events` enum/boolean/date-time 파라미터(`GetEventsMyAction`, `followingArtists`, `createdAfter`)와 `/users/me/following-artists/events` 알림 피드·읽음 처리 훅(`useGetUsersMeFollowingArtistsEvents`, `usePostUsersMeFollowingArtistsEventsRead`)이 Orval로 자동 생성되므로, `ArtistNotificationBell.tsx`, `MapPage.tsx`, `EntityInfoCard.tsx`, `EventFormPane.tsx`, `AuthContext.tsx`에서 타입 안전하게 알림 조회·읽음 처리·캐시 무효화를 수행합니다.
 
 ```tsx
 import { useGetEvents, getGetEventsQueryKey } from '../../api/generated/events/events';
+import {
+  useGetUsersMeFollowingArtistsEvents,
+  usePostUsersMeFollowingArtistsEventsRead,
+  getGetUsersMeFollowingArtistsEventsQueryKey,
+} from '../../api/generated/user/user';
 import { GetEventsMyAction } from '../../api/generated/model';
 
 const { data } = useGetEvents({
   myAction: isMyAction ? GetEventsMyAction.bookmarked : undefined,
   followingArtists: isFollowingArtists ? true : undefined,
+  createdAfter: newEventsSince,
   startDate,
   endDate,
   limit: 100,
 });
 
+const { data: notificationFeed } = useGetUsersMeFollowingArtistsEvents(
+  { unreadOnly: true, limit: 30 },
+  { query: { enabled: isAuthenticated, staleTime: 60 * 1000 } }
+);
+const { mutate: markFeedAsRead } = usePostUsersMeFollowingArtistsEventsRead();
+
+// 팔로우 토글 / 이벤트 등록·수정 시 알림 피드 캐시 무효화
+queryClient.invalidateQueries({ queryKey: getGetUsersMeFollowingArtistsEventsQueryKey() });
+
 // 로그아웃/회원 탈퇴 시 개인화 이벤트 캐시(myAction, followingArtists) 제거 예시
+// (`/users/me` prefix 제거에 따라 알림 피드 캐시도 함께 정리됨)
 queryClient.removeQueries({
   predicate: (query) => {
     const key = query.queryKey;

@@ -32,7 +32,7 @@ make migrateversion
 DB의 스키마 변경 사항은 `backend/db/migration/` 폴더 안의 `.sql` 파일들로 관리됩니다.
 새로운 테이블이나 컬럼, 인덱스를 추가할 때는 **이미 적용된 기존 파일을 절대 수정하지 않고** 새로운 시퀀스 번호의 마이그레이션 파일(`.up.sql`, `.down.sql`)을 생성합니다.
 
-### 현재 마이그레이션 버전 이력 (`000001` ~ `000019`)
+### 현재 마이그레이션 버전 이력 (`000001` ~ `000020`)
 
 | 버전 | 파일명 | 주요 변경 내용 |
 | :---: | :--- | :--- |
@@ -55,6 +55,7 @@ DB의 스키마 변경 사항은 `backend/db/migration/` 폴더 안의 `.sql` �
 | `000017` | `000017_add_verification_attempts` | `verification_tokens.attempts` (시도 횟수 제한) 컬럼 추가 및 Google 계정 `is_email_verified = true` 일괄 보정 |
 | `000018` | `000018_add_x_oauth` | X OAuth 2.0 지원을 위한 `users.x_id` (`UNIQUE`), `users.x_username` 컬럼 추가 |
 | `000019` | `000019_add_event_user_actions_user_status_index` | 유저별 북마크(`status=1`)·참가(`status=2`) 이벤트 맵 필터 조회 최적화용 복합 인덱스(`idx_event_user_actions_user_status_event`) 추가 |
+| `000020` | `000020_add_artist_notification_indexes_and_default` | `users.last_artist_feed_checked_at` 기본값 `NOW()` 변경 및 기존 `'1970-01-01'` 행 보정, 신규 이벤트 알림 조회용 부분 인덱스(`idx_events_active_created_at`) 추가 |
 
 ### 새 마이그레이션 파일 생성 명령어
 ```bash

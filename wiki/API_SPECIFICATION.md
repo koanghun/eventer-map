@@ -38,8 +38,8 @@
 | `GET` | `/users/me/following-events` | **팔로우 유저 참가 이벤트 피드**: 내가 팔로우하는 유저가 참가(`status=2`)하는 이벤트 목록을 조회합니다. | 🟢 |
 | `GET` | `/users/{userId}/followers` | **특정 유저의 팔로워 목록 조회**: `limit`/`offset` 기반으로 해당 유저의 팔로워(`UserProfile[]`)를 조회합니다. | ❌ |
 | `GET` | `/users/me/following-artists` | **내가 팔로우하는 아티스트 목록 조회**: `limit`/`offset` 기반으로 팔로우 중인 아티스트(`Artist[]`)를 조회합니다. | 🟢 |
-| `GET` | `/users/me/following-artists/events` | **팔로우 아티스트 이벤트 피드 및 미확인 카운트 조회**: 팔로우한 아티스트들의 이벤트 목록(`events`)과 `last_artist_feed_checked_at` 이후 등록된 미확인 이벤트 수(`unreadCount`)를 반환합니다. | 🟢 |
-| `POST` | `/users/me/following-artists/events/read` | **팔로우 아티스트 피드 읽음 처리**: `users.last_artist_feed_checked_at`을 현재 시각(`NOW()`)으로 갱신하여 `unreadCount`를 `0`으로 초기화합니다. | 🟢 |
+| `GET` | `/users/me/following-artists/events` | **팔로우 아티스트 이벤트 피드 및 미확인 알림 조회**: `limit`(기본 20, 최대 50), `offset`, **`unreadOnly`** (`boolean`)를 지원합니다. `unreadOnly=true`일 때 미종료(`end_time >= NOW()`)·타인 등록(`author_id IS DISTINCT FROM me`)·비거부(`status <> 'REJECTED'`)·체크/팔로우 이후 등록(`created_at > GREATEST(last_artist_feed_checked_at, uaf.created_at)`) 신규 이벤트를 최신 등록순으로 반환하며, 풀 `EventSummary` 필드 + `createdAt` + `matchedArtistNames`(`FollowingArtistNotificationEvent[]`), `unreadCount`, `checkedAt`(마지막 확인 기준 시각), `fetchedAt`(서버 조회 기준 시각)을 응답합니다. | 🟢 |
+| `POST` | `/users/me/following-artists/events/read` | **팔로우 아티스트 피드 읽음 처리**: 선택적 본문 `{ readBefore }`를 받아 `users.last_artist_feed_checked_at`을 `GREATEST(last_artist_feed_checked_at, LEAST(COALESCE(readBefore, NOW()), NOW()))`로 갱신하여 미확인 알림을 초기화합니다. | 🟢 |
 | `POST` | `/users/{userId}/follow` | **특정 유저 팔로우** | 🟢 |
 | `DELETE` | `/users/{userId}/follow` | **특정 유저 언팔로우** | 🟢 |
 | `POST` | `/users/{userId}/block` | **특정 유저 차단** | 🟢 |
@@ -106,7 +106,7 @@
 
 | Method | Endpoint | Description | Auth Required |
 | :--- | :--- | :--- | :---: |
-| `GET` | `/events` | **이벤트 목록 조회**: 바운딩 박스(`minLat`, `maxLat`, `minLng`, `maxLng`), 날짜(`startDate`, `endDate`), `artistId`, `venueId`, `timeRange` (`upcoming` \| `past`), `status`, **`myAction`** (`bookmarked` \| `attending`), **`followingArtists`** (`boolean`), `limit` (기본 50, 최대 100, `hasMore` 반환)으로 필터링 조회합니다. | ⚪️ (`myAction` / `followingArtists` 사용 시 🟢) |
+| `GET` | `/events` | **이벤트 목록 조회**: 바운딩 박스(`minLat`, `maxLat`, `minLng`, `maxLng`), 날짜(`startDate`, `endDate`), `artistId`, `venueId`, `timeRange` (`upcoming` \| `past`), `status`, **`myAction`** (`bookmarked` \| `attending`), **`followingArtists`** (`boolean`), **`createdAfter`** (`date-time`, `followingArtists=true` 전용), `limit` (기본 50, 최대 100, `hasMore` 반환)으로 필터링 조회합니다. | ⚪️ (`myAction` / `followingArtists` 사용 시 🟢) |
 | `POST` | `/events` | **새 이벤트 등록 (`multipart/form-data`)**: `title`, `venueId`, `startTime`, `endTime`(이상 필수), `openingTime`, `artistIds`, `relatedLinks`를 전달받아 이벤트를 생성합니다. | 🟢 |
 | `GET` | `/events/{eventId}` | **이벤트 단건 상세 조회**: 이벤트 기본 정보, 공연장 요약(`VenueSummary`), 출연자 목록(`ArtistSummary[]`), 참가자 수(`attendeeCount`), 평점 통계 및 본인 평점(`myRating`)을 반환합니다. | ⚪️ (`myRating` 포함 시 🟢) |
 | `PUT` | `/events/{eventId}` | **이벤트 정보 수정 (`multipart/form-data`)**: 이벤트 정보를 수정하고 공연장/출연자 평점 통계를 재동기화합니다. | 🟢 |
@@ -120,7 +120,8 @@
   - 지도 바운딩 박스 제한 없이 조회 가능하며, 최신 일정 순(`e.start_time DESC, e.id ASC`)으로 반환합니다. (프론트엔드 기본 조회 기간은 과거+예정 `전체 기간`이며 `DatePicker`로 축소 가능)
 - **팔로우한 출연자 이벤트 (`followingArtists=true`, `ListFollowingArtistsEventsForMap`)**:
   - 인증 필수 (`401`), `myAction` 또는 `artistId`와 동시 사용 불가 (`400`).
-  - `followed_event_ids` CTE로 팔로우 중인 모든 출연자의 이벤트를 중복 없이 모아 다가오는 일정 순(`e.start_time ASC, e.id ASC`)으로 반환합니다. (프론트엔드 기본 조회 기간은 `오늘(검색일) 이후` 전체)
+  - `followed_event_ids` CTE로 팔로우 중인 모든 출연자의 이벤트(`status <> 'REJECTED'`)를 중복 없이 모아 다가오는 일정 순(`e.start_time ASC, e.id ASC`)으로 반환합니다. (일반 팔로우 필터의 프론트엔드 기본 조회 기간은 `오늘(검색일) 이후` 전체)
+  - **`createdAfter` (신규 알림 전체 확인 스냅샷 모드)**: `followingArtists=true`와 함께 전달 시(`followingArtists=true` 없이 사용 시 `400`), `e.created_at > GREATEST(createdAfter, uaf.created_at)`, `e.end_time >= NOW()`, `e.author_id IS DISTINCT FROM me` 조건을 추가 적용해 읽음 처리 전 `checkedAt` 스냅샷 기준의 미종료 신규 이벤트만 지도 및 좌측 사이드바에 반환합니다.
 
 ---
 
