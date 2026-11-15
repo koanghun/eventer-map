@@ -661,5 +661,47 @@
         "followingArtistsCountBadge": "{{count}}",
         "noFollowingArtists": "You are not following any performers yet.",
         "unfollowButton": "Unfollow"
+    },
+    "common": {
+        "loginRequired": "Login is required.",
+        "cancel": "Cancel",
+        "loading": "Loading...",
+        "anonymous": "Anonymous"
+    },
+    "event": {
+        "title": "Event Title"
+    },
+    "artist": {
+        "officialName": "Official Name",
+        "hiragana": "Hiragana",
+        "disambiguation": "Disambiguation"
+    },
+    "venue": {
+        "officialName": "Venue Name",
+        "address": "Address",
+        "capacity": "Capacity"
+    },
+    "credit": {
+        "title": "Data Credit Score",
+        "votesCount": "{{count}} votes",
+        "voteFailed": "Failed to submit credit vote.",
+        "selfVoteNotAllowed": "Authors cannot vote on their own submission.",
+        "promotePending": "Will be automatically promoted to official data if high credit is sustained for 24 hours.",
+        "deletePending": "Will be automatically deleted if low credit is sustained for 24 hours."
+    },
+    "modRequest": {
+        "title": "Official Data Modification Requests",
+        "propose": "Request Edit",
+        "reason": "Reason",
+        "reasonPlaceholder": "Explain why this change is needed",
+        "submit": "Submit Request",
+        "empty": "No pending modification requests.",
+        "noChanges": "No changes detected.",
+        "created": "Modification request submitted.",
+        "deleted": "Modification request deleted.",
+        "applied": "Modification request applied.",
+        "actionFailed": "Failed to process request.",
+        "applyNow": "Apply Immediately (Admin)",
+        "trustScore": "Trust Score"
     }
 }

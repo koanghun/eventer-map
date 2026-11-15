@@ -19,6 +19,8 @@ import { useAuth } from '../../context/AuthContext';
 import { toast } from '../../store/useToastStore';
 import { cn, getSafeExternalUrl } from '../../lib/utils';
 import { Button } from '../ui/button';
+import { CreditVoteSection } from '../common/CreditVoteSection';
+import { ModificationRequestsSection } from '../common/ModificationRequestsSection';
 import {
     getGetArtistsArtistIdFollowersQueryKey,
     useDeleteArtistsArtistIdFollow,
@@ -444,6 +446,32 @@ function EntityInfoShell({
                                                     : t('entityInfo.follow', '팔로우')}
                                             </Button>
                                         </div>
+
+                                        {artist?.id && (
+                                            <CreditVoteSection
+                                                entityType="ARTIST"
+                                                entityId={artist.id}
+                                                status={artist.status}
+                                                authorId={artist.authorId}
+                                                creditScore={artist.creditScore}
+                                                creditCount={artist.creditCount}
+                                                myCreditScore={artist.myCreditScore}
+                                                highCreditSince={artist.highCreditSince}
+                                                lowCreditSince={artist.lowCreditSince}
+                                            />
+                                        )}
+
+                                        {artist?.id && artist.status === 'APPROVED' && (
+                                            <ModificationRequestsSection
+                                                entityType="ARTIST"
+                                                entityId={artist.id}
+                                                initialValues={{
+                                                    officialName: artist.officialName,
+                                                    hiragana: artist.hiragana,
+                                                    disambiguation: artist.disambiguation,
+                                                }}
+                                            />
+                                        )}
                                     </div>
                                 </EntityInfoShell>
                                 );
@@ -590,6 +618,32 @@ function EntityInfoShell({
                                                     </a>
                                                 )}
                                             </div>
+                                        )}
+
+                                        {venue?.id && (
+                                            <CreditVoteSection
+                                                entityType="VENUE"
+                                                entityId={venue.id}
+                                                status={venue.status}
+                                                authorId={venue.authorId}
+                                                creditScore={venue.creditScore}
+                                                creditCount={venue.creditCount}
+                                                myCreditScore={venue.myCreditScore}
+                                                highCreditSince={venue.highCreditSince}
+                                                lowCreditSince={venue.lowCreditSince}
+                                            />
+                                        )}
+
+                                        {venue?.id && venue.status === 'APPROVED' && (
+                                            <ModificationRequestsSection
+                                                entityType="VENUE"
+                                                entityId={venue.id}
+                                                initialValues={{
+                                                    officialName: venue.officialName,
+                                                    address: venue.address,
+                                                    capacity: venue.capacity,
+                                                }}
+                                            />
                                         )}
                                     </div>
                                 </EntityInfoShell>

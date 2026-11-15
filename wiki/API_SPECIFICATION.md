@@ -141,6 +141,25 @@
 | `POST` | `/visits` | **오늘의 일일 방문자 수 기록(+1) 및 카운트 반환** | ❌ |
 | `GET` | `/ping` | **서버 헬스 체크** | ❌ |
 
+---
+
+## 6. 🛡️ 신용 점수 및 공인 데이터 수정 요청 (Credit & Modification Requests)
+
+상세 정책 및 자동 승격/삭제 규칙은 [데이터 관리 정책 문서](./DATA_GOVERNANCE_AND_CREDIT_POLICY.md)를 참고하세요.
+
+| Method | Endpoint | Description | Auth Required |
+| :--- | :--- | :--- | :---: |
+| `PUT` | `/events/{eventId}/credit` | **이벤트 신용 점수 투표**: `+1` / `-1` / `0`(취소) 투표 (작성자 본인 제외) | 🟢 |
+| `PUT` | `/artists/{artistId}/credit` | **아티스트 신용 점수 투표**: `+1` / `-1` / `0`(취소) 투표 (작성자 본인 제외) | 🟢 |
+| `PUT` | `/venues/{venueId}/credit` | **공연장 신용 점수 투표**: `+1` / `-1` / `0`(취소) 투표 (작성자 본인 제외) | 🟢 |
+| `DELETE` | `/events/{eventId}` | **이벤트 삭제**: `APPROVED`는 관리자만, `PENDING`은 작성자 또는 관리자 삭제 | 🟢 |
+| `POST` | `/events/{eventId}/approve` | **이벤트 승인 (관리자 전용)**: `PENDING` 이벤트를 `APPROVED`로 승격 | 🟢 |
+| `GET` | `/modification-requests` | **수정 요청 목록 조회**: `entityType`, `entityId`, `status` 기준 수정 요청 및 내 신뢰 투표(`myTrustScore`) 조회 | ⚪️ |
+| `POST` | `/modification-requests` | **수정 요청 등록**: 공인(`APPROVED`) 엔티티에 대한 `proposedData` 및 `reason` 등록 | 🟢 |
+| `DELETE` | `/modification-requests/{requestId}` | **수정 요청 삭제**: `PENDING` 상태의 작성자 본인 또는 관리자 삭제 | 🟢 |
+| `PUT` | `/modification-requests/{requestId}/trust` | **수정 요청 신뢰 점수 투표**: `+1` / `-1` / `0`(취소) 투표 (작성자 본인 제외) | 🟢 |
+| `POST` | `/modification-requests/{requestId}/apply` | **수정 요청 즉시 반영 (관리자 전용)**: 대기 시간 없이 대상 공인 엔티티에 반영 | 🟢 |
+
 ### 💡 이벤트 스레드(커뮤니티) 핵심 스펙 및 정책
 - **정렬 및 랭킹**: 누적 추천수(`recommendCount`) 내림차순 ➔ 작성 시각(`createdAt`) 최신순 ➔ `id` 내림차순으로 정렬되어 양질의 정보가 자연스럽게 상단에 노출됩니다.
 - **커서 기반 페이지네이션**: `nextCursor`는 불투명 Base64 인코딩 문자열(`recommendCount|createdAtNano|id`)로 전달되며, 동점자가 발생해도 누락 없이 일관된 순서를 유지합니다.

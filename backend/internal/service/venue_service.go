@@ -69,8 +69,13 @@ func (s *VenueService) ListVenuesByBoundingBox(ctx context.Context, minLat, maxL
 
 func (s *VenueService) CreateVenue(ctx context.Context, input CreateVenueInput) (*repository.Venue, error) {
 	status := "PENDING"
-	if user, err := s.repo.GetUserByID(ctx, input.AuthorID); err == nil && user.Role == "ADMIN" {
-		status = "APPROVED"
+	if user, err := s.repo.GetUserByID(ctx, input.AuthorID); err == nil {
+		if user.IsBanned {
+			return nil, ErrUserBanned
+		}
+		if user.Role == "ADMIN" {
+			status = "APPROVED"
+		}
 	}
 
 	relatedLinks := input.RelatedLinks
@@ -129,4 +134,75 @@ func (s *VenueService) CanUpdateVenue(ctx context.Context, venueID, userID uuid.
 	}
 
 	return nil
+}
+
+func (s *VenueService) UpdateVenue(ctx context.Context, venueID uuid.UUID, input CreateVenueInput) (*repository.Venue, error) {
+	user, err := s.repo.GetUserByID(ctx, input.AuthorID)
+	if err != nil {
+		return nil, err
+	}
+	if user.IsBanned {
+		return nil, ErrUserBanned
+	}
+	if err := s.CanUpdateVenue(ctx, venueID, input.AuthorID, user.Role); err != nil {
+		return nil, ErrForbidden
+	}
+
+	params := repository.UpdateVenueParams{
+		ID:           venueID,
+		OfficialName: sql.NullString{String: strings.TrimSpace(input.OfficialName), Valid: strings.TrimSpace(input.OfficialName) != ""},
+		GoogleMapID:  sql.NullString{String: strings.TrimSpace(input.GoogleMapID), Valid: strings.TrimSpace(input.GoogleMapID) != ""},
+		Address:      sql.NullString{String: strings.TrimSpace(input.Address), Valid: strings.TrimSpace(input.Address) != ""},
+		Latitude:     sql.NullFloat64{Float64: input.Latitude, Valid: true},
+		Longitude:    sql.NullFloat64{Float64: input.Longitude, Valid: true},
+		RelatedLinks: input.RelatedLinks,
+	}
+	if input.Capacity != nil && *input.Capacity > 0 {
+		params.Capacity = sql.NullInt32{Int32: *input.Capacity, Valid: true}
+	}
+
+	updated, err := s.repo.UpdateVenue(ctx, params)
+	if err != nil {
+		return nil, err
+	}
+	return &updated, nil
+}
+
+func (s *VenueService) DeleteVenue(ctx context.Context, venueID, userID uuid.UUID) error {
+	user, err := s.repo.GetUserByID(ctx, userID)
+	if err != nil {
+		return err
+	}
+	if user.IsBanned {
+		return ErrUserBanned
+	}
+	if err := s.CanUpdateVenue(ctx, venueID, userID, user.Role); err != nil {
+		return ErrForbidden
+	}
+	inUse, err := s.repo.CheckVenueInEvent(ctx, uuid.NullUUID{UUID: venueID, Valid: true})
+	if err != nil {
+		return err
+	}
+	if inUse {
+		return ErrEntityInUse
+	}
+	return s.repo.DeleteVenue(ctx, venueID)
+}
+
+func (s *VenueService) ApproveVenue(ctx context.Context, venueID, userID uuid.UUID) (*repository.Venue, error) {
+	user, err := s.repo.GetUserByID(ctx, userID)
+	if err != nil {
+		return nil, err
+	}
+	if user.IsBanned {
+		return nil, ErrUserBanned
+	}
+	if user.Role != "ADMIN" {
+		return nil, ErrForbidden
+	}
+	approved, err := s.repo.ApproveVenue(ctx, venueID)
+	if err != nil {
+		return nil, err
+	}
+	return &approved, nil
 }

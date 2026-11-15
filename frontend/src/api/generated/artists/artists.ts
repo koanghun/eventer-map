@@ -21,6 +21,8 @@ import type {
   Artist,
   ArtistInput,
   ArtistSummary,
+  CreditVoteInput,
+  CreditVoteResponse,
   GetArtistsArtistIdFollowersParams,
   GetArtistsParams,
   UserProfile
@@ -406,6 +408,65 @@ export const usePostArtistsArtistIdApprove = <TError = unknown,
       > => {
 
       const mutationOptions = getPostArtistsArtistIdApproveMutationOptions(options);
+
+      return useMutation(mutationOptions);
+    }
+    /**
+ * 아티스트 데이터에 신용 점수를 매깁니다. 0을 전달하면 기존 투표를 취소합니다.
+ * @summary 아티스트 신용 점수 투표 (+1 / -1 / 0)
+ */
+export const putArtistsArtistIdCredit = (
+    artistId: string,
+    creditVoteInput: CreditVoteInput,
+ options?: SecondParameter<typeof customInstance>,) => {
+      
+      
+      return customInstance<CreditVoteResponse>(
+      {url: `/artists/${artistId}/credit`, method: 'PUT',
+      headers: {'Content-Type': 'application/json', },
+      data: creditVoteInput
+    },
+      options);
+    }
+  
+
+
+export const getPutArtistsArtistIdCreditMutationOptions = <TError = void,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof putArtistsArtistIdCredit>>, TError,{artistId: string;data: CreditVoteInput}, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationOptions<Awaited<ReturnType<typeof putArtistsArtistIdCredit>>, TError,{artistId: string;data: CreditVoteInput}, TContext> => {
+const {mutation: mutationOptions, request: requestOptions} = options ?? {};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof putArtistsArtistIdCredit>>, {artistId: string;data: CreditVoteInput}> = (props) => {
+          const {artistId,data} = props ?? {};
+
+          return  putArtistsArtistIdCredit(artistId,data,requestOptions)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type PutArtistsArtistIdCreditMutationResult = NonNullable<Awaited<ReturnType<typeof putArtistsArtistIdCredit>>>
+    export type PutArtistsArtistIdCreditMutationBody = CreditVoteInput
+    export type PutArtistsArtistIdCreditMutationError = void
+
+    /**
+ * @summary 아티스트 신용 점수 투표 (+1 / -1 / 0)
+ */
+export const usePutArtistsArtistIdCredit = <TError = void,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof putArtistsArtistIdCredit>>, TError,{artistId: string;data: CreditVoteInput}, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationResult<
+        Awaited<ReturnType<typeof putArtistsArtistIdCredit>>,
+        TError,
+        {artistId: string;data: CreditVoteInput},
+        TContext
+      > => {
+
+      const mutationOptions = getPutArtistsArtistIdCreditMutationOptions(options);
 
       return useMutation(mutationOptions);
     }

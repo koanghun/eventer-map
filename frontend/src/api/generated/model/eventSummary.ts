@@ -4,17 +4,28 @@
  * Eventer Map API
  * OpenAPI spec version: 1.0.0
  */
+import type { EventSummaryMyCreditScore } from './eventSummaryMyCreditScore';
 import type { EventSummaryStatus } from './eventSummaryStatus';
 
 export interface EventSummary {
   /** 이벤트 참가자 수 (status=2) */
   attendeeCount?: number;
+  /** @nullable */
+  authorId?: string | null;
+  creditCount?: number;
+  creditScore?: number;
   endTime?: string;
+  /** @nullable */
+  highCreditSince?: string | null;
   id?: string;
   /** 공연장 위도 */
   latitude?: number;
   /** 공연장 경도 */
   longitude?: number;
+  /** @nullable */
+  lowCreditSince?: string | null;
+  /** 현재 로그인한 유저의 신용 점수 투표 (-1, 0, 1) */
+  myCreditScore?: EventSummaryMyCreditScore;
   rating?: number;
   startTime?: string;
   status?: EventSummaryStatus;

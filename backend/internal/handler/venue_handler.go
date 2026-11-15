@@ -1,9 +1,12 @@
 package handler
 
 import (
+	"database/sql"
+	"errors"
 	"log"
 	"net/http"
 	"strings"
+	"time"
 
 	"eventer-map-backend/internal/middleware"
 	"eventer-map-backend/internal/repository"
@@ -41,18 +44,41 @@ func mapRepositoryVenue(v *repository.Venue) Venue {
 		links = &l
 	}
 
+	var authorID *openapi_types.UUID
+	if v.AuthorID.Valid {
+		a := openapi_types.UUID(v.AuthorID.UUID)
+		authorID = &a
+	}
+	creditScore := int(v.CreditScore)
+	creditCount := int(v.CreditCount)
+	var highCreditSince *time.Time
+	if v.HighCreditSince.Valid {
+		t := v.HighCreditSince.Time
+		highCreditSince = &t
+	}
+	var lowCreditSince *time.Time
+	if v.LowCreditSince.Valid {
+		t := v.LowCreditSince.Time
+		lowCreditSince = &t
+	}
+
 	return Venue{
-		Id:           &id,
-		OfficialName: &name,
-		GoogleMapId:  &googleMapID,
-		Address:      &addr,
-		Latitude:     &lat,
-		Longitude:    &lng,
-		RelatedLinks: links,
-		Capacity:     capacity,
-		Rating:       rating,
-		RatingCount:  &ratingCount,
-		Status:       &st,
+		Id:              &id,
+		OfficialName:    &name,
+		GoogleMapId:     &googleMapID,
+		Address:         &addr,
+		Latitude:        &lat,
+		Longitude:       &lng,
+		RelatedLinks:    links,
+		Capacity:        capacity,
+		Rating:          rating,
+		RatingCount:     &ratingCount,
+		Status:          &st,
+		AuthorId:        authorID,
+		CreditScore:     &creditScore,
+		CreditCount:     &creditCount,
+		HighCreditSince: highCreditSince,
+		LowCreditSince:  lowCreditSince,
 	}
 }
 
@@ -190,11 +216,111 @@ func (s *Server) GetVenues(w http.ResponseWriter, r *http.Request, params GetVen
 
 // GetVenuesVenueId implements the GET /venues/{venueId} endpoint
 func (s *Server) GetVenuesVenueId(w http.ResponseWriter, r *http.Request, venueId uuid.UUID) {
+	if s.services.Credit != nil {
+		s.services.Credit.MaybeProcessSustainedLifecycle(r.Context())
+	}
 	venue, err := s.services.Venue.GetVenue(r.Context(), venueId)
 	if err != nil {
 		RespondError(w, http.StatusNotFound, "Venue not found")
 		return
 	}
 
-	RespondJSON(w, http.StatusOK, mapRepositoryVenue(venue))
+	resp := mapRepositoryVenue(venue)
+	if userID, ok := r.Context().Value(middleware.UserIDKey).(uuid.UUID); ok && s.services.Credit != nil {
+		myCredit := int(s.services.Credit.GetUserEntityCreditVote(r.Context(), "VENUE", venueId, userID))
+		resp.MyCreditScore = &myCredit
+	}
+
+	RespondJSON(w, http.StatusOK, resp)
+}
+
+// PutVenuesVenueId implements the PUT /venues/{venueId} endpoint
+func (s *Server) PutVenuesVenueId(w http.ResponseWriter, r *http.Request, venueId openapi_types.UUID) {
+	myID, ok := r.Context().Value(middleware.UserIDKey).(uuid.UUID)
+	if !ok {
+		RespondError(w, http.StatusUnauthorized, "user not authenticated")
+		return
+	}
+	var req VenueInput
+	if err := ParseJSON(r, &req); err != nil {
+		RespondError(w, http.StatusBadRequest, "Invalid JSON payload")
+		return
+	}
+	input := service.CreateVenueInput{
+		OfficialName: strings.TrimSpace(req.OfficialName),
+		Latitude:     req.Latitude,
+		Longitude:    req.Longitude,
+		AuthorID:     myID,
+	}
+	if req.GoogleMapId != nil {
+		input.GoogleMapID = *req.GoogleMapId
+	}
+	if req.Address != nil {
+		input.Address = *req.Address
+	}
+	if req.RelatedLinks != nil {
+		input.RelatedLinks = *req.RelatedLinks
+	}
+	if req.Capacity != nil {
+		capInt32 := int32(*req.Capacity)
+		input.Capacity = &capInt32
+	}
+	updated, err := s.services.Venue.UpdateVenue(r.Context(), uuid.UUID(venueId), input)
+	if err != nil {
+		switch {
+		case errors.Is(err, service.ErrUserBanned), errors.Is(err, service.ErrForbidden):
+			RespondError(w, http.StatusForbidden, err.Error())
+		case errors.Is(err, sql.ErrNoRows):
+			RespondError(w, http.StatusNotFound, "Venue not found")
+		default:
+			RespondError(w, http.StatusInternalServerError, "Failed to update venue")
+		}
+		return
+	}
+	RespondJSON(w, http.StatusOK, mapRepositoryVenue(updated))
+}
+
+// DeleteVenuesVenueId implements the DELETE /venues/{venueId} endpoint
+func (s *Server) DeleteVenuesVenueId(w http.ResponseWriter, r *http.Request, venueId openapi_types.UUID) {
+	myID, ok := r.Context().Value(middleware.UserIDKey).(uuid.UUID)
+	if !ok {
+		RespondError(w, http.StatusUnauthorized, "user not authenticated")
+		return
+	}
+	if err := s.services.Venue.DeleteVenue(r.Context(), uuid.UUID(venueId), myID); err != nil {
+		switch {
+		case errors.Is(err, service.ErrUserBanned), errors.Is(err, service.ErrForbidden):
+			RespondError(w, http.StatusForbidden, err.Error())
+		case errors.Is(err, service.ErrEntityInUse):
+			RespondError(w, http.StatusConflict, err.Error())
+		case errors.Is(err, sql.ErrNoRows):
+			RespondError(w, http.StatusNotFound, "Venue not found")
+		default:
+			RespondError(w, http.StatusInternalServerError, "Failed to delete venue")
+		}
+		return
+	}
+	w.WriteHeader(http.StatusNoContent)
+}
+
+// PostVenuesVenueIdApprove implements the POST /venues/{venueId}/approve endpoint
+func (s *Server) PostVenuesVenueIdApprove(w http.ResponseWriter, r *http.Request, venueId openapi_types.UUID) {
+	myID, ok := r.Context().Value(middleware.UserIDKey).(uuid.UUID)
+	if !ok {
+		RespondError(w, http.StatusUnauthorized, "user not authenticated")
+		return
+	}
+	approved, err := s.services.Venue.ApproveVenue(r.Context(), uuid.UUID(venueId), myID)
+	if err != nil {
+		switch {
+		case errors.Is(err, service.ErrUserBanned), errors.Is(err, service.ErrForbidden):
+			RespondError(w, http.StatusForbidden, err.Error())
+		case errors.Is(err, sql.ErrNoRows):
+			RespondError(w, http.StatusNotFound, "Venue not found")
+		default:
+			RespondError(w, http.StatusInternalServerError, "Failed to approve venue")
+		}
+		return
+	}
+	RespondJSON(w, http.StatusOK, mapRepositoryVenue(approved))
 }

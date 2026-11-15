@@ -314,3 +314,13 @@ WHERE eua.event_id = $1 AND eua.status = 2
   )
 ORDER BY u.created_at DESC
 LIMIT $3 OFFSET $4;
+
+-- name: ApproveEvent :one
+UPDATE events
+SET status = 'APPROVED', high_credit_since = NULL, low_credit_since = NULL, updated_at = NOW()
+WHERE id = $1
+RETURNING *;
+
+-- name: DeleteEvent :exec
+DELETE FROM events
+WHERE id = $1;

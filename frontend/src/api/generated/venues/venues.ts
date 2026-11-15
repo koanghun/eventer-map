@@ -18,6 +18,8 @@ import type {
   UseQueryResult
 } from '@tanstack/react-query'
 import type {
+  CreditVoteInput,
+  CreditVoteResponse,
   GetVenuesParams,
   GetVenuesSearchParams,
   Venue,
@@ -442,6 +444,65 @@ export const usePostVenuesVenueIdApprove = <TError = unknown,
       > => {
 
       const mutationOptions = getPostVenuesVenueIdApproveMutationOptions(options);
+
+      return useMutation(mutationOptions);
+    }
+    /**
+ * 공연장 데이터에 신용 점수를 매깁니다. 0을 전달하면 기존 투표를 취소합니다.
+ * @summary 공연장 신용 점수 투표 (+1 / -1 / 0)
+ */
+export const putVenuesVenueIdCredit = (
+    venueId: string,
+    creditVoteInput: CreditVoteInput,
+ options?: SecondParameter<typeof customInstance>,) => {
+      
+      
+      return customInstance<CreditVoteResponse>(
+      {url: `/venues/${venueId}/credit`, method: 'PUT',
+      headers: {'Content-Type': 'application/json', },
+      data: creditVoteInput
+    },
+      options);
+    }
+  
+
+
+export const getPutVenuesVenueIdCreditMutationOptions = <TError = void,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof putVenuesVenueIdCredit>>, TError,{venueId: string;data: CreditVoteInput}, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationOptions<Awaited<ReturnType<typeof putVenuesVenueIdCredit>>, TError,{venueId: string;data: CreditVoteInput}, TContext> => {
+const {mutation: mutationOptions, request: requestOptions} = options ?? {};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof putVenuesVenueIdCredit>>, {venueId: string;data: CreditVoteInput}> = (props) => {
+          const {venueId,data} = props ?? {};
+
+          return  putVenuesVenueIdCredit(venueId,data,requestOptions)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type PutVenuesVenueIdCreditMutationResult = NonNullable<Awaited<ReturnType<typeof putVenuesVenueIdCredit>>>
+    export type PutVenuesVenueIdCreditMutationBody = CreditVoteInput
+    export type PutVenuesVenueIdCreditMutationError = void
+
+    /**
+ * @summary 공연장 신용 점수 투표 (+1 / -1 / 0)
+ */
+export const usePutVenuesVenueIdCredit = <TError = void,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof putVenuesVenueIdCredit>>, TError,{venueId: string;data: CreditVoteInput}, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationResult<
+        Awaited<ReturnType<typeof putVenuesVenueIdCredit>>,
+        TError,
+        {venueId: string;data: CreditVoteInput},
+        TContext
+      > => {
+
+      const mutationOptions = getPutVenuesVenueIdCreditMutationOptions(options);
 
       return useMutation(mutationOptions);
     }

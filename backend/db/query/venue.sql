@@ -60,3 +60,13 @@ RETURNING *;
 SELECT EXISTS(
     SELECT 1 FROM events WHERE venue_id = $1
 );
+
+-- name: ApproveVenue :one
+UPDATE venues
+SET status = 'APPROVED', high_credit_since = NULL, low_credit_since = NULL, updated_at = NOW()
+WHERE id = $1
+RETURNING *;
+
+-- name: DeleteVenue :exec
+DELETE FROM venues
+WHERE id = $1;

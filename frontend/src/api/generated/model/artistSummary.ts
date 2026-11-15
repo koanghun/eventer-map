@@ -4,22 +4,35 @@
  * Eventer Map API
  * OpenAPI spec version: 1.0.0
  */
+import type { ArtistSummaryMyCreditScore } from './artistSummaryMyCreditScore';
 import type { ArtistSummaryStatus } from './artistSummaryStatus';
 
 export interface ArtistSummary {
+  /** @nullable */
+  authorId?: string | null;
+  creditCount?: number;
+  creditScore?: number;
   /**
    * 동명이인 구분을 위한 한 줄 식별 설명 (소속 그룹, 분야 등)
    * @maxLength 100
    */
   disambiguation?: string;
+  /** @nullable */
+  highCreditSince?: string | null;
   /** 히라가나 */
   hiragana?: string;
   /** 아티스트 고유 식별자 */
   id?: string;
+  /**
+   * 아티스트 상태
+   * @nullable
+   */
+  lowCreditSince?: string | null;
+  /** 현재 로그인한 유저의 신용 점수 투표 (-1, 0, 1) */
+  myCreditScore?: ArtistSummaryMyCreditScore;
   /** 공식 이름 */
   officialName?: string;
   /** 참가한 이벤트들의 평균 평점 */
   rating?: number;
-  /** 아티스트 상태 */
   status?: ArtistSummaryStatus;
 }

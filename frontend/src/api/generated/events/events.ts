@@ -18,6 +18,8 @@ import type {
   UseQueryResult
 } from '@tanstack/react-query'
 import type {
+  CreditVoteInput,
+  CreditVoteResponse,
   Event,
   EventInput,
   EventListResponse,
@@ -230,8 +232,8 @@ export const useGetEventsEventId = <TData = Awaited<ReturnType<typeof getEventsE
 
 
 /**
- * 즉시 반영되며 이력이 생성됨
- * @summary 이벤트 수정 (위키 방식)
+ * 공인(APPROVED) 이벤트는 관리자만 수정 가능하며, 유저(PENDING) 이벤트는 작성자와 관리자만 수정 가능합니다.
+ * @summary 이벤트 수정
  */
 export const putEventsEventId = (
     eventId: string,
@@ -287,7 +289,7 @@ const {mutation: mutationOptions, request: requestOptions} = options ?? {};
     export type PutEventsEventIdMutationError = void
 
     /**
- * @summary 이벤트 수정 (위키 방식)
+ * @summary 이벤트 수정
  */
 export const usePutEventsEventId = <TError = void,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof putEventsEventId>>, TError,{eventId: string;data: EventInput}, TContext>, request?: SecondParameter<typeof customInstance>}
@@ -299,6 +301,177 @@ export const usePutEventsEventId = <TError = void,
       > => {
 
       const mutationOptions = getPutEventsEventIdMutationOptions(options);
+
+      return useMutation(mutationOptions);
+    }
+    /**
+ * 공인(APPROVED) 이벤트는 관리자만 삭제 가능하며, 유저(PENDING) 이벤트는 작성자와 관리자만 삭제 가능합니다.
+ * @summary 이벤트 삭제
+ */
+export const deleteEventsEventId = (
+    eventId: string,
+ options?: SecondParameter<typeof customInstance>,) => {
+      
+      
+      return customInstance<void>(
+      {url: `/events/${eventId}`, method: 'DELETE'
+    },
+      options);
+    }
+  
+
+
+export const getDeleteEventsEventIdMutationOptions = <TError = void,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteEventsEventId>>, TError,{eventId: string}, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationOptions<Awaited<ReturnType<typeof deleteEventsEventId>>, TError,{eventId: string}, TContext> => {
+const {mutation: mutationOptions, request: requestOptions} = options ?? {};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof deleteEventsEventId>>, {eventId: string}> = (props) => {
+          const {eventId} = props ?? {};
+
+          return  deleteEventsEventId(eventId,requestOptions)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type DeleteEventsEventIdMutationResult = NonNullable<Awaited<ReturnType<typeof deleteEventsEventId>>>
+    
+    export type DeleteEventsEventIdMutationError = void
+
+    /**
+ * @summary 이벤트 삭제
+ */
+export const useDeleteEventsEventId = <TError = void,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteEventsEventId>>, TError,{eventId: string}, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationResult<
+        Awaited<ReturnType<typeof deleteEventsEventId>>,
+        TError,
+        {eventId: string},
+        TContext
+      > => {
+
+      const mutationOptions = getDeleteEventsEventIdMutationOptions(options);
+
+      return useMutation(mutationOptions);
+    }
+    /**
+ * 유저(PENDING) 이벤트를 공인(APPROVED) 상태로 승격합니다.
+ * @summary 이벤트 승인 (관리자 전용)
+ */
+export const postEventsEventIdApprove = (
+    eventId: string,
+ options?: SecondParameter<typeof customInstance>,) => {
+      
+      
+      return customInstance<Event>(
+      {url: `/events/${eventId}/approve`, method: 'POST'
+    },
+      options);
+    }
+  
+
+
+export const getPostEventsEventIdApproveMutationOptions = <TError = void,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postEventsEventIdApprove>>, TError,{eventId: string}, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationOptions<Awaited<ReturnType<typeof postEventsEventIdApprove>>, TError,{eventId: string}, TContext> => {
+const {mutation: mutationOptions, request: requestOptions} = options ?? {};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof postEventsEventIdApprove>>, {eventId: string}> = (props) => {
+          const {eventId} = props ?? {};
+
+          return  postEventsEventIdApprove(eventId,requestOptions)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type PostEventsEventIdApproveMutationResult = NonNullable<Awaited<ReturnType<typeof postEventsEventIdApprove>>>
+    
+    export type PostEventsEventIdApproveMutationError = void
+
+    /**
+ * @summary 이벤트 승인 (관리자 전용)
+ */
+export const usePostEventsEventIdApprove = <TError = void,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof postEventsEventIdApprove>>, TError,{eventId: string}, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationResult<
+        Awaited<ReturnType<typeof postEventsEventIdApprove>>,
+        TError,
+        {eventId: string},
+        TContext
+      > => {
+
+      const mutationOptions = getPostEventsEventIdApproveMutationOptions(options);
+
+      return useMutation(mutationOptions);
+    }
+    /**
+ * 이벤트 데이터에 신용 점수를 매깁니다. 0을 전달하면 기존 투표를 취소합니다.
+ * @summary 이벤트 신용 점수 투표 (+1 / -1 / 0)
+ */
+export const putEventsEventIdCredit = (
+    eventId: string,
+    creditVoteInput: CreditVoteInput,
+ options?: SecondParameter<typeof customInstance>,) => {
+      
+      
+      return customInstance<CreditVoteResponse>(
+      {url: `/events/${eventId}/credit`, method: 'PUT',
+      headers: {'Content-Type': 'application/json', },
+      data: creditVoteInput
+    },
+      options);
+    }
+  
+
+
+export const getPutEventsEventIdCreditMutationOptions = <TError = void,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof putEventsEventIdCredit>>, TError,{eventId: string;data: CreditVoteInput}, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationOptions<Awaited<ReturnType<typeof putEventsEventIdCredit>>, TError,{eventId: string;data: CreditVoteInput}, TContext> => {
+const {mutation: mutationOptions, request: requestOptions} = options ?? {};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof putEventsEventIdCredit>>, {eventId: string;data: CreditVoteInput}> = (props) => {
+          const {eventId,data} = props ?? {};
+
+          return  putEventsEventIdCredit(eventId,data,requestOptions)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type PutEventsEventIdCreditMutationResult = NonNullable<Awaited<ReturnType<typeof putEventsEventIdCredit>>>
+    export type PutEventsEventIdCreditMutationBody = CreditVoteInput
+    export type PutEventsEventIdCreditMutationError = void
+
+    /**
+ * @summary 이벤트 신용 점수 투표 (+1 / -1 / 0)
+ */
+export const usePutEventsEventIdCredit = <TError = void,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof putEventsEventIdCredit>>, TError,{eventId: string;data: CreditVoteInput}, TContext>, request?: SecondParameter<typeof customInstance>}
+): UseMutationResult<
+        Awaited<ReturnType<typeof putEventsEventIdCredit>>,
+        TError,
+        {eventId: string;data: CreditVoteInput},
+        TContext
+      > => {
+
+      const mutationOptions = getPutEventsEventIdCreditMutationOptions(options);
 
       return useMutation(mutationOptions);
     }

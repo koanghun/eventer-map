@@ -54,7 +54,7 @@ func (q *Queries) CountEventAttendees(ctx context.Context, eventID uuid.UUID) (i
 const createEvent = `-- name: CreateEvent :one
 INSERT INTO events (title, venue_id, opening_time, start_time, end_time, related_links, status, author_id)
 VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
-RETURNING id, title, venue_id, opening_time, start_time, end_time, related_links, rating_sum, rating_count, status, author_id, created_at, updated_at
+RETURNING id, title, venue_id, opening_time, start_time, end_time, related_links, rating_sum, rating_count, status, author_id, created_at, updated_at, credit_score, credit_count, high_credit_since, low_credit_since
 `
 
 type CreateEventParams struct {
@@ -94,6 +94,10 @@ func (q *Queries) CreateEvent(ctx context.Context, arg CreateEventParams) (Event
 		&i.AuthorID,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.CreditScore,
+		&i.CreditCount,
+		&i.HighCreditSince,
+		&i.LowCreditSince,
 	)
 	return i, err
 }
@@ -178,7 +182,7 @@ func (q *Queries) GetArtistsForEvent(ctx context.Context, eventID uuid.UUID) ([]
 }
 
 const getEvent = `-- name: GetEvent :one
-SELECT id, title, venue_id, opening_time, start_time, end_time, related_links, rating_sum, rating_count, status, author_id, created_at, updated_at FROM events
+SELECT id, title, venue_id, opening_time, start_time, end_time, related_links, rating_sum, rating_count, status, author_id, created_at, updated_at, credit_score, credit_count, high_credit_since, low_credit_since FROM events
 WHERE id = $1 LIMIT 1
 `
 
@@ -199,6 +203,10 @@ func (q *Queries) GetEvent(ctx context.Context, id uuid.UUID) (Event, error) {
 		&i.AuthorID,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.CreditScore,
+		&i.CreditCount,
+		&i.HighCreditSince,
+		&i.LowCreditSince,
 	)
 	return i, err
 }
@@ -265,7 +273,7 @@ func (q *Queries) GetEventAttendees(ctx context.Context, arg GetEventAttendeesPa
 }
 
 const getEventForUpdate = `-- name: GetEventForUpdate :one
-SELECT id, title, venue_id, opening_time, start_time, end_time, related_links, rating_sum, rating_count, status, author_id, created_at, updated_at FROM events
+SELECT id, title, venue_id, opening_time, start_time, end_time, related_links, rating_sum, rating_count, status, author_id, created_at, updated_at, credit_score, credit_count, high_credit_since, low_credit_since FROM events
 WHERE id = $1 FOR UPDATE LIMIT 1
 `
 
@@ -286,6 +294,10 @@ func (q *Queries) GetEventForUpdate(ctx context.Context, id uuid.UUID) (Event, e
 		&i.AuthorID,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.CreditScore,
+		&i.CreditCount,
+		&i.HighCreditSince,
+		&i.LowCreditSince,
 	)
 	return i, err
 }
@@ -873,7 +885,7 @@ SET title = COALESCE($1, title),
     status = COALESCE($7, status),
     updated_at = NOW()
 WHERE id = $8
-RETURNING id, title, venue_id, opening_time, start_time, end_time, related_links, rating_sum, rating_count, status, author_id, created_at, updated_at
+RETURNING id, title, venue_id, opening_time, start_time, end_time, related_links, rating_sum, rating_count, status, author_id, created_at, updated_at, credit_score, credit_count, high_credit_since, low_credit_since
 `
 
 type UpdateEventParams struct {
@@ -913,6 +925,10 @@ func (q *Queries) UpdateEvent(ctx context.Context, arg UpdateEventParams) (Event
 		&i.AuthorID,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.CreditScore,
+		&i.CreditCount,
+		&i.HighCreditSince,
+		&i.LowCreditSince,
 	)
 	return i, err
 }
@@ -950,5 +966,47 @@ type UpsertUserEventActionParams struct {
 
 func (q *Queries) UpsertUserEventAction(ctx context.Context, arg UpsertUserEventActionParams) error {
 	_, err := q.db.ExecContext(ctx, upsertUserEventAction, arg.UserID, arg.EventID, arg.Status)
+	return err
+}
+
+const approveEvent = `-- name: ApproveEvent :one
+UPDATE events
+SET status = 'APPROVED', high_credit_since = NULL, low_credit_since = NULL, updated_at = NOW()
+WHERE id = $1
+RETURNING id, title, venue_id, opening_time, start_time, end_time, related_links, rating_sum, rating_count, status, author_id, created_at, updated_at, credit_score, credit_count, high_credit_since, low_credit_since
+`
+
+func (q *Queries) ApproveEvent(ctx context.Context, id uuid.UUID) (Event, error) {
+	row := q.db.QueryRowContext(ctx, approveEvent, id)
+	var i Event
+	err := row.Scan(
+		&i.ID,
+		&i.Title,
+		&i.VenueID,
+		&i.OpeningTime,
+		&i.StartTime,
+		&i.EndTime,
+		pq.Array(&i.RelatedLinks),
+		&i.RatingSum,
+		&i.RatingCount,
+		&i.Status,
+		&i.AuthorID,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.CreditScore,
+		&i.CreditCount,
+		&i.HighCreditSince,
+		&i.LowCreditSince,
+	)
+	return i, err
+}
+
+const deleteEvent = `-- name: DeleteEvent :exec
+DELETE FROM events
+WHERE id = $1
+`
+
+func (q *Queries) DeleteEvent(ctx context.Context, id uuid.UUID) error {
+	_, err := q.db.ExecContext(ctx, deleteEvent, id)
 	return err
 }

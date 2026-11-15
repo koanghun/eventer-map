@@ -4,21 +4,34 @@
  * Eventer Map API
  * OpenAPI spec version: 1.0.0
  */
+import type { VenueSummaryMyCreditScore } from './venueSummaryMyCreditScore';
 import type { VenueSummaryStatus } from './venueSummaryStatus';
 
 export interface VenueSummary {
   /** 주소 */
   address?: string;
+  /** @nullable */
+  authorId?: string | null;
+  creditCount?: number;
+  creditScore?: number;
+  /** @nullable */
+  highCreditSince?: string | null;
   /** 공연장 고유 식별자 */
   id?: string;
   /** 위도 */
   latitude?: number;
   /** 경도 */
   longitude?: number;
+  /**
+   * 공연장 승인 상태
+   * @nullable
+   */
+  lowCreditSince?: string | null;
+  /** 현재 로그인한 유저의 신용 점수 투표 (-1, 0, 1) */
+  myCreditScore?: VenueSummaryMyCreditScore;
   /** 공식 이름 */
   officialName?: string;
   /** 런닝 토탈 방식의 평균 평점 */
   rating?: number;
-  /** 공연장 승인 상태 */
   status?: VenueSummaryStatus;
 }

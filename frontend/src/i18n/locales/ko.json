@@ -659,5 +659,47 @@
         "followingArtistsCountBadge": "{{count}}명",
         "noFollowingArtists": "팔로우 중인 출연자가 없습니다.",
         "unfollowButton": "팔로우 취소"
+    },
+    "common": {
+        "loginRequired": "로그인이 필요합니다.",
+        "cancel": "취소",
+        "loading": "불러오는 중...",
+        "anonymous": "익명"
+    },
+    "event": {
+        "title": "이벤트 제목"
+    },
+    "artist": {
+        "officialName": "공식 이름",
+        "hiragana": "히라가나",
+        "disambiguation": "식별 설명"
+    },
+    "venue": {
+        "officialName": "공연장 이름",
+        "address": "주소",
+        "capacity": "수용 인원"
+    },
+    "credit": {
+        "title": "데이터 신용 점수",
+        "votesCount": "{{count}}표",
+        "voteFailed": "신용 점수 투표에 실패했습니다.",
+        "selfVoteNotAllowed": "작성자는 본인의 데이터에 투표할 수 없습니다.",
+        "promotePending": "높은 신용 점수가 24시간 유지되면 자동으로 공인 데이터로 승격됩니다.",
+        "deletePending": "낮은 신용 점수가 24시간 유지되면 자동으로 삭제됩니다."
+    },
+    "modRequest": {
+        "title": "공인 데이터 수정 요청",
+        "propose": "수정 요청",
+        "reason": "수정 사유",
+        "reasonPlaceholder": "변경이 필요한 이유를 입력하세요",
+        "submit": "요청 등록",
+        "empty": "진행 중인 수정 요청이 없습니다.",
+        "noChanges": "변경된 내용이 없습니다.",
+        "created": "수정 요청이 등록되었습니다.",
+        "deleted": "수정 요청이 삭제되었습니다.",
+        "applied": "수정 요청이 반영되었습니다.",
+        "actionFailed": "요청 처리에 실패했습니다.",
+        "applyNow": "관리자 즉시 반영",
+        "trustScore": "신뢰 점수"
     }
 }

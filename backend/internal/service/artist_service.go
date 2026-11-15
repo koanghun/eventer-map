@@ -73,8 +73,13 @@ func (s *ArtistService) ListArtists(ctx context.Context, limit int32, status str
 
 func (s *ArtistService) CreateArtist(ctx context.Context, input CreateArtistInput) (*repository.Artist, error) {
 	status := "PENDING"
-	if user, err := s.repo.GetUserByID(ctx, input.AuthorID); err == nil && user.Role == "ADMIN" {
-		status = "APPROVED"
+	if user, err := s.repo.GetUserByID(ctx, input.AuthorID); err == nil {
+		if user.IsBanned {
+			return nil, ErrUserBanned
+		}
+		if user.Role == "ADMIN" {
+			status = "APPROVED"
+		}
 	}
 
 	params := repository.CreateArtistParams{
@@ -224,4 +229,83 @@ func (s *ArtistService) CanUpdateArtist(ctx context.Context, artistID, userID uu
 	}
 
 	return nil
+}
+
+var ErrEntityInUse = errors.New("entity is referenced by existing events")
+
+func (s *ArtistService) UpdateArtist(ctx context.Context, artistID uuid.UUID, input CreateArtistInput) (*repository.Artist, error) {
+	user, err := s.repo.GetUserByID(ctx, input.AuthorID)
+	if err != nil {
+		return nil, err
+	}
+	if user.IsBanned {
+		return nil, ErrUserBanned
+	}
+	if err := s.CanUpdateArtist(ctx, artistID, input.AuthorID, user.Role); err != nil {
+		return nil, ErrForbidden
+	}
+
+	params := repository.UpdateArtistParams{
+		ID:           artistID,
+		OfficialName: sql.NullString{String: strings.TrimSpace(input.OfficialName), Valid: strings.TrimSpace(input.OfficialName) != ""},
+		Gender:       sql.NullString{String: input.Gender, Valid: input.Gender != ""},
+	}
+	if input.Hiragana != nil {
+		params.Hiragana = sql.NullString{String: strings.TrimSpace(*input.Hiragana), Valid: true}
+	}
+	if input.Disambiguation != nil {
+		params.Disambiguation = sql.NullString{String: strings.TrimSpace(*input.Disambiguation), Valid: true}
+	}
+	if input.ProfileImage != nil && s.uploader != nil {
+		imageURL, err := s.uploader.UploadArtistProfileImage(ctx, input.ProfileImage, input.ProfileImageContentType)
+		if err != nil {
+			return nil, err
+		}
+		params.ProfileImageUrl = sql.NullString{String: imageURL, Valid: true}
+	}
+
+	updated, err := s.repo.UpdateArtist(ctx, params)
+	if err != nil {
+		return nil, err
+	}
+	return &updated, nil
+}
+
+func (s *ArtistService) DeleteArtist(ctx context.Context, artistID, userID uuid.UUID) error {
+	user, err := s.repo.GetUserByID(ctx, userID)
+	if err != nil {
+		return err
+	}
+	if user.IsBanned {
+		return ErrUserBanned
+	}
+	if err := s.CanUpdateArtist(ctx, artistID, userID, user.Role); err != nil {
+		return ErrForbidden
+	}
+	inUse, err := s.repo.CheckArtistInEvent(ctx, artistID)
+	if err != nil {
+		return err
+	}
+	if inUse {
+		return ErrEntityInUse
+	}
+	return s.repo.DeleteArtist(ctx, artistID)
+}
+
+func (s *ArtistService) ApproveArtist(ctx context.Context, artistID, userID uuid.UUID) (*repository.Artist, error) {
+	user, err := s.repo.GetUserByID(ctx, userID)
+	if err != nil {
+		return nil, err
+	}
+	if user.IsBanned {
+		return nil, ErrUserBanned
+	}
+	if user.Role != "ADMIN" {
+		return nil, ErrForbidden
+	}
+	approved, err := s.repo.ApproveArtist(ctx, artistID)
+	if err != nil {
+		return nil, err
+	}
+	return &approved, nil
 }

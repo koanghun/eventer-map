@@ -360,15 +360,23 @@ func (s *EventService) CreateEvent(ctx context.Context, input CreateEventInput) 
 }
 
 func (s *EventService) UpdateEvent(ctx context.Context, eventID uuid.UUID, input CreateEventInput) (*EventDetail, error) {
-	if user, err := s.repo.GetUserByID(ctx, input.AuthorID); err == nil {
-		if user.IsBanned {
-			return nil, ErrUserBanned
-		}
+	user, err := s.repo.GetUserByID(ctx, input.AuthorID)
+	if err == nil && user.IsBanned {
+		return nil, ErrUserBanned
 	}
 
 	oldEvent, err := s.repo.GetEvent(ctx, eventID)
 	if err != nil {
 		return nil, err
+	}
+
+	if user.Role != "ADMIN" {
+		if oldEvent.Status == "APPROVED" {
+			return nil, ErrForbidden
+		}
+		if !oldEvent.AuthorID.Valid || oldEvent.AuthorID.UUID != input.AuthorID {
+			return nil, ErrForbidden
+		}
 	}
 
 	relatedLinks := input.RelatedLinks
@@ -691,4 +699,44 @@ func (s *EventService) GetEventAttendees(ctx context.Context, viewerID, eventID 
 		Limit:     limit,
 		Offset:    offset,
 	})
+}
+
+func (s *EventService) DeleteEvent(ctx context.Context, eventID, userID uuid.UUID) error {
+	user, err := s.repo.GetUserByID(ctx, userID)
+	if err != nil {
+		return err
+	}
+	if user.IsBanned {
+		return ErrUserBanned
+	}
+	ev, err := s.repo.GetEvent(ctx, eventID)
+	if err != nil {
+		return err
+	}
+	if user.Role != "ADMIN" {
+		if ev.Status == "APPROVED" {
+			return ErrForbidden
+		}
+		if !ev.AuthorID.Valid || ev.AuthorID.UUID != userID {
+			return ErrForbidden
+		}
+	}
+	return s.repo.DeleteEvent(ctx, eventID)
+}
+
+func (s *EventService) ApproveEvent(ctx context.Context, eventID, userID uuid.UUID) (*EventDetail, error) {
+	user, err := s.repo.GetUserByID(ctx, userID)
+	if err != nil {
+		return nil, err
+	}
+	if user.IsBanned {
+		return nil, ErrUserBanned
+	}
+	if user.Role != "ADMIN" {
+		return nil, ErrForbidden
+	}
+	if _, err := s.repo.ApproveEvent(ctx, eventID); err != nil {
+		return nil, err
+	}
+	return s.GetEventDetail(ctx, eventID)
 }

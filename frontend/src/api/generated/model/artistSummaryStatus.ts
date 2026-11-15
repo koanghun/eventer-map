@@ -5,9 +5,6 @@
  * OpenAPI spec version: 1.0.0
  */
 
-/**
- * 아티스트 상태
- */
 export type ArtistSummaryStatus = typeof ArtistSummaryStatus[keyof typeof ArtistSummaryStatus];
 
 

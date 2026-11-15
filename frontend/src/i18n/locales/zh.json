@@ -654,5 +654,47 @@
         "followingArtistsCountBadge": "{{count}}位",
         "noFollowingArtists": "暂无已关注的艺人。",
         "unfollowButton": "取消关注"
+    },
+    "common": {
+        "loginRequired": "请先登录。",
+        "cancel": "取消",
+        "loading": "加载中...",
+        "anonymous": "匿名"
+    },
+    "event": {
+        "title": "活动标题"
+    },
+    "artist": {
+        "officialName": "官方名称",
+        "hiragana": "平假名",
+        "disambiguation": "区分说明"
+    },
+    "venue": {
+        "officialName": "场馆名称",
+        "address": "地址",
+        "capacity": "容纳人数"
+    },
+    "credit": {
+        "title": "数据信用评分",
+        "votesCount": "{{count}}票",
+        "voteFailed": "信用评分投票失败。",
+        "selfVoteNotAllowed": "创建者不能为自己提交的数据投票。",
+        "promotePending": "高信用评分持续24小时后，将自动晋升为官方数据。",
+        "deletePending": "低信用评分持续24小时后，将自动删除。"
+    },
+    "modRequest": {
+        "title": "官方数据修改请求",
+        "propose": "请求修改",
+        "reason": "修改原因",
+        "reasonPlaceholder": "请输入需要修改的原因",
+        "submit": "提交请求",
+        "empty": "暂无进行中的修改请求。",
+        "noChanges": "未检测到修改内容。",
+        "created": "修改请求已提交。",
+        "deleted": "修改请求已删除。",
+        "applied": "修改请求已应用。",
+        "actionFailed": "处理请求失败。",
+        "applyNow": "管理员立即应用",
+        "trustScore": "信任评分"
     }
 }

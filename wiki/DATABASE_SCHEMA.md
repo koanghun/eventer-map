@@ -2,7 +2,7 @@
 
 [⬅️ 홈으로 돌아가기](./Home.md) | [관련 문서: DB 마이그레이션 가이드](./DATABASE_MIGRATION_GUIDE.md) | [관련 문서: sqlc 가이드](./SQLC_GUIDE.md)
 
-이 문서는 `backend/db/migration/`(`000001` ~ `000020`)과 `backend/db/query/*.sql`을 기반으로 Eventer Map의 **PostgreSQL 전체 테이블 스키마(13개 테이블)**를 정의하고, 정리된 요소 및 인덱스 최적화 내역을 정리한 기술 위키입니다.
+이 문서는 `backend/db/migration/`(`000001` ~ `000021`)과 `backend/db/query/*.sql`을 기반으로 Eventer Map의 **PostgreSQL 전체 테이블 스키마(18개 테이블)**를 정의하고, 정리된 요소 및 인덱스 최적화 내역을 정리한 기술 위키입니다.
 
 ---
 
@@ -315,3 +315,18 @@ erDiagram
 3. **팔로우한 출연자 이벤트 및 신규 알림 다중 조인 최적화 (`ListFollowingArtistsEventsForMap`, `ListFollowingArtistEvents`, `CountUnreadFollowingArtistEvents`)**:
    - `user_artist_follows`의 PK `(user_id, artist_id)` ➔ `event_artists`의 `idx_event_artists_artist_id` ➔ `events`의 `idx_events_start_time`·`idx_events_active_created_at` 인덱스를 조합하고, `followed_event_ids` / `matched_events` CTE로 중복 없이 이벤트를 집계합니다.
    - 알림 피드 및 `createdAfter` 스냅샷 모드에서는 `e.status <> 'REJECTED'`, `e.end_time >= NOW()`, `e.author_id IS DISTINCT FROM user_id`, `e.created_at > GREATEST(threshold, uaf.created_at)` 조건으로 이미 종료된 일정, 본인 등록 이벤트, 팔로우 이전 등록 이벤트를 제외합니다.
+
+---
+
+## 7. 🛡️ `000021` 신용 점수 및 공인 데이터 수정 요청 확장 내역
+
+상세 운영 정책은 [데이터 관리 정책 문서](./DATA_GOVERNANCE_AND_CREDIT_POLICY.md)를 참고하세요.
+
+1. **엔티티 신용 점수 & 지속 타임스탬프 컬럼 (`events`, `artists`, `venues`)**:
+   - `credit_score` (`INTEGER DEFAULT 0`), `credit_count` (`INTEGER DEFAULT 0`), `high_credit_since` (`TIMESTAMPTZ`), `low_credit_since` (`TIMESTAMPTZ`) 컬럼 추가.
+   - `WHERE status = 'PENDING'` 부분 인덱스(`idx_events_pending_credit_lifecycle`, `idx_artists_pending_credit_lifecycle`, `idx_venues_pending_credit_lifecycle`)로 24시간 지속 승격/삭제 스캔을 최적화합니다.
+2. **신용 투표 테이블 (`event_credit_votes`, `artist_credit_votes`, `venue_credit_votes`)**:
+   - `(user_id, <entity>_id)` 복합 PK 및 `score IN (1, -1)` 제약조건으로 유저당 1표 중복 투표를 방지합니다.
+3. **수정 요청 및 신뢰 투표 테이블 (`modification_requests`, `modification_request_votes`)**:
+   - `modification_requests`: `entity_type IN ('EVENT', 'ARTIST', 'VENUE')`, `entity_id`, `author_id (ON DELETE SET NULL)`, `proposed_data (JSONB)`, `reason`, `status IN ('PENDING', 'APPLIED')`, `trust_score`, `trust_count`, `high_trust_since`, `low_trust_since`, `resolved_at`.
+   - `modification_request_votes`: `(user_id, request_id)` 복합 PK 및 `score IN (1, -1)` 제약조건.

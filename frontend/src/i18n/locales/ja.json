@@ -659,5 +659,47 @@
         "followingArtistsCountBadge": "{{count}}名",
         "noFollowingArtists": "フォロー中の出演者がいません。",
         "unfollowButton": "フォロー解除"
+    },
+    "common": {
+        "loginRequired": "ログインが必要です。",
+        "cancel": "キャンセル",
+        "loading": "読み込み中...",
+        "anonymous": "匿名"
+    },
+    "event": {
+        "title": "イベントタイトル"
+    },
+    "artist": {
+        "officialName": "公式名",
+        "hiragana": "ひらがな",
+        "disambiguation": "識別メモ"
+    },
+    "venue": {
+        "officialName": "会場名",
+        "address": "住所",
+        "capacity": "収容人数"
+    },
+    "credit": {
+        "title": "データ信用スコア",
+        "votesCount": "{{count}}票",
+        "voteFailed": "信用スコアの投票に失敗しました。",
+        "selfVoteNotAllowed": "作成者は自身のデータに投票できません。",
+        "promotePending": "高い信用スコアが24時間維持されると、自動的に公式データへ昇格します。",
+        "deletePending": "低い信用スコアが24時間維持されると、自動的に削除されます。"
+    },
+    "modRequest": {
+        "title": "公式データの修正リクエスト",
+        "propose": "修正リクエスト",
+        "reason": "修正理由",
+        "reasonPlaceholder": "変更が必要な理由を入力してください",
+        "submit": "リクエスト送信",
+        "empty": "進行中の修正リクエストはありません。",
+        "noChanges": "変更された内容がありません。",
+        "created": "修正リクエストを登録しました。",
+        "deleted": "修正リクエストを削除しました。",
+        "applied": "修正リクエストを反映しました。",
+        "actionFailed": "リクエストの処理に失敗しました。",
+        "applyNow": "管理者即時反映",
+        "trustScore": "信頼スコア"
     }
 }

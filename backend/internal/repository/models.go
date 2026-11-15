@@ -24,6 +24,10 @@ type Artist struct {
 	CreatedAt       time.Time
 	UpdatedAt       time.Time
 	Disambiguation  sql.NullString
+	CreditScore     int32
+	CreditCount     int32
+	HighCreditSince sql.NullTime
+	LowCreditSince  sql.NullTime
 }
 
 type DailyVisit struct {
@@ -32,19 +36,23 @@ type DailyVisit struct {
 }
 
 type Event struct {
-	ID           uuid.UUID
-	Title        string
-	VenueID      uuid.NullUUID
-	OpeningTime  sql.NullTime
-	StartTime    time.Time
-	EndTime      time.Time
-	RelatedLinks []string
-	RatingSum    float64
-	RatingCount  int32
-	Status       string
-	AuthorID     uuid.NullUUID
-	CreatedAt    time.Time
-	UpdatedAt    time.Time
+	ID              uuid.UUID
+	Title           string
+	VenueID         uuid.NullUUID
+	OpeningTime     sql.NullTime
+	StartTime       time.Time
+	EndTime         time.Time
+	RelatedLinks    []string
+	RatingSum       float64
+	RatingCount     int32
+	Status          string
+	AuthorID        uuid.NullUUID
+	CreatedAt       time.Time
+	UpdatedAt       time.Time
+	CreditScore     int32
+	CreditCount     int32
+	HighCreditSince sql.NullTime
+	LowCreditSince  sql.NullTime
 }
 
 type EventArtist struct {
@@ -115,20 +123,41 @@ type UserFollow struct {
 }
 
 type Venue struct {
-	ID           uuid.UUID
-	OfficialName string
-	GoogleMapID  string
-	Address      string
-	Latitude     float64
-	Longitude    float64
-	RelatedLinks []string
-	Capacity     sql.NullInt32
-	RatingSum    float64
-	RatingCount  int32
-	Status       string
-	AuthorID     uuid.NullUUID
-	CreatedAt    time.Time
-	UpdatedAt    time.Time
+	ID              uuid.UUID
+	OfficialName    string
+	GoogleMapID     string
+	Address         string
+	Latitude        float64
+	Longitude       float64
+	RelatedLinks    []string
+	Capacity        sql.NullInt32
+	RatingSum       float64
+	RatingCount     int32
+	Status          string
+	AuthorID        uuid.NullUUID
+	CreatedAt       time.Time
+	UpdatedAt       time.Time
+	CreditScore     int32
+	CreditCount     int32
+	HighCreditSince sql.NullTime
+	LowCreditSince  sql.NullTime
+}
+
+type ModificationRequest struct {
+	ID             uuid.UUID
+	EntityType     string
+	EntityID       uuid.UUID
+	AuthorID       uuid.NullUUID
+	ProposedData   []byte
+	Reason         string
+	Status         string
+	TrustScore     int32
+	TrustCount     int32
+	HighTrustSince sql.NullTime
+	LowTrustSince  sql.NullTime
+	ResolvedAt     sql.NullTime
+	CreatedAt      time.Time
+	UpdatedAt      time.Time
 }
 
 type VerificationToken struct {

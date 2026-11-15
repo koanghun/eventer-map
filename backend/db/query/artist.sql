@@ -39,3 +39,13 @@ RETURNING *;
 SELECT EXISTS(
     SELECT 1 FROM event_artists WHERE artist_id = $1
 );
+
+-- name: ApproveArtist :one
+UPDATE artists
+SET status = 'APPROVED', high_credit_since = NULL, low_credit_since = NULL, updated_at = NOW()
+WHERE id = $1
+RETURNING *;
+
+-- name: DeleteArtist :exec
+DELETE FROM artists
+WHERE id = $1;

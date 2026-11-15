@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"database/sql"
 	"encoding/json"
 	"errors"
 	"log"
@@ -101,20 +102,43 @@ func mapEventDetailToResponse(detail *service.EventDetail) Event {
 		myRating = &r
 	}
 
+	var authorID *openapi_types.UUID
+	if e.AuthorID.Valid {
+		a := openapi_types.UUID(e.AuthorID.UUID)
+		authorID = &a
+	}
+	creditScore := int(e.CreditScore)
+	creditCount := int(e.CreditCount)
+	var highCreditSince *time.Time
+	if e.HighCreditSince.Valid {
+		t := e.HighCreditSince.Time
+		highCreditSince = &t
+	}
+	var lowCreditSince *time.Time
+	if e.LowCreditSince.Valid {
+		t := e.LowCreditSince.Time
+		lowCreditSince = &t
+	}
+
 	return Event{
-		Id:            &id,
-		Title:         &title,
-		Venue:         venueSummary,
-		Artists:       &artistSummaries,
-		OpeningTime:   openingTime,
-		StartTime:     &startTime,
-		EndTime:       &endTime,
-		RelatedLinks:  &relatedLinks,
-		RatingSum:     &ratingSum,
-		RatingCount:   &ratingCount,
-		MyRating:      myRating,
-		AttendeeCount: &attendeeCount,
-		Status:        &status,
+		Id:              &id,
+		Title:           &title,
+		Venue:           venueSummary,
+		Artists:         &artistSummaries,
+		OpeningTime:     openingTime,
+		StartTime:       &startTime,
+		EndTime:         &endTime,
+		RelatedLinks:    &relatedLinks,
+		RatingSum:       &ratingSum,
+		RatingCount:     &ratingCount,
+		MyRating:        myRating,
+		AttendeeCount:   &attendeeCount,
+		Status:          &status,
+		AuthorId:        authorID,
+		CreditScore:     &creditScore,
+		CreditCount:     &creditCount,
+		HighCreditSince: highCreditSince,
+		LowCreditSince:  lowCreditSince,
 	}
 }
 
@@ -196,14 +220,14 @@ func (s *Server) GetEvents(w http.ResponseWriter, r *http.Request, params GetEve
 	isFollowingArtists := params.FollowingArtists != nil && *params.FollowingArtists
 	if isFollowingArtists {
 		if params.CreatedAfter != nil {
-		if !isFollowingArtists {
-			RespondError(w, http.StatusBadRequest, "createdAfter can only be used with followingArtists=true")
-			return
+			if !isFollowingArtists {
+				RespondError(w, http.StatusBadRequest, "createdAfter can only be used with followingArtists=true")
+				return
+			}
+			filter.CreatedAfter = params.CreatedAfter
 		}
-		filter.CreatedAfter = params.CreatedAfter
-	}
 
-	if params.MyAction != nil {
+		if params.MyAction != nil {
 			RespondError(w, http.StatusBadRequest, "Cannot combine myAction and followingArtists")
 			return
 		}
@@ -311,19 +335,28 @@ func (s *Server) GetEvents(w http.ResponseWriter, r *http.Request, params GetEve
 
 // GetEventsEventId implements the GET /events/{eventId} endpoint
 func (s *Server) GetEventsEventId(w http.ResponseWriter, r *http.Request, eventId uuid.UUID) {
+	if s.services.Credit != nil {
+		s.services.Credit.MaybeProcessSustainedLifecycle(r.Context())
+	}
 	detail, err := s.services.Event.GetEventDetail(r.Context(), eventId)
 	if err != nil {
 		RespondError(w, http.StatusNotFound, "Event not found")
 		return
 	}
 
+	resp := mapEventDetailToResponse(detail)
 	if userID, ok := r.Context().Value(middleware.UserIDKey).(uuid.UUID); ok {
 		if rating, err := s.services.Event.GetUserRating(r.Context(), eventId, userID); err == nil && rating != nil {
-			detail.MyRating = rating
+			r := int(*rating)
+			resp.MyRating = &r
+		}
+		if s.services.Credit != nil {
+			myCredit := int(s.services.Credit.GetUserEntityCreditVote(r.Context(), "EVENT", eventId, userID))
+			resp.MyCreditScore = &myCredit
 		}
 	}
 
-	RespondJSON(w, http.StatusOK, mapEventDetailToResponse(detail))
+	RespondJSON(w, http.StatusOK, resp)
 }
 
 func parseEventMultipartInput(r *http.Request, authorID uuid.UUID) (service.CreateEventInput, string) {
@@ -451,11 +484,60 @@ func (s *Server) PutEventsEventId(w http.ResponseWriter, r *http.Request, eventI
 			RespondError(w, http.StatusForbidden, "User is banned")
 			return
 		}
+		if errors.Is(err, service.ErrForbidden) {
+			RespondError(w, http.StatusForbidden, "Only admins can update approved events, or authors can update their own pending events")
+			return
+		}
 		log.Printf("[PutEventsEventId] UpdateEvent error (eventID=%s, authorID=%s): %v", eventId, input.AuthorID, err)
 		RespondError(w, http.StatusInternalServerError, "Failed to update event")
 		return
 	}
 
+	RespondJSON(w, http.StatusOK, mapEventDetailToResponse(detail))
+}
+
+// DeleteEventsEventId implements the DELETE /events/{eventId} endpoint
+func (s *Server) DeleteEventsEventId(w http.ResponseWriter, r *http.Request, eventId openapi_types.UUID) {
+	myID, ok := r.Context().Value(middleware.UserIDKey).(uuid.UUID)
+	if !ok {
+		RespondError(w, http.StatusUnauthorized, "user not authenticated")
+		return
+	}
+	if err := s.services.Event.DeleteEvent(r.Context(), uuid.UUID(eventId), myID); err != nil {
+		if errors.Is(err, service.ErrUserBanned) || errors.Is(err, service.ErrForbidden) {
+			RespondError(w, http.StatusForbidden, err.Error())
+			return
+		}
+		if errors.Is(err, sql.ErrNoRows) {
+			RespondError(w, http.StatusNotFound, "Event not found")
+			return
+		}
+		RespondError(w, http.StatusInternalServerError, "Failed to delete event")
+		return
+	}
+	w.WriteHeader(http.StatusNoContent)
+}
+
+// PostEventsEventIdApprove implements the POST /events/{eventId}/approve endpoint
+func (s *Server) PostEventsEventIdApprove(w http.ResponseWriter, r *http.Request, eventId openapi_types.UUID) {
+	myID, ok := r.Context().Value(middleware.UserIDKey).(uuid.UUID)
+	if !ok {
+		RespondError(w, http.StatusUnauthorized, "user not authenticated")
+		return
+	}
+	detail, err := s.services.Event.ApproveEvent(r.Context(), uuid.UUID(eventId), myID)
+	if err != nil {
+		if errors.Is(err, service.ErrUserBanned) || errors.Is(err, service.ErrForbidden) {
+			RespondError(w, http.StatusForbidden, err.Error())
+			return
+		}
+		if errors.Is(err, sql.ErrNoRows) {
+			RespondError(w, http.StatusNotFound, "Event not found")
+			return
+		}
+		RespondError(w, http.StatusInternalServerError, "Failed to approve event")
+		return
+	}
 	RespondJSON(w, http.StatusOK, mapEventDetailToResponse(detail))
 }
 

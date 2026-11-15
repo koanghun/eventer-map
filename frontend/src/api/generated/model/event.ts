@@ -5,6 +5,7 @@
  * OpenAPI spec version: 1.0.0
  */
 import type { ArtistSummary } from './artistSummary';
+import type { EventMyCreditScore } from './eventMyCreditScore';
 import type { EventStatus } from './eventStatus';
 import type { VenueSummary } from './venueSummary';
 
@@ -12,8 +13,18 @@ export interface Event {
   artists?: ArtistSummary[];
   /** 이벤트 참가자 수 (status=2) */
   attendeeCount?: number;
+  /** @nullable */
+  authorId?: string | null;
+  creditCount?: number;
+  creditScore?: number;
   endTime?: string;
+  /** @nullable */
+  highCreditSince?: string | null;
   id?: string;
+  /** @nullable */
+  lowCreditSince?: string | null;
+  /** 현재 로그인한 유저의 신용 점수 투표 (-1, 0, 1) */
+  myCreditScore?: EventMyCreditScore;
   /**
    * 현재 로그인한 유저의 평점 (1~5점)
    * @minimum 1

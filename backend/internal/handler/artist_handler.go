@@ -1,14 +1,18 @@
 package handler
 
 import (
+	"database/sql"
+	"errors"
 	"io"
 	"log"
 	"net/http"
 	"strings"
+	"time"
 
 	"eventer-map-backend/internal/middleware"
 	"eventer-map-backend/internal/repository"
 	"eventer-map-backend/internal/service"
+
 	"github.com/google/uuid"
 	openapi_types "github.com/oapi-codegen/runtime/types"
 )
@@ -45,6 +49,19 @@ func mapArtistToResponse(a *repository.Artist) Artist {
 		rating = &avg
 	}
 
+	creditScore := int(a.CreditScore)
+	creditCount := int(a.CreditCount)
+	var highCreditSince *time.Time
+	if a.HighCreditSince.Valid {
+		t := a.HighCreditSince.Time
+		highCreditSince = &t
+	}
+	var lowCreditSince *time.Time
+	if a.LowCreditSince.Valid {
+		t := a.LowCreditSince.Time
+		lowCreditSince = &t
+	}
+
 	return Artist{
 		Id:              &id,
 		OfficialName:    &name,
@@ -56,11 +73,18 @@ func mapArtistToResponse(a *repository.Artist) Artist {
 		RatingCount:     &ratingCount,
 		Status:          &st,
 		AuthorId:        authorID,
+		CreditScore:     &creditScore,
+		CreditCount:     &creditCount,
+		HighCreditSince: highCreditSince,
+		LowCreditSince:  lowCreditSince,
 	}
 }
 
 // GetArtists implements the GET /artists endpoint
 func (s *Server) GetArtists(w http.ResponseWriter, r *http.Request, params GetArtistsParams) {
+	if s.services.Credit != nil {
+		s.services.Credit.MaybeProcessSustainedLifecycle(r.Context())
+	}
 	limit := service.DefaultArtistLimit
 	if params.Limit != nil {
 		limit = int32(*params.Limit)
@@ -196,13 +220,22 @@ func (s *Server) PostArtists(w http.ResponseWriter, r *http.Request) {
 
 // GetArtistsArtistId implements the GET /artists/{artistId} endpoint
 func (s *Server) GetArtistsArtistId(w http.ResponseWriter, r *http.Request, artistId uuid.UUID) {
+	if s.services.Credit != nil {
+		s.services.Credit.MaybeProcessSustainedLifecycle(r.Context())
+	}
 	artist, err := s.services.Artist.GetArtist(r.Context(), artistId)
 	if err != nil {
 		RespondError(w, http.StatusNotFound, "Artist not found")
 		return
 	}
 
-	RespondJSON(w, http.StatusOK, mapArtistToResponse(artist))
+	resp := mapArtistToResponse(artist)
+	if userID, ok := r.Context().Value(middleware.UserIDKey).(uuid.UUID); ok && s.services.Credit != nil {
+		myCredit := int(s.services.Credit.GetUserEntityCreditVote(r.Context(), "ARTIST", artistId, userID))
+		resp.MyCreditScore = &myCredit
+	}
+
+	RespondJSON(w, http.StatusOK, resp)
 }
 
 // PostArtistsArtistIdFollow implements the POST /artists/{artistId}/follow endpoint
@@ -265,4 +298,94 @@ func (s *Server) GetArtistsArtistIdFollowers(w http.ResponseWriter, r *http.Requ
 		})
 	}
 	RespondJSON(w, http.StatusOK, response)
+}
+
+// PutArtistsArtistId implements the PUT /artists/{artistId} endpoint
+func (s *Server) PutArtistsArtistId(w http.ResponseWriter, r *http.Request, artistId openapi_types.UUID) {
+	myID, ok := r.Context().Value(middleware.UserIDKey).(uuid.UUID)
+	if !ok {
+		RespondError(w, http.StatusUnauthorized, "user not authenticated")
+		return
+	}
+	if err := r.ParseMultipartForm(10 << 20); err != nil {
+		RespondError(w, http.StatusBadRequest, "Invalid form data")
+		return
+	}
+	officialName := strings.TrimSpace(r.FormValue("officialName"))
+	gender := ArtistInputGender(strings.TrimSpace(r.FormValue("gender")))
+	if officialName == "" {
+		RespondError(w, http.StatusBadRequest, "officialName is required")
+		return
+	}
+	if !gender.Valid() {
+		RespondError(w, http.StatusBadRequest, "gender must be MALE or FEMALE")
+		return
+	}
+	hiragana := strings.TrimSpace(r.FormValue("hiragana"))
+	disambiguation := strings.TrimSpace(r.FormValue("disambiguation"))
+	input := service.CreateArtistInput{
+		OfficialName:   officialName,
+		Gender:         string(gender),
+		Hiragana:       &hiragana,
+		Disambiguation: &disambiguation,
+		AuthorID:       myID,
+	}
+	updated, err := s.services.Artist.UpdateArtist(r.Context(), uuid.UUID(artistId), input)
+	if err != nil {
+		switch {
+		case errors.Is(err, service.ErrUserBanned), errors.Is(err, service.ErrForbidden):
+			RespondError(w, http.StatusForbidden, err.Error())
+		case errors.Is(err, sql.ErrNoRows):
+			RespondError(w, http.StatusNotFound, "Artist not found")
+		default:
+			RespondError(w, http.StatusInternalServerError, "Failed to update artist")
+		}
+		return
+	}
+	RespondJSON(w, http.StatusOK, mapArtistToResponse(updated))
+}
+
+// DeleteArtistsArtistId implements the DELETE /artists/{artistId} endpoint
+func (s *Server) DeleteArtistsArtistId(w http.ResponseWriter, r *http.Request, artistId openapi_types.UUID) {
+	myID, ok := r.Context().Value(middleware.UserIDKey).(uuid.UUID)
+	if !ok {
+		RespondError(w, http.StatusUnauthorized, "user not authenticated")
+		return
+	}
+	if err := s.services.Artist.DeleteArtist(r.Context(), uuid.UUID(artistId), myID); err != nil {
+		switch {
+		case errors.Is(err, service.ErrUserBanned), errors.Is(err, service.ErrForbidden):
+			RespondError(w, http.StatusForbidden, err.Error())
+		case errors.Is(err, service.ErrEntityInUse):
+			RespondError(w, http.StatusConflict, err.Error())
+		case errors.Is(err, sql.ErrNoRows):
+			RespondError(w, http.StatusNotFound, "Artist not found")
+		default:
+			RespondError(w, http.StatusInternalServerError, "Failed to delete artist")
+		}
+		return
+	}
+	w.WriteHeader(http.StatusNoContent)
+}
+
+// PostArtistsArtistIdApprove implements the POST /artists/{artistId}/approve endpoint
+func (s *Server) PostArtistsArtistIdApprove(w http.ResponseWriter, r *http.Request, artistId openapi_types.UUID) {
+	myID, ok := r.Context().Value(middleware.UserIDKey).(uuid.UUID)
+	if !ok {
+		RespondError(w, http.StatusUnauthorized, "user not authenticated")
+		return
+	}
+	approved, err := s.services.Artist.ApproveArtist(r.Context(), uuid.UUID(artistId), myID)
+	if err != nil {
+		switch {
+		case errors.Is(err, service.ErrUserBanned), errors.Is(err, service.ErrForbidden):
+			RespondError(w, http.StatusForbidden, err.Error())
+		case errors.Is(err, sql.ErrNoRows):
+			RespondError(w, http.StatusNotFound, "Artist not found")
+		default:
+			RespondError(w, http.StatusInternalServerError, "Failed to approve artist")
+		}
+		return
+	}
+	RespondJSON(w, http.StatusOK, mapArtistToResponse(approved))
 }

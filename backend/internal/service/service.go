@@ -20,6 +20,7 @@ type Services struct {
 	Venue  *VenueService
 	Stats  *StatsService
 	Thread *ThreadService
+	Credit *CreditService
 	db     *sql.DB
 }
 
@@ -57,6 +58,7 @@ func NewServices(repo *repository.Queries, db *sql.DB) *Services {
 		Venue:  NewVenueService(repo, db),
 		Stats:  NewStatsService(repo),
 		Thread: NewThreadService(repo, db),
+		Credit: NewCreditService(repo, db),
 		db:     db,
 	}
 }

@@ -391,7 +391,12 @@ type Artist struct {
 	RatingCount *int `json:"ratingCount,omitempty"`
 
 	// Status 아티스트 상태 (유저 등록 시 PENDING, 관리자 승인 시 APPROVED)
-	Status *ArtistStatus `json:"status,omitempty"`
+	Status          *ArtistStatus `json:"status,omitempty"`
+	CreditScore     *int          `json:"creditScore,omitempty"`
+	CreditCount     *int          `json:"creditCount,omitempty"`
+	MyCreditScore   *int          `json:"myCreditScore,omitempty"`
+	HighCreditSince *time.Time    `json:"highCreditSince,omitempty"`
+	LowCreditSince  *time.Time    `json:"lowCreditSince,omitempty"`
 }
 
 // ArtistGender 성별
@@ -467,15 +472,21 @@ type Event struct {
 	Id            *openapi_types.UUID `json:"id,omitempty"`
 
 	// MyRating 현재 로그인한 유저의 평점 (1~5점)
-	MyRating     *int          `json:"myRating,omitempty"`
-	OpeningTime  *time.Time    `json:"openingTime,omitempty"`
-	RatingCount  *int          `json:"ratingCount,omitempty"`
-	RatingSum    *float64      `json:"ratingSum,omitempty"`
-	RelatedLinks *[]string     `json:"relatedLinks,omitempty"`
-	StartTime    *time.Time    `json:"startTime,omitempty"`
-	Status       *EventStatus  `json:"status,omitempty"`
-	Title        *string       `json:"title,omitempty"`
-	Venue        *VenueSummary `json:"venue,omitempty"`
+	MyRating        *int                `json:"myRating,omitempty"`
+	OpeningTime     *time.Time          `json:"openingTime,omitempty"`
+	RatingCount     *int                `json:"ratingCount,omitempty"`
+	RatingSum       *float64            `json:"ratingSum,omitempty"`
+	RelatedLinks    *[]string           `json:"relatedLinks,omitempty"`
+	StartTime       *time.Time          `json:"startTime,omitempty"`
+	Status          *EventStatus        `json:"status,omitempty"`
+	AuthorId        *openapi_types.UUID `json:"authorId,omitempty"`
+	CreditScore     *int                `json:"creditScore,omitempty"`
+	CreditCount     *int                `json:"creditCount,omitempty"`
+	MyCreditScore   *int                `json:"myCreditScore,omitempty"`
+	HighCreditSince *time.Time          `json:"highCreditSince,omitempty"`
+	LowCreditSince  *time.Time          `json:"lowCreditSince,omitempty"`
+	Title           *string             `json:"title,omitempty"`
+	Venue           *VenueSummary       `json:"venue,omitempty"`
 }
 
 // EventStatus defines model for Event.Status.
@@ -726,15 +737,21 @@ type Venue struct {
 	Capacity *int    `json:"capacity,omitempty"`
 
 	// GoogleMapId Google Maps Place ID
-	GoogleMapId  *string             `json:"googleMapId,omitempty"`
-	Id           *openapi_types.UUID `json:"id,omitempty"`
-	Latitude     *float64            `json:"latitude,omitempty"`
-	Longitude    *float64            `json:"longitude,omitempty"`
-	OfficialName *string             `json:"officialName,omitempty"`
-	Rating       *float64            `json:"rating,omitempty"`
-	RatingCount  *int                `json:"ratingCount,omitempty"`
-	RelatedLinks *[]string           `json:"relatedLinks,omitempty"`
-	Status       *VenueStatus        `json:"status,omitempty"`
+	GoogleMapId     *string             `json:"googleMapId,omitempty"`
+	Id              *openapi_types.UUID `json:"id,omitempty"`
+	Latitude        *float64            `json:"latitude,omitempty"`
+	Longitude       *float64            `json:"longitude,omitempty"`
+	OfficialName    *string             `json:"officialName,omitempty"`
+	Rating          *float64            `json:"rating,omitempty"`
+	RatingCount     *int                `json:"ratingCount,omitempty"`
+	RelatedLinks    *[]string           `json:"relatedLinks,omitempty"`
+	Status          *VenueStatus        `json:"status,omitempty"`
+	AuthorId        *openapi_types.UUID `json:"authorId,omitempty"`
+	CreditScore     *int                `json:"creditScore,omitempty"`
+	CreditCount     *int                `json:"creditCount,omitempty"`
+	MyCreditScore   *int                `json:"myCreditScore,omitempty"`
+	HighCreditSince *time.Time          `json:"highCreditSince,omitempty"`
+	LowCreditSince  *time.Time          `json:"lowCreditSince,omitempty"`
 }
 
 // VenueStatus defines model for Venue.Status.
@@ -784,6 +801,71 @@ type VenueSummary struct {
 
 // VenueSummaryStatus 공연장 승인 상태
 type VenueSummaryStatus string
+
+// CreditVoteInput defines model for CreditVoteInput.
+type CreditVoteInput struct {
+	Score int `json:"score"`
+}
+
+// CreditVoteResponse defines model for CreditVoteResponse.
+type CreditVoteResponse struct {
+	Id              openapi_types.UUID `json:"id"`
+	Status          string             `json:"status"`
+	CreditScore     int                `json:"creditScore"`
+	CreditCount     int                `json:"creditCount"`
+	MyCreditScore   int                `json:"myCreditScore"`
+	HighCreditSince *time.Time         `json:"highCreditSince,omitempty"`
+	LowCreditSince  *time.Time         `json:"lowCreditSince,omitempty"`
+}
+
+// ModificationEntityType defines model for ModificationEntityType.
+type ModificationEntityType string
+
+const (
+	ModificationEntityTypeEVENT  ModificationEntityType = "EVENT"
+	ModificationEntityTypeARTIST ModificationEntityType = "ARTIST"
+	ModificationEntityTypeVENUE  ModificationEntityType = "VENUE"
+)
+
+// ModificationRequest defines model for ModificationRequest.
+type ModificationRequest struct {
+	Id                openapi_types.UUID     `json:"id"`
+	EntityType        ModificationEntityType `json:"entityType"`
+	EntityId          openapi_types.UUID     `json:"entityId"`
+	AuthorId          *openapi_types.UUID    `json:"authorId,omitempty"`
+	AuthorDisplayName *string                `json:"authorDisplayName,omitempty"`
+	ProposedData      map[string]interface{} `json:"proposedData"`
+	Reason            string                 `json:"reason"`
+	Status            string                 `json:"status"`
+	TrustScore        int                    `json:"trustScore"`
+	TrustCount        int                    `json:"trustCount"`
+	MyTrustScore      int                    `json:"myTrustScore"`
+	HighTrustSince    *time.Time             `json:"highTrustSince,omitempty"`
+	LowTrustSince     *time.Time             `json:"lowTrustSince,omitempty"`
+	ResolvedAt        *time.Time             `json:"resolvedAt,omitempty"`
+	CreatedAt         time.Time              `json:"createdAt"`
+	UpdatedAt         time.Time              `json:"updatedAt"`
+}
+
+// ModificationRequestListResponse defines model for ModificationRequestListResponse.
+type ModificationRequestListResponse struct {
+	Requests []ModificationRequest `json:"requests"`
+}
+
+// CreateModificationRequestInput defines model for CreateModificationRequestInput.
+type CreateModificationRequestInput struct {
+	EntityType   ModificationEntityType `json:"entityType"`
+	EntityId     openapi_types.UUID     `json:"entityId"`
+	ProposedData map[string]interface{} `json:"proposedData"`
+	Reason       *string                `json:"reason,omitempty"`
+}
+
+// ListModificationRequestsParams defines parameters for ListModificationRequests.
+type ListModificationRequestsParams struct {
+	EntityType ModificationEntityType `form:"entityType" json:"entityType"`
+	EntityId   openapi_types.UUID     `form:"entityId" json:"entityId"`
+	Status     *string                `form:"status,omitempty" json:"status,omitempty"`
+}
 
 // VerifyEmailRequest defines model for VerifyEmailRequest.
 type VerifyEmailRequest struct {
@@ -1073,6 +1155,36 @@ type ServerInterface interface {
 	// PostArtistsArtistIdApprove 아티스트 승인 (관리자 전용)
 	// (POST /artists/{artistId}/approve)
 	PostArtistsArtistIdApprove(w http.ResponseWriter, r *http.Request, artistId openapi_types.UUID)
+	// PutArtistsArtistIdCredit 아티스트 신용 점수 투표
+	// (PUT /artists/{artistId}/credit)
+	PutArtistsArtistIdCredit(w http.ResponseWriter, r *http.Request, artistId openapi_types.UUID)
+	// PutVenuesVenueIdCredit 공연장 신용 점수 투표
+	// (PUT /venues/{venueId}/credit)
+	PutVenuesVenueIdCredit(w http.ResponseWriter, r *http.Request, venueId openapi_types.UUID)
+	// DeleteEventsEventId 이벤트 삭제
+	// (DELETE /events/{eventId})
+	DeleteEventsEventId(w http.ResponseWriter, r *http.Request, eventId openapi_types.UUID)
+	// PostEventsEventIdApprove 이벤트 승인 (관리자 전용)
+	// (POST /events/{eventId}/approve)
+	PostEventsEventIdApprove(w http.ResponseWriter, r *http.Request, eventId openapi_types.UUID)
+	// PutEventsEventIdCredit 이벤트 신용 점수 투표
+	// (PUT /events/{eventId}/credit)
+	PutEventsEventIdCredit(w http.ResponseWriter, r *http.Request, eventId openapi_types.UUID)
+	// ListModificationRequests 수정 요청 목록 조회
+	// (GET /modification-requests)
+	ListModificationRequests(w http.ResponseWriter, r *http.Request, params ListModificationRequestsParams)
+	// CreateModificationRequest 수정 요청 등록
+	// (POST /modification-requests)
+	CreateModificationRequest(w http.ResponseWriter, r *http.Request)
+	// DeleteModificationRequest 수정 요청 삭제
+	// (DELETE /modification-requests/{requestId})
+	DeleteModificationRequest(w http.ResponseWriter, r *http.Request, requestId openapi_types.UUID)
+	// VoteModificationRequestTrust 수정 요청 신뢰 점수 투표
+	// (PUT /modification-requests/{requestId}/trust)
+	VoteModificationRequestTrust(w http.ResponseWriter, r *http.Request, requestId openapi_types.UUID)
+	// ApplyModificationRequest 수정 요청 즉시 반영 (관리자 전용)
+	// (POST /modification-requests/{requestId}/apply)
+	ApplyModificationRequest(w http.ResponseWriter, r *http.Request, requestId openapi_types.UUID)
 	// DeleteArtistsArtistIdFollow 아티스트 언팔로우
 	// (DELETE /artists/{artistId}/follow)
 	DeleteArtistsArtistIdFollow(w http.ResponseWriter, r *http.Request, artistId openapi_types.UUID)
@@ -3304,6 +3416,7 @@ func HandlerWithOptions(si ServerInterface, options StdHTTPServerOptions) http.H
 	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/artists/{artistId}", wrapper.GetArtistsArtistId)
 	m.HandleFunc(http.MethodPut+" "+options.BaseURL+"/artists/{artistId}", wrapper.PutArtistsArtistId)
 	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/artists/{artistId}/approve", wrapper.PostArtistsArtistIdApprove)
+	m.HandleFunc(http.MethodPut+" "+options.BaseURL+"/artists/{artistId}/credit", wrapper.PutArtistsArtistIdCredit)
 	m.HandleFunc(http.MethodDelete+" "+options.BaseURL+"/artists/{artistId}/follow", wrapper.DeleteArtistsArtistIdFollow)
 	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/artists/{artistId}/follow", wrapper.PostArtistsArtistIdFollow)
 	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/artists/{artistId}/followers", wrapper.GetArtistsArtistIdFollowers)
@@ -3314,10 +3427,14 @@ func HandlerWithOptions(si ServerInterface, options StdHTTPServerOptions) http.H
 	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/venues/{venueId}", wrapper.GetVenuesVenueId)
 	m.HandleFunc(http.MethodPut+" "+options.BaseURL+"/venues/{venueId}", wrapper.PutVenuesVenueId)
 	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/venues/{venueId}/approve", wrapper.PostVenuesVenueIdApprove)
+	m.HandleFunc(http.MethodPut+" "+options.BaseURL+"/venues/{venueId}/credit", wrapper.PutVenuesVenueIdCredit)
 	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/events", wrapper.GetEvents)
 	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/events", wrapper.PostEvents)
 	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/events/{eventId}", wrapper.GetEventsEventId)
 	m.HandleFunc(http.MethodPut+" "+options.BaseURL+"/events/{eventId}", wrapper.PutEventsEventId)
+	m.HandleFunc(http.MethodDelete+" "+options.BaseURL+"/events/{eventId}", wrapper.DeleteEventsEventId)
+	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/events/{eventId}/approve", wrapper.PostEventsEventIdApprove)
+	m.HandleFunc(http.MethodPut+" "+options.BaseURL+"/events/{eventId}/credit", wrapper.PutEventsEventIdCredit)
 	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/events/{eventId}/delete-request", wrapper.PostEventsEventIdDeleteRequest)
 	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/events/{eventId}/attendees", wrapper.GetEventsEventIdAttendees)
 	m.HandleFunc(http.MethodPut+" "+options.BaseURL+"/events/{eventId}/action", wrapper.PutEventsEventIdAction)
@@ -3328,6 +3445,11 @@ func HandlerWithOptions(si ServerInterface, options StdHTTPServerOptions) http.H
 	m.HandleFunc(http.MethodDelete+" "+options.BaseURL+"/event-threads/{threadId}", wrapper.DeleteEventThread)
 	m.HandleFunc(http.MethodDelete+" "+options.BaseURL+"/event-threads/{threadId}/recommend", wrapper.UnrecommendEventThread)
 	m.HandleFunc(http.MethodPut+" "+options.BaseURL+"/event-threads/{threadId}/recommend", wrapper.RecommendEventThread)
+	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/modification-requests", wrapper.ListModificationRequests)
+	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/modification-requests", wrapper.CreateModificationRequest)
+	m.HandleFunc(http.MethodDelete+" "+options.BaseURL+"/modification-requests/{requestId}", wrapper.DeleteModificationRequest)
+	m.HandleFunc(http.MethodPut+" "+options.BaseURL+"/modification-requests/{requestId}/trust", wrapper.VoteModificationRequestTrust)
+	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/modification-requests/{requestId}/apply", wrapper.ApplyModificationRequest)
 
 	return m
 }

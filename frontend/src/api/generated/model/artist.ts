@@ -5,11 +5,14 @@
  * OpenAPI spec version: 1.0.0
  */
 import type { ArtistGender } from './artistGender';
+import type { ArtistMyCreditScore } from './artistMyCreditScore';
 import type { ArtistStatus } from './artistStatus';
 
 export interface Artist {
-  /** 등록한 유저 ID */
-  authorId?: string;
+  /** @nullable */
+  authorId?: string | null;
+  creditCount?: number;
+  creditScore?: number;
   /**
    * 동명이인 구분을 위한 한 줄 식별 설명 (소속 그룹, 분야 등)
    * @maxLength 100
@@ -17,10 +20,16 @@ export interface Artist {
   disambiguation?: string;
   /** 성별 */
   gender?: ArtistGender;
+  /** @nullable */
+  highCreditSince?: string | null;
   /** 히라가나 */
   hiragana?: string;
   /** 아티스트 고유 식별자 */
   id?: string;
+  /** @nullable */
+  lowCreditSince?: string | null;
+  /** 현재 로그인한 유저의 신용 점수 투표 (-1, 0, 1) */
+  myCreditScore?: ArtistMyCreditScore;
   /** 공식 이름 */
   officialName?: string;
   /** 프로필 이미지 URL */
@@ -29,6 +38,5 @@ export interface Artist {
   rating?: number;
   /** 평점이 매겨진 참가 이벤트 수 */
   ratingCount?: number;
-  /** 아티스트 상태 (유저 등록 시 PENDING, 관리자 승인 시 APPROVED) */
   status?: ArtistStatus;
 }

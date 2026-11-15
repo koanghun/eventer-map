@@ -29,7 +29,7 @@ func (q *Queries) CheckVenueInEvent(ctx context.Context, venueID uuid.NullUUID) 
 const createVenue = `-- name: CreateVenue :one
 INSERT INTO venues (official_name, google_map_id, address, latitude, longitude, related_links, capacity, status, author_id)
 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
-RETURNING id, official_name, google_map_id, address, latitude, longitude, related_links, capacity, rating_sum, rating_count, status, author_id, created_at, updated_at
+RETURNING id, official_name, google_map_id, address, latitude, longitude, related_links, capacity, rating_sum, rating_count, status, author_id, created_at, updated_at, credit_score, credit_count, high_credit_since, low_credit_since
 `
 
 type CreateVenueParams struct {
@@ -72,12 +72,16 @@ func (q *Queries) CreateVenue(ctx context.Context, arg CreateVenueParams) (Venue
 		&i.AuthorID,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.CreditScore,
+		&i.CreditCount,
+		&i.HighCreditSince,
+		&i.LowCreditSince,
 	)
 	return i, err
 }
 
 const getVenue = `-- name: GetVenue :one
-SELECT id, official_name, google_map_id, address, latitude, longitude, related_links, capacity, rating_sum, rating_count, status, author_id, created_at, updated_at FROM venues
+SELECT id, official_name, google_map_id, address, latitude, longitude, related_links, capacity, rating_sum, rating_count, status, author_id, created_at, updated_at, credit_score, credit_count, high_credit_since, low_credit_since FROM venues
 WHERE id = $1 LIMIT 1
 `
 
@@ -99,12 +103,16 @@ func (q *Queries) GetVenue(ctx context.Context, id uuid.UUID) (Venue, error) {
 		&i.AuthorID,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.CreditScore,
+		&i.CreditCount,
+		&i.HighCreditSince,
+		&i.LowCreditSince,
 	)
 	return i, err
 }
 
 const listVenuesByBoundingBox = `-- name: ListVenuesByBoundingBox :many
-SELECT v.id, v.official_name, v.google_map_id, v.address, v.latitude, v.longitude, v.related_links, v.capacity, v.rating_sum, v.rating_count, v.status, v.author_id, v.created_at, v.updated_at
+SELECT v.id, v.official_name, v.google_map_id, v.address, v.latitude, v.longitude, v.related_links, v.capacity, v.rating_sum, v.rating_count, v.status, v.author_id, v.created_at, v.updated_at, v.credit_score, v.credit_count, v.high_credit_since, v.low_credit_since
 FROM venues v
 WHERE 
     v.latitude BETWEEN $2 AND $3
@@ -162,6 +170,10 @@ func (q *Queries) ListVenuesByBoundingBox(ctx context.Context, arg ListVenuesByB
 			&i.AuthorID,
 			&i.CreatedAt,
 			&i.UpdatedAt,
+			&i.CreditScore,
+			&i.CreditCount,
+			&i.HighCreditSince,
+			&i.LowCreditSince,
 		); err != nil {
 			return nil, err
 		}
@@ -256,7 +268,7 @@ SET official_name = COALESCE($1, official_name),
     status = COALESCE($8, status),
     updated_at = NOW()
 WHERE id = $9
-RETURNING id, official_name, google_map_id, address, latitude, longitude, related_links, capacity, rating_sum, rating_count, status, author_id, created_at, updated_at
+RETURNING id, official_name, google_map_id, address, latitude, longitude, related_links, capacity, rating_sum, rating_count, status, author_id, created_at, updated_at, credit_score, credit_count, high_credit_since, low_credit_since
 `
 
 type UpdateVenueParams struct {
@@ -299,6 +311,53 @@ func (q *Queries) UpdateVenue(ctx context.Context, arg UpdateVenueParams) (Venue
 		&i.AuthorID,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.CreditScore,
+		&i.CreditCount,
+		&i.HighCreditSince,
+		&i.LowCreditSince,
 	)
 	return i, err
+}
+
+const approveVenue = `-- name: ApproveVenue :one
+UPDATE venues
+SET status = 'APPROVED', high_credit_since = NULL, low_credit_since = NULL, updated_at = NOW()
+WHERE id = $1
+RETURNING id, official_name, google_map_id, address, latitude, longitude, related_links, capacity, rating_sum, rating_count, status, author_id, created_at, updated_at, credit_score, credit_count, high_credit_since, low_credit_since
+`
+
+func (q *Queries) ApproveVenue(ctx context.Context, id uuid.UUID) (Venue, error) {
+	row := q.db.QueryRowContext(ctx, approveVenue, id)
+	var i Venue
+	err := row.Scan(
+		&i.ID,
+		&i.OfficialName,
+		&i.GoogleMapID,
+		&i.Address,
+		&i.Latitude,
+		&i.Longitude,
+		pq.Array(&i.RelatedLinks),
+		&i.Capacity,
+		&i.RatingSum,
+		&i.RatingCount,
+		&i.Status,
+		&i.AuthorID,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.CreditScore,
+		&i.CreditCount,
+		&i.HighCreditSince,
+		&i.LowCreditSince,
+	)
+	return i, err
+}
+
+const deleteVenue = `-- name: DeleteVenue :exec
+DELETE FROM venues
+WHERE id = $1
+`
+
+func (q *Queries) DeleteVenue(ctx context.Context, id uuid.UUID) error {
+	_, err := q.db.ExecContext(ctx, deleteVenue, id)
+	return err
 }

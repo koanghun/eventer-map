@@ -28,7 +28,7 @@ func (q *Queries) CheckArtistInEvent(ctx context.Context, artistID uuid.UUID) (b
 const createArtist = `-- name: CreateArtist :one
 INSERT INTO artists (official_name, hiragana, disambiguation, gender, profile_image_url, status, author_id)
 VALUES ($1, $2, $3, $4, $5, $6, $7)
-RETURNING id, official_name, hiragana, gender, profile_image_url, rating_sum, rating_count, status, author_id, created_at, updated_at, disambiguation
+RETURNING id, official_name, hiragana, gender, profile_image_url, rating_sum, rating_count, status, author_id, created_at, updated_at, disambiguation, credit_score, credit_count, high_credit_since, low_credit_since
 `
 
 type CreateArtistParams struct {
@@ -65,12 +65,16 @@ func (q *Queries) CreateArtist(ctx context.Context, arg CreateArtistParams) (Art
 		&i.CreatedAt,
 		&i.UpdatedAt,
 		&i.Disambiguation,
+		&i.CreditScore,
+		&i.CreditCount,
+		&i.HighCreditSince,
+		&i.LowCreditSince,
 	)
 	return i, err
 }
 
 const getArtist = `-- name: GetArtist :one
-SELECT id, official_name, hiragana, gender, profile_image_url, rating_sum, rating_count, status, author_id, created_at, updated_at, disambiguation FROM artists
+SELECT id, official_name, hiragana, gender, profile_image_url, rating_sum, rating_count, status, author_id, created_at, updated_at, disambiguation, credit_score, credit_count, high_credit_since, low_credit_since FROM artists
 WHERE id = $1 LIMIT 1
 `
 
@@ -90,12 +94,16 @@ func (q *Queries) GetArtist(ctx context.Context, id uuid.UUID) (Artist, error) {
 		&i.CreatedAt,
 		&i.UpdatedAt,
 		&i.Disambiguation,
+		&i.CreditScore,
+		&i.CreditCount,
+		&i.HighCreditSince,
+		&i.LowCreditSince,
 	)
 	return i, err
 }
 
 const listArtists = `-- name: ListArtists :many
-SELECT id, official_name, hiragana, gender, profile_image_url, rating_sum, rating_count, status, author_id, created_at, updated_at, disambiguation FROM artists a
+SELECT id, official_name, hiragana, gender, profile_image_url, rating_sum, rating_count, status, author_id, created_at, updated_at, disambiguation, credit_score, credit_count, high_credit_since, low_credit_since FROM artists a
 WHERE 
     a.status != 'REJECTED'
     AND ($2::varchar = '' OR a.status = $2)
@@ -145,6 +153,10 @@ func (q *Queries) ListArtists(ctx context.Context, arg ListArtistsParams) ([]Art
 			&i.CreatedAt,
 			&i.UpdatedAt,
 			&i.Disambiguation,
+			&i.CreditScore,
+			&i.CreditCount,
+			&i.HighCreditSince,
+			&i.LowCreditSince,
 		); err != nil {
 			return nil, err
 		}
@@ -169,7 +181,7 @@ SET official_name = COALESCE($1, official_name),
     status = COALESCE($6, status),
     updated_at = NOW()
 WHERE id = $7
-RETURNING id, official_name, hiragana, gender, profile_image_url, rating_sum, rating_count, status, author_id, created_at, updated_at, disambiguation
+RETURNING id, official_name, hiragana, gender, profile_image_url, rating_sum, rating_count, status, author_id, created_at, updated_at, disambiguation, credit_score, credit_count, high_credit_since, low_credit_since
 `
 
 type UpdateArtistParams struct {
@@ -206,6 +218,51 @@ func (q *Queries) UpdateArtist(ctx context.Context, arg UpdateArtistParams) (Art
 		&i.CreatedAt,
 		&i.UpdatedAt,
 		&i.Disambiguation,
+		&i.CreditScore,
+		&i.CreditCount,
+		&i.HighCreditSince,
+		&i.LowCreditSince,
 	)
 	return i, err
+}
+
+const approveArtist = `-- name: ApproveArtist :one
+UPDATE artists
+SET status = 'APPROVED', high_credit_since = NULL, low_credit_since = NULL, updated_at = NOW()
+WHERE id = $1
+RETURNING id, official_name, hiragana, gender, profile_image_url, rating_sum, rating_count, status, author_id, created_at, updated_at, disambiguation, credit_score, credit_count, high_credit_since, low_credit_since
+`
+
+func (q *Queries) ApproveArtist(ctx context.Context, id uuid.UUID) (Artist, error) {
+	row := q.db.QueryRowContext(ctx, approveArtist, id)
+	var i Artist
+	err := row.Scan(
+		&i.ID,
+		&i.OfficialName,
+		&i.Hiragana,
+		&i.Gender,
+		&i.ProfileImageUrl,
+		&i.RatingSum,
+		&i.RatingCount,
+		&i.Status,
+		&i.AuthorID,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.Disambiguation,
+		&i.CreditScore,
+		&i.CreditCount,
+		&i.HighCreditSince,
+		&i.LowCreditSince,
+	)
+	return i, err
+}
+
+const deleteArtist = `-- name: DeleteArtist :exec
+DELETE FROM artists
+WHERE id = $1
+`
+
+func (q *Queries) DeleteArtist(ctx context.Context, id uuid.UUID) error {
+	_, err := q.db.ExecContext(ctx, deleteArtist, id)
+	return err
 }

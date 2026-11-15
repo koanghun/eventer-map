@@ -5,9 +5,6 @@
  * OpenAPI spec version: 1.0.0
  */
 
-/**
- * 공연장 승인 상태
- */
 export type VenueSummaryStatus = typeof VenueSummaryStatus[keyof typeof VenueSummaryStatus];
 
 

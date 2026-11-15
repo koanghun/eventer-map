@@ -5,9 +5,6 @@
  * OpenAPI spec version: 1.0.0
  */
 
-/**
- * 아티스트 상태 (유저 등록 시 PENDING, 관리자 승인 시 APPROVED)
- */
 export type ArtistStatus = typeof ArtistStatus[keyof typeof ArtistStatus];
 
 

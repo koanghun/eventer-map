@@ -4,16 +4,27 @@
  * Eventer Map API
  * OpenAPI spec version: 1.0.0
  */
+import type { VenueMyCreditScore } from './venueMyCreditScore';
 import type { VenueStatus } from './venueStatus';
 
 export interface Venue {
   address?: string;
+  /** @nullable */
+  authorId?: string | null;
   capacity?: number;
+  creditCount?: number;
+  creditScore?: number;
   /** Google Maps Place ID */
   googleMapId?: string;
+  /** @nullable */
+  highCreditSince?: string | null;
   id?: string;
   latitude?: number;
   longitude?: number;
+  /** @nullable */
+  lowCreditSince?: string | null;
+  /** 현재 로그인한 유저의 신용 점수 투표 (-1, 0, 1) */
+  myCreditScore?: VenueMyCreditScore;
   officialName?: string;
   rating?: number;
   ratingCount?: number;
