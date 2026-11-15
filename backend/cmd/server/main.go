@@ -46,10 +46,18 @@ func main() {
 		db.SetConnMaxLifetime(5 * time.Minute)
 		db.SetConnMaxIdleTime(1 * time.Minute)
 
-		if err = db.Ping(); err != nil {
-			log.Fatalf("Failed to ping DB: %v", err)
+		pingCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		err = db.PingContext(pingCtx)
+		cancel()
+		if err != nil {
+			if os.Getenv("AWS_LAMBDA_FUNCTION_NAME") != "" {
+				log.Printf("WARNING: Initial DB ping failed in Lambda (will retry on queries): %v", err)
+			} else {
+				log.Fatalf("Failed to ping DB: %v", err)
+			}
+		} else {
+			log.Println("Successfully connected to the database!")
 		}
-		log.Println("Successfully connected to the database!")
 	}
 
 	// 2. Initialize Repository

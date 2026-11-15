@@ -11,7 +11,7 @@ permissions:
   contents: read
 
 env:
-  AWS_REGION: ap-northeast-1
+  AWS_REGION: ap-southeast-2
   STACK_NAME: eventer-map-stack
 
 jobs:
@@ -22,6 +22,7 @@ jobs:
       api_url: ${{ steps.stack-outputs.outputs.api_url }}
       s3_bucket: ${{ steps.stack-outputs.outputs.s3_bucket }}
       cf_dist_id: ${{ steps.stack-outputs.outputs.cf_dist_id }}
+      frontend_url: ${{ steps.stack-outputs.outputs.frontend_url }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -50,6 +51,15 @@ jobs:
           CORS_ORIGINS: ${{ secrets.CORS_ORIGINS }}
           COOKIE_DOMAIN: ${{ secrets.COOKIE_DOMAIN }}
           COOKIE_SAMESITE: ${{ secrets.COOKIE_SAMESITE || 'None' }}
+          X_CLIENT_ID: ${{ secrets.X_CLIENT_ID }}
+          X_CLIENT_SECRET: ${{ secrets.X_CLIENT_SECRET }}
+          X_REDIRECT_URI: ${{ secrets.X_REDIRECT_URI }}
+          X_REQUEST_EMAIL: ${{ vars.X_REQUEST_EMAIL || secrets.X_REQUEST_EMAIL || 'false' }}
+          SMTP_HOST: ${{ secrets.SMTP_HOST }}
+          SMTP_PORT: ${{ vars.SMTP_PORT || secrets.SMTP_PORT || '587' }}
+          SMTP_USER: ${{ secrets.SMTP_USER }}
+          SMTP_PASSWORD: ${{ secrets.SMTP_PASSWORD }}
+          SMTP_FROM: ${{ secrets.SMTP_FROM }}
         run: make deploy STACK_NAME=${{ env.STACK_NAME }} AWS_REGION=${{ env.AWS_REGION }}
 
       - name: Export CloudFormation Outputs
@@ -58,9 +68,11 @@ jobs:
           API_URL=$(aws cloudformation describe-stacks --stack-name "$STACK_NAME" --query "Stacks[0].Outputs[?OutputKey=='EventerMapApi'].OutputValue" --output text)
           S3_BUCKET=$(aws cloudformation describe-stacks --stack-name "$STACK_NAME" --query "Stacks[0].Outputs[?OutputKey=='FrontendBucketName'].OutputValue" --output text)
           CF_DIST_ID=$(aws cloudformation describe-stacks --stack-name "$STACK_NAME" --query "Stacks[0].Outputs[?OutputKey=='CloudFrontDistributionId'].OutputValue" --output text)
+          FRONTEND_URL=$(aws cloudformation describe-stacks --stack-name "$STACK_NAME" --query "Stacks[0].Outputs[?OutputKey=='FrontendUrl'].OutputValue" --output text)
           echo "api_url=$API_URL" >> "$GITHUB_OUTPUT"
           echo "s3_bucket=$S3_BUCKET" >> "$GITHUB_OUTPUT"
           echo "cf_dist_id=$CF_DIST_ID" >> "$GITHUB_OUTPUT"
+          echo "frontend_url=$FRONTEND_URL" >> "$GITHUB_OUTPUT"
 
   deploy-frontend:
     name: Build & Deploy Frontend (S3 + CloudFront)
@@ -108,3 +120,21 @@ jobs:
               --cache-control "no-cache, no-store, must-revalidate"
           fi
           aws cloudfront create-invalidation --distribution-id "$CF_DIST_ID" --paths "/index.html" "/"
+
+      - name: Write Deployment Summary
+        env:
+          FRONTEND_URL: ${{ needs.deploy-backend.outputs.frontend_url }}
+          API_URL: ${{ vars.REACT_APP_API_URL || needs.deploy-backend.outputs.api_url }}
+          S3_BUCKET: ${{ needs.deploy-backend.outputs.s3_bucket }}
+          CF_DIST_ID: ${{ needs.deploy-backend.outputs.cf_dist_id }}
+        run: |
+          {
+            echo "## AWS Deployment Summary"
+            echo ""
+            echo "| Resource | Value |"
+            echo "| :--- | :--- |"
+            echo "| **Frontend URL (CloudFront)** | $FRONTEND_URL |"
+            echo "| **Backend API URL (API Gateway)** | $API_URL |"
+            echo "| **Frontend S3 Bucket** | \`$S3_BUCKET\` |"
+            echo "| **CloudFront Distribution ID** | \`$CF_DIST_ID\` |"
+          } >> "$GITHUB_STEP_SUMMARY"

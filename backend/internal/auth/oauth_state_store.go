@@ -243,7 +243,7 @@ func NewOAuthStateStoreFromEnv(ctx context.Context) (OAuthStateStore, error) {
 		region = strings.TrimSpace(os.Getenv("AWS_DEFAULT_REGION"))
 	}
 	if region == "" {
-		region = "ap-northeast-1"
+		region = "ap-southeast-2"
 	}
 
 	cfg, err := config.LoadDefaultConfig(ctx, config.WithRegion(region))

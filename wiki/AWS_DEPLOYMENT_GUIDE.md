@@ -77,6 +77,8 @@ db.SetConnMaxIdleTime(1 * time.Minute) // 4) 1분 이상 놀고 있는 유휴 �
 1. **`EventerMapApiFunction` (`AWS::Serverless::Function`)**:
    - **런타임/아키텍처**: `provided.al2023` + `arm64` (Graviton2 기반으로 x86 대비 가격 대비 성능 20% 이상 우수)
    - **빌드 방식**: `BuildMethod: makefile` (`GOOS=linux GOARCH=arm64 CGO_ENABLED=0 go build -tags lambda.norpc -ldflags="-s -w"`)로 바이너리 크기를 최소화하여 콜드 스타트를 단축합니다.
+   - **바이너리 미디어 타입**: `Globals.Api.BinaryMediaTypes`에 `multipart~1form-data`를 등록하여 이미지 업로드(`POST /artists`) 시 바이너리 손상을 방지합니다.
+   - **자동 URL 연동**: `CORS_ORIGINS` 및 `X_REDIRECT_URI`가 비어 있더라도 생성된 `FrontendDistribution.DomainName` (`https://<cloudfront>`)을 자동으로 포함합니다.
    - **최소 권한 IAM**: `MediaBucket` CRUD 권한(`S3CrudPolicy`)과 `OAuthStatesTable`에 대한 `dynamodb:PutItem`, `dynamodb:DeleteItem` 권한만 부여합니다.
 2. **`MediaBucket` (`AWS::S3::Bucket`) + `MediaBucketPolicy`**:
    - 출연자 프로필 이미지 등 업로드 미디어 저장용 버킷이며, `MediaBucketPolicy`로 `/artists/profiles/*` 경로의 공개 읽기(`s3:GetObject`)만 허용합니다.
@@ -96,49 +98,69 @@ db.SetConnMaxIdleTime(1 * time.Minute) // 4) 1분 이상 놀고 있는 유휴 �
 ### 4.1. 로컬 원클릭 배포 (`Makefile`)
 루트 [`Makefile`](../Makefile)은 CloudFormation Stack Output(`EventerMapApi`, `FrontendBucketName`, `CloudFrontDistributionId`)을 자동으로 조회하여 수동 복사/붙여넣기 없이 배포합니다. (`backend/Makefile`의 `make deploy`는 SAM CLI가 없으면 AWS CLI `cloudformation package + deploy`로 자동 폴백합니다.)
 
+#### 로컬 DB vs AWS 배포 DB 분리 (`PROD_DATABASE_URL`)
+- `backend/.env`에서 로컬 개발용 내부망 DB(`DATABASE_URL`, 예: `192.168.11.2:6930`)와 AWS Lambda 배포용 공인/DDNS DB(`PROD_DATABASE_URL`, 예: `ludwig1824.synology.me:6930`)를 분리하여 관리할 수 있습니다.
+- `make deploy-be` 실행 시 `PROD_DATABASE_URL`이 설정되어 있으면 우선 사용하며, 사설/루프백 IP가 Lambda에 잘못 주입되지 않도록 사전 차단합니다.
+
 #### 프론트엔드 차등 캐싱 전략 (`make deploy-fe`)
+- `frontend/.env`에서 Google Maps / OAuth 키를 로드하되, `REACT_APP_API_URL`은 CloudFormation Stack Output(`EventerMapApi`)으로 자동 덮어써서 로컬 주소(`http://localhost:8080`)가 프로덕션 빌드에 섞이지 않도록 보장합니다.
 - **해시된 정적 에셋 (`build/static/*`)**: 파일명에 콘텐츠 해시가 포함되므로 `Cache-Control: public, max-age=31536000, immutable` 헤더를 부여해 브라우저와 CloudFront에 **1년간 영구 캐싱**합니다.
 - **엔트리 파일 (`index.html`, `asset-manifest.json`)**: 배포 즉시 새 버전을 가리켜야 하므로 `Cache-Control: no-cache, no-store, must-revalidate`를 부여하고, CloudFront 무효화(Invalidation)도 `/index.html`과 `/` 경로만 최소 실행하여 비용과 반영 시간을 절약합니다.
 
 #### 명령어 요약
 ```bash
-# 1. 최초 1회: backend/.env에 배포 환경변수 설정 후 백엔드 & 인프라 생성
+# 0. AWS CLI 미설치 시 사용자 영역(~/.local/bin)에 설치 후 자격 증명 등록
+make install-aws-cli
+aws configure
+
+# 1. 배포 전 CLI, 자격 증명, backend/.env, frontend/.env 사전 점검
+make deploy-check
+
+# 2. (선택) GitHub Actions OIDC IAM Role 생성 -> 출력된 AWS_ROLE_ARN을 GitHub Secrets에 등록
+make setup-oidc
+
+# 3. 최초 1회: backend/.env에 배포 환경변수 설정 후 백엔드 & 인프라 생성
 make deploy-be
 
-# 2. 생성된 CloudFront URL 및 API Gateway 엔드포인트 확인
+# 4. 생성된 CloudFront URL 및 API Gateway 엔드포인트 확인
 make stack-outputs
 
-# 3. 프론트엔드 빌드 + S3 동기화 + CloudFront 캐시 무효화
+# 5. 프론트엔드 빌드 + S3 동기화 + CloudFront 캐시 무효화
 make deploy-fe
 
-# 4. 이후 백엔드 + 프론트엔드 통합 배포 시
+# 6. 이후 백엔드 + 프론트엔드 통합 배포 시
 make deploy-all
 ```
 
 ### 4.2. GitHub Actions 자동 배포 (`.github/workflows/deploy.yml`)
-`main` 브랜치에 코드가 푸시되면 아래 2개의 Job이 순차 실행됩니다:
+[`backend/github-oidc.yaml`](../backend/github-oidc.yaml)(`make setup-oidc`)로 OIDC 연동을 완료한 뒤 `main` 브랜치에 푸시하거나 `workflow_dispatch`로 수동 실행하면 아래 2개의 Job이 순차 실행됩니다:
 1. **`deploy-backend`**:
    - AWS IAM OIDC(`aws-actions/configure-aws-credentials@v4`)로 임시 권한을 획득하고 `make deploy`를 실행하여 Lambda 및 인프라를 갱신합니다.
-   - CloudFormation Stack Output에서 `api_url`, `s3_bucket`, `cf_dist_id`를 추출해 다음 Job으로 전달합니다.
+   - CloudFormation Stack Output에서 `api_url`, `s3_bucket`, `cf_dist_id`, `frontend_url`을 추출해 다음 Job으로 전달합니다.
 2. **`deploy-frontend`**:
    - 전달받은 `api_url`을 `REACT_APP_API_URL`에 자동 주입하여 `npm run build`를 수행합니다.
-   - S3 차등 캐싱 업로드 및 CloudFront 캐시 무효화를 자동으로 완료합니다.
+   - S3 차등 캐싱 업로드 및 CloudFront 캐시 무효화를 완료한 뒤, `$GITHUB_STEP_SUMMARY`에 배포 URL 요약표를 출력합니다.
 
-#### 배포 환경변수 / GitHub Secrets 목록
+#### 배포 환경변수 / GitHub Secrets & Variables 목록
 | 구분 | 이름 | 설명 | 비고 |
 | :--- | :--- | :--- | :--- |
-| **Secrets** | `AWS_ROLE_ARN` | GitHub OIDC 연동용 AWS IAM Role ARN | 워크플로우 사용 중 |
-| **Secrets** | `DATABASE_URL` | NAS PostgreSQL 접속 URL (`?sslmode=require&connect_timeout=5` 권장) | 워크플로우·`Makefile` 공통 |
-| **Secrets** | `JWT_SECRET` | 프로덕션 JWT 서명 시크릿 키 | 워크플로우·`Makefile` 공통 |
-| **Secrets** | `CORS_ORIGINS` | 허용할 프론트엔드 Origin (예: `https://d1234.cloudfront.net`) | 워크플로우·`Makefile` 공통 |
-| **Secrets** | `COOKIE_DOMAIN` | 선택 사항 (커스텀 도메인 공유 시 예: `.eventermap.com`) | 워크플로우·`Makefile` 공통 |
-| **Secrets** | `COOKIE_SAMESITE` | 기본값 `None` (동일 루트 도메인 사용 시 `Lax`) | 워크플로우·`Makefile` 공통 |
-| **Backend Env** | `X_CLIENT_ID` | X Developer Portal OAuth 2.0 Client ID | 현재 `backend/Makefile` 전달 (Actions 반영 시 `deploy.yml` `env` 추가 필요) |
-| **Backend Env** | `X_CLIENT_SECRET` | X Developer Portal OAuth 2.0 Client Secret (백엔드 전용) | 현재 `backend/Makefile` 전달 |
-| **Backend Env** | `X_REDIRECT_URI` | X OAuth 2.0 Callback URL (`https://<도메인>/auth/x/callback`) | 현재 `backend/Makefile` 전달 |
-| **Backend Env** | `X_REQUEST_EMAIL` | 선택 사항 (`true` 설정 시 `users.email` 스코프 요청, 기본 `false`) | 현재 `backend/Makefile` 전달 |
-| **Secrets** | `REACT_APP_GOOGLE_MAPS_API_KEY` | 프론트엔드 Google Maps JavaScript API 키 | 워크플로우 사용 중 |
-| **Secrets** | `REACT_APP_GOOGLE_CLIENT_ID` | 프론트엔드 Google OAuth Client ID | 워크플로우 사용 중 |
+| **Secrets** | `AWS_ROLE_ARN` | GitHub OIDC 연동용 AWS IAM Role ARN (`make setup-oidc` 출력값) | 필수 |
+| **Secrets** | `DATABASE_URL` | 외부 접속 가능한 PostgreSQL URL (`?sslmode=require&connect_timeout=5` 권장) | 필수 (로컬에서는 `PROD_DATABASE_URL` 우선) |
+| **Secrets** | `JWT_SECRET` | 프로덕션 JWT 서명 시크릿 키 | 필수 |
+| **Secrets** | `CORS_ORIGINS` | 추가 허용 프론트엔드 Origin (예: 커스텀 도메인). CloudFront URL은 자동 추가됨 | 선택 |
+| **Secrets** | `COOKIE_DOMAIN` | 커스텀 도메인 공유 시 예: `.eventermap.com` | 선택 |
+| **Secrets** | `COOKIE_SAMESITE` | 기본값 `None` (동일 루트 도메인 사용 시 `Lax`) | 선택 |
+| **Secrets** | `X_CLIENT_ID` | X Developer Portal OAuth 2.0 Client ID | X 로그인 사용 시 |
+| **Secrets** | `X_CLIENT_SECRET` | X Developer Portal OAuth 2.0 Client Secret (백엔드 전용) | X 로그인 사용 시 |
+| **Secrets** | `X_REDIRECT_URI` | X OAuth 2.0 Callback URL (비워두면 `https://<cloudfront>/auth/x/callback` 자동 설정) | 선택 |
+| **Vars / Secrets** | `X_REQUEST_EMAIL` | `true` 설정 시 `users.email` 스코프 요청 (기본값 `false`) | 선택 |
+| **Secrets** | `SMTP_HOST` | SMTP 메일 서버 호스트 (비워두면 CloudWatch Logs MockMailer 동작) | 이메일 인증 사용 시 |
+| **Vars / Secrets** | `SMTP_PORT` | SMTP 포트 (기본값 `587`, SSL 사용 시 `465`) | 선택 |
+| **Secrets** | `SMTP_USER` | SMTP 로그인 아이디 | 이메일 인증 사용 시 |
+| **Secrets** | `SMTP_PASSWORD` | SMTP 로그인 비밀번호 / 앱 비밀번호 | 이메일 인증 사용 시 |
+| **Secrets** | `SMTP_FROM` | 발신자 이메일 주소 (비워두면 `SMTP_USER` 사용) | 선택 |
+| **Secrets** | `REACT_APP_GOOGLE_MAPS_API_KEY` | 프론트엔드 Google Maps JavaScript API 키 | 필수 |
+| **Secrets** | `REACT_APP_GOOGLE_CLIENT_ID` | 프론트엔드 Google OAuth Client ID | 필수 |
 
 ### 4.3. X Developer Portal & 로컬 개발 환경 설정 팁
 - **X Developer Portal 설정**:
@@ -152,4 +174,4 @@ make deploy-all
 > **💡 DB 마이그레이션 보안 팁**: NAS의 PostgreSQL 포트를 GitHub Actions의 불특정 IP 대역에 개방하는 대신, 스키마 마이그레이션(`cd backend && make migrateup`)은 로컬 개발 PC 또는 NAS 내부망에서 실행하는 것을 권장합니다.
 
 ---
-*문서 최종 업데이트: 2026-11-12*
+*문서 최종 업데이트: 2026-11-15*

@@ -67,6 +67,36 @@ Parameters:
       - "false"
     Description: Request users.email scope during X OAuth when enabled in X Developer Portal
 
+  SmtpHost:
+    Type: String
+    Default: ""
+    Description: SMTP server host (leave empty to use MockMailer console logging)
+
+  SmtpPort:
+    Type: String
+    Default: "587"
+    Description: SMTP server port (e.g., 587 for STARTTLS, 465 for SSL/TLS)
+
+  SmtpUser:
+    Type: String
+    Default: ""
+    Description: SMTP authentication username
+
+  SmtpPassword:
+    Type: String
+    NoEcho: true
+    Default: ""
+    Description: SMTP authentication password or app password
+
+  SmtpFrom:
+    Type: String
+    Default: ""
+    Description: Email sender address (defaults to SmtpUser when empty)
+
+Conditions:
+  HasCustomCorsOrigins: !Not [!Equals [!Ref CorsOrigins, ""]]
+  HasCustomXRedirectUri: !Not [!Equals [!Ref XRedirectUri, ""]]
+
 Globals:
   Function:
     Timeout: 30
@@ -74,6 +104,9 @@ Globals:
     Runtime: provided.al2023
     Architectures:
       - arm64
+  Api:
+    BinaryMediaTypes:
+      - multipart~1form-data
 
 Resources:
   # ============================================================================
@@ -98,15 +131,26 @@ Resources:
           ENV: !Ref Stage
           DATABASE_URL: !Ref DatabaseUrl
           JWT_SECRET: !Ref JwtSecret
-          CORS_ORIGINS: !Ref CorsOrigins
+          CORS_ORIGINS: !If
+            - HasCustomCorsOrigins
+            - !Sub "${CorsOrigins},https://${FrontendDistribution.DomainName}"
+            - !Sub "https://${FrontendDistribution.DomainName}"
           COOKIE_DOMAIN: !Ref CookieDomain
           COOKIE_SAMESITE: !Ref CookieSameSite
           S3_MEDIA_BUCKET: !Ref MediaBucket
           DYNAMODB_OAUTH_STATE_TABLE: !Ref OAuthStatesTable
           X_CLIENT_ID: !Ref XClientId
           X_CLIENT_SECRET: !Ref XClientSecret
-          X_REDIRECT_URI: !Ref XRedirectUri
+          X_REDIRECT_URI: !If
+            - HasCustomXRedirectUri
+            - !Ref XRedirectUri
+            - !Sub "https://${FrontendDistribution.DomainName}/auth/x/callback"
           X_REQUEST_EMAIL: !Ref XRequestEmail
+          SMTP_HOST: !Ref SmtpHost
+          SMTP_PORT: !Ref SmtpPort
+          SMTP_USER: !Ref SmtpUser
+          SMTP_PASSWORD: !Ref SmtpPassword
+          SMTP_FROM: !Ref SmtpFrom
       Events:
         CatchAll:
           Type: Api

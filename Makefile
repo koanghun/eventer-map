@@ -1,12 +1,26 @@
-.PHONY: generate deploy-init deploy-be deploy-fe deploy-all stack-outputs
+.PHONY: generate install-aws-cli deploy-check setup-oidc deploy-init deploy-be deploy-fe deploy-all stack-outputs
 
 STACK_NAME ?= eventer-map-stack
-AWS_REGION ?= ap-northeast-1
+AWS_REGION ?= ap-southeast-2
+
+export PATH := $(HOME)/.local/bin:/usr/local/bin:/snap/bin:$(PATH)
 
 # Generate both Backend (oapi-codegen + sqlc) and Frontend (Orval) code
 generate:
 	cd backend && $(MAKE) generate
 	cd frontend && npm run generate:api
+
+# Install AWS CLI v2 into ~/.local/bin without sudo
+install-aws-cli:
+	bash scripts/install_aws_cli.sh
+
+# Verify local AWS CLI credentials, backend/.env, and frontend/.env before deploying
+deploy-check:
+	AWS_REGION=$(AWS_REGION) bash scripts/check_aws_env.sh
+
+# Provision GitHub Actions OIDC Identity Provider and IAM Deploy Role
+setup-oidc:
+	cd backend && $(MAKE) setup-oidc AWS_REGION=$(AWS_REGION)
 
 # 1. First-time AWS SAM interactive setup (creates backend/samconfig.toml)
 deploy-init:
@@ -19,11 +33,19 @@ deploy-be:
 # 3. Build & Deploy Frontend to S3 + Invalidate CloudFront
 deploy-fe:
 	@echo "Fetching CloudFormation outputs from $(STACK_NAME)..."
-	@S3_BUCKET=$${S3_BUCKET:-$$(aws cloudformation describe-stacks --stack-name $(STACK_NAME) --region $(AWS_REGION) --query "Stacks[0].Outputs[?OutputKey=='FrontendBucketName'].OutputValue" --output text)}; \
+	@OVERRIDE_API_URL="$${REACT_APP_API_URL:-}"; \
+	if [ -f frontend/.env ]; then \
+		set -a; . ./frontend/.env; set +a; \
+	fi; \
+	S3_BUCKET=$${S3_BUCKET:-$$(aws cloudformation describe-stacks --stack-name $(STACK_NAME) --region $(AWS_REGION) --query "Stacks[0].Outputs[?OutputKey=='FrontendBucketName'].OutputValue" --output text)}; \
 	CF_DIST_ID=$${CF_DIST_ID:-$$(aws cloudformation describe-stacks --stack-name $(STACK_NAME) --region $(AWS_REGION) --query "Stacks[0].Outputs[?OutputKey=='CloudFrontDistributionId'].OutputValue" --output text)}; \
-	API_URL=$${REACT_APP_API_URL:-$$(aws cloudformation describe-stacks --stack-name $(STACK_NAME) --region $(AWS_REGION) --query "Stacks[0].Outputs[?OutputKey=='EventerMapApi'].OutputValue" --output text)}; \
+	CF_API_URL=$$(aws cloudformation describe-stacks --stack-name $(STACK_NAME) --region $(AWS_REGION) --query "Stacks[0].Outputs[?OutputKey=='EventerMapApi'].OutputValue" --output text); \
+	API_URL="$${OVERRIDE_API_URL:-$$CF_API_URL}"; \
 	if [ -z "$$S3_BUCKET" ] || [ "$$S3_BUCKET" = "None" ]; then \
 		echo "Error: Could not resolve FrontendBucketName. Run 'make deploy-be' first."; exit 1; \
+	fi; \
+	if [ -z "$$API_URL" ] || [ "$$API_URL" = "None" ]; then \
+		echo "Error: Could not resolve EventerMapApi URL. Run 'make deploy-be' first."; exit 1; \
 	fi; \
 	echo "Building Frontend with REACT_APP_API_URL=$$API_URL ..."; \
 	cd frontend && REACT_APP_API_URL="$$API_URL" npm run build; \

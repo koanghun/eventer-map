@@ -1,0 +1,157 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: >
+  GitHub Actions OIDC Identity Provider and IAM Deploy Role for eventer-map.
+  Deploy once per AWS account/repository to enable keyless GitHub Actions CI/CD.
+
+Parameters:
+  GitHubOrg:
+    Type: String
+    Default: koanghun
+    Description: GitHub organization or username
+
+  GitHubRepo:
+    Type: String
+    Default: eventer-map
+    Description: GitHub repository name
+
+  GitHubBranch:
+    Type: String
+    Default: "*"
+    Description: Allowed branch name for OIDC assumption (or * to allow workflow_dispatch and all branches)
+
+  ExistingOIDCProviderArn:
+    Type: String
+    Default: ""
+    Description: Optional ARN of an existing token.actions.githubusercontent.com OIDC provider in this AWS account
+
+  StackNamePrefix:
+    Type: String
+    Default: eventer-map
+    Description: Prefix for CloudFormation stack and managed AWS resources
+
+Conditions:
+  CreateOIDCProvider: !Equals [!Ref ExistingOIDCProviderArn, ""]
+  IsWildcardBranch: !Equals [!Ref GitHubBranch, "*"]
+
+Resources:
+  GitHubOIDCProvider:
+    Type: AWS::IAM::OIDCProvider
+    Condition: CreateOIDCProvider
+    Properties:
+      Url: https://token.actions.githubusercontent.com
+      ClientIdList:
+        - sts.amazonaws.com
+      ThumbprintList:
+        - 6938fd4d98bab03faadb97b34396831e3780aea1
+        - 1c58a3a8518e8759bf075b76b750d4f2df264fcd
+
+  GitHubActionsDeployRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub "${StackNamePrefix}-github-actions-deploy"
+      Description: Allows GitHub Actions OIDC workflow to deploy SAM backend and S3/CloudFront frontend
+      MaxSessionDuration: 3600
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Sid: AllowGitHubActionsOIDC
+            Effect: Allow
+            Principal:
+              Federated: !If
+                - CreateOIDCProvider
+                - !GetAtt GitHubOIDCProvider.Arn
+                - !Ref ExistingOIDCProviderArn
+            Action: sts:AssumeRoleWithWebIdentity
+            Condition:
+              StringEquals:
+                token.actions.githubusercontent.com:aud: sts.amazonaws.com
+              StringLike:
+                token.actions.githubusercontent.com:sub: !If
+                  - IsWildcardBranch
+                  - !Sub "repo:${GitHubOrg}/${GitHubRepo}:*"
+                  - !Sub "repo:${GitHubOrg}/${GitHubRepo}:ref:refs/heads/${GitHubBranch}"
+      Policies:
+        - PolicyName: EventerMapSamAndFrontendDeployPolicy
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Sid: CloudFormationStackDeployment
+                Effect: Allow
+                Action:
+                  - cloudformation:CreateStack
+                  - cloudformation:UpdateStack
+                  - cloudformation:DeleteStack
+                  - cloudformation:DescribeStacks
+                  - cloudformation:DescribeStackEvents
+                  - cloudformation:DescribeStackResources
+                  - cloudformation:DescribeChangeSet
+                  - cloudformation:CreateChangeSet
+                  - cloudformation:ExecuteChangeSet
+                  - cloudformation:DeleteChangeSet
+                  - cloudformation:ListChangeSets
+                  - cloudformation:GetTemplate
+                  - cloudformation:GetTemplateSummary
+                  - cloudformation:ValidateTemplate
+                Resource: "*"
+              - Sid: S3DeploymentAndFrontendHosting
+                Effect: Allow
+                Action:
+                  - s3:*
+                Resource:
+                  - !Sub "arn:aws:s3:::${StackNamePrefix}-*"
+                  - !Sub "arn:aws:s3:::${StackNamePrefix}-*/*"
+                  - "arn:aws:s3:::aws-sam-cli-managed-default-*"
+                  - "arn:aws:s3:::aws-sam-cli-managed-default-*/*"
+              - Sid: LambdaDeployment
+                Effect: Allow
+                Action:
+                  - lambda:*
+                Resource:
+                  - !Sub "arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:${StackNamePrefix}-*"
+              - Sid: ApiGatewayDeployment
+                Effect: Allow
+                Action:
+                  - apigateway:*
+                Resource:
+                  - !Sub "arn:aws:apigateway:${AWS::Region}::/*"
+              - Sid: DynamoDBDeployment
+                Effect: Allow
+                Action:
+                  - dynamodb:*
+                Resource:
+                  - !Sub "arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${StackNamePrefix}-*"
+              - Sid: CloudFrontDistributionAndInvalidation
+                Effect: Allow
+                Action:
+                  - cloudfront:*
+                Resource: "*"
+              - Sid: IAMRoleManagementForLambda
+                Effect: Allow
+                Action:
+                  - iam:CreateRole
+                  - iam:DeleteRole
+                  - iam:GetRole
+                  - iam:PassRole
+                  - iam:PutRolePolicy
+                  - iam:DeleteRolePolicy
+                  - iam:GetRolePolicy
+                  - iam:AttachRolePolicy
+                  - iam:DetachRolePolicy
+                  - iam:ListRolePolicies
+                  - iam:ListAttachedRolePolicies
+                  - iam:TagRole
+                  - iam:UntagRole
+                Resource:
+                  - !Sub "arn:aws:iam::${AWS::AccountId}:role/${StackNamePrefix}-*"
+
+Outputs:
+  GitHubActionsRoleArn:
+    Description: "Set this value as GitHub Actions Secret AWS_ROLE_ARN"
+    Value: !GetAtt GitHubActionsDeployRole.Arn
+
+  OIDCProviderArn:
+    Description: "GitHub OIDC Provider ARN used by the role"
+    Value: !If
+      - CreateOIDCProvider
+      - !GetAtt GitHubOIDCProvider.Arn
+      - !Ref ExistingOIDCProviderArn

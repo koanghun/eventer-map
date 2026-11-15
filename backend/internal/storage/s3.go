@@ -28,7 +28,7 @@ type S3Storage struct {
 
 // NewS3StorageFromEnv initializes an S3Storage instance from environment variables.
 // Required: S3_MEDIA_BUCKET (or AWS_S3_BUCKET).
-// Optional: AWS_REGION (defaults to ap-northeast-2), S3_PUBLIC_BASE_URL.
+// Optional: AWS_REGION (defaults to ap-southeast-2), S3_PUBLIC_BASE_URL.
 func NewS3StorageFromEnv(ctx context.Context) (*S3Storage, error) {
 	bucketName := strings.TrimSpace(os.Getenv("S3_MEDIA_BUCKET"))
 	if bucketName == "" {
@@ -43,7 +43,7 @@ func NewS3StorageFromEnv(ctx context.Context) (*S3Storage, error) {
 		region = strings.TrimSpace(os.Getenv("AWS_DEFAULT_REGION"))
 	}
 	if region == "" {
-		region = "ap-northeast-2"
+		region = "ap-southeast-2"
 	}
 
 	cfg, err := config.LoadDefaultConfig(ctx, config.WithRegion(region))
