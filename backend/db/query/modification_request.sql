@@ -82,3 +82,8 @@ DELETE FROM modification_requests
 WHERE status = 'PENDING'
   AND low_trust_since IS NOT NULL
   AND low_trust_since <= $1;
+
+-- name: DeleteExpiredModificationRequests :exec
+DELETE FROM modification_requests
+WHERE status = 'PENDING'
+  AND created_at <= $1;

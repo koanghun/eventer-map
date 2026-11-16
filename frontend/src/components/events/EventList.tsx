@@ -49,10 +49,13 @@ function EventList({ events, loading, emptyTitle, emptyDescription, onEventEdit,
                 <div className="p-3 space-y-3">
                     {events.map((event) => {
                         const isSelected = selectedEvent?.id === event.id;
-                        const canManage = Boolean(
+                        const canDelete = Boolean(
                             user &&
                             (user.role === 'ADMIN' ||
                                 (event.status === 'PENDING' && (!event.authorId || event.authorId === user.id)))
+                        );
+                        const canEdit = Boolean(
+                            user && (event.status === 'APPROVED' || canDelete)
                         );
                         const formattedStart = formatLocalizedDateTime(event.startTime, i18n.language, false);
                         const formattedEnd = formattedStart
@@ -73,38 +76,38 @@ function EventList({ events, loading, emptyTitle, emptyDescription, onEventEdit,
                                         {event.title}
                                     </h4>
 
-                                    {canManage && (onEventEdit || onEventDelete) && (
-                                        <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                                            {onEventEdit && (
-                                                <Button
-                                                    variant="ghost"
-                                                    size="icon"
-                                                    className="h-8 w-8 text-muted-foreground hover:text-primary hover:bg-primary/10"
-                                                    onClick={(e) => {
-                                                        e.stopPropagation();
-                                                        onEventEdit(event);
-                                                    }}
-                                                    title={t('buttons.edit')}
-                                                >
-                                                    <Edit2 className="h-4 w-4" />
-                                                </Button>
-                                            )}
-                                            {onEventDelete && (
-                                                <Button
-                                                    variant="ghost"
-                                                    size="icon"
-                                                    className="h-8 w-8 text-muted-foreground hover:text-destructive hover:bg-destructive/10"
-                                                    onClick={(e) => {
-                                                        e.stopPropagation();
-                                                        if (event.id) onEventDelete(event.id);
-                                                    }}
-                                                    title={t('buttons.delete')}
-                                                >
-                                                    <Trash2 className="h-4 w-4" />
-                                                </Button>
-                                            )}
-                                        </div>
-                                    )}
+                                        {((canEdit && onEventEdit) || (canDelete && onEventDelete)) && (
+                                            <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                                    { canEdit && onEventEdit && (
+                                                        <Button
+                                                            variant="ghost"
+                                                            size="icon"
+                                                            className="h-8 w-8 text-muted-foreground hover:text-primary hover:bg-primary/10"
+                                                            onClick={(e) => {
+                                                                e.stopPropagation();
+                                                                onEventEdit(event);
+                                                            }}
+                                                            title={t('buttons.edit')}
+                                                        >
+                                                            <Edit2 className="h-4 w-4" />
+                                                        </Button>
+                                                    )}
+                                                    { canDelete && onEventDelete && (
+                                                        <Button
+                                                            variant="ghost"
+                                                            size="icon"
+                                                            className="h-8 w-8 text-muted-foreground hover:text-destructive hover:bg-destructive/10"
+                                                            onClick={(e) => {
+                                                                e.stopPropagation();
+                                                                if (event.id) onEventDelete(event.id);
+                                                            }}
+                                                            title={t('buttons.delete')}
+                                                        >
+                                                            <Trash2 className="h-4 w-4" />
+                                                        </Button>
+                                                    )}
+                                            </div>
+                                        )}
                                 </div>
 
                                 <div className="space-y-1.5 text-sm">

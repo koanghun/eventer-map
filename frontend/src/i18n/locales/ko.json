@@ -95,7 +95,7 @@
             "X_ALREADY_LINKED": "이미 X 계정이 연동되어 있습니다.",
             "X_ACCOUNT_MISMATCH": "현재 계정에 연동된 X 계정과 다른 계정으로 인증되었습니다.",
             "CANNOT_UNLINK_LAST_AUTH": "마지막 로그인 수단은 해제할 수 없습니다. 다른 로그인 수단을 먼저 연동해주세요.",
-            "EMAIL_REQUIRED_FOR_PASSWORD": "이메일이 없는 계정에서는 비밀번호를 설정할 수 없습니다."
+            "DUPLICATE_MODIFICATION_REQUEST": "이미 동일한 내용의 수정 요청이 등록되어 있습니다."
         },
         "accessDenied": "접근 권한이 없습니다.",
         "serverError": "서버 오류가 발생했습니다. 잠시 후 다시 시도해주세요.",
@@ -686,15 +686,21 @@
     },
     "modRequest": {
         "title": "공인 데이터 수정 요청",
+        "collapsedHint": "펼치기",
         "propose": "수정 요청",
+        "proposeEditTitle": "공인 데이터 수정 요청",
+        "officialEditNotice": "공인 데이터는 변경된 항목별로 수정 리퀘스트가 등록되며, 신용 점수가 기준(+5점)에 도달하면 즉시 반영됩니다.",
         "reason": "수정 사유",
         "reasonPlaceholder": "변경이 필요한 이유를 입력하세요",
         "submit": "요청 등록",
+        "submitButton": "수정 리퀘스트 등록",
         "empty": "진행 중인 수정 요청이 없습니다.",
         "noChanges": "변경된 내용이 없습니다.",
         "created": "수정 요청이 등록되었습니다.",
         "deleted": "수정 요청이 삭제되었습니다.",
         "applied": "수정 요청이 반영되었습니다.",
+        "appliedByCredit": "신용 점수가 기준에 도달하여 데이터가 수정되었습니다.",
+        "rejectedByCredit": "신용 점수가 낮아 수정 요청이 삭제되었습니다.",
         "actionFailed": "요청 처리에 실패했습니다.",
         "applyNow": "관리자 즉시 반영",
         "trustScore": "신뢰 점수"

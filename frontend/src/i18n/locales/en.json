@@ -95,7 +95,7 @@
             "X_ALREADY_LINKED": "An X account is already linked.",
             "X_ACCOUNT_MISMATCH": "The authenticated X account does not match your linked account.",
             "CANNOT_UNLINK_LAST_AUTH": "You cannot unlink your last remaining login method. Please add another login method first.",
-            "EMAIL_REQUIRED_FOR_PASSWORD": "An email address is required to set a password."
+            "DUPLICATE_MODIFICATION_REQUEST": "An identical modification request is already pending."
         },
         "accessDenied": "Access denied.",
         "serverError": "A server error occurred. Please try again later.",
@@ -688,15 +688,21 @@
     },
     "modRequest": {
         "title": "Official Data Modification Requests",
+        "collapsedHint": "Expand",
         "propose": "Request Edit",
+        "proposeEditTitle": "Propose Official Data Edit",
+        "officialEditNotice": "Each modified field of official data is submitted as an individual modification request and applied immediately once its credit score reaches +5.",
         "reason": "Reason",
         "reasonPlaceholder": "Explain why this change is needed",
         "submit": "Submit Request",
+        "submitButton": "Submit Modification Requests",
         "empty": "No pending modification requests.",
         "noChanges": "No changes detected.",
         "created": "Modification request submitted.",
         "deleted": "Modification request deleted.",
         "applied": "Modification request applied.",
+        "appliedByCredit": "Credit threshold reached. Data has been updated.",
+        "rejectedByCredit": "Modification request was removed due to low credit score.",
         "actionFailed": "Failed to process request.",
         "applyNow": "Apply Immediately (Admin)",
         "trustScore": "Trust Score"

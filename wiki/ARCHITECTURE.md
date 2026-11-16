@@ -79,7 +79,7 @@ flowchart LR
 ### 5) `internal/service/` (비즈니스 계층)
 - HTTP 객체(`http.Request` 등)에 의존하지 않는 순수 Go 도메인 로직을 수행합니다.
 - 유저 권한(`ADMIN` 여부)에 따른 등록 상태 결정(`PENDING` vs `APPROVED`), 이벤트 평점 등록/수정/삭제(`RateEvent` / `DeleteRate`) 및 이벤트 수정 시 공연장·출연자의 평균 평점 캐시(`rating_sum`, `rating_count`) 재계산, 스레드 복합 커서 인코딩/디코딩, 본인 스레드 추천 방지, 트랜잭션 처리를 담당합니다.
-- 데이터 신뢰도 도메인(`credit_service.go`)에서는 3대 엔티티의 1인 1표 신용 점수 투표(`VoteEntityCredit`), 공인(`APPROVED`) 엔티티에 대한 수정 요청 등록·삭제·신뢰 점수 투표·관리자 즉시 반영(`CreateModificationRequest`, `VoteModificationRequestTrust`, `ApplyModificationRequestByAdmin`), 그리고 AWS Lambda 환경에서 상주 고루틴 없이 동작하는 `atomic.Int64` CAS 기반 30초 스로틀링 지연 평가(`MaybeProcessSustainedLifecycle` ➔ 24시간 지속 승격/삭제/반영)를 수행합니다. 상세 정책은 [데이터 신뢰도 시스템 문서](./DATA_GOVERNANCE_AND_CREDIT_POLICY.md)를 참고하세요.
+- 데이터 신뢰도 도메인(`credit_service.go`)에서는 3대 엔티티의 1인 1표 신용 점수 투표(`VoteEntityCredit`), 공인(`APPROVED`) 엔티티에 대한 필드별 개별 수정 리퀘스트 분리 등록·삭제·신뢰 점수 투표 및 임계치(`>= 5표 & >= +5` / `<= -5`) 도달 시 24시간 대기 없는 즉시 반영·삭제(`CreateModificationRequest`, `VoteModificationRequestTrust`, `ApplyModificationRequestByAdmin`), 그리고 AWS Lambda 환경에서 상주 고루틴 없이 동작하는 `atomic.Int64` CAS 기반 30초 스로틀링 지연 평가(`MaybeProcessSustainedLifecycle` ➔ 24시간 지속 `PENDING` 엔티티 승격/삭제)를 수행합니다. 상세 정책은 [데이터 신뢰도 시스템 문서](./DATA_GOVERNANCE_AND_CREDIT_POLICY.md)를 참고하세요.
 - 이벤트 조회(`event_service.go` `ListEvents`)에서는 일반 지도 조회(`ListEvents`), 내 북마크/참가 조회(`ListMyActionEvents`), 팔로우한 출연자 이벤트 조회(`ListFollowingArtistsEventsForMap`, 선택적 `CreatedAfter` 스냅샷 필터 포함) 경로를 분기하며, 개인화 필터의 인증 누락·충돌 조합에 대해 fail-closed 에러를 반환합니다.
 - 팔로우 아티스트 피드(`artist_service.go` `GetFollowingArtistsEventFeed`, `UpdateLastArtistFeedCheckedAt`)는 `unreadOnly` 목록·미확인 카운트·기준 타임스탬프(`checkedAt`, `fetchedAt`) 조회와 `readBefore` 상한 클램핑 읽음 갱신을 처리합니다.
 - 인증/계정 도메인(`auth_service.go`, `x_auth_service.go`, `user_service.go`)에서는 이메일 인증 코드 검증, Google/X OAuth 로그인·계정 연동·해제(마지막 로그인 수단 해제 방지), 이메일 없는 X 가입(`NULL` 이메일 + 유니크 닉네임 자동 생성), 탈퇴 재인증 검증을 수행합니다.
@@ -119,7 +119,7 @@ flowchart LR
 - **이벤트 상세 뷰 (`EventDetailPane.tsx`)**:
   - 지도 마커(`SingleEventInfoWindow`, `GroupEventInfoWindow`) 또는 리스트에서 이벤트 선택 시 상세 정보, 출연자(`공식 이름 (식별 설명)`), 공연장을 표시하며, 출연자/공연장 클릭 시 즉시 6개월 일정 검색으로 연동됩니다.
   - 체크/참가 상태 3단계 원클릭 순환(`usePutEventsEventIdAction`, `0 ➔ 1(북마크) ➔ 2(참가)`) 낙관적 업데이트 및 참가자(`status=2`) 전용 평점 등록/수정/삭제(`usePostEventsEventIdRate`, `useDeleteEventsEventIdRate`) 지원.
-  - **데이터 신뢰도 & 수정 요청 섹션 (`CreditVoteSection.tsx`, `ModificationRequestsSection.tsx`)**: 모든 이벤트에서 `+1`/`-1`/`0` 신용 점수 투표 및 24시간 승격·삭제 예고 배너를 제공하고, 공인(`APPROVED`) 이벤트에 한해 수정 제안·신뢰 점수 투표·관리자 즉시 반영 UI를 제공합니다.
+  - **데이터 신뢰도 & 수정 요청 섹션 (`CreditVoteSection.tsx`, `ModificationRequestsSection.tsx`)**: 이벤트 기본 정보(`Title & Metadata`) 바로 아래에 기본적으로 접힌(`isExpanded = false`) 수정 리퀘스트 섹션을 배치하여, 펼쳤을 때 변경된 필드별(`타이틀`, `개연 시간`, `출연자` 등) 개별 항목에 `+1`/`-1`/`0` 신용 점수를 투표하고 `+5` 도달 시 즉시 반영·삭제되도록 제공합니다. 일반 유저가 `APPROVED` 이벤트의 상단 `'수정'` 폼(`EventFormPane.tsx`)에서 저장하면 기존 값과의 diff만 추출해 자동으로 개별 수정 리퀘스트로 분리 등록합니다. 하단 `CreditVoteSection`은 엔티티 자체 신용 점수 투표를 제공합니다.
   - **이벤트 스레드 & 커뮤니티 서브 섹션 (`EventThreadSection.tsx`)**:
     - **추천순 랭킹 & BEST 뱃지**: 추천 수가 많은 고품질 스레드가 상단에 정렬되며 상위 스레드에 BEST 뱃지 표시
     - **커서 기반 무한 스크롤**: TanStack Query v5 `useInfiniteQuery`를 활용한 지연 로딩

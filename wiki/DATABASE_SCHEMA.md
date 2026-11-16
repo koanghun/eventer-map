@@ -287,7 +287,7 @@ erDiagram
   - `user_id (UUID PK(1), FK -> users(id) ON DELETE CASCADE)`
   - `event_id` / `artist_id` / `venue_id (UUID PK(2), FK -> 대상 테이블(id) ON DELETE CASCADE)`
   - `score (INTEGER NOT NULL CHECK IN (1, -1))`, `created_at (TIMESTAMPTZ)`, `updated_at (TIMESTAMPTZ)`
-- **`modification_requests`**: 공인(`APPROVED`) 데이터 변경 제안
+- **`modification_requests`**: 공인(`APPROVED`) 데이터 필드별 변경 제안 (`TrustScore >= +5` 또는 `<= -5` 도달 및 관리자 반영 시 즉시 삭제)
   - `id (UUID PK)`, `entity_type (VARCHAR CHECK IN ('EVENT', 'ARTIST', 'VENUE'))`, `entity_id (UUID NOT NULL)`
   - `author_id (UUID FK -> users(id) ON DELETE SET NULL)`, `proposed_data (JSONB NOT NULL)`, `reason (TEXT NOT NULL DEFAULT '')`
   - `status (VARCHAR NOT NULL DEFAULT 'PENDING' CHECK IN ('PENDING', 'APPLIED'))`
@@ -374,7 +374,7 @@ erDiagram
 
 ## 7. 🛡️ `000021` 신용 점수 및 공인 데이터 수정 요청 확장 내역
 
-상세 운영 정책은 [데이터 관리 정책 문서](./DATA_GOVERNANCE_AND_CREDIT_POLICY.md)를 참고하세요.
+상세 운영 정책(수정 리퀘스트의 필드별 분리 등록 및 임계 도달 시 즉시 반영·삭제 포함)은 [데이터 신뢰도 시스템 문서](./DATA_GOVERNANCE_AND_CREDIT_POLICY.md)를 참고하세요.
 
 1. **엔티티 신용 점수 & 지속 타임스탬프 컬럼 (`events`, `artists`, `venues`)**:
    - `credit_score` (`INTEGER DEFAULT 0`), `credit_count` (`INTEGER DEFAULT 0`), `high_credit_since` (`TIMESTAMPTZ`), `low_credit_since` (`TIMESTAMPTZ`) 컬럼 추가.

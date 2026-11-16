@@ -95,7 +95,7 @@
             "X_ALREADY_LINKED": "既にXアカウントが連携されています。",
             "X_ACCOUNT_MISMATCH": "連携済みのXアカウントと異なるアカウントで認証されました。",
             "CANNOT_UNLINK_LAST_AUTH": "最後のログイン方法は解除できません。別のログイン方法を先に連携してください。",
-            "EMAIL_REQUIRED_FOR_PASSWORD": "メールアドレスが設定されていないアカウントではパスワードを設定できません。"
+            "DUPLICATE_MODIFICATION_REQUEST": "すでに同じ内容の修正リクエストが登録されています。"
         },
         "accessDenied": "アクセス権限がありません。",
         "serverError": "サーバーエラーが発生しました。しばらくしてから再度お試しください。",
@@ -686,15 +686,21 @@
     },
     "modRequest": {
         "title": "公式データの修正リクエスト",
+        "collapsedHint": "展開",
         "propose": "修正リクエスト",
+        "proposeEditTitle": "公式データ修正リクエスト提案",
+        "officialEditNotice": "公式データは変更された項目ごとに修正リクエストが登録され、信用スコアが基準（+5）に達すると即座に反映されます。",
         "reason": "修正理由",
         "reasonPlaceholder": "変更が必要な理由を入力してください",
         "submit": "リクエスト送信",
+        "submitButton": "修正リクエストを登録",
         "empty": "進行中の修正リクエストはありません。",
         "noChanges": "変更された内容がありません。",
         "created": "修正リクエストを登録しました。",
         "deleted": "修正リクエストを削除しました。",
         "applied": "修正リクエストを反映しました。",
+        "appliedByCredit": "信用スコアが基準に達したためデータが更新されました。",
+        "rejectedByCredit": "信用スコアが低いため修正リクエストが削除されました。",
         "actionFailed": "リクエストの処理に失敗しました。",
         "applyNow": "管理者即時反映",
         "trustScore": "信頼スコア"

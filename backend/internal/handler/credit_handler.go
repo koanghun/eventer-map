@@ -152,6 +152,8 @@ func (s *Server) CreateModificationRequest(w http.ResponseWriter, r *http.Reques
 		switch {
 		case errors.Is(err, service.ErrInvalidEntityType), errors.Is(err, service.ErrEmptyModification), errors.Is(err, service.ErrEntityNotOfficial):
 			RespondError(w, http.StatusBadRequest, err.Error())
+		case errors.Is(err, service.ErrDuplicateModification):
+			RespondErrorCode(w, http.StatusConflict, "DUPLICATE_MODIFICATION_REQUEST", err.Error())
 		case errors.Is(err, service.ErrUserBanned):
 			RespondError(w, http.StatusForbidden, err.Error())
 		case errors.Is(err, sql.ErrNoRows):

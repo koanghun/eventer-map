@@ -154,11 +154,11 @@
 | `PUT` | `/venues/{venueId}/credit` | **공연장 신용 점수 투표**: `+1` / `-1` / `0`(취소) 투표 (작성자 본인 제외) | 🟢 |
 | `DELETE` | `/events/{eventId}` | **이벤트 삭제**: `APPROVED`는 관리자만, `PENDING`은 작성자 또는 관리자 삭제 | 🟢 |
 | `POST` | `/events/{eventId}/approve` | **이벤트 승인 (관리자 전용)**: `PENDING` 이벤트를 `APPROVED`로 승격 | 🟢 |
-| `GET` | `/modification-requests` | **수정 요청 목록 조회**: `entityType`, `entityId`, `status` 기준 수정 요청 및 내 신뢰 투표(`myTrustScore`) 조회 | ⚪️ |
-| `POST` | `/modification-requests` | **수정 요청 등록**: 공인(`APPROVED`) 엔티티에 대한 `proposedData` 및 `reason` 등록 | 🟢 |
+| `GET` | `/modification-requests` | **수정 요청 목록 조회**: `entityType`, `entityId`, `status` 기준 필드별 수정 리퀘스트 목록 및 내 신뢰 투표(`myTrustScore`) 조회 | ⚪️ |
+| `POST` | `/modification-requests` | **수정 요청 등록**: 공인(`APPROVED`) 엔티티에 대한 `proposedData` 변경 필드를 각각 독립된 수정 리퀘스트 행으로 분리 등록 (동일 필드·동일 값 `PENDING` 중복 시 `409 DUPLICATE_MODIFICATION_REQUEST`) | 🟢 |
 | `DELETE` | `/modification-requests/{requestId}` | **수정 요청 삭제**: `PENDING` 상태의 작성자 본인 또는 관리자 삭제 | 🟢 |
-| `PUT` | `/modification-requests/{requestId}/trust` | **수정 요청 신뢰 점수 투표**: `+1` / `-1` / `0`(취소) 투표 (작성자 본인 제외) | 🟢 |
-| `POST` | `/modification-requests/{requestId}/apply` | **수정 요청 즉시 반영 (관리자 전용)**: 대기 시간 없이 대상 공인 엔티티에 반영 | 🟢 |
+| `PUT` | `/modification-requests/{requestId}/trust` | **수정 요청 신뢰 점수 투표**: `+1` / `-1` / `0`(취소) 투표 (작성자 본인 제외). 최소 5표 & `+5` 도달 시 24시간 대기 없이 즉시 반영 후 리퀘스트 삭제(`status: "APPLIED"` 반환), `-5` 이하 도달 시 즉시 삭제 | 🟢 |
+| `POST` | `/modification-requests/{requestId}/apply` | **수정 요청 즉시 반영 (관리자 전용)**: 대상 공인 엔티티에 반영 후 해당 수정 리퀘스트 삭제(`status: "APPLIED"` 반환) | 🟢 |
 
 ### 💡 이벤트 스레드(커뮤니티) 핵심 스펙 및 정책
 - **정렬 및 랭킹**: 누적 추천수(`recommendCount`) 내림차순 ➔ 작성 시각(`createdAt`) 최신순 ➔ `id` 내림차순으로 정렬되어 양질의 정보가 자연스럽게 상단에 노출됩니다.

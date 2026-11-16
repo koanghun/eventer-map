@@ -56,6 +56,17 @@ func (q *Queries) CreateModificationRequest(ctx context.Context, arg CreateModif
 	return i, err
 }
 
+const deleteExpiredModificationRequests = `-- name: DeleteExpiredModificationRequests :exec
+DELETE FROM modification_requests
+WHERE status = 'PENDING'
+  AND created_at <= $1
+`
+
+func (q *Queries) DeleteExpiredModificationRequests(ctx context.Context, createdAt time.Time) error {
+	_, err := q.db.ExecContext(ctx, deleteExpiredModificationRequests, createdAt)
+	return err
+}
+
 const deleteModificationRequest = `-- name: DeleteModificationRequest :exec
 DELETE FROM modification_requests
 WHERE id = $1

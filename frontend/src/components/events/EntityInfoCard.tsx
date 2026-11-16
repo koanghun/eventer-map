@@ -469,6 +469,7 @@ function EntityInfoShell({
                                                     officialName: artist.officialName,
                                                     hiragana: artist.hiragana,
                                                     disambiguation: artist.disambiguation,
+                                                    gender: artist.gender,
                                                 }}
                                             />
                                         )}

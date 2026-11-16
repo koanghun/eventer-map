@@ -139,7 +139,7 @@
             "X_ALREADY_LINKED": "已关联 X 账号。",
             "X_ACCOUNT_MISMATCH": "验证的 X 账号与当前关联的账号不一致。",
             "CANNOT_UNLINK_LAST_AUTH": "无法解除最后一个登录方式，请先关联其他登录方式。",
-            "EMAIL_REQUIRED_FOR_PASSWORD": "没有电子邮箱的账号无法设置密码。"
+            "DUPLICATE_MODIFICATION_REQUEST": "已存在相同内容的修改请求。"
         },
         "accessDenied": "没有访问权限。",
         "serverError": "发生服务器错误，请稍后重试。",
@@ -684,15 +684,21 @@
     },
     "modRequest": {
         "title": "官方数据修改请求",
+        "collapsedHint": "展开",
         "propose": "请求修改",
+        "proposeEditTitle": "提交官方数据修改请求",
+        "officialEditNotice": "官方数据的每个修改字段都会作为独立的修改请求提交，信用评分达到 +5 后将立即生效。",
         "reason": "修改原因",
         "reasonPlaceholder": "请输入需要修改的原因",
         "submit": "提交请求",
+        "submitButton": "提交修改请求",
         "empty": "暂无进行中的修改请求。",
         "noChanges": "未检测到修改内容。",
         "created": "修改请求已提交。",
         "deleted": "修改请求已删除。",
         "applied": "修改请求已应用。",
+        "appliedByCredit": "信用评分已达标，数据已更新。",
+        "rejectedByCredit": "由于信用评分过低，该修改请求已被删除。",
         "actionFailed": "处理请求失败。",
         "applyNow": "管理员立即应用",
         "trustScore": "信任评分"

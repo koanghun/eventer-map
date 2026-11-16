@@ -359,9 +359,12 @@ export default function EventDetailPane({
     const isDeletePending = isDeleting || deleteEventMutation.isPending;
 
     const displayEvent = eventData || selectedEvent;
-    const canManage = Boolean(
+    const canDelete = Boolean(
         user?.role === 'ADMIN' ||
         (displayEvent.status === 'PENDING' && user?.id && displayEvent.authorId === user.id)
+    );
+    const canEdit = Boolean(
+        isAuthenticated && user && (displayEvent.status === 'APPROVED' || canDelete)
     );
 
     const handleDelete = () => {
@@ -469,36 +472,36 @@ export default function EventDetailPane({
                 <h2 className="text-sm font-bold text-foreground truncate flex-1">
                     {t('eventDetail.title', '이벤트 상세')}
                 </h2>
-                {canManage && onEdit && (
-                    <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={onEdit}
-                        disabled={isDeletePending}
-                        className="rounded-full w-7 h-7 hover:bg-muted text-muted-foreground hover:text-primary shrink-0"
-                        title={t('buttons.edit', '수정')}
-                        aria-label={t('buttons.edit', '수정')}
-                    >
-                        <Edit2 className="w-3.5 h-3.5" />
-                    </Button>
-                )}
-                {canManage && (
-                    <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={handleDelete}
-                        disabled={isDeletePending}
-                        className="rounded-full w-7 h-7 hover:bg-destructive/10 text-muted-foreground hover:text-destructive shrink-0"
-                        title={t('buttons.delete', '삭제')}
-                        aria-label={t('buttons.delete', '삭제')}
-                    >
-                        {isDeletePending ? (
-                            <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                        ) : (
-                            <Trash2 className="w-3.5 h-3.5" />
-                        )}
-                    </Button>
-                )}
+                    { canEdit && onEdit && (
+                        <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={onEdit}
+                            disabled={isDeletePending}
+                            className="rounded-full w-7 h-7 hover:bg-muted text-muted-foreground hover:text-primary shrink-0"
+                            title={t('buttons.edit', '수정')}
+                            aria-label={t('buttons.edit', '수정')}
+                        >
+                            <Edit2 className="w-3.5 h-3.5" />
+                        </Button>
+                    )}
+                    { canDelete && (
+                        <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={handleDelete}
+                            disabled={isDeletePending}
+                            className="rounded-full w-7 h-7 hover:bg-destructive/10 text-muted-foreground hover:text-destructive shrink-0"
+                            title={t('buttons.delete', '삭제')}
+                            aria-label={t('buttons.delete', '삭제')}
+                        >
+                            {isDeletePending ? (
+                                <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                            ) : (
+                                <Trash2 className="w-3.5 h-3.5" />
+                            )}
+                        </Button>
+                    )}
             </div>
 
             {/* Content Scrollable Area */}
@@ -638,6 +641,18 @@ export default function EventDetailPane({
                         )}
                     </div>
 
+                    {/* 공인 데이터 수정 리퀘스트 (기본 접힘) */}
+                    {eventId && displayEvent.status === 'APPROVED' && (
+                        <div className="mt-2.5">
+                            <ModificationRequestsSection
+                                entityType="EVENT"
+                                entityId={eventId}
+                                initialValues={{ title: displayEvent.title }}
+                                onProposeEdit={canEdit && onEdit ? onEdit : undefined}
+                            />
+                        </div>
+                    )}
+
                     {/* 체크 -> 참가 -> 해제 상태 순환 버튼 */}
                     <div className="mt-2.5 pt-2.5 border-t border-border/50 flex flex-col gap-1.5">
                         {currentStatus !== 0 && (
@@ -749,7 +764,7 @@ export default function EventDetailPane({
                 </div>
 
 
-                {/* Credit & Modification Requests */}
+                {/* Credit Section */}
                 {eventId && (
                     <CreditVoteSection
                         entityType="EVENT"
@@ -761,14 +776,6 @@ export default function EventDetailPane({
                         myCreditScore={displayEvent.myCreditScore}
                         highCreditSince={displayEvent.highCreditSince}
                         lowCreditSince={displayEvent.lowCreditSince}
-                    />
-                )}
-
-                {eventId && displayEvent.status === 'APPROVED' && (
-                    <ModificationRequestsSection
-                        entityType="EVENT"
-                        entityId={eventId}
-                        initialValues={{ title: displayEvent.title }}
                     />
                 )}
 
