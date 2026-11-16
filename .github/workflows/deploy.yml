@@ -4,7 +4,17 @@ on:
   push:
     branches:
       - main
+      - release
   workflow_dispatch:
+    inputs:
+      stage:
+        description: 'Deployment environment stage'
+        required: true
+        default: 'prod'
+        type: choice
+        options:
+          - prod
+          - dev
 
 permissions:
   id-token: write
@@ -14,16 +24,122 @@ env:
   AWS_REGION: ap-southeast-2
   STACK_NAME: eventer-map-stack
 
+concurrency:
+  group: aws-deploy-${{ env.STACK_NAME }}
+  cancel-in-progress: false
+
 jobs:
+  verify-backend:
+    name: Verify Backend (Codegen, Vet, Test, Build)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: backend/go.mod
+          cache-dependency-path: backend/go.sum
+
+      - name: Install Codegen Tools (oapi-codegen & sqlc)
+        working-directory: backend
+        run: |
+          echo "$(go env GOPATH)/bin" >> "$GITHUB_PATH"
+          go install github.com/oapi-codegen/oapi-codegen/v2/cmd/oapi-codegen@v2.8.2
+          go install github.com/sqlc-dev/sqlc/cmd/sqlc@v1.31.1
+
+      - name: Verify Backend Codegen (oapi-codegen & sqlc)
+        working-directory: backend
+        run: |
+          make generate
+          git diff --exit-code internal/handler/openapi.gen.go internal/repository/
+
+      - name: Run Go Vet
+        working-directory: backend
+        run: go vet ./...
+
+      - name: Run Backend Unit Tests
+        working-directory: backend
+        run: go test -v -race ./...
+
+      - name: Verify Lambda Binary Build (linux/arm64)
+        working-directory: backend
+        run: |
+          make build
+          test -f .build/bootstrap
+
+  verify-frontend:
+    name: Verify Frontend (Codegen, Typecheck, Test, Build)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install Dependencies
+        working-directory: frontend
+        run: npm ci
+
+      - name: Verify Frontend Codegen (Orval)
+        working-directory: frontend
+        run: |
+          npm run generate:api
+          git diff --exit-code src/api/generated/
+
+      - name: Run TypeScript Typecheck
+        working-directory: frontend
+        run: npx tsc --noEmit
+
+      - name: Run Frontend Unit Tests
+        working-directory: frontend
+        run: CI=true npm test -- --watchAll=false
+
+      - name: Verify Frontend Production Build
+        working-directory: frontend
+        run: CI=true npm run build
+
   deploy-backend:
     name: Build & Deploy Backend (SAM)
+    needs: [verify-backend, verify-frontend]
     runs-on: ubuntu-latest
     outputs:
       api_url: ${{ steps.stack-outputs.outputs.api_url }}
       s3_bucket: ${{ steps.stack-outputs.outputs.s3_bucket }}
       cf_dist_id: ${{ steps.stack-outputs.outputs.cf_dist_id }}
       frontend_url: ${{ steps.stack-outputs.outputs.frontend_url }}
+      media_bucket: ${{ steps.stack-outputs.outputs.media_bucket }}
     steps:
+      - name: Validate Backend Deployment Secrets
+        env:
+          AWS_ROLE_ARN: ${{ secrets.AWS_ROLE_ARN }}
+          DB_URL: ${{ secrets.PROD_DATABASE_URL || secrets.DATABASE_URL }}
+          JWT_SECRET: ${{ secrets.JWT_SECRET }}
+        run: |
+          missing=0
+          if [ -z "$AWS_ROLE_ARN" ]; then
+            echo "::error::Missing required GitHub Secret: AWS_ROLE_ARN (run 'make setup-oidc' and register GitHubActionsRoleArn)"
+            missing=1
+          fi
+          if [ -z "$DB_URL" ]; then
+            echo "::error::Missing required GitHub Secret: DATABASE_URL (or PROD_DATABASE_URL)"
+            missing=1
+          fi
+          if [ -z "$JWT_SECRET" ]; then
+            echo "::error::Missing required GitHub Secret: JWT_SECRET"
+            missing=1
+          fi
+          if [ "$missing" -ne 0 ]; then
+            echo "Hint: Run 'make setup-github-secrets' locally after 'make setup-oidc' and 'gh auth login'."
+            exit 1
+          fi
+
       - name: Checkout repository
         uses: actions/checkout@v4
 
@@ -45,8 +161,9 @@ jobs:
       - name: Build & Deploy SAM Stack
         working-directory: backend
         env:
-          STAGE: prod
-          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          STAGE: ${{ inputs.stage || 'prod' }}
+          PROD_DATABASE_URL: ${{ secrets.PROD_DATABASE_URL || secrets.DATABASE_URL }}
+          DATABASE_URL: ${{ secrets.DATABASE_URL || secrets.PROD_DATABASE_URL }}
           JWT_SECRET: ${{ secrets.JWT_SECRET }}
           CORS_ORIGINS: ${{ secrets.CORS_ORIGINS }}
           COOKIE_DOMAIN: ${{ secrets.COOKIE_DOMAIN }}
@@ -69,16 +186,42 @@ jobs:
           S3_BUCKET=$(aws cloudformation describe-stacks --stack-name "$STACK_NAME" --query "Stacks[0].Outputs[?OutputKey=='FrontendBucketName'].OutputValue" --output text)
           CF_DIST_ID=$(aws cloudformation describe-stacks --stack-name "$STACK_NAME" --query "Stacks[0].Outputs[?OutputKey=='CloudFrontDistributionId'].OutputValue" --output text)
           FRONTEND_URL=$(aws cloudformation describe-stacks --stack-name "$STACK_NAME" --query "Stacks[0].Outputs[?OutputKey=='FrontendUrl'].OutputValue" --output text)
+          MEDIA_BUCKET=$(aws cloudformation describe-stacks --stack-name "$STACK_NAME" --query "Stacks[0].Outputs[?OutputKey=='MediaBucketName'].OutputValue" --output text)
           echo "api_url=$API_URL" >> "$GITHUB_OUTPUT"
           echo "s3_bucket=$S3_BUCKET" >> "$GITHUB_OUTPUT"
           echo "cf_dist_id=$CF_DIST_ID" >> "$GITHUB_OUTPUT"
           echo "frontend_url=$FRONTEND_URL" >> "$GITHUB_OUTPUT"
+          echo "media_bucket=$MEDIA_BUCKET" >> "$GITHUB_OUTPUT"
 
   deploy-frontend:
     name: Build & Deploy Frontend (S3 + CloudFront)
     needs: deploy-backend
     runs-on: ubuntu-latest
     steps:
+      - name: Validate Frontend Deployment Secrets
+        env:
+          AWS_ROLE_ARN: ${{ secrets.AWS_ROLE_ARN }}
+          GOOGLE_MAPS_KEY: ${{ secrets.REACT_APP_GOOGLE_MAPS_API_KEY }}
+          GOOGLE_CLIENT_ID: ${{ secrets.REACT_APP_GOOGLE_CLIENT_ID }}
+        run: |
+          missing=0
+          if [ -z "$AWS_ROLE_ARN" ]; then
+            echo "::error::Missing required GitHub Secret: AWS_ROLE_ARN"
+            missing=1
+          fi
+          if [ -z "$GOOGLE_MAPS_KEY" ]; then
+            echo "::error::Missing required GitHub Secret: REACT_APP_GOOGLE_MAPS_API_KEY"
+            missing=1
+          fi
+          if [ -z "$GOOGLE_CLIENT_ID" ]; then
+            echo "::error::Missing required GitHub Secret: REACT_APP_GOOGLE_CLIENT_ID"
+            missing=1
+          fi
+          if [ "$missing" -ne 0 ]; then
+            echo "Hint: Run 'make setup-github-secrets' locally after 'gh auth login'."
+            exit 1
+          fi
+
       - name: Checkout repository
         uses: actions/checkout@v4
 
@@ -103,7 +246,7 @@ jobs:
           REACT_APP_GOOGLE_CLIENT_ID: ${{ secrets.REACT_APP_GOOGLE_CLIENT_ID }}
         run: |
           npm ci
-          npm run build
+          CI=true npm run build
 
       - name: Sync Static Assets to S3 & Invalidate CloudFront
         env:
@@ -126,6 +269,7 @@ jobs:
           FRONTEND_URL: ${{ needs.deploy-backend.outputs.frontend_url }}
           API_URL: ${{ vars.REACT_APP_API_URL || needs.deploy-backend.outputs.api_url }}
           S3_BUCKET: ${{ needs.deploy-backend.outputs.s3_bucket }}
+          MEDIA_BUCKET: ${{ needs.deploy-backend.outputs.media_bucket }}
           CF_DIST_ID: ${{ needs.deploy-backend.outputs.cf_dist_id }}
         run: |
           {
@@ -136,5 +280,6 @@ jobs:
             echo "| **Frontend URL (CloudFront)** | $FRONTEND_URL |"
             echo "| **Backend API URL (API Gateway)** | $API_URL |"
             echo "| **Frontend S3 Bucket** | \`$S3_BUCKET\` |"
+            echo "| **Media S3 Bucket** | \`$MEDIA_BUCKET\` |"
             echo "| **CloudFront Distribution ID** | \`$CF_DIST_ID\` |"
           } >> "$GITHUB_STEP_SUMMARY"

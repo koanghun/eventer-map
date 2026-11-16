@@ -18,12 +18,15 @@ if command -v aws >/dev/null 2>&1 && [[ "$FORCE_UPDATE" == "false" ]]; then
   exit 0
 fi
 
-for cmd in curl unzip; do
-  if ! command -v "$cmd" >/dev/null 2>&1; then
-    echo "Error: '$cmd' is required to install AWS CLI v2." >&2
-    exit 1
-  fi
-done
+if ! command -v curl >/dev/null 2>&1; then
+  echo "Error: 'curl' is required to install AWS CLI v2." >&2
+  exit 1
+fi
+
+if ! command -v unzip >/dev/null 2>&1 && ! command -v python3 >/dev/null 2>&1; then
+  echo "Error: 'unzip' or 'python3' is required to extract AWS CLI v2." >&2
+  exit 1
+fi
 
 ARCH="$(uname -m)"
 case "$ARCH" in
@@ -50,7 +53,20 @@ echo "Downloading AWS CLI v2 ($PKG_ARCH) from $ZIP_URL ..."
 curl -fsSL "$ZIP_URL" -o "$TMP_DIR/awscliv2.zip"
 
 echo "Extracting archive..."
-unzip -q "$TMP_DIR/awscliv2.zip" -d "$TMP_DIR"
+if command -v unzip >/dev/null 2>&1; then
+  unzip -q "$TMP_DIR/awscliv2.zip" -d "$TMP_DIR"
+else
+  python3 - "$TMP_DIR/awscliv2.zip" "$TMP_DIR" <<'PYEOF'
+import os, sys, zipfile
+zip_path, out_dir = sys.argv[1], sys.argv[2]
+with zipfile.ZipFile(zip_path, 'r') as zf:
+    for info in zf.infolist():
+        target = zf.extract(info, out_dir)
+        mode = (info.external_attr >> 16) & 0o777
+        if mode:
+            os.chmod(target, mode)
+PYEOF
+fi
 
 mkdir -p "$BIN_DIR"
 echo "Installing AWS CLI v2 to $INSTALL_DIR (symlinks in $BIN_DIR)..."

@@ -61,7 +61,7 @@ db.SetConnMaxIdleTime(1 * time.Minute) // 4) 1분 이상 놀고 있는 유휴 �
 - `buildRefreshTokenCookie()` 헬퍼를 통해 로컬(`ENV=local`)과 배포 환경(`ENV=prod`)의 쿠키 정책을 자동 분기합니다.
   - **`Secure` 플래그**: `ENV != "local"`일 때 자동으로 `Secure: true`가 적용되어 HTTPS 통신에서만 쿠키가 전송됩니다.
   - **`SameSite` 모드 (`COOKIE_SAMESITE`)**:
-    - CloudFront 기본 도메인(`*.cloudfront.net`)과 API Gateway 기본 도메인(`*.execute-api.ap-northeast-1.amazonaws.com`)을 각각 사용할 경우 Cross-Origin 요청에서 쿠키가 전송되도록 `COOKIE_SAMESITE=None`(`Secure: true` 필수)을 지원합니다.
+    - CloudFront 기본 도메인(`*.cloudfront.net`)과 API Gateway 기본 도메인(`*.execute-api.<region>.amazonaws.com`)을 각각 사용할 경우 Cross-Origin 요청에서 쿠키가 전송되도록 `COOKIE_SAMESITE=None`(`Secure: true` 필수)을 지원합니다.
     - 커스텀 도메인(`eventermap.com` + `api.eventermap.com`)을 연결한 경우 `COOKIE_SAMESITE=Lax`와 `COOKIE_DOMAIN=.eventermap.com`으로 전환할 수 있습니다.
 
 ### 2.3. JWT 서명 시크릿 환경변수 분리 (`internal/service/auth_service.go`)
@@ -71,7 +71,7 @@ db.SetConnMaxIdleTime(1 * time.Minute) // 4) 1분 이상 놀고 있는 유휴 �
 
 ## 3. 🏗️ 2단계: AWS SAM 통합 인프라 템플릿 (`backend/template.yaml`)
 
-별도의 서드파티 IaC 도구 없이 **`backend/template.yaml` 단일 파일**로 백엔드와 프론트엔드 리소스를 한 번에 관리합니다 (기본 리전: `ap-northeast-1` Tokyo).
+별도의 서드파티 IaC 도구 없이 **`backend/template.yaml` 단일 파일**로 백엔드와 프론트엔드 리소스를 한 번에 관리합니다 (기본 리전: `ap-southeast-2` Sydney).
 
 ### 주요 프로비저닝 리소스
 1. **`EventerMapApiFunction` (`AWS::Serverless::Function`)**:
@@ -116,29 +116,48 @@ aws configure
 # 1. 배포 전 CLI, 자격 증명, backend/.env, frontend/.env 사전 점검
 make deploy-check
 
-# 2. (선택) GitHub Actions OIDC IAM Role 생성 -> 출력된 AWS_ROLE_ARN을 GitHub Secrets에 등록
-make setup-oidc
+# 2. 로컬 CI 검증 (OpenAPI/sqlc/Orval 코드 생성 정합성 + 백엔드/프론트엔드 테스트·빌드)
+make verify-codegen
+make ci
 
-# 3. 최초 1회: backend/.env에 배포 환경변수 설정 후 백엔드 & 인프라 생성
+# 3. (선택) GitHub Actions OIDC IAM Role 생성 및 GitHub Secrets 일괄 동기화
+make setup-oidc
+make setup-github-secrets
+
+# 4. 최초 1회: backend/.env에 배포 환경변수 설정 후 백엔드 & 인프라 생성
 make deploy-be
 
-# 4. 생성된 CloudFront URL 및 API Gateway 엔드포인트 확인
+# 5. 생성된 CloudFront URL 및 API Gateway 엔드포인트 확인
 make stack-outputs
 
-# 5. 프론트엔드 빌드 + S3 동기화 + CloudFront 캐시 무효화
+# 6. 프론트엔드 빌드 + S3 동기화 + CloudFront 캐시 무효화
 make deploy-fe
 
-# 6. 이후 백엔드 + 프론트엔드 통합 배포 시
+# 7. 이후 백엔드 + 프론트엔드 통합 배포 시
 make deploy-all
 ```
 
-### 4.2. GitHub Actions 자동 배포 (`.github/workflows/deploy.yml`)
-[`backend/github-oidc.yaml`](../backend/github-oidc.yaml)(`make setup-oidc`)로 OIDC 연동을 완료한 뒤 `main` 브랜치에 푸시하거나 `workflow_dispatch`로 수동 실행하면 아래 2개의 Job이 순차 실행됩니다:
-1. **`deploy-backend`**:
+### 4.2. GitHub Actions CI/CD 파이프라인 (`.github/workflows/ci.yml`, `.github/workflows/deploy.yml`)
+
+#### 1) CI 검증 파이프라인 (`.github/workflows/ci.yml`)
+`main`, `release`, `develop`, `aws-dev` 브랜치로의 Push 및 Pull Request(또는 `workflow_dispatch`)마다 다음 2개의 Job이 병렬로 실행됩니다:
+1. **`backend-ci`**:
+   - `oapi-codegen@v2.8.2` 및 `sqlc@v1.31.1`을 설치한 뒤 `make generate`를 실행하고 `git diff --exit-code`로 OpenAPI/SQL 자동 생성 코드의 정합성을 검증합니다.
+   - `go vet ./...`, `go test -v -race ./...`, AWS Lambda `linux/arm64` 바이너리 빌드(`make build`)를 검증합니다.
+2. **`frontend-ci`**:
+   - `npm ci` 후 `npm run generate:api`를 실행하고 `git diff --exit-code src/api/generated/`로 Orval 생성 코드 정합성을 검증합니다.
+   - `npx tsc --noEmit`, `CI=true npm test -- --watchAll=false`, `CI=true npm run build`를 검증합니다.
+
+#### 2) CD 자동 배포 파이프라인 (`.github/workflows/deploy.yml`)
+[`backend/github-oidc.yaml`](../backend/github-oidc.yaml)(`make setup-oidc`)로 OIDC 연동을 완료하고 `make setup-github-secrets`(또는 GitHub Web UI)로 Secrets를 등록한 뒤, `main` 또는 `release` 브랜치에 푸시하거나 `workflow_dispatch`(`stage`: `prod`/`dev`)로 수동 실행하면 아래 순서대로 실행됩니다:
+1. **`verify-backend` & `verify-frontend` (사전 품질 게이트)**:
+   - 코드 생성 정합성, 타입체크, 단위 테스트, 빌드 검증을 모두 통과해야만 실제 AWS 배포 Job이 시작됩니다.
+2. **`deploy-backend`**:
+   - 필수 GitHub Secrets(`AWS_ROLE_ARN`, `DATABASE_URL`/`PROD_DATABASE_URL`, `JWT_SECRET`) 존재 여부를 먼저 확인합니다.
    - AWS IAM OIDC(`aws-actions/configure-aws-credentials@v4`)로 임시 권한을 획득하고 `make deploy`를 실행하여 Lambda 및 인프라를 갱신합니다.
-   - CloudFormation Stack Output에서 `api_url`, `s3_bucket`, `cf_dist_id`, `frontend_url`을 추출해 다음 Job으로 전달합니다.
-2. **`deploy-frontend`**:
-   - 전달받은 `api_url`을 `REACT_APP_API_URL`에 자동 주입하여 `npm run build`를 수행합니다.
+   - CloudFormation Stack Output에서 `api_url`, `s3_bucket`, `cf_dist_id`, `frontend_url`, `media_bucket`을 추출해 다음 Job으로 전달합니다.
+3. **`deploy-frontend`**:
+   - 필수 GitHub Secrets(`REACT_APP_GOOGLE_MAPS_API_KEY`, `REACT_APP_GOOGLE_CLIENT_ID`) 존재 여부를 확인한 뒤, 전달받은 `api_url`을 `REACT_APP_API_URL`에 자동 주입하여 `CI=true npm run build`를 수행합니다.
    - S3 차등 캐싱 업로드 및 CloudFront 캐시 무효화를 완료한 뒤, `$GITHUB_STEP_SUMMARY`에 배포 URL 요약표를 출력합니다.
 
 #### 배포 환경변수 / GitHub Secrets & Variables 목록
@@ -146,6 +165,7 @@ make deploy-all
 | :--- | :--- | :--- | :--- |
 | **Secrets** | `AWS_ROLE_ARN` | GitHub OIDC 연동용 AWS IAM Role ARN (`make setup-oidc` 출력값) | 필수 |
 | **Secrets** | `DATABASE_URL` | 외부 접속 가능한 PostgreSQL URL (`?sslmode=require&connect_timeout=5` 권장) | 필수 (로컬에서는 `PROD_DATABASE_URL` 우선) |
+| **Secrets** | `PROD_DATABASE_URL` | Lambda 배포 전용 DB URL (설정 시 `DATABASE_URL`보다 우선) | 선택 |
 | **Secrets** | `JWT_SECRET` | 프로덕션 JWT 서명 시크릿 키 | 필수 |
 | **Secrets** | `CORS_ORIGINS` | 추가 허용 프론트엔드 Origin (예: 커스텀 도메인). CloudFront URL은 자동 추가됨 | 선택 |
 | **Secrets** | `COOKIE_DOMAIN` | 커스텀 도메인 공유 시 예: `.eventermap.com` | 선택 |
@@ -174,4 +194,4 @@ make deploy-all
 > **💡 DB 마이그레이션 보안 팁**: NAS의 PostgreSQL 포트를 GitHub Actions의 불특정 IP 대역에 개방하는 대신, 스키마 마이그레이션(`cd backend && make migrateup`)은 로컬 개발 PC 또는 NAS 내부망에서 실행하는 것을 권장합니다.
 
 ---
-*문서 최종 업데이트: 2026-11-15*
+*문서 최종 업데이트: 2026-11-16*

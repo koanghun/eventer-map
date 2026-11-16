@@ -1,4 +1,4 @@
-.PHONY: generate build build-EventerMapApiFunction deploy deploy-guided setup-oidc local migrateup migratedown migrateversion
+.PHONY: install-tools generate vet test ci build build-EventerMapApiFunction deploy deploy-guided setup-oidc local migrateup migratedown migrateversion
 
 -include .env
 export
@@ -11,15 +11,35 @@ GITHUB_ORG ?= koanghun
 GITHUB_REPO ?= eventer-map
 GITHUB_BRANCH ?= *
 EXISTING_OIDC_PROVIDER_ARN ?=
+OAPI_CODEGEN_VERSION ?= v2.8.2
+SQLC_VERSION ?= v1.31.1
 
-export PATH := $(HOME)/.local/bin:/usr/local/bin:/snap/bin:$(PATH):/home/parkkh/go/bin
+export PATH := $(HOME)/go/bin:$(HOME)/.local/bin:/usr/local/bin:/snap/bin:$(PATH):/home/parkkh/go/bin
 
-generate:
+install-tools:
+	@if ! command -v oapi-codegen >/dev/null 2>&1; then \
+		echo "Installing oapi-codegen ($(OAPI_CODEGEN_VERSION))..."; \
+		GOTOOLCHAIN=auto go install github.com/oapi-codegen/oapi-codegen/v2/cmd/oapi-codegen@$(OAPI_CODEGEN_VERSION); \
+	fi
+	@if ! command -v sqlc >/dev/null 2>&1; then \
+		echo "Installing sqlc ($(SQLC_VERSION))..."; \
+		GOTOOLCHAIN=auto go install github.com/sqlc-dev/sqlc/cmd/sqlc@$(SQLC_VERSION); \
+	fi
+
+generate: install-tools
 	@echo "Generating OpenAPI code..."
 	oapi-codegen -generate types,std-http,spec -package handler api/openapi.yaml > internal/handler/openapi.gen.go
 	@echo "Generating SQL code..."
 	sqlc generate
 	@echo "Done."
+
+vet:
+	go vet ./...
+
+test:
+	go test -v -race ./...
+
+ci: vet test build
 
 # Target invoked by AWS SAM (if using 'sam build')
 build-EventerMapApiFunction:

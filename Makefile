@@ -1,14 +1,30 @@
-.PHONY: generate install-aws-cli deploy-check setup-oidc deploy-init deploy-be deploy-fe deploy-all stack-outputs
+.PHONY: generate verify-codegen test-be test-fe ci install-aws-cli deploy-check setup-oidc setup-github-secrets deploy-init deploy-be deploy-fe deploy-all stack-outputs
 
 STACK_NAME ?= eventer-map-stack
 AWS_REGION ?= ap-southeast-2
 
-export PATH := $(HOME)/.local/bin:/usr/local/bin:/snap/bin:$(PATH)
+export PATH := $(HOME)/go/bin:$(HOME)/.local/bin:/usr/local/bin:/snap/bin:$(PATH)
 
 # Generate both Backend (oapi-codegen + sqlc) and Frontend (Orval) code
 generate:
 	cd backend && $(MAKE) generate
 	cd frontend && npm run generate:api
+
+# Verify generated code is up to date with OpenAPI spec and SQL queries
+verify-codegen: generate
+	@echo "Verifying generated code is in sync..."
+	git diff --exit-code backend/internal/handler/openapi.gen.go backend/internal/repository/ frontend/src/api/generated/
+
+# Run Backend CI checks (go vet, tests, Lambda build)
+test-be:
+	cd backend && $(MAKE) ci
+
+# Run Frontend CI checks (TypeScript typecheck, unit tests, production build)
+test-fe:
+	cd frontend && npx tsc --noEmit && CI=true npm test -- --watchAll=false && CI=true npm run build
+
+# Run full local CI suite
+ci: verify-codegen test-be test-fe
 
 # Install AWS CLI v2 into ~/.local/bin without sudo
 install-aws-cli:
@@ -21,6 +37,10 @@ deploy-check:
 # Provision GitHub Actions OIDC Identity Provider and IAM Deploy Role
 setup-oidc:
 	cd backend && $(MAKE) setup-oidc AWS_REGION=$(AWS_REGION)
+
+# Sync GitHub Actions Secrets from .env files and OIDC Role ARN
+setup-github-secrets:
+	AWS_REGION=$(AWS_REGION) bash scripts/setup_github_secrets.sh
 
 # 1. First-time AWS SAM interactive setup (creates backend/samconfig.toml)
 deploy-init:

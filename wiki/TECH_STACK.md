@@ -11,9 +11,12 @@
 - **웹 서버 / 라우터:** **Go 표준 라이브러리 (`net/http`)**
   - 외부 프레임워크(Echo, Gin, Fiber 등)를 사용하지 않고 표준 `http.ServeMux`와 미들웨어 체인을 사용하여 AWS Lambda 콜드 스타트를 최소화합니다.
 - **API 코드 생성:** **`oapi-codegen` (v2)**
-  - `backend/api/openapi.yaml`로부터 `internal/handler/openapi.gen.go`(`types`, `std-http`, `spec`)를 자동 생성합니다.
+  - `backend/api/openapi.yaml`로부터 `internal/handler/openapi.gen.go`(`types`, `std-http`, `spec`)를 자동 생성합니다. (CI 고정 버전: `v2.8.2`)
 - **인프라 & 서버리스:** **AWS Lambda (`provided.al2023`, `arm64`) + Amazon API Gateway + Amazon DynamoDB (`OAuthStatesTable`) + Amazon S3 + CloudFront OAC (AWS SAM 단일 스택 관리)**
   - 상세 아키텍처 및 원클릭 배포/CI·CD 설정은 [AWS 서버리스 & 정적 배포 가이드](./AWS_DEPLOYMENT_GUIDE.md)를 참고하세요.
+- **CI/CD:** **GitHub Actions (`ci.yml`, `deploy.yml`) + AWS IAM OIDC**
+  - `main`/`release`/`develop`/`aws-dev` Push·PR 시 코드 생성 정합성(`oapi-codegen v2.8.2`, `sqlc v1.31.1`, `Orval`), `go vet`/`go test -race`/Lambda 빌드, `tsc`/프론트엔드 테스트/빌드를 검증하고, `main`/`release` Push 시 검증 통과 후 SAM + S3/CloudFront로 자동 배포합니다.
+  - 로컬에서는 `make ci`, `make verify-codegen`으로 동일한 검증을 실행할 수 있습니다.
 
 ---
 

@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -u
 
-export PATH="$HOME/.local/bin:/usr/local/bin:/snap/bin:$PATH"
+export PATH="$HOME/go/bin:$HOME/.local/bin:/usr/local/bin:/snap/bin:$PATH:/home/parkkh/go/bin"
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ROOT_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
@@ -49,6 +49,18 @@ else
   fail "Go compiler not found (required for Lambda build)"
 fi
 
+if command -v oapi-codegen >/dev/null 2>&1; then
+  ok "oapi-codegen installed ($(command -v oapi-codegen))"
+else
+  warn "oapi-codegen not found (run 'cd backend && make install-tools' for codegen verification)"
+fi
+
+if command -v sqlc >/dev/null 2>&1; then
+  ok "sqlc installed ($(sqlc version 2>/dev/null || command -v sqlc))"
+else
+  warn "sqlc not found (run 'cd backend && make install-tools' for codegen verification)"
+fi
+
 if command -v node >/dev/null 2>&1 && command -v npm >/dev/null 2>&1; then
   ok "Node.js & npm installed ($(node --version), npm $(npm --version))"
 else
@@ -59,6 +71,16 @@ if command -v sam >/dev/null 2>&1; then
   ok "AWS SAM CLI installed ($(sam --version))"
 else
   warn "AWS SAM CLI not installed (Makefile will fallback to 'aws cloudformation')"
+fi
+
+if command -v gh >/dev/null 2>&1; then
+  if gh auth status >/dev/null 2>&1; then
+    ok "GitHub CLI installed & authenticated"
+  else
+    warn "GitHub CLI installed but not authenticated (run 'gh auth login' for 'make setup-github-secrets')"
+  fi
+else
+  warn "GitHub CLI (gh) not found (optional, used by 'make setup-github-secrets')"
 fi
 
 if command -v aws >/dev/null 2>&1; then
@@ -76,6 +98,14 @@ if command -v aws >/dev/null 2>&1; then
       fail "Target region '$TARGET_REGION' is blocked by AWS Organizations SCP (${SCP_ARN:-unknown}). Allow '$TARGET_REGION' in the management account SCP."
     else
       warn "Could not verify CloudFormation access in '$TARGET_REGION': $(printf "%s" "$CFN_OUT" | tr '\n' ' ')"
+    fi
+
+    OIDC_STACK="${OIDC_STACK_NAME:-eventer-map-github-oidc}"
+    ROLE_ARN="$(aws cloudformation describe-stacks --stack-name "$OIDC_STACK" --region "$TARGET_REGION" --query "Stacks[0].Outputs[?OutputKey=='GitHubActionsRoleArn'].OutputValue | [0]" --output text 2>/dev/null || true)"
+    if [[ -n "$ROLE_ARN" && "$ROLE_ARN" != "None" ]]; then
+      ok "GitHub OIDC stack '$OIDC_STACK' provisioned ($ROLE_ARN)"
+    else
+      warn "GitHub OIDC stack '$OIDC_STACK' not found in '$TARGET_REGION' (run 'make setup-oidc' for GitHub Actions CD)"
     fi
   else
     fail "AWS credentials not configured or expired (run 'aws configure' or 'aws sso login')"
