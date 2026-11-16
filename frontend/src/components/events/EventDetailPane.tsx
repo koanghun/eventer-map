@@ -1,12 +1,12 @@
 import { useState } from 'react';
-import { ArrowLeft, Calendar, MapPin, ExternalLink, Users, Mic2, Edit2, Trash2, Bookmark, UserCheck, RotateCcw, Loader2, Star } from 'lucide-react';
+import { ArrowLeft, Calendar, Clock, MapPin, ExternalLink, Users, Mic2, Edit2, Trash2, Bookmark, UserCheck, RotateCcw, Loader2, Star } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '../../context/AuthContext';
 import { useEventStore } from '../../store/useEventStore';
 import { toast } from '../../store/useToastStore';
 import { Button } from '../ui/button';
-import { cn } from '../../lib/utils';
+import { cn, formatLocalizedDate, formatLocalizedTime } from '../../lib/utils';
 import EventThreadSection from './EventThreadSection';
 import { CreditVoteSection } from '../common/CreditVoteSection';
 import { ModificationRequestsSection } from '../common/ModificationRequestsSection';
@@ -46,7 +46,7 @@ export default function EventDetailPane({
     onArtistSelect,
     onVenueSelect,
 }: EventDetailPaneProps) {
-    const { t } = useTranslation();
+    const { t, i18n } = useTranslation();
     const queryClient = useQueryClient();
     const { isAuthenticated, user } = useAuth();
     const selectedEvent = useEventStore((state) => state.selectedEvent);
@@ -447,6 +447,11 @@ export default function EventDetailPane({
                 : null;
 
 
+    const formattedDate = formatLocalizedDate(displayEvent, i18n.language, true);
+    const openingTimeFormatted = formatLocalizedTime(displayEvent.openingTime, i18n.language);
+    const startTimeFormatted = formatLocalizedTime(displayEvent.startTime, i18n.language);
+    const endTimeFormatted = formatLocalizedTime(displayEvent.endTime, i18n.language);
+
     return (
         <div className="w-full flex-1 min-h-0 flex flex-col animate-in fade-in slide-in-from-left-4 duration-300 overflow-hidden">
             {/* Header (좌측 상단 뒤로가기 버튼) */}
@@ -507,8 +512,33 @@ export default function EventDetailPane({
 
                     <div className="space-y-1.5 text-xs text-muted-foreground">
                         <div className="flex items-start gap-2">
-                            <Calendar className="w-4 h-4 text-primary shrink-0" />
-                            <span className="truncate">{displayEvent.startTime || t('eventDetail.dateUnknown', 'Date TBD')}</span>
+                            <Calendar className="w-4 h-4 text-primary shrink-0 mt-0.5" />
+                            <span className="truncate">{formattedDate || t('eventDetail.dateUnknown', 'Date TBD')}</span>
+                        </div>
+                        <div className="flex items-start gap-2">
+                            <Clock className="w-4 h-4 text-primary shrink-0 mt-0.5" />
+                            <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-foreground">
+                                <span>
+                                    <span className="text-[10px] font-semibold uppercase tracking-wider opacity-70 border border-border rounded px-1 mr-1">
+                                        {t('eventList.timePrefix.door')}
+                                    </span>
+                                    {openingTimeFormatted || '-'}
+                                </span>
+                                <span className="text-border">|</span>
+                                <span>
+                                    <span className="text-[10px] font-semibold uppercase tracking-wider opacity-70 border border-border rounded px-1 mr-1">
+                                        {t('eventList.timePrefix.start')}
+                                    </span>
+                                    {startTimeFormatted || '-'}
+                                </span>
+                                <span className="text-border">|</span>
+                                <span>
+                                    <span className="text-[10px] font-semibold uppercase tracking-wider opacity-70 border border-border rounded px-1 mr-1">
+                                        {t('eventList.timePrefix.end')}
+                                    </span>
+                                    {endTimeFormatted || '-'}
+                                </span>
+                            </div>
                         </div>
                         <div className="flex items-start gap-2">
                             <MapPin className="w-4 h-4 text-primary shrink-0 mt-0.5" />

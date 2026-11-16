@@ -233,7 +233,7 @@ LIMIT sqlc.arg('limit');
 UPDATE events
 SET title = COALESCE(sqlc.narg('title'), title),
     venue_id = COALESCE(sqlc.narg('venue_id'), venue_id),
-    opening_time = COALESCE(sqlc.narg('opening_time'), opening_time),
+    opening_time = CASE WHEN sqlc.arg('clear_opening_time')::boolean THEN NULL ELSE COALESCE(sqlc.narg('opening_time'), opening_time) END,
     start_time = COALESCE(sqlc.narg('start_time'), start_time),
     end_time = COALESCE(sqlc.narg('end_time'), end_time),
     related_links = COALESCE(sqlc.narg('related_links'), related_links),

@@ -577,7 +577,7 @@
         "addLink": "リンク追加",
         "editTitle": "イベント編集",
         "updateButton": "更新する",
-        "createMissingFields": "タイトル、開始/終了時間、会場は必須です。",
+        "createMissingFields": "タイトル、開催日、会場は必須です。",
         "createSuccess": "イベントが正常に登録されました。",
         "createFail": "イベントの登録に失敗しました。",
         "updateSuccess": "イベントが正常に更新されました。",

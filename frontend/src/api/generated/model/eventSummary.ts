@@ -14,6 +14,8 @@ export interface EventSummary {
   authorId?: string | null;
   creditCount?: number;
   creditScore?: number;
+  /** 개최일 (YYYY-MM-DD) */
+  date?: string;
   endTime?: string;
   /** @nullable */
   highCreditSince?: string | null;
@@ -26,6 +28,8 @@ export interface EventSummary {
   lowCreditSince?: string | null;
   /** 현재 로그인한 유저의 신용 점수 투표 (-1, 0, 1) */
   myCreditScore?: EventSummaryMyCreditScore;
+  /** 개장 시간 */
+  openingTime?: string;
   rating?: number;
   startTime?: string;
   status?: EventSummaryStatus;

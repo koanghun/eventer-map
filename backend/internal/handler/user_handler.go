@@ -261,13 +261,16 @@ func (s *Server) GetUsersMeFollowingEvents(w http.ResponseWriter, r *http.Reques
 
 	response := make([]EventSummary, 0)
 	for _, e := range events {
+		dateStr, openingTime, startTime, endTime := extractEventDateAndTimes(e.OpeningTime, e.StartTime, e.EndTime)
 		response = append(response, EventSummary{
-			Id:        &e.ID,
-			Title:     &e.Title,
-			VenueId:   &e.VenueID.UUID, // e.VenueID is uuid.NullUUID, assuming valid
-			StartTime: &e.StartTime,
-			EndTime:   &e.EndTime,
-			Rating:    nil, // Calculate if needed
+			Id:          &e.ID,
+			Title:       &e.Title,
+			VenueId:     &e.VenueID.UUID, // e.VenueID is uuid.NullUUID, assuming valid
+			Date:        dateStr,
+			OpeningTime: openingTime,
+			StartTime:   startTime,
+			EndTime:     endTime,
+			Rating:      nil, // Calculate if needed
 		})
 	}
 	RespondJSON(w, http.StatusOK, response)
@@ -401,6 +404,8 @@ func (s *Server) GetUsersMeFollowingArtistsEvents(w http.ResponseWriter, r *http
 			VenueName:                summary.VenueName,
 			Latitude:                 summary.Latitude,
 			Longitude:                summary.Longitude,
+			Date:                     summary.Date,
+			OpeningTime:              summary.OpeningTime,
 			StartTime:                summary.StartTime,
 			EndTime:                  summary.EndTime,
 			Rating:                   summary.Rating,

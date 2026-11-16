@@ -924,31 +924,33 @@ const updateEvent = `-- name: UpdateEvent :one
 UPDATE events
 SET title = COALESCE($1, title),
     venue_id = COALESCE($2, venue_id),
-    opening_time = COALESCE($3, opening_time),
-    start_time = COALESCE($4, start_time),
-    end_time = COALESCE($5, end_time),
-    related_links = COALESCE($6, related_links),
-    status = COALESCE($7, status),
+    opening_time = CASE WHEN $3::boolean THEN NULL ELSE COALESCE($4, opening_time) END,
+    start_time = COALESCE($5, start_time),
+    end_time = COALESCE($6, end_time),
+    related_links = COALESCE($7, related_links),
+    status = COALESCE($8, status),
     updated_at = NOW()
-WHERE id = $8
+WHERE id = $9
 RETURNING id, title, venue_id, opening_time, start_time, end_time, related_links, rating_sum, rating_count, status, author_id, created_at, updated_at, credit_score, credit_count, high_credit_since, low_credit_since
 `
 
 type UpdateEventParams struct {
-	Title        sql.NullString
-	VenueID      uuid.NullUUID
-	OpeningTime  sql.NullTime
-	StartTime    sql.NullTime
-	EndTime      sql.NullTime
-	RelatedLinks []string
-	Status       sql.NullString
-	ID           uuid.UUID
+	Title            sql.NullString
+	VenueID          uuid.NullUUID
+	ClearOpeningTime bool
+	OpeningTime      sql.NullTime
+	StartTime        sql.NullTime
+	EndTime          sql.NullTime
+	RelatedLinks     []string
+	Status           sql.NullString
+	ID               uuid.UUID
 }
 
 func (q *Queries) UpdateEvent(ctx context.Context, arg UpdateEventParams) (Event, error) {
 	row := q.db.QueryRowContext(ctx, updateEvent,
 		arg.Title,
 		arg.VenueID,
+		arg.ClearOpeningTime,
 		arg.OpeningTime,
 		arg.StartTime,
 		arg.EndTime,

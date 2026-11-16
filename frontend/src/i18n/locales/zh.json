@@ -166,17 +166,17 @@
         "retry": "重试"
     },
     "eventList": {
-        "title": "イベント一覧",
-        "loading": "読み込み中...",
+        "title": "活动列表",
+        "loading": "加载中...",
         "empty": {
-            "line1": "選択した日付に登録されたイベントがありません。",
-            "line2": "新しいイベントを登録してみましょう！ 🎉"
+            "line1": "所选日期暂无已登记的活动。",
+            "line2": "来登记一个新活动吧！ 🎉"
         },
         "timePrefix": {
-            "door": "開場",
-            "start": "開演",
-            "end": "終演",
-            "tbd": "時間未定"
+            "door": "入场",
+            "start": "开演",
+            "end": "终演",
+            "tbd": "时间未定"
         }
     },
     "eventForm": {
@@ -222,13 +222,13 @@
     },
     "eventMap": {
         "groupModal": {
-            "title": "この場所に{{count}}個のイベント"
+            "title": "此位置有 {{count}} 个活动"
         },
         "infoWindow": {
-            "date": "日付",
-            "time": "時間",
+            "date": "日期",
+            "time": "时间",
             "performers": "出演者",
-            "link": "詳細情報",
+            "link": "详情",
             "attendance": "参加"
         }
     },
@@ -348,14 +348,14 @@
             "eventLabel": "イベント"
         },
         "labels": {
-            "location": "会場",
-            "address": "住所",
-            "date": "日付",
-            "doorTime": "開場",
-            "startTime": "開演",
-            "endTime": "終演",
+            "location": "会场",
+            "address": "地址",
+            "date": "日期",
+            "doorTime": "入场",
+            "startTime": "开演",
+            "endTime": "终演",
             "performers": "出演者",
-            "description": "説明"
+            "description": "说明"
         },
         "searchByArtist": "按此出演者搜索（6个月）",
         "searchByVenue": "按此会场搜索（6个月）"
@@ -550,7 +550,7 @@
             "date": "举办日期",
             "doorsOpen": "入场时间",
             "startTime": "开演时间",
-            "endTime": "结束时间",
+            "endTime": "终演时间",
             "venue": "会场",
             "venueId": "会场",
             "venuePlaceholder": "搜索会场名称...",
@@ -569,7 +569,7 @@
         "addLink": "添加链接",
         "editTitle": "编辑活动",
         "updateButton": "更新",
-        "createMissingFields": "标题、开始/结束时间和会场为必填项。",
+        "createMissingFields": "标题、举办日期和会场为必填项。",
         "createSuccess": "活动已成功登录。",
         "createFail": "活动登录失败。",
         "updateSuccess": "活动已成功更新。",

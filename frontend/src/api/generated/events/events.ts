@@ -109,14 +109,21 @@ export const postEvents = (
       const formData = new FormData();
 formData.append('title', eventInput.title)
 formData.append('venueId', eventInput.venueId)
+if(eventInput.date !== undefined) {
+ formData.append('date', eventInput.date)
+ }
 if(eventInput.artistIds !== undefined) {
  eventInput.artistIds.forEach(value => formData.append('artistIds', value));
  }
 if(eventInput.openingTime !== undefined) {
  formData.append('openingTime', eventInput.openingTime)
  }
-formData.append('startTime', eventInput.startTime)
-formData.append('endTime', eventInput.endTime)
+if(eventInput.startTime !== undefined) {
+ formData.append('startTime', eventInput.startTime)
+ }
+if(eventInput.endTime !== undefined) {
+ formData.append('endTime', eventInput.endTime)
+ }
 if(eventInput.relatedLinks !== undefined) {
  eventInput.relatedLinks.forEach(value => formData.append('relatedLinks', value));
  }
@@ -243,14 +250,21 @@ export const putEventsEventId = (
       const formData = new FormData();
 formData.append('title', eventInput.title)
 formData.append('venueId', eventInput.venueId)
+if(eventInput.date !== undefined) {
+ formData.append('date', eventInput.date)
+ }
 if(eventInput.artistIds !== undefined) {
  eventInput.artistIds.forEach(value => formData.append('artistIds', value));
  }
 if(eventInput.openingTime !== undefined) {
  formData.append('openingTime', eventInput.openingTime)
  }
-formData.append('startTime', eventInput.startTime)
-formData.append('endTime', eventInput.endTime)
+if(eventInput.startTime !== undefined) {
+ formData.append('startTime', eventInput.startTime)
+ }
+if(eventInput.endTime !== undefined) {
+ formData.append('endTime', eventInput.endTime)
+ }
 if(eventInput.relatedLinks !== undefined) {
  eventInput.relatedLinks.forEach(value => formData.append('relatedLinks', value));
  }

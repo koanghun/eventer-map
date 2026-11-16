@@ -17,6 +17,8 @@ export interface Event {
   authorId?: string | null;
   creditCount?: number;
   creditScore?: number;
+  /** 개최일 (YYYY-MM-DD) */
+  date?: string;
   endTime?: string;
   /** @nullable */
   highCreditSince?: string | null;

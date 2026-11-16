@@ -578,19 +578,21 @@ func applyEventModification(ctx context.Context, q *repository.Queries, eventID 
 			params.VenueID = uuid.NullUUID{UUID: id, Valid: true}
 		}
 	}
-	if v, ok := data["openingTime"].(string); ok && v != "" {
-		if t, err := time.Parse(time.RFC3339, v); err == nil {
-			params.OpeningTime = sql.NullTime{Time: t, Valid: true}
+	if v, ok := data["openingTime"].(string); ok {
+		if v == "" {
+			params.ClearOpeningTime = true
+		} else if t, err := time.Parse(time.RFC3339, v); err == nil {
+			params.OpeningTime = sql.NullTime{Time: t.Truncate(time.Minute), Valid: true}
 		}
 	}
 	if v, ok := data["startTime"].(string); ok && v != "" {
 		if t, err := time.Parse(time.RFC3339, v); err == nil {
-			params.StartTime = sql.NullTime{Time: t, Valid: true}
+			params.StartTime = sql.NullTime{Time: t.Truncate(time.Minute), Valid: true}
 		}
 	}
 	if v, ok := data["endTime"].(string); ok && v != "" {
 		if t, err := time.Parse(time.RFC3339, v); err == nil {
-			params.EndTime = sql.NullTime{Time: t, Valid: true}
+			params.EndTime = sql.NullTime{Time: t.Truncate(time.Minute), Valid: true}
 		}
 	}
 	if rawLinks, ok := data["relatedLinks"].([]interface{}); ok {

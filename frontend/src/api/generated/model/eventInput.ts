@@ -7,10 +7,12 @@
 
 export interface EventInput {
   artistIds?: string[];
-  endTime: string;
+  /** 개최일 (YYYY-MM-DD) */
+  date?: string;
+  endTime?: string;
   openingTime?: string;
   relatedLinks?: string[];
-  startTime: string;
+  startTime?: string;
   title: string;
   venueId: string;
 }

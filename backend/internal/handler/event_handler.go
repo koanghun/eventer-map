@@ -19,22 +19,55 @@ import (
 
 var eventDateLocation = time.FixedZone("UTC+9", 9*60*60)
 
+const unsetTimeSentinelSecond = 59
+
+func isUnsetEventTime(t time.Time) bool {
+	return t.IsZero() || t.Second() == unsetTimeSentinelSecond
+}
+
+func extractEventDateAndTimes(opening sql.NullTime, start, end time.Time) (*string, *time.Time, *time.Time, *time.Time) {
+	var dateStr *string
+	if !start.IsZero() {
+		d := start.In(eventDateLocation).Format("2006-01-02")
+		dateStr = &d
+	} else if opening.Valid && !opening.Time.IsZero() {
+		d := opening.Time.In(eventDateLocation).Format("2006-01-02")
+		dateStr = &d
+	} else if !end.IsZero() {
+		d := end.In(eventDateLocation).Format("2006-01-02")
+		dateStr = &d
+	}
+
+	var openingPtr *time.Time
+	if opening.Valid && !isUnsetEventTime(opening.Time) {
+		t := opening.Time
+		openingPtr = &t
+	}
+
+	var startPtr *time.Time
+	if !isUnsetEventTime(start) {
+		t := start
+		startPtr = &t
+	}
+
+	var endPtr *time.Time
+	if !isUnsetEventTime(end) {
+		t := end
+		endPtr = &t
+	}
+
+	return dateStr, openingPtr, startPtr, endPtr
+}
+
 func mapEventDetailToResponse(detail *service.EventDetail) Event {
 	e := detail.Event
 	id := openapi_types.UUID(e.ID)
 	title := e.Title
-	startTime := e.StartTime
-	endTime := e.EndTime
+	dateStr, openingTime, startTime, endTime := extractEventDateAndTimes(e.OpeningTime, e.StartTime, e.EndTime)
 	ratingSum := e.RatingSum
 	ratingCount := int(e.RatingCount)
 	attendeeCount := int(detail.AttendeeCount)
 	status := EventStatus(e.Status)
-
-	var openingTime *time.Time
-	if e.OpeningTime.Valid {
-		t := e.OpeningTime.Time
-		openingTime = &t
-	}
 
 	relatedLinks := make([]string, 0)
 	if len(e.RelatedLinks) > 0 {
@@ -125,9 +158,10 @@ func mapEventDetailToResponse(detail *service.EventDetail) Event {
 		Title:           &title,
 		Venue:           venueSummary,
 		Artists:         &artistSummaries,
+		Date:            dateStr,
 		OpeningTime:     openingTime,
-		StartTime:       &startTime,
-		EndTime:         &endTime,
+		StartTime:       startTime,
+		EndTime:         endTime,
 		RelatedLinks:    &relatedLinks,
 		RatingSum:       &ratingSum,
 		RatingCount:     &ratingCount,
@@ -145,8 +179,7 @@ func mapEventDetailToResponse(detail *service.EventDetail) Event {
 func mapListEventRowToSummary(row repository.ListEventsRow) EventSummary {
 	id := openapi_types.UUID(row.ID)
 	title := row.Title
-	startTime := row.StartTime
-	endTime := row.EndTime
+	dateStr, _, startTime, endTime := extractEventDateAndTimes(sql.NullTime{}, row.StartTime, row.EndTime)
 	attendeeCount := int(row.AttendeeCount)
 	status := EventSummaryStatus(row.Status)
 
@@ -195,8 +228,9 @@ func mapListEventRowToSummary(row repository.ListEventsRow) EventSummary {
 		VenueName:                venueName,
 		Latitude:                 lat,
 		Longitude:                lng,
-		StartTime:                &startTime,
-		EndTime:                  &endTime,
+		Date:                     dateStr,
+		StartTime:                startTime,
+		EndTime:                  endTime,
 		Rating:                   rating,
 		AttendeeCount:            &attendeeCount,
 		TopArtistName:            topArtistName,
@@ -375,20 +409,15 @@ func parseEventMultipartInput(r *http.Request, authorID uuid.UUID) (service.Crea
 		return service.CreateEventInput{}, "valid venueId is required"
 	}
 
-	startTimeStr := strings.TrimSpace(r.FormValue("startTime"))
-	startTime, err := time.Parse(time.RFC3339, startTimeStr)
-	if err != nil {
-		return service.CreateEventInput{}, "valid startTime is required"
-	}
-
-	endTimeStr := strings.TrimSpace(r.FormValue("endTime"))
-	endTime, err := time.Parse(time.RFC3339, endTimeStr)
-	if err != nil {
-		return service.CreateEventInput{}, "valid endTime is required"
-	}
-
-	if endTime.Before(startTime) {
-		endTime = endTime.Add(24 * time.Hour)
+	var parsedDate time.Time
+	hasDate := false
+	if dateStr := strings.TrimSpace(r.FormValue("date")); dateStr != "" {
+		d, err := time.ParseInLocation("2006-01-02", dateStr, eventDateLocation)
+		if err != nil {
+			return service.CreateEventInput{}, "invalid date"
+		}
+		parsedDate = d
+		hasDate = true
 	}
 
 	var openingTime *time.Time
@@ -397,7 +426,66 @@ func parseEventMultipartInput(r *http.Request, authorID uuid.UUID) (service.Crea
 		if err != nil {
 			return service.CreateEventInput{}, "invalid openingTime"
 		}
-		openingTime = &t
+		truncated := t.Truncate(time.Minute)
+		openingTime = &truncated
+	}
+
+	var startTimeVal time.Time
+	hasStartTime := false
+	if startTimeStr := strings.TrimSpace(r.FormValue("startTime")); startTimeStr != "" {
+		t, err := time.Parse(time.RFC3339, startTimeStr)
+		if err != nil {
+			return service.CreateEventInput{}, "invalid startTime"
+		}
+		startTimeVal = t.Truncate(time.Minute)
+		hasStartTime = true
+	}
+
+	var endTimeVal time.Time
+	hasEndTime := false
+	if endTimeStr := strings.TrimSpace(r.FormValue("endTime")); endTimeStr != "" {
+		t, err := time.Parse(time.RFC3339, endTimeStr)
+		if err != nil {
+			return service.CreateEventInput{}, "invalid endTime"
+		}
+		endTimeVal = t.Truncate(time.Minute)
+		hasEndTime = true
+	}
+
+	var baseDate time.Time
+	switch {
+	case hasDate:
+		baseDate = parsedDate
+	case hasStartTime:
+		baseDate = startTimeVal.In(eventDateLocation)
+	case openingTime != nil:
+		baseDate = openingTime.In(eventDateLocation)
+	case hasEndTime:
+		baseDate = endTimeVal.In(eventDateLocation)
+	default:
+		return service.CreateEventInput{}, "date or startTime is required"
+	}
+
+	year, month, day := baseDate.Date()
+
+	if !hasStartTime {
+		startTimeVal = time.Date(year, month, day, 0, 0, unsetTimeSentinelSecond, 0, eventDateLocation)
+	}
+
+	if !hasEndTime {
+		ey, em, ed := year, month, day
+		if hasStartTime {
+			ey, em, ed = startTimeVal.In(eventDateLocation).Date()
+		}
+		endTimeVal = time.Date(ey, em, ed, 23, 59, unsetTimeSentinelSecond, 0, eventDateLocation)
+	} else {
+		if hasStartTime && endTimeVal.Before(startTimeVal) {
+			endTimeVal = endTimeVal.Add(24 * time.Hour)
+		} else if !hasStartTime && openingTime != nil && endTimeVal.Before(*openingTime) {
+			endTimeVal = endTimeVal.Add(24 * time.Hour)
+		} else if !hasStartTime && endTimeVal.Before(startTimeVal) {
+			endTimeVal = endTimeVal.Add(24 * time.Hour)
+		}
 	}
 
 	var artistIDs []uuid.UUID
@@ -429,8 +517,8 @@ func parseEventMultipartInput(r *http.Request, authorID uuid.UUID) (service.Crea
 		VenueID:      venueID,
 		ArtistIDs:    artistIDs,
 		OpeningTime:  openingTime,
-		StartTime:    startTime,
-		EndTime:      endTime,
+		StartTime:    startTimeVal,
+		EndTime:      endTimeVal,
 		RelatedLinks: relatedLinks,
 		AuthorID:     authorID,
 	}, ""

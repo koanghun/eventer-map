@@ -2,6 +2,7 @@ import { OverlayView } from '@react-google-maps/api';
 import { useTranslation } from 'react-i18next';
 import { MapPin, Calendar, Users, Mic2, ExternalLink, X } from 'lucide-react';
 import { useGetEventsEventId } from '../../api/generated/events/events';
+import { formatLocalizedDate, formatLocalizedDateTime, formatLocalizedTime } from '../../lib/utils';
 import type { EventSummary } from '../../api/generated/model';
 
 interface SingleEventInfoWindowProps {
@@ -21,7 +22,7 @@ export default function SingleEventInfoWindow({
     onArtistSelect,
     onVenueSelect,
 }: SingleEventInfoWindowProps) {
-    const { t } = useTranslation();
+    const { t, i18n } = useTranslation();
 
     const { data: eventData } = useGetEventsEventId(event.id || '', {
         query: {
@@ -35,21 +36,14 @@ export default function SingleEventInfoWindow({
     const artists = eventData?.artists?.filter((a) => Boolean(a.officialName)) || [];
     const attendeeCount = eventData?.attendeeCount ?? event.attendeeCount;
 
-    const formattedStart = event.startTime
-        ? new Date(event.startTime).toLocaleString('ko-KR', {
-            year: 'numeric',
-            month: 'short',
-            day: 'numeric',
-            hour: '2-digit',
-            minute: '2-digit',
-        })
-        : t('eventDetail.dateUnknown', 'Date TBD');
-    const formattedEnd = event.endTime
-        ? new Date(event.endTime).toLocaleTimeString('ko-KR', {
-            hour: '2-digit',
-            minute: '2-digit',
-        })
-        : null;
+    const date = eventData?.date ?? event.date;
+    const startTime = eventData?.startTime ?? event.startTime;
+    const endTime = eventData?.endTime ?? event.endTime;
+    const formattedDate = formatLocalizedDate({ date, startTime, endTime }, i18n.language, true);
+    const formattedStart = formatLocalizedDateTime(startTime, i18n.language, true);
+    const formattedEnd = formattedStart
+        ? formatLocalizedTime(endTime, i18n.language)
+        : formatLocalizedDateTime(endTime, i18n.language, true);
 
     return (
         <OverlayView position={position} mapPaneName={OverlayView.FLOAT_PANE}>
@@ -157,11 +151,34 @@ export default function SingleEventInfoWindow({
 
                         <div className="flex items-start gap-2.5">
                             <Calendar className="w-4 h-4 text-primary/70 mt-0.5 shrink-0" />
-                            <div className="text-foreground">
-                                {formattedStart}
-                                {formattedEnd ? ` ~ ${formattedEnd}` : ''}
+                                <div className="text-foreground flex flex-wrap items-center gap-x-1.5 gap-y-1">
+                                    {formattedStart && (
+                                        <span>
+                                            <span className="text-[10px] font-semibold uppercase tracking-wider opacity-70 border border-border rounded px-1 mr-1">
+                                                {t('eventList.timePrefix.start')}
+                                            </span>
+                                            {formattedStart}
+                                        </span>
+                                    )}
+                                    {formattedStart && formattedEnd && <span className="text-border">|</span>}
+                                    {formattedEnd && (
+                                        <span>
+                                            <span className="text-[10px] font-semibold uppercase tracking-wider opacity-70 border border-border rounded px-1 mr-1">
+                                                {t('eventList.timePrefix.end')}
+                                            </span>
+                                            {formattedEnd}
+                                        </span>
+                                    )}
+                                    {!formattedStart && !formattedEnd && (
+                                        <span className="inline-flex items-center gap-1.5 flex-wrap">
+                                            <span>{formattedDate || t('eventDetail.dateUnknown', 'Date TBD')}</span>
+                                            <span className="text-[10px] font-semibold uppercase tracking-wider opacity-70 border border-border rounded px-1">
+                                                {t('eventList.timePrefix.tbd')}
+                                            </span>
+                                        </span>
+                                    )}
+                                </div>
                             </div>
-                        </div>
 
                             {
                                 typeof attendeeCount === 'number' && (
@@ -173,9 +190,9 @@ export default function SingleEventInfoWindow({
                                     </div>
                                 )
                             }
+                        </div>
                     </div>
                 </div>
-            </div>
         </OverlayView>
     );
 }

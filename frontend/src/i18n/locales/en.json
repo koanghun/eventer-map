@@ -122,17 +122,17 @@
         "retry": "Retry"
     },
     "eventList": {
-        "title": "イベント一覧",
-        "loading": "読み込み中...",
+        "title": "Events",
+        "loading": "Loading...",
         "empty": {
-            "line1": "選択した日付に登録されたイベントがありません。",
-            "line2": "新しいイベントを登録してみましょう！ 🎉"
+            "line1": "No events registered for the selected date.",
+            "line2": "Try registering a new event! 🎉"
         },
         "timePrefix": {
-            "door": "開場",
-            "start": "開演",
-            "end": "終演",
-            "tbd": "時間未定"
+            "door": "Doors",
+            "start": "Start",
+            "end": "End",
+            "tbd": "Time TBD"
         }
     },
     "eventForm": {
@@ -178,14 +178,14 @@
     },
     "eventMap": {
         "groupModal": {
-            "title": "この場所に{{count}}個のイベント"
+            "title": "{{count}} events at this location"
         },
         "infoWindow": {
-            "date": "日付",
-            "time": "時間",
-            "performers": "出演者",
-            "link": "詳細情報",
-            "attendance": "参加"
+            "date": "Date",
+            "time": "Time",
+            "performers": "Performers",
+            "link": "Details",
+            "attendance": "Attending"
         }
     },
     "eventDetail": {
@@ -304,14 +304,14 @@
             "eventLabel": "イベント"
         },
         "labels": {
-            "location": "会場",
-            "address": "住所",
-            "date": "日付",
-            "doorTime": "開場",
-            "startTime": "開演",
-            "endTime": "終演",
-            "performers": "出演者",
-            "description": "説明"
+            "location": "Venue",
+            "address": "Address",
+            "date": "Date",
+            "doorTime": "Doors",
+            "startTime": "Start",
+            "endTime": "End",
+            "performers": "Performers",
+            "description": "Description"
         },
         "searchByArtist": "Search by this performer (6 months)",
         "searchByVenue": "Search by this venue (6 months)"
@@ -577,7 +577,7 @@
         "addLink": "Add Link",
         "editTitle": "Edit Event",
         "updateButton": "Update",
-        "createMissingFields": "Title, Start/End times, and Venue are required.",
+        "createMissingFields": "Title, Date, and Venue are required.",
         "createSuccess": "Event successfully registered.",
         "createFail": "Failed to register event.",
         "updateSuccess": "Event successfully updated.",

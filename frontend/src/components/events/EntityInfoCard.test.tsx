@@ -15,6 +15,7 @@ const mockFollowingArtists = [
 ];
 
 jest.mock('../../api/generated/user/user', () => ({
+    ...jest.requireActual('../../api/generated/user/user'),
     getGetUsersMeFollowingArtistsQueryKey: () => ['/users/me/following-artists'],
     useGetUsersMeFollowingArtists: () => ({
         data: mockFollowingArtists,
@@ -27,14 +28,23 @@ jest.mock('../../api/generated/user/user', () => ({
 const mockUnfollowMutate = jest.fn();
 
 jest.mock('../../api/generated/artists/artists', () => ({
+    ...jest.requireActual('../../api/generated/artists/artists'),
     getGetArtistsArtistIdFollowersQueryKey: (id: string) => [`/artists/${id}/followers`],
     useGetArtistsArtistIdFollowers: () => ({ data: [] }),
     usePostArtistsArtistIdFollow: () => ({ isPending: false, mutate: jest.fn() }),
     useDeleteArtistsArtistIdFollow: () => ({ isPending: false, mutate: mockUnfollowMutate }),
+    usePutArtistsArtistIdCredit: () => ({ isPending: false, mutate: jest.fn() }),
 }));
 
 jest.mock('../../api/generated/events/events', () => ({
+    ...jest.requireActual('../../api/generated/events/events'),
     getGetEventsQueryKey: () => ['/events'],
+    usePutEventsEventIdCredit: () => ({ isPending: false, mutate: jest.fn() }),
+}));
+
+jest.mock('../../api/generated/modification-requests/modification-requests', () => ({
+    ...jest.requireActual('../../api/generated/modification-requests/modification-requests'),
+    useListModificationRequests: () => ({ data: { requests: [] }, isLoading: false }),
 }));
 
 describe('EntityInfoCard collapse behavior for single vs multiple artists', () => {

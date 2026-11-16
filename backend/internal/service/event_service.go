@@ -386,12 +386,13 @@ func (s *EventService) UpdateEvent(ctx context.Context, eventID uuid.UUID, input
 	}
 
 	params := repository.UpdateEventParams{
-		ID:           eventID,
-		Title:        sql.NullString{String: strings.TrimSpace(input.Title), Valid: true},
-		VenueID:      uuid.NullUUID{UUID: input.VenueID, Valid: input.VenueID != uuid.Nil},
-		StartTime:    sql.NullTime{Time: input.StartTime, Valid: true},
-		EndTime:      sql.NullTime{Time: input.EndTime, Valid: true},
-		RelatedLinks: relatedLinks,
+		ID:               eventID,
+		Title:            sql.NullString{String: strings.TrimSpace(input.Title), Valid: true},
+		VenueID:          uuid.NullUUID{UUID: input.VenueID, Valid: input.VenueID != uuid.Nil},
+		ClearOpeningTime: input.OpeningTime == nil,
+		StartTime:        sql.NullTime{Time: input.StartTime, Valid: true},
+		EndTime:          sql.NullTime{Time: input.EndTime, Valid: true},
+		RelatedLinks:     relatedLinks,
 	}
 
 	if input.OpeningTime != nil {

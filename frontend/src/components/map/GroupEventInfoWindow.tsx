@@ -1,6 +1,7 @@
 import { OverlayView } from '@react-google-maps/api';
 import { useTranslation } from 'react-i18next';
 import { MapPin, Calendar, ChevronRight, X } from 'lucide-react';
+import { formatLocalizedDate, formatLocalizedDateTime, formatLocalizedTime } from '../../lib/utils';
 import type { EventSummary } from '../../api/generated/model';
 
 interface GroupEventInfoWindowProps {
@@ -22,7 +23,7 @@ export default function GroupEventInfoWindow({
     onEventSelect,
     onVenueSelect,
 }: GroupEventInfoWindowProps) {
-    const { t } = useTranslation();
+    const { t, i18n } = useTranslation();
     const venueId = events.find((e) => Boolean(e.venueId))?.venueId;
 
     return (
@@ -79,36 +80,62 @@ export default function GroupEventInfoWindow({
 
                     {/* Event List */}
                     <div className="p-2.5 max-h-[250px] overflow-y-auto space-y-2">
-                        {events.map((event) => (
-                            <div
-                                key={event.id}
-                                className="group p-3 rounded-xl border border-border bg-card hover:border-primary hover:bg-primary/5 cursor-pointer transition-all flex items-center justify-between"
-                                onClick={() => onEventSelect(event)}
-                            >
-                                <div className="min-w-0 pr-2">
-                                    <h4 className="font-bold text-foreground text-sm truncate group-hover:text-primary transition-colors">
-                                        {event.title}
-                                    </h4>
-                                    {event.startTime && (
-                                        <div className="flex items-center gap-1.5 mt-1 text-xs text-muted-foreground">
-                                            <Calendar className="w-3 h-3 shrink-0" />
-                                            <span>
-                                                {new Date(event.startTime).toLocaleString('ko-KR', {
-                                                    month: 'short',
-                                                    day: 'numeric',
-                                                    hour: '2-digit',
-                                                    minute: '2-digit',
-                                                })}
-                                            </span>
-                                        </div>
-                                    )}
+                                    {events.map((event) => {
+                                        const formattedStart = formatLocalizedDateTime(event.startTime, i18n.language, false);
+                                        const formattedEnd = formattedStart
+                                            ? formatLocalizedTime(event.endTime, i18n.language)
+                                            : formatLocalizedDateTime(event.endTime, i18n.language, false);
+                                        const formattedDate = formatLocalizedDate(event, i18n.language, false);
+                                        return (
+                                <div
+                                    key={event.id}
+                                    className="group p-3 rounded-xl border border-border bg-card hover:border-primary hover:bg-primary/5 cursor-pointer transition-all flex items-center justify-between"
+                                    onClick={() => onEventSelect(event)}
+                                >
+                                    <div className="min-w-0 pr-2">
+                                        <h4 className="font-bold text-foreground text-sm truncate group-hover:text-primary transition-colors">
+                                            {event.title}
+                                        </h4>
+                                        {(formattedStart || formattedEnd || formattedDate) && (
+                                            <div className="flex items-start gap-1.5 mt-1 text-xs text-muted-foreground">
+                                                <Calendar className="w-3 h-3 shrink-0 mt-0.5" />
+                                                <span className="flex flex-wrap items-center gap-x-1 gap-y-0.5">
+                                                    {formattedStart && (
+                                                        <span>
+                                                            <span className="text-[10px] font-semibold uppercase tracking-wider opacity-70 border border-border rounded px-1 mr-1">
+                                                                {t('eventList.timePrefix.start')}
+                                                            </span>
+                                                            {formattedStart}
+                                                        </span>
+                                                    )}
+                                                    {formattedStart && formattedEnd && <span className="text-border">|</span>}
+                                                    {formattedEnd && (
+                                                        <span>
+                                                            <span className="text-[10px] font-semibold uppercase tracking-wider opacity-70 border border-border rounded px-1 mr-1">
+                                                                {t('eventList.timePrefix.end')}
+                                                            </span>
+                                                            {formattedEnd}
+                                                        </span>
+                                                    )}
+                                                    {!formattedStart && !formattedEnd && (
+                                                        <span className="inline-flex items-center gap-1 flex-wrap">
+                                                            {formattedDate && <span>{formattedDate}</span>}
+                                                            <span className="text-[10px] font-semibold uppercase tracking-wider opacity-70 border border-border rounded px-1">
+                                                                {t('eventList.timePrefix.tbd')}
+                                                            </span>
+                                                        </span>
+                                                    )}
+                                                </span>
+                                            </div>
+                                        )}
+                                    </div>
+                                    <ChevronRight className="w-4 h-4 text-muted-foreground group-hover:text-primary shrink-0 transition-colors" />
                                 </div>
-                                <ChevronRight className="w-4 h-4 text-muted-foreground group-hover:text-primary shrink-0 transition-colors" />
+                                );
+                        })}
                             </div>
-                        ))}
-                    </div>
                 </div>
-            </div>
+                </div>
         </OverlayView>
     );
 }

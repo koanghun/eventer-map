@@ -2052,6 +2052,13 @@ components:
           type: number
           format: double
           description: 공연장 경도
+        date:
+          type: string
+          description: 개최일 (YYYY-MM-DD)
+        openingTime:
+          type: string
+          format: date-time
+          description: 개장 시간
         startTime:
           type: string
           format: date-time
@@ -2131,6 +2138,9 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/ArtistSummary"
+        date:
+          type: string
+          description: 개최일 (YYYY-MM-DD)
         openingTime:
           type: string
           format: date-time
@@ -2186,14 +2196,15 @@ components:
       required:
         - title
         - venueId
-        - startTime
-        - endTime
       properties:
         title:
           type: string
         venueId:
           type: string
           format: uuid
+        date:
+          type: string
+          description: 개최일 (YYYY-MM-DD)
         artistIds:
           type: array
           items:
