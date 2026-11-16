@@ -72,12 +72,14 @@ flowchart LR
 - `oauth_state_store.go`: `OAuthStateStore` 인터페이스 구현체 — 프로덕션용 `DynamoDBOAuthStateStore` (TTL + 조건부 `DeleteItem` 원자 1회 소비) 및 로컬(`ENV=local` / 비-Lambda) 전용 `InMemoryOAuthStateStore`
 
 ### 4) `internal/handler/` (표현 계층)
-- `oapi-codegen`이 생성한 `openapi.gen.go`의 `ServerInterface`를 도메인별 파일(`common_handler.go`, `event_handler.go`, `thread_handler.go`, `artist_handler.go`, `venue_handler.go`, `auth_handler.go`, `user_handler.go`)에서 구현합니다.
+- `oapi-codegen`이 생성한 `openapi.gen.go`의 `ServerInterface`를 도메인별 파일(`common_handler.go`, `event_handler.go`, `thread_handler.go`, `artist_handler.go`, `venue_handler.go`, `credit_handler.go`, `auth_handler.go`, `user_handler.go`)에서 구현합니다.
 - 요청 파라미터/바디 파싱 및 입력값 검증(필수값, 본문 및 문자열 길이, 바디 크기 제한(`4096B` read 요청 포함), 위경도 범위, 이미지 MIME/용량, `GET /events`의 `myAction`·`followingArtists`·`artistId`·`createdAfter` 충돌 및 인증 여부 등)만 수행하고 비즈니스 로직은 `Service`에 위임합니다.
+- 이벤트·아티스트·공연장 단건/목록 조회 핸들러에서는 `CreditService.MaybeProcessSustainedLifecycle` 지연 평가 트리거 및 로그인 유저의 개인 신용 투표 상태(`myCreditScore`) 주입을 함께 수행합니다.
 
 ### 5) `internal/service/` (비즈니스 계층)
 - HTTP 객체(`http.Request` 등)에 의존하지 않는 순수 Go 도메인 로직을 수행합니다.
 - 유저 권한(`ADMIN` 여부)에 따른 등록 상태 결정(`PENDING` vs `APPROVED`), 이벤트 평점 등록/수정/삭제(`RateEvent` / `DeleteRate`) 및 이벤트 수정 시 공연장·출연자의 평균 평점 캐시(`rating_sum`, `rating_count`) 재계산, 스레드 복합 커서 인코딩/디코딩, 본인 스레드 추천 방지, 트랜잭션 처리를 담당합니다.
+- 데이터 신뢰도 도메인(`credit_service.go`)에서는 3대 엔티티의 1인 1표 신용 점수 투표(`VoteEntityCredit`), 공인(`APPROVED`) 엔티티에 대한 수정 요청 등록·삭제·신뢰 점수 투표·관리자 즉시 반영(`CreateModificationRequest`, `VoteModificationRequestTrust`, `ApplyModificationRequestByAdmin`), 그리고 AWS Lambda 환경에서 상주 고루틴 없이 동작하는 `atomic.Int64` CAS 기반 30초 스로틀링 지연 평가(`MaybeProcessSustainedLifecycle` ➔ 24시간 지속 승격/삭제/반영)를 수행합니다. 상세 정책은 [데이터 신뢰도 시스템 문서](./DATA_GOVERNANCE_AND_CREDIT_POLICY.md)를 참고하세요.
 - 이벤트 조회(`event_service.go` `ListEvents`)에서는 일반 지도 조회(`ListEvents`), 내 북마크/참가 조회(`ListMyActionEvents`), 팔로우한 출연자 이벤트 조회(`ListFollowingArtistsEventsForMap`, 선택적 `CreatedAfter` 스냅샷 필터 포함) 경로를 분기하며, 개인화 필터의 인증 누락·충돌 조합에 대해 fail-closed 에러를 반환합니다.
 - 팔로우 아티스트 피드(`artist_service.go` `GetFollowingArtistsEventFeed`, `UpdateLastArtistFeedCheckedAt`)는 `unreadOnly` 목록·미확인 카운트·기준 타임스탬프(`checkedAt`, `fetchedAt`) 조회와 `readBefore` 상한 클램핑 읽음 갱신을 처리합니다.
 - 인증/계정 도메인(`auth_service.go`, `x_auth_service.go`, `user_service.go`)에서는 이메일 인증 코드 검증, Google/X OAuth 로그인·계정 연동·해제(마지막 로그인 수단 해제 방지), 이메일 없는 X 가입(`NULL` 이메일 + 유니크 닉네임 자동 생성), 탈퇴 재인증 검증을 수행합니다.
@@ -106,8 +108,8 @@ flowchart LR
   - **기간 필터 (`DatePicker.tsx`)**: 범위 드래그 선택, 빠른 기간 프리셋(`오늘` / `일주일 후` / `한달 후`), 개방형 시작일 표기(`{{date}} 이후`), 기간/종료일 초기화(`allDatesLabel`, `clearLabel`) 지원.
   - **출연자 & 공연장 통합 검색 (`ArtistSearch.tsx`)**: `GET /artists`와 `GET /venues/search`를 동시에 디바운스(`300ms`) + IME(`isComposing`) 가드로 자동완성 조회하고, 선택 시 URL 쿼리(`artistId`/`venueId`, 기본 6개월 범위)와 동기화합니다.
   - **엔티티 정보 & 다중 출연자 접힘 카드 (`EntityInfoCard.tsx`)**:
-    - 단일 출연자 선택 시 **`ArtistInfoCard`**가 기본 펼침 상태로 표시되어 팔로우 토글, 팔로워 목록 팝오버, 동명이인 설명(`disambiguation`)을 제공합니다.
-    - 공연장 선택 시 **`VenueInfoCard`**가 표시되어 주소, Google Maps 이동, 지도 포커싱(`setMapCenterTarget`), 수용 인원, 관련 링크를 제공합니다.
+    - 단일 출연자 선택 시 **`ArtistInfoCard`**가 기본 펼침 상태로 표시되어 팔로우 토글, 팔로워 목록 팝오버, 동명이인 설명(`disambiguation`), 상태 배지(`EntityStatusBadge`) 및 **`CreditVoteSection.tsx` / `ModificationRequestsSection.tsx`(`APPROVED` 전용)**를 제공합니다.
+    - 공연장 선택 시 **`VenueInfoCard`**가 표시되어 주소, Google Maps 이동, 지도 포커싱(`setMapCenterTarget`), 수용 인원, 관련 링크, 상태 배지(`EntityStatusBadge`) 및 **`CreditVoteSection.tsx` / `ModificationRequestsSection.tsx`(`APPROVED` 전용)**를 제공합니다.
     - 프로필 팝오버의 `'팔로우한 출연자'` 모드에서는 복수 출연자가 검색되므로 **`FollowingArtistsInfoCard`**(`EntityInfoShell` 기반)가 **`defaultCollapsed = true`('접어서 숨김')** 상태로 렌더링되어 이벤트 리스트 가시성을 우선 확보하며, 헤더 클릭 시 펼쳐 팔로우 목록/언팔로우를 관리할 수 있습니다.
   - **프로필 팝오버 개인화 & 신규 알림 맵 필터 (`UserProfile.tsx` + `ArtistNotificationBell.tsx` + `MapPage.tsx`)**:
     - 프로필 아이콘 팝오버에서 **`북마크한 이벤트` (`?myAction=bookmarked`)**, **`참가한 이벤트` (`?myAction=attending`)**, **`팔로우한 출연자` (`?followingArtists=true`)** 필터를 전환할 수 있고, 헤더 알림 팝오버의 `'전체 신규 이벤트 확인'` 클릭 시 **`?followingArtists=true&newEventsSince=<ISO8601>`** 모드로 진입합니다.
@@ -117,6 +119,7 @@ flowchart LR
 - **이벤트 상세 뷰 (`EventDetailPane.tsx`)**:
   - 지도 마커(`SingleEventInfoWindow`, `GroupEventInfoWindow`) 또는 리스트에서 이벤트 선택 시 상세 정보, 출연자(`공식 이름 (식별 설명)`), 공연장을 표시하며, 출연자/공연장 클릭 시 즉시 6개월 일정 검색으로 연동됩니다.
   - 체크/참가 상태 3단계 원클릭 순환(`usePutEventsEventIdAction`, `0 ➔ 1(북마크) ➔ 2(참가)`) 낙관적 업데이트 및 참가자(`status=2`) 전용 평점 등록/수정/삭제(`usePostEventsEventIdRate`, `useDeleteEventsEventIdRate`) 지원.
+  - **데이터 신뢰도 & 수정 요청 섹션 (`CreditVoteSection.tsx`, `ModificationRequestsSection.tsx`)**: 모든 이벤트에서 `+1`/`-1`/`0` 신용 점수 투표 및 24시간 승격·삭제 예고 배너를 제공하고, 공인(`APPROVED`) 이벤트에 한해 수정 제안·신뢰 점수 투표·관리자 즉시 반영 UI를 제공합니다.
   - **이벤트 스레드 & 커뮤니티 서브 섹션 (`EventThreadSection.tsx`)**:
     - **추천순 랭킹 & BEST 뱃지**: 추천 수가 많은 고품질 스레드가 상단에 정렬되며 상위 스레드에 BEST 뱃지 표시
     - **커서 기반 무한 스크롤**: TanStack Query v5 `useInfiniteQuery`를 활용한 지연 로딩

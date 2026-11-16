@@ -34,6 +34,17 @@ erDiagram
     users ||--o{ thread_recommendations : "CASCADE"
     event_threads ||--o{ thread_recommendations : "CASCADE"
 
+    users ||--o{ event_credit_votes : "CASCADE"
+    events ||--o{ event_credit_votes : "CASCADE"
+    users ||--o{ artist_credit_votes : "CASCADE"
+    artists ||--o{ artist_credit_votes : "CASCADE"
+    users ||--o{ venue_credit_votes : "CASCADE"
+    venues ||--o{ venue_credit_votes : "CASCADE"
+
+    users ||--o{ modification_requests : "author_id (SET NULL)"
+    users ||--o{ modification_request_votes : "CASCADE"
+    modification_requests ||--o{ modification_request_votes : "CASCADE"
+
     users {
         UUID id PK
         VARCHAR email UK
@@ -61,6 +72,10 @@ erDiagram
         INTEGER rating_count
         VARCHAR status
         UUID author_id FK
+        INTEGER credit_score
+        INTEGER credit_count
+        TIMESTAMPTZ high_credit_since
+        TIMESTAMPTZ low_credit_since
         TIMESTAMPTZ created_at
         TIMESTAMPTZ updated_at
     }
@@ -78,6 +93,10 @@ erDiagram
         INTEGER rating_count
         VARCHAR status
         UUID author_id FK
+        INTEGER credit_score
+        INTEGER credit_count
+        TIMESTAMPTZ high_credit_since
+        TIMESTAMPTZ low_credit_since
         TIMESTAMPTZ created_at
         TIMESTAMPTZ updated_at
     }
@@ -94,6 +113,10 @@ erDiagram
         INTEGER rating_count
         VARCHAR status
         UUID author_id FK
+        INTEGER credit_score
+        INTEGER credit_count
+        TIMESTAMPTZ high_credit_since
+        TIMESTAMPTZ low_credit_since
         TIMESTAMPTZ created_at
         TIMESTAMPTZ updated_at
     }
@@ -101,7 +124,7 @@ erDiagram
 
 ---
 
-## 2. 🗃️ 도메인별 테이블 상세 명세 (총 13개 테이블)
+## 2. 🗃️ 도메인별 테이블 상세 명세 (총 18개 테이블)
 
 ### 2.1. 회원 및 인증 도메인 (`users`, `verification_tokens`)
 
@@ -135,7 +158,7 @@ erDiagram
 ### 2.2. 핵심 도메인 (`artists`, `venues`, `events`, `event_artists`)
 
 #### 3) `artists` — 출연자(아티스트) 정보
-> `000013`~`000015`를 통해 `birth_date`, `debut_date`, `credit_score`, `credit_count`가 제거되고 `disambiguation` 및 이벤트 평균 평점 캐시(`rating_sum`, `rating_count`)로 일원화되었습니다.
+> `000013`~`000015`를 통해 `birth_date`, `debut_date` 및 초기 신용점수가 제거되고 `disambiguation` 및 이벤트 평균 평점 캐시(`rating_sum`, `rating_count`)로 일원화되었으며, 이후 `000021`에서 지속 시간 기반 신용 점수 시스템(`credit_score`, `credit_count`, `high_credit_since`, `low_credit_since`)이 재도입되었습니다.
 
 | 컬럼명 | 데이터 타입 | 제약 조건 | 기본값 | 설명 |
 | :--- | :--- | :--- | :--- | :--- |
@@ -149,12 +172,17 @@ erDiagram
 | `rating_count` | `INTEGER` | `NOT NULL` | `0` | 평점이 매겨진 참가 이벤트 수 (이벤트 평점/수정 시 동기화) |
 | `status` | `VARCHAR` | `NOT NULL` | `'PENDING'` | 승인 상태 (`PENDING`, `APPROVED`, `REJECTED`) |
 | `author_id` | `UUID` | `FK -> users(id) ON DELETE SET NULL` | - | 최초 등록자 ID |
+| `credit_score` | `INTEGER` | `NOT NULL` (`000021`) | `0` | 커뮤니티 신용 순점수 (`+1`/`-1` 합계) |
+| `credit_count` | `INTEGER` | `NOT NULL` (`000021`) | `0` | 누적 신용 투표 수 |
+| `high_credit_since` | `TIMESTAMPTZ` | `NULL` (`000021`) | - | 승격 기준(`>=5표 & >=+5점`) 최초 도달 시각 (24h 유지 시 자동 승격) |
+| `low_credit_since` | `TIMESTAMPTZ` | `NULL` (`000021`) | - | 삭제 기준(`>=5표 & <=-5점`) 최초 도달 시각 (24h 유지 시 자동 삭제) |
 | `created_at` | `TIMESTAMPTZ` | `NOT NULL` | `NOW()` | 생성 시각 |
 | `updated_at` | `TIMESTAMPTZ` | `NOT NULL` | `NOW()` | 수정 시각 |
 
 **활성 인덱스**:
 - `idx_artists_lower_name_pattern`: `ON artists (LOWER(official_name) varchar_pattern_ops)`
 - `idx_artists_hiragana_pattern`: `ON artists (hiragana varchar_pattern_ops)`
+- `idx_artists_pending_credit_lifecycle` (`000021`): `ON artists (high_credit_since, low_credit_since) WHERE status = 'PENDING'`
 
 #### 4) `venues` — 공연장(회장) 정보
 | 컬럼명 | 데이터 타입 | 제약 조건 | 기본값 | 설명 |
@@ -171,15 +199,20 @@ erDiagram
 | `rating_count` | `INTEGER` | `NOT NULL` | `0` | 평점이 매겨진 개최 이벤트 수 (이벤트 평점/수정 시 동기화) |
 | `status` | `VARCHAR` | `NOT NULL` | `'PENDING'` | 승인 상태 (`PENDING`, `APPROVED`, `REJECTED`) |
 | `author_id` | `UUID` | `FK -> users(id) ON DELETE SET NULL` | - | 최초 등록자 ID |
+| `credit_score` | `INTEGER` | `NOT NULL` (`000021`) | `0` | 커뮤니티 신용 순점수 (`+1`/`-1` 합계) |
+| `credit_count` | `INTEGER` | `NOT NULL` (`000021`) | `0` | 누적 신용 투표 수 |
+| `high_credit_since` | `TIMESTAMPTZ` | `NULL` (`000021`) | - | 승격 기준(`>=5표 & >=+5점`) 최초 도달 시각 (24h 유지 시 자동 승격) |
+| `low_credit_since` | `TIMESTAMPTZ` | `NULL` (`000021`) | - | 삭제 기준(`>=5표 & <=-5점`) 최초 도달 시각 (24h 유지 시 자동 삭제) |
 | `created_at` | `TIMESTAMPTZ` | `NOT NULL` | `NOW()` | 생성 시각 |
 | `updated_at` | `TIMESTAMPTZ` | `NOT NULL` | `NOW()` | 수정 시각 |
 
 **활성 인덱스**:
 - `idx_venues_location`: `ON venues (latitude, longitude)`
 - `idx_venues_lower_name_pattern`: `ON venues (LOWER(official_name) varchar_pattern_ops)`
+- `idx_venues_pending_credit_lifecycle` (`000021`): `ON venues (high_credit_since, low_credit_since) WHERE status = 'PENDING'`
 
 #### 5) `events` — 이벤트(공연/행사) 정보
-> `000015`에서 미사용 `poster_image_url` 컬럼이 제거되었습니다.
+> `000015`에서 미사용 `poster_image_url` 컬럼이 제거되었으며, `000021`에서 지속 시간 기반 신용 점수 컬럼이 추가되었습니다.
 
 | 컬럼명 | 데이터 타입 | 제약 조건 | 기본값 | 설명 |
 | :--- | :--- | :--- | :--- | :--- |
@@ -194,6 +227,10 @@ erDiagram
 | `rating_count` | `INTEGER` | `NOT NULL` | `0` | 평점 참여 인원 수 |
 | `status` | `VARCHAR` | `NOT NULL` | `'PENDING'` | 승인 상태 (`PENDING`, `APPROVED`, `REJECTED`) |
 | `author_id` | `UUID` | `FK -> users(id) ON DELETE SET NULL` | - | 최초 등록자 ID |
+| `credit_score` | `INTEGER` | `NOT NULL` (`000021`) | `0` | 커뮤니티 신용 순점수 (`+1`/`-1` 합계) |
+| `credit_count` | `INTEGER` | `NOT NULL` (`000021`) | `0` | 누적 신용 투표 수 |
+| `high_credit_since` | `TIMESTAMPTZ` | `NULL` (`000021`) | - | 승격 기준(`>=5표 & >=+5점`) 최초 도달 시각 (24h 유지 시 자동 승격) |
+| `low_credit_since` | `TIMESTAMPTZ` | `NULL` (`000021`) | - | 삭제 기준(`>=5표 & <=-5점`) 최초 도달 시각 (24h 유지 시 자동 삭제) |
 | `created_at` | `TIMESTAMPTZ` | `NOT NULL` | `NOW()` | 생성 시각 |
 | `updated_at` | `TIMESTAMPTZ` | `NOT NULL` | `NOW()` | 수정 시각 |
 
@@ -201,6 +238,7 @@ erDiagram
 - `idx_events_start_time`: `ON events (start_time)`
 - `idx_events_time_venue`: `ON events (venue_id, start_time, end_time)`
 - `idx_events_active_created_at` (`000020`): `ON events (created_at DESC, id) WHERE status <> 'REJECTED'` (신규 이벤트 알림/필터 조회용 부분 인덱스)
+- `idx_events_pending_credit_lifecycle` (`000021`): `ON events (high_credit_since, low_credit_since) WHERE status = 'PENDING'`
 
 #### 6) `event_artists` — 이벤트-출연자 N:M 매핑
 | 컬럼명 | 데이터 타입 | 제약 조건 | 설명 |
@@ -244,7 +282,23 @@ erDiagram
 **활성 인덱스**:
 - `idx_thread_recommendations_thread_id`: `ON thread_recommendations (thread_id)` (스레드 삭제 시 CASCADE 처리 가속)
 
-#### 9) 기타 상호작용 및 시스템 테이블
+#### 9) 데이터 신뢰도 및 수정 요청 테이블 (`000021`, 5개)
+- **`event_credit_votes`** / **`artist_credit_votes`** / **`venue_credit_votes`**: 엔티티별 1인 1표 신용 투표
+  - `user_id (UUID PK(1), FK -> users(id) ON DELETE CASCADE)`
+  - `event_id` / `artist_id` / `venue_id (UUID PK(2), FK -> 대상 테이블(id) ON DELETE CASCADE)`
+  - `score (INTEGER NOT NULL CHECK IN (1, -1))`, `created_at (TIMESTAMPTZ)`, `updated_at (TIMESTAMPTZ)`
+- **`modification_requests`**: 공인(`APPROVED`) 데이터 변경 제안
+  - `id (UUID PK)`, `entity_type (VARCHAR CHECK IN ('EVENT', 'ARTIST', 'VENUE'))`, `entity_id (UUID NOT NULL)`
+  - `author_id (UUID FK -> users(id) ON DELETE SET NULL)`, `proposed_data (JSONB NOT NULL)`, `reason (TEXT NOT NULL DEFAULT '')`
+  - `status (VARCHAR NOT NULL DEFAULT 'PENDING' CHECK IN ('PENDING', 'APPLIED'))`
+  - `trust_score (INTEGER DEFAULT 0)`, `trust_count (INTEGER DEFAULT 0)`, `high_trust_since (TIMESTAMPTZ)`, `low_trust_since (TIMESTAMPTZ)`, `resolved_at (TIMESTAMPTZ)`, `created_at`, `updated_at`
+  - 인덱스: `idx_mod_requests_entity (entity_type, entity_id, status, created_at DESC)`, `idx_mod_requests_pending_trust (high_trust_since, low_trust_since) WHERE status = 'PENDING'`
+- **`modification_request_votes`**: 수정 요청 1인 1표 신뢰 투표
+  - `user_id (UUID PK(1), FK -> users(id) ON DELETE CASCADE)`
+  - `request_id (UUID PK(2), FK -> modification_requests(id) ON DELETE CASCADE)`
+  - `score (INTEGER NOT NULL CHECK IN (1, -1))`, `created_at (TIMESTAMPTZ)`, `updated_at (TIMESTAMPTZ)`
+
+#### 10) 기타 상호작용 및 시스템 테이블 (6개)
 - **`event_user_actions`**: `user_id (UUID PK, FK)`, `event_id (UUID PK, FK)`, `status (INT: 1=체크/북마크, 2=참가)`
   - `idx_event_user_actions_event_attendees`: `ON event_user_actions (event_id) WHERE status = 2` (이벤트별 참가자 카운트/목록 조회용 Partial Index)
   - `idx_event_user_actions_user_status_event` (`000019`): `ON event_user_actions (user_id, status, event_id)` (유저별 북마크/참가 이벤트 맵 필터 조회 최적화)
