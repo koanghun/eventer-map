@@ -574,6 +574,9 @@
         "createFail": "活动登录失败。",
         "updateSuccess": "活动已成功更新。",
         "updateFail": "活动更新失败。",
+        "deleteSuccess": "活动已成功删除。",
+        "deleteFail": "删除活动失败。",
+        "title": "活动标题",
         "threads": {
             "title": "讨论串",
             "disabledDescription": "登录活动后即可发表讨论串。"
@@ -660,9 +663,6 @@
         "cancel": "取消",
         "loading": "加载中...",
         "anonymous": "匿名"
-    },
-    "event": {
-        "title": "活动标题"
     },
     "artist": {
         "officialName": "官方名称",

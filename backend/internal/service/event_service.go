@@ -8,18 +8,19 @@ import (
 	"time"
 
 	"eventer-map-backend/internal/repository"
+
 	"github.com/google/uuid"
 )
 
 var (
-	ErrUserBanned                    = errors.New("user is banned")
-	ErrEventNotEnded                 = errors.New("event has not ended yet")
-	ErrNotAttendee                   = errors.New("only attendees can rate the event")
-	ErrInvalidScore                  = errors.New("score must be between 1 and 5")
-	ErrMyActionAuthRequired          = errors.New("authenticated user is required for myAction filter")
-	ErrFollowingArtistsAuthRequired  = errors.New("authenticated user is required for followingArtists filter")
-	ErrConflictingEventFilters       = errors.New("conflicting event filters")
-	ErrInvalidActionStatus           = errors.New("action status must be 1 or 2")
+	ErrUserBanned                   = errors.New("user is banned")
+	ErrEventNotEnded                = errors.New("event has not ended yet")
+	ErrNotAttendee                  = errors.New("only attendees can rate the event")
+	ErrInvalidScore                 = errors.New("score must be between 1 and 5")
+	ErrMyActionAuthRequired         = errors.New("authenticated user is required for myAction filter")
+	ErrFollowingArtistsAuthRequired = errors.New("authenticated user is required for followingArtists filter")
+	ErrConflictingEventFilters      = errors.New("conflicting event filters")
+	ErrInvalidActionStatus          = errors.New("action status must be 1 or 2")
 )
 
 const (
@@ -721,7 +722,33 @@ func (s *EventService) DeleteEvent(ctx context.Context, eventID, userID uuid.UUI
 			return ErrForbidden
 		}
 	}
-	return s.repo.DeleteEvent(ctx, eventID)
+
+	if s.db == nil {
+		return s.repo.DeleteEvent(ctx, eventID)
+	}
+
+	tx, err := s.db.BeginTx(ctx, nil)
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
+
+	q := s.repo.WithTx(tx)
+
+	oldArtists, _ := q.GetArtistsForEvent(ctx, eventID)
+
+	if err := q.DeleteEvent(ctx, eventID); err != nil {
+		return err
+	}
+
+	if ev.VenueID.Valid {
+		_ = q.RecalculateVenueRatingFromEvents(ctx, ev.VenueID.UUID)
+	}
+	for _, oa := range oldArtists {
+		_ = q.RecalculateArtistRatingFromEvents(ctx, oa.ID)
+	}
+
+	return tx.Commit()
 }
 
 func (s *EventService) ApproveEvent(ctx context.Context, eventID, userID uuid.UUID) (*EventDetail, error) {

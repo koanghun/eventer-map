@@ -497,7 +497,10 @@
     },
     "common": {
         "save": "Save",
-        "manageReports": "Manage Reports"
+        "loginRequired": "Login is required.",
+        "cancel": "Cancel",
+        "loading": "Loading...",
+        "anonymous": "Anonymous"
     },
     "profile": {
         "deleteReauthFailed": "Google re-authentication failed.",
@@ -579,6 +582,9 @@
         "createFail": "Failed to register event.",
         "updateSuccess": "Event successfully updated.",
         "updateFail": "Failed to update event.",
+        "deleteSuccess": "Event deleted successfully.",
+        "deleteFail": "Failed to delete event.",
+        "title": "Event Title",
         "threads": {
             "title": "Threads",
             "disabledDescription": "You can write threads after registering the event."
@@ -661,15 +667,6 @@
         "followingArtistsCountBadge": "{{count}}",
         "noFollowingArtists": "You are not following any performers yet.",
         "unfollowButton": "Unfollow"
-    },
-    "common": {
-        "loginRequired": "Login is required.",
-        "cancel": "Cancel",
-        "loading": "Loading...",
-        "anonymous": "Anonymous"
-    },
-    "event": {
-        "title": "Event Title"
     },
     "artist": {
         "officialName": "Official Name",

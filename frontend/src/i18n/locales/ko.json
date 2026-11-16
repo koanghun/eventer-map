@@ -497,7 +497,10 @@
     },
     "common": {
         "save": "저장",
-        "manageReports": "신고 관리"
+        "loginRequired": "로그인이 필요합니다.",
+        "cancel": "취소",
+        "loading": "불러오는 중...",
+        "anonymous": "익명"
     },
     "profile": {
         "deleteReauthFailed": "구글 재인증에 실패했습니다.",
@@ -579,6 +582,9 @@
         "createFail": "이벤트 등록에 실패했습니다.",
         "updateSuccess": "이벤트가 성공적으로 수정되었습니다.",
         "updateFail": "이벤트 수정에 실패했습니다.",
+        "deleteSuccess": "이벤트가 성공적으로 삭제되었습니다.",
+        "deleteFail": "이벤트 삭제에 실패했습니다.",
+        "title": "이벤트 제목",
         "threads": {
             "title": "스레드",
             "disabledDescription": "이벤트를 등록한 후에 스레드를 작성할 수 있습니다."
@@ -659,15 +665,6 @@
         "followingArtistsCountBadge": "{{count}}명",
         "noFollowingArtists": "팔로우 중인 출연자가 없습니다.",
         "unfollowButton": "팔로우 취소"
-    },
-    "common": {
-        "loginRequired": "로그인이 필요합니다.",
-        "cancel": "취소",
-        "loading": "불러오는 중...",
-        "anonymous": "익명"
-    },
-    "event": {
-        "title": "이벤트 제목"
     },
     "artist": {
         "officialName": "공식 이름",

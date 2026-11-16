@@ -512,6 +512,7 @@ func (s *Server) DeleteEventsEventId(w http.ResponseWriter, r *http.Request, eve
 			RespondError(w, http.StatusNotFound, "Event not found")
 			return
 		}
+		log.Printf("[DeleteEventsEventId] DeleteEvent error (eventID=%s, userID=%s): %v", eventId, myID, err)
 		RespondError(w, http.StatusInternalServerError, "Failed to delete event")
 		return
 	}

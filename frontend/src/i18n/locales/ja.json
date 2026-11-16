@@ -497,7 +497,10 @@
     },
     "common": {
         "save": "保存",
-        "manageReports": "報告管理"
+        "loginRequired": "ログインが必要です。",
+        "cancel": "キャンセル",
+        "loading": "読み込み中...",
+        "anonymous": "匿名"
     },
     "profile": {
         "deleteReauthFailed": "Google再認証に失敗しました。",
@@ -579,6 +582,9 @@
         "createFail": "イベントの登録に失敗しました。",
         "updateSuccess": "イベントが正常に更新されました。",
         "updateFail": "イベントの更新に失敗しました。",
+        "deleteSuccess": "イベントが正常に削除されました。",
+        "deleteFail": "イベントの削除に失敗しました。",
+        "title": "イベントタイトル",
         "threads": {
             "title": "スレッド",
             "disabledDescription": "イベントを登録した後にスレッドを作成できます。"
@@ -659,15 +665,6 @@
         "followingArtistsCountBadge": "{{count}}名",
         "noFollowingArtists": "フォロー中の出演者がいません。",
         "unfollowButton": "フォロー解除"
-    },
-    "common": {
-        "loginRequired": "ログインが必要です。",
-        "cancel": "キャンセル",
-        "loading": "読み込み中...",
-        "anonymous": "匿名"
-    },
-    "event": {
-        "title": "イベントタイトル"
     },
     "artist": {
         "officialName": "公式名",

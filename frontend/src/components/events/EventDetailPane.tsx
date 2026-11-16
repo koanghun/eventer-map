@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { ArrowLeft, Calendar, MapPin, ExternalLink, Users, Mic2, Edit2, Bookmark, UserCheck, RotateCcw, Loader2, Star } from 'lucide-react';
+import { ArrowLeft, Calendar, MapPin, ExternalLink, Users, Mic2, Edit2, Trash2, Bookmark, UserCheck, RotateCcw, Loader2, Star } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '../../context/AuthContext';
@@ -12,6 +12,7 @@ import { CreditVoteSection } from '../common/CreditVoteSection';
 import { ModificationRequestsSection } from '../common/ModificationRequestsSection';
 import {
     useGetEventsEventId,
+    useDeleteEventsEventId,
     usePutEventsEventIdAction,
     usePostEventsEventIdRate,
     useDeleteEventsEventIdRate,
@@ -21,6 +22,7 @@ import {
 import {
     useGetUsersMeEvents,
     getGetUsersMeEventsQueryKey,
+    getGetUsersMeFollowingArtistsEventsQueryKey,
 } from '../../api/generated/user/user';
 import {
     PutEventsEventIdActionBodyStatus,
@@ -31,12 +33,16 @@ import {
 
 interface EventDetailPaneProps {
     onEdit?: () => void;
+    onDelete?: () => void;
+    isDeleting?: boolean;
     onArtistSelect?: (artist: { id: string; name: string }) => void;
     onVenueSelect?: (venue: { id: string; name: string; lat?: number; lng?: number }) => void;
 }
 
 export default function EventDetailPane({
     onEdit,
+    onDelete,
+    isDeleting = false,
     onArtistSelect,
     onVenueSelect,
 }: EventDetailPaneProps) {
@@ -330,12 +336,42 @@ export default function EventDetailPane({
         },
     });
 
+    const deleteEventMutation = useDeleteEventsEventId({
+        mutation: {
+            onSuccess: (_data, { eventId: targetEventId }) => {
+                clearSelection();
+                queryClient.removeQueries({ queryKey: getGetEventsEventIdQueryKey(targetEventId) });
+                queryClient.invalidateQueries({ queryKey: getGetEventsQueryKey() });
+                queryClient.invalidateQueries({ queryKey: getGetUsersMeEventsQueryKey() });
+                queryClient.invalidateQueries({ queryKey: getGetUsersMeFollowingArtistsEventsQueryKey() });
+                toast.success(t('event.deleteSuccess', '이벤트가 성공적으로 삭제되었습니다.'));
+            },
+            onError: (err) => {
+                toast.apiError(err, t('event.deleteFail', '이벤트 삭제에 실패했습니다.'));
+            },
+        },
+    });
+
     if (!selectedEvent) return null;
 
     const isAttending = currentStatus === 2;
     const isRatingPending = rateMutation.isPending || deleteRateMutation.isPending;
+    const isDeletePending = isDeleting || deleteEventMutation.isPending;
 
     const displayEvent = eventData || selectedEvent;
+    const canManage = Boolean(
+        user?.role === 'ADMIN' ||
+        (displayEvent.status === 'PENDING' && user?.id && displayEvent.authorId === user.id)
+    );
+
+    const handleDelete = () => {
+        if (!eventId || isDeletePending) return;
+        if (onDelete) {
+            onDelete();
+            return;
+        }
+        deleteEventMutation.mutate({ eventId });
+    };
 
     const currentRating = isAuthenticated
         ? (myEventActions?.find((a) => a.eventId === eventId)?.rating ??
@@ -428,18 +464,36 @@ export default function EventDetailPane({
                 <h2 className="text-sm font-bold text-foreground truncate flex-1">
                     {t('eventDetail.title', '이벤트 상세')}
                 </h2>
-                    { onEdit && (user?.role === 'ADMIN' || (displayEvent.status === 'PENDING' && user?.id && displayEvent.authorId === user.id)) && (
-                        <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={onEdit}
-                            className="rounded-full w-7 h-7 hover:bg-muted text-muted-foreground hover:text-primary shrink-0"
-                            title={t('buttons.edit', '수정')}
-                            aria-label={t('buttons.edit', '수정')}
-                        >
-                            <Edit2 className="w-3.5 h-3.5" />
-                        </Button>
-                    )}
+                {canManage && onEdit && (
+                    <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={onEdit}
+                        disabled={isDeletePending}
+                        className="rounded-full w-7 h-7 hover:bg-muted text-muted-foreground hover:text-primary shrink-0"
+                        title={t('buttons.edit', '수정')}
+                        aria-label={t('buttons.edit', '수정')}
+                    >
+                        <Edit2 className="w-3.5 h-3.5" />
+                    </Button>
+                )}
+                {canManage && (
+                    <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={handleDelete}
+                        disabled={isDeletePending}
+                        className="rounded-full w-7 h-7 hover:bg-destructive/10 text-muted-foreground hover:text-destructive shrink-0"
+                        title={t('buttons.delete', '삭제')}
+                        aria-label={t('buttons.delete', '삭제')}
+                    >
+                        {isDeletePending ? (
+                            <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                        ) : (
+                            <Trash2 className="w-3.5 h-3.5" />
+                        )}
+                    </Button>
+                )}
             </div>
 
             {/* Content Scrollable Area */}
