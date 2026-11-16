@@ -231,7 +231,7 @@ func (s *Server) GetArtistsArtistId(w http.ResponseWriter, r *http.Request, arti
 
 	resp := mapArtistToResponse(artist)
 	if userID, ok := r.Context().Value(middleware.UserIDKey).(uuid.UUID); ok && s.services.Credit != nil {
-		myCredit := int(s.services.Credit.GetUserEntityCreditVote(r.Context(), "ARTIST", artistId, userID))
+		myCredit := ArtistMyCreditScore(s.services.Credit.GetUserEntityCreditVote(r.Context(), "ARTIST", artistId, userID))
 		resp.MyCreditScore = &myCredit
 	}
 

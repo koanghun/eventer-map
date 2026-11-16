@@ -43,10 +43,10 @@ func (s *Server) handleCreditVote(w http.ResponseWriter, r *http.Request, entity
 
 	RespondJSON(w, http.StatusOK, CreditVoteResponse{
 		Id:              openapi_types.UUID(res.ID),
-		Status:          res.Status,
+		Status:          CreditVoteResponseStatus(res.Status),
 		CreditScore:     int(res.CreditScore),
 		CreditCount:     int(res.CreditCount),
-		MyCreditScore:   int(res.MyCreditScore),
+		MyCreditScore:   CreditVoteResponseMyCreditScore(res.MyCreditScore),
 		HighCreditSince: res.HighCreditSince,
 		LowCreditSince:  res.LowCreditSince,
 	})
@@ -78,10 +78,10 @@ func mapModificationRequestDetailToResponse(d *service.ModificationRequestDetail
 		AuthorDisplayName: d.AuthorDisplayName,
 		ProposedData:      d.ProposedData,
 		Reason:            d.Reason,
-		Status:            d.Status,
+		Status:            ModificationRequestStatus(d.Status),
 		TrustScore:        int(d.TrustScore),
 		TrustCount:        int(d.TrustCount),
-		MyTrustScore:      int(d.MyTrustScore),
+		MyTrustScore:      ModificationRequestMyTrustScore(d.MyTrustScore),
 		HighTrustSince:    d.HighTrustSince,
 		LowTrustSince:     d.LowTrustSince,
 		ResolvedAt:        d.ResolvedAt,
@@ -97,7 +97,7 @@ func (s *Server) ListModificationRequests(w http.ResponseWriter, r *http.Request
 	}
 	status := ""
 	if params.Status != nil {
-		status = *params.Status
+		status = string(*params.Status)
 	}
 
 	items, err := s.services.Credit.ListModificationRequests(

@@ -351,7 +351,7 @@ func (s *Server) GetEventsEventId(w http.ResponseWriter, r *http.Request, eventI
 			resp.MyRating = &r
 		}
 		if s.services.Credit != nil {
-			myCredit := int(s.services.Credit.GetUserEntityCreditVote(r.Context(), "EVENT", eventId, userID))
+			myCredit := EventMyCreditScore(s.services.Credit.GetUserEntityCreditVote(r.Context(), "EVENT", eventId, userID))
 			resp.MyCreditScore = &myCredit
 		}
 	}

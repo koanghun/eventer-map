@@ -29,6 +29,38 @@ func (q *Queries) AddArtistToEvent(ctx context.Context, arg AddArtistToEventPara
 	return err
 }
 
+const approveEvent = `-- name: ApproveEvent :one
+UPDATE events
+SET status = 'APPROVED', high_credit_since = NULL, low_credit_since = NULL, updated_at = NOW()
+WHERE id = $1
+RETURNING id, title, venue_id, opening_time, start_time, end_time, related_links, rating_sum, rating_count, status, author_id, created_at, updated_at, credit_score, credit_count, high_credit_since, low_credit_since
+`
+
+func (q *Queries) ApproveEvent(ctx context.Context, id uuid.UUID) (Event, error) {
+	row := q.db.QueryRowContext(ctx, approveEvent, id)
+	var i Event
+	err := row.Scan(
+		&i.ID,
+		&i.Title,
+		&i.VenueID,
+		&i.OpeningTime,
+		&i.StartTime,
+		&i.EndTime,
+		pq.Array(&i.RelatedLinks),
+		&i.RatingSum,
+		&i.RatingCount,
+		&i.Status,
+		&i.AuthorID,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.CreditScore,
+		&i.CreditCount,
+		&i.HighCreditSince,
+		&i.LowCreditSince,
+	)
+	return i, err
+}
+
 const clearArtistsFromEvent = `-- name: ClearArtistsFromEvent :exec
 DELETE FROM event_artists
 WHERE event_id = $1
@@ -102,6 +134,16 @@ func (q *Queries) CreateEvent(ctx context.Context, arg CreateEventParams) (Event
 	return i, err
 }
 
+const deleteEvent = `-- name: DeleteEvent :exec
+DELETE FROM events
+WHERE id = $1
+`
+
+func (q *Queries) DeleteEvent(ctx context.Context, id uuid.UUID) error {
+	_, err := q.db.ExecContext(ctx, deleteEvent, id)
+	return err
+}
+
 const deleteUserEventAction = `-- name: DeleteUserEventAction :exec
 DELETE FROM event_user_actions
 WHERE user_id = $1 AND event_id = $2
@@ -133,7 +175,7 @@ func (q *Queries) DeleteUserEventRating(ctx context.Context, arg DeleteUserEvent
 }
 
 const getArtistsForEvent = `-- name: GetArtistsForEvent :many
-SELECT a.id, a.official_name, a.hiragana, a.gender, a.profile_image_url, a.rating_sum, a.rating_count, a.status, a.author_id, a.created_at, a.updated_at, a.disambiguation
+SELECT a.id, a.official_name, a.hiragana, a.gender, a.profile_image_url, a.rating_sum, a.rating_count, a.status, a.author_id, a.created_at, a.updated_at, a.disambiguation, a.credit_score, a.credit_count, a.high_credit_since, a.low_credit_since
 FROM artists a
 JOIN event_artists ea ON a.id = ea.artist_id
 WHERE ea.event_id = $1
@@ -167,6 +209,10 @@ func (q *Queries) GetArtistsForEvent(ctx context.Context, eventID uuid.UUID) ([]
 			&i.CreatedAt,
 			&i.UpdatedAt,
 			&i.Disambiguation,
+			&i.CreditScore,
+			&i.CreditCount,
+			&i.HighCreditSince,
+			&i.LowCreditSince,
 		); err != nil {
 			return nil, err
 		}
@@ -966,47 +1012,5 @@ type UpsertUserEventActionParams struct {
 
 func (q *Queries) UpsertUserEventAction(ctx context.Context, arg UpsertUserEventActionParams) error {
 	_, err := q.db.ExecContext(ctx, upsertUserEventAction, arg.UserID, arg.EventID, arg.Status)
-	return err
-}
-
-const approveEvent = `-- name: ApproveEvent :one
-UPDATE events
-SET status = 'APPROVED', high_credit_since = NULL, low_credit_since = NULL, updated_at = NOW()
-WHERE id = $1
-RETURNING id, title, venue_id, opening_time, start_time, end_time, related_links, rating_sum, rating_count, status, author_id, created_at, updated_at, credit_score, credit_count, high_credit_since, low_credit_since
-`
-
-func (q *Queries) ApproveEvent(ctx context.Context, id uuid.UUID) (Event, error) {
-	row := q.db.QueryRowContext(ctx, approveEvent, id)
-	var i Event
-	err := row.Scan(
-		&i.ID,
-		&i.Title,
-		&i.VenueID,
-		&i.OpeningTime,
-		&i.StartTime,
-		&i.EndTime,
-		pq.Array(&i.RelatedLinks),
-		&i.RatingSum,
-		&i.RatingCount,
-		&i.Status,
-		&i.AuthorID,
-		&i.CreatedAt,
-		&i.UpdatedAt,
-		&i.CreditScore,
-		&i.CreditCount,
-		&i.HighCreditSince,
-		&i.LowCreditSince,
-	)
-	return i, err
-}
-
-const deleteEvent = `-- name: DeleteEvent :exec
-DELETE FROM events
-WHERE id = $1
-`
-
-func (q *Queries) DeleteEvent(ctx context.Context, id uuid.UUID) error {
-	_, err := q.db.ExecContext(ctx, deleteEvent, id)
 	return err
 }

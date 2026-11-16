@@ -12,6 +12,37 @@ import (
 	"github.com/google/uuid"
 )
 
+const approveArtist = `-- name: ApproveArtist :one
+UPDATE artists
+SET status = 'APPROVED', high_credit_since = NULL, low_credit_since = NULL, updated_at = NOW()
+WHERE id = $1
+RETURNING id, official_name, hiragana, gender, profile_image_url, rating_sum, rating_count, status, author_id, created_at, updated_at, disambiguation, credit_score, credit_count, high_credit_since, low_credit_since
+`
+
+func (q *Queries) ApproveArtist(ctx context.Context, id uuid.UUID) (Artist, error) {
+	row := q.db.QueryRowContext(ctx, approveArtist, id)
+	var i Artist
+	err := row.Scan(
+		&i.ID,
+		&i.OfficialName,
+		&i.Hiragana,
+		&i.Gender,
+		&i.ProfileImageUrl,
+		&i.RatingSum,
+		&i.RatingCount,
+		&i.Status,
+		&i.AuthorID,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.Disambiguation,
+		&i.CreditScore,
+		&i.CreditCount,
+		&i.HighCreditSince,
+		&i.LowCreditSince,
+	)
+	return i, err
+}
+
 const checkArtistInEvent = `-- name: CheckArtistInEvent :one
 SELECT EXISTS(
     SELECT 1 FROM event_artists WHERE artist_id = $1
@@ -71,6 +102,16 @@ func (q *Queries) CreateArtist(ctx context.Context, arg CreateArtistParams) (Art
 		&i.LowCreditSince,
 	)
 	return i, err
+}
+
+const deleteArtist = `-- name: DeleteArtist :exec
+DELETE FROM artists
+WHERE id = $1
+`
+
+func (q *Queries) DeleteArtist(ctx context.Context, id uuid.UUID) error {
+	_, err := q.db.ExecContext(ctx, deleteArtist, id)
+	return err
 }
 
 const getArtist = `-- name: GetArtist :one
@@ -224,45 +265,4 @@ func (q *Queries) UpdateArtist(ctx context.Context, arg UpdateArtistParams) (Art
 		&i.LowCreditSince,
 	)
 	return i, err
-}
-
-const approveArtist = `-- name: ApproveArtist :one
-UPDATE artists
-SET status = 'APPROVED', high_credit_since = NULL, low_credit_since = NULL, updated_at = NOW()
-WHERE id = $1
-RETURNING id, official_name, hiragana, gender, profile_image_url, rating_sum, rating_count, status, author_id, created_at, updated_at, disambiguation, credit_score, credit_count, high_credit_since, low_credit_since
-`
-
-func (q *Queries) ApproveArtist(ctx context.Context, id uuid.UUID) (Artist, error) {
-	row := q.db.QueryRowContext(ctx, approveArtist, id)
-	var i Artist
-	err := row.Scan(
-		&i.ID,
-		&i.OfficialName,
-		&i.Hiragana,
-		&i.Gender,
-		&i.ProfileImageUrl,
-		&i.RatingSum,
-		&i.RatingCount,
-		&i.Status,
-		&i.AuthorID,
-		&i.CreatedAt,
-		&i.UpdatedAt,
-		&i.Disambiguation,
-		&i.CreditScore,
-		&i.CreditCount,
-		&i.HighCreditSince,
-		&i.LowCreditSince,
-	)
-	return i, err
-}
-
-const deleteArtist = `-- name: DeleteArtist :exec
-DELETE FROM artists
-WHERE id = $1
-`
-
-func (q *Queries) DeleteArtist(ctx context.Context, id uuid.UUID) error {
-	_, err := q.db.ExecContext(ctx, deleteArtist, id)
-	return err
 }

@@ -13,6 +13,39 @@ import (
 	"github.com/lib/pq"
 )
 
+const approveVenue = `-- name: ApproveVenue :one
+UPDATE venues
+SET status = 'APPROVED', high_credit_since = NULL, low_credit_since = NULL, updated_at = NOW()
+WHERE id = $1
+RETURNING id, official_name, google_map_id, address, latitude, longitude, related_links, capacity, rating_sum, rating_count, status, author_id, created_at, updated_at, credit_score, credit_count, high_credit_since, low_credit_since
+`
+
+func (q *Queries) ApproveVenue(ctx context.Context, id uuid.UUID) (Venue, error) {
+	row := q.db.QueryRowContext(ctx, approveVenue, id)
+	var i Venue
+	err := row.Scan(
+		&i.ID,
+		&i.OfficialName,
+		&i.GoogleMapID,
+		&i.Address,
+		&i.Latitude,
+		&i.Longitude,
+		pq.Array(&i.RelatedLinks),
+		&i.Capacity,
+		&i.RatingSum,
+		&i.RatingCount,
+		&i.Status,
+		&i.AuthorID,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.CreditScore,
+		&i.CreditCount,
+		&i.HighCreditSince,
+		&i.LowCreditSince,
+	)
+	return i, err
+}
+
 const checkVenueInEvent = `-- name: CheckVenueInEvent :one
 SELECT EXISTS(
     SELECT 1 FROM events WHERE venue_id = $1
@@ -78,6 +111,16 @@ func (q *Queries) CreateVenue(ctx context.Context, arg CreateVenueParams) (Venue
 		&i.LowCreditSince,
 	)
 	return i, err
+}
+
+const deleteVenue = `-- name: DeleteVenue :exec
+DELETE FROM venues
+WHERE id = $1
+`
+
+func (q *Queries) DeleteVenue(ctx context.Context, id uuid.UUID) error {
+	_, err := q.db.ExecContext(ctx, deleteVenue, id)
+	return err
 }
 
 const getVenue = `-- name: GetVenue :one
@@ -317,47 +360,4 @@ func (q *Queries) UpdateVenue(ctx context.Context, arg UpdateVenueParams) (Venue
 		&i.LowCreditSince,
 	)
 	return i, err
-}
-
-const approveVenue = `-- name: ApproveVenue :one
-UPDATE venues
-SET status = 'APPROVED', high_credit_since = NULL, low_credit_since = NULL, updated_at = NOW()
-WHERE id = $1
-RETURNING id, official_name, google_map_id, address, latitude, longitude, related_links, capacity, rating_sum, rating_count, status, author_id, created_at, updated_at, credit_score, credit_count, high_credit_since, low_credit_since
-`
-
-func (q *Queries) ApproveVenue(ctx context.Context, id uuid.UUID) (Venue, error) {
-	row := q.db.QueryRowContext(ctx, approveVenue, id)
-	var i Venue
-	err := row.Scan(
-		&i.ID,
-		&i.OfficialName,
-		&i.GoogleMapID,
-		&i.Address,
-		&i.Latitude,
-		&i.Longitude,
-		pq.Array(&i.RelatedLinks),
-		&i.Capacity,
-		&i.RatingSum,
-		&i.RatingCount,
-		&i.Status,
-		&i.AuthorID,
-		&i.CreatedAt,
-		&i.UpdatedAt,
-		&i.CreditScore,
-		&i.CreditCount,
-		&i.HighCreditSince,
-		&i.LowCreditSince,
-	)
-	return i, err
-}
-
-const deleteVenue = `-- name: DeleteVenue :exec
-DELETE FROM venues
-WHERE id = $1
-`
-
-func (q *Queries) DeleteVenue(ctx context.Context, id uuid.UUID) error {
-	_, err := q.db.ExecContext(ctx, deleteVenue, id)
-	return err
 }

@@ -183,7 +183,7 @@ func (q *Queries) ListFollowing(ctx context.Context, arg ListFollowingParams) ([
 }
 
 const listFollowingEvents = `-- name: ListFollowingEvents :many
-SELECT DISTINCT e.id, e.title, e.venue_id, e.opening_time, e.start_time, e.end_time, e.related_links, e.rating_sum, e.rating_count, e.status, e.author_id, e.created_at, e.updated_at
+SELECT DISTINCT e.id, e.title, e.venue_id, e.opening_time, e.start_time, e.end_time, e.related_links, e.rating_sum, e.rating_count, e.status, e.author_id, e.created_at, e.updated_at, e.credit_score, e.credit_count, e.high_credit_since, e.low_credit_since
 FROM events e
 JOIN event_user_actions eua ON e.id = eua.event_id
 JOIN user_follows uf ON eua.user_id = uf.followee_id
@@ -221,6 +221,10 @@ func (q *Queries) ListFollowingEvents(ctx context.Context, arg ListFollowingEven
 			&i.AuthorID,
 			&i.CreatedAt,
 			&i.UpdatedAt,
+			&i.CreditScore,
+			&i.CreditCount,
+			&i.HighCreditSince,
+			&i.LowCreditSince,
 		); err != nil {
 			return nil, err
 		}

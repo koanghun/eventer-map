@@ -250,7 +250,7 @@ func (q *Queries) ListFollowingArtistEvents(ctx context.Context, arg ListFollowi
 }
 
 const listFollowingArtists = `-- name: ListFollowingArtists :many
-SELECT a.id, a.official_name, a.hiragana, a.gender, a.profile_image_url, a.rating_sum, a.rating_count, a.status, a.author_id, a.created_at, a.updated_at, a.disambiguation
+SELECT a.id, a.official_name, a.hiragana, a.gender, a.profile_image_url, a.rating_sum, a.rating_count, a.status, a.author_id, a.created_at, a.updated_at, a.disambiguation, a.credit_score, a.credit_count, a.high_credit_since, a.low_credit_since
 FROM artists a
 JOIN user_artist_follows uaf ON a.id = uaf.artist_id
 WHERE uaf.user_id = $1
@@ -286,6 +286,10 @@ func (q *Queries) ListFollowingArtists(ctx context.Context, arg ListFollowingArt
 			&i.CreatedAt,
 			&i.UpdatedAt,
 			&i.Disambiguation,
+			&i.CreditScore,
+			&i.CreditCount,
+			&i.HighCreditSince,
+			&i.LowCreditSince,
 		); err != nil {
 			return nil, err
 		}

@@ -51,24 +51,24 @@ WHERE user_id = $1 AND request_id = $2;
 -- name: RecalculateModificationRequestTrust :one
 UPDATE modification_requests
 SET
-    trust_score = COALESCE((SELECT SUM(score)::int FROM modification_request_votes WHERE request_id = $1), 0),
-    trust_count = COALESCE((SELECT COUNT(*)::int FROM modification_request_votes WHERE request_id = $1), 0),
+    trust_score = COALESCE((SELECT SUM(score)::int FROM modification_request_votes WHERE request_id = @id::uuid), 0),
+    trust_count = COALESCE((SELECT COUNT(*)::int FROM modification_request_votes WHERE request_id = @id::uuid), 0),
     high_trust_since = CASE
         WHEN status = 'PENDING'
-            AND COALESCE((SELECT COUNT(*)::int FROM modification_request_votes WHERE request_id = $1), 0) >= @min_votes::int
-            AND COALESCE((SELECT SUM(score)::int FROM modification_request_votes WHERE request_id = $1), 0) >= @apply_threshold::int
+            AND COALESCE((SELECT COUNT(*)::int FROM modification_request_votes WHERE request_id = @id::uuid), 0) >= @min_votes::int
+            AND COALESCE((SELECT SUM(score)::int FROM modification_request_votes WHERE request_id = @id::uuid), 0) >= @apply_threshold::int
         THEN COALESCE(high_trust_since, NOW())
         ELSE NULL
     END,
     low_trust_since = CASE
         WHEN status = 'PENDING'
-            AND COALESCE((SELECT COUNT(*)::int FROM modification_request_votes WHERE request_id = $1), 0) >= @min_votes::int
-            AND COALESCE((SELECT SUM(score)::int FROM modification_request_votes WHERE request_id = $1), 0) <= @reject_threshold::int
+            AND COALESCE((SELECT COUNT(*)::int FROM modification_request_votes WHERE request_id = @id::uuid), 0) >= @min_votes::int
+            AND COALESCE((SELECT SUM(score)::int FROM modification_request_votes WHERE request_id = @id::uuid), 0) <= @reject_threshold::int
         THEN COALESCE(low_trust_since, NOW())
         ELSE NULL
     END,
     updated_at = NOW()
-WHERE id = $1
+WHERE id = @id::uuid
 RETURNING *;
 
 -- name: ListSustainedHighTrustModificationRequests :many

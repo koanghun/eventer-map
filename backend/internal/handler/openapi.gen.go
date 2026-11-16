@@ -40,6 +40,27 @@ func (e ArtistGender) Valid() bool {
 	}
 }
 
+// Defines values for ArtistMyCreditScore.
+const (
+	ArtistMyCreditScoreMinus1 ArtistMyCreditScore = -1
+	ArtistMyCreditScoreN0     ArtistMyCreditScore = 0
+	ArtistMyCreditScoreN1     ArtistMyCreditScore = 1
+)
+
+// Valid indicates whether the value is a known member of the ArtistMyCreditScore enum.
+func (e ArtistMyCreditScore) Valid() bool {
+	switch e {
+	case ArtistMyCreditScoreMinus1:
+		return true
+	case ArtistMyCreditScoreN0:
+		return true
+	case ArtistMyCreditScoreN1:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for ArtistStatus.
 const (
 	ArtistStatusAPPROVED ArtistStatus = "APPROVED"
@@ -79,6 +100,27 @@ func (e ArtistInputGender) Valid() bool {
 	}
 }
 
+// Defines values for ArtistSummaryMyCreditScore.
+const (
+	ArtistSummaryMyCreditScoreMinus1 ArtistSummaryMyCreditScore = -1
+	ArtistSummaryMyCreditScoreN0     ArtistSummaryMyCreditScore = 0
+	ArtistSummaryMyCreditScoreN1     ArtistSummaryMyCreditScore = 1
+)
+
+// Valid indicates whether the value is a known member of the ArtistSummaryMyCreditScore enum.
+func (e ArtistSummaryMyCreditScore) Valid() bool {
+	switch e {
+	case ArtistSummaryMyCreditScoreMinus1:
+		return true
+	case ArtistSummaryMyCreditScoreN0:
+		return true
+	case ArtistSummaryMyCreditScoreN1:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for ArtistSummaryStatus.
 const (
 	ArtistSummaryStatusAPPROVED ArtistSummaryStatus = "APPROVED"
@@ -94,6 +136,90 @@ func (e ArtistSummaryStatus) Valid() bool {
 	case ArtistSummaryStatusPENDING:
 		return true
 	case ArtistSummaryStatusREJECTED:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for CreditVoteInputScore.
+const (
+	CreditVoteInputScoreMinus1 CreditVoteInputScore = -1
+	CreditVoteInputScoreN0     CreditVoteInputScore = 0
+	CreditVoteInputScoreN1     CreditVoteInputScore = 1
+)
+
+// Valid indicates whether the value is a known member of the CreditVoteInputScore enum.
+func (e CreditVoteInputScore) Valid() bool {
+	switch e {
+	case CreditVoteInputScoreMinus1:
+		return true
+	case CreditVoteInputScoreN0:
+		return true
+	case CreditVoteInputScoreN1:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for CreditVoteResponseMyCreditScore.
+const (
+	CreditVoteResponseMyCreditScoreMinus1 CreditVoteResponseMyCreditScore = -1
+	CreditVoteResponseMyCreditScoreN0     CreditVoteResponseMyCreditScore = 0
+	CreditVoteResponseMyCreditScoreN1     CreditVoteResponseMyCreditScore = 1
+)
+
+// Valid indicates whether the value is a known member of the CreditVoteResponseMyCreditScore enum.
+func (e CreditVoteResponseMyCreditScore) Valid() bool {
+	switch e {
+	case CreditVoteResponseMyCreditScoreMinus1:
+		return true
+	case CreditVoteResponseMyCreditScoreN0:
+		return true
+	case CreditVoteResponseMyCreditScoreN1:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for CreditVoteResponseStatus.
+const (
+	CreditVoteResponseStatusAPPROVED CreditVoteResponseStatus = "APPROVED"
+	CreditVoteResponseStatusPENDING  CreditVoteResponseStatus = "PENDING"
+	CreditVoteResponseStatusREJECTED CreditVoteResponseStatus = "REJECTED"
+)
+
+// Valid indicates whether the value is a known member of the CreditVoteResponseStatus enum.
+func (e CreditVoteResponseStatus) Valid() bool {
+	switch e {
+	case CreditVoteResponseStatusAPPROVED:
+		return true
+	case CreditVoteResponseStatusPENDING:
+		return true
+	case CreditVoteResponseStatusREJECTED:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for EventMyCreditScore.
+const (
+	EventMyCreditScoreMinus1 EventMyCreditScore = -1
+	EventMyCreditScoreN0     EventMyCreditScore = 0
+	EventMyCreditScoreN1     EventMyCreditScore = 1
+)
+
+// Valid indicates whether the value is a known member of the EventMyCreditScore enum.
+func (e EventMyCreditScore) Valid() bool {
+	switch e {
+	case EventMyCreditScoreMinus1:
+		return true
+	case EventMyCreditScoreN0:
+		return true
+	case EventMyCreditScoreN1:
 		return true
 	default:
 		return false
@@ -121,6 +247,27 @@ func (e EventStatus) Valid() bool {
 	}
 }
 
+// Defines values for EventSummaryMyCreditScore.
+const (
+	EventSummaryMyCreditScoreMinus1 EventSummaryMyCreditScore = -1
+	EventSummaryMyCreditScoreN0     EventSummaryMyCreditScore = 0
+	EventSummaryMyCreditScoreN1     EventSummaryMyCreditScore = 1
+)
+
+// Valid indicates whether the value is a known member of the EventSummaryMyCreditScore enum.
+func (e EventSummaryMyCreditScore) Valid() bool {
+	switch e {
+	case EventSummaryMyCreditScoreMinus1:
+		return true
+	case EventSummaryMyCreditScoreN0:
+		return true
+	case EventSummaryMyCreditScoreN1:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for EventSummaryStatus.
 const (
 	EventSummaryStatusAPPROVED EventSummaryStatus = "APPROVED"
@@ -142,6 +289,27 @@ func (e EventSummaryStatus) Valid() bool {
 	}
 }
 
+// Defines values for FollowingArtistNotificationEventMyCreditScore.
+const (
+	FollowingArtistNotificationEventMyCreditScoreMinus1 FollowingArtistNotificationEventMyCreditScore = -1
+	FollowingArtistNotificationEventMyCreditScoreN0     FollowingArtistNotificationEventMyCreditScore = 0
+	FollowingArtistNotificationEventMyCreditScoreN1     FollowingArtistNotificationEventMyCreditScore = 1
+)
+
+// Valid indicates whether the value is a known member of the FollowingArtistNotificationEventMyCreditScore enum.
+func (e FollowingArtistNotificationEventMyCreditScore) Valid() bool {
+	switch e {
+	case FollowingArtistNotificationEventMyCreditScoreMinus1:
+		return true
+	case FollowingArtistNotificationEventMyCreditScoreN0:
+		return true
+	case FollowingArtistNotificationEventMyCreditScoreN1:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for FollowingArtistNotificationEventStatus.
 const (
 	FollowingArtistNotificationEventStatusAPPROVED FollowingArtistNotificationEventStatus = "APPROVED"
@@ -157,6 +325,66 @@ func (e FollowingArtistNotificationEventStatus) Valid() bool {
 	case FollowingArtistNotificationEventStatusPENDING:
 		return true
 	case FollowingArtistNotificationEventStatusREJECTED:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for ModificationEntityType.
+const (
+	ARTIST ModificationEntityType = "ARTIST"
+	EVENT  ModificationEntityType = "EVENT"
+	VENUE  ModificationEntityType = "VENUE"
+)
+
+// Valid indicates whether the value is a known member of the ModificationEntityType enum.
+func (e ModificationEntityType) Valid() bool {
+	switch e {
+	case ARTIST:
+		return true
+	case EVENT:
+		return true
+	case VENUE:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for ModificationRequestMyTrustScore.
+const (
+	ModificationRequestMyTrustScoreMinus1 ModificationRequestMyTrustScore = -1
+	ModificationRequestMyTrustScoreN0     ModificationRequestMyTrustScore = 0
+	ModificationRequestMyTrustScoreN1     ModificationRequestMyTrustScore = 1
+)
+
+// Valid indicates whether the value is a known member of the ModificationRequestMyTrustScore enum.
+func (e ModificationRequestMyTrustScore) Valid() bool {
+	switch e {
+	case ModificationRequestMyTrustScoreMinus1:
+		return true
+	case ModificationRequestMyTrustScoreN0:
+		return true
+	case ModificationRequestMyTrustScoreN1:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for ModificationRequestStatus.
+const (
+	ModificationRequestStatusAPPLIED ModificationRequestStatus = "APPLIED"
+	ModificationRequestStatusPENDING ModificationRequestStatus = "PENDING"
+)
+
+// Valid indicates whether the value is a known member of the ModificationRequestStatus enum.
+func (e ModificationRequestStatus) Valid() bool {
+	switch e {
+	case ModificationRequestStatusAPPLIED:
+		return true
+	case ModificationRequestStatusPENDING:
 		return true
 	default:
 		return false
@@ -199,6 +427,27 @@ func (e UserProfileRole) Valid() bool {
 	}
 }
 
+// Defines values for VenueMyCreditScore.
+const (
+	VenueMyCreditScoreMinus1 VenueMyCreditScore = -1
+	VenueMyCreditScoreN0     VenueMyCreditScore = 0
+	VenueMyCreditScoreN1     VenueMyCreditScore = 1
+)
+
+// Valid indicates whether the value is a known member of the VenueMyCreditScore enum.
+func (e VenueMyCreditScore) Valid() bool {
+	switch e {
+	case VenueMyCreditScoreMinus1:
+		return true
+	case VenueMyCreditScoreN0:
+		return true
+	case VenueMyCreditScoreN1:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for VenueStatus.
 const (
 	VenueStatusAPPROVED VenueStatus = "APPROVED"
@@ -214,6 +463,27 @@ func (e VenueStatus) Valid() bool {
 	case VenueStatusPENDING:
 		return true
 	case VenueStatusREJECTED:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for VenueSummaryMyCreditScore.
+const (
+	VenueSummaryMyCreditScoreMinus1 VenueSummaryMyCreditScore = -1
+	VenueSummaryMyCreditScoreN0     VenueSummaryMyCreditScore = 0
+	VenueSummaryMyCreditScoreN1     VenueSummaryMyCreditScore = 1
+)
+
+// Valid indicates whether the value is a known member of the VenueSummaryMyCreditScore enum.
+func (e VenueSummaryMyCreditScore) Valid() bool {
+	switch e {
+	case VenueSummaryMyCreditScoreMinus1:
+		return true
+	case VenueSummaryMyCreditScoreN0:
+		return true
+	case VenueSummaryMyCreditScoreN1:
 		return true
 	default:
 		return false
@@ -340,6 +610,24 @@ func (e PutEventsEventIdActionJSONBodyStatus) Valid() bool {
 	}
 }
 
+// Defines values for ListModificationRequestsParamsStatus.
+const (
+	ListModificationRequestsParamsStatusAPPLIED ListModificationRequestsParamsStatus = "APPLIED"
+	ListModificationRequestsParamsStatusPENDING ListModificationRequestsParamsStatus = "PENDING"
+)
+
+// Valid indicates whether the value is a known member of the ListModificationRequestsParamsStatus enum.
+func (e ListModificationRequestsParamsStatus) Valid() bool {
+	switch e {
+	case ListModificationRequestsParamsStatusAPPLIED:
+		return true
+	case ListModificationRequestsParamsStatusPENDING:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for GetVenuesParamsStatus.
 const (
 	GetVenuesParamsStatusAPPROVED GetVenuesParamsStatus = "APPROVED"
@@ -363,20 +651,26 @@ func (e GetVenuesParamsStatus) Valid() bool {
 
 // Artist defines model for Artist.
 type Artist struct {
-	// AuthorId 등록한 유저 ID
-	AuthorId *openapi_types.UUID `json:"authorId,omitempty"`
+	AuthorId    *openapi_types.UUID `json:"authorId,omitempty"`
+	CreditCount *int                `json:"creditCount,omitempty"`
+	CreditScore *int                `json:"creditScore,omitempty"`
 
 	// Disambiguation 동명이인 구분을 위한 한 줄 식별 설명 (소속 그룹, 분야 등)
 	Disambiguation *string `json:"disambiguation,omitempty"`
 
 	// Gender 성별
-	Gender *ArtistGender `json:"gender,omitempty"`
+	Gender          *ArtistGender `json:"gender,omitempty"`
+	HighCreditSince *time.Time    `json:"highCreditSince,omitempty"`
 
 	// Hiragana 히라가나
 	Hiragana *string `json:"hiragana,omitempty"`
 
 	// Id 아티스트 고유 식별자
-	Id *openapi_types.UUID `json:"id,omitempty"`
+	Id             *openapi_types.UUID `json:"id,omitempty"`
+	LowCreditSince *time.Time          `json:"lowCreditSince,omitempty"`
+
+	// MyCreditScore 현재 로그인한 유저의 신용 점수 투표 (-1, 0, 1)
+	MyCreditScore *ArtistMyCreditScore `json:"myCreditScore,omitempty"`
 
 	// OfficialName 공식 이름
 	OfficialName *string `json:"officialName,omitempty"`
@@ -388,21 +682,17 @@ type Artist struct {
 	Rating *float64 `json:"rating,omitempty"`
 
 	// RatingCount 평점이 매겨진 참가 이벤트 수
-	RatingCount *int `json:"ratingCount,omitempty"`
-
-	// Status 아티스트 상태 (유저 등록 시 PENDING, 관리자 승인 시 APPROVED)
-	Status          *ArtistStatus `json:"status,omitempty"`
-	CreditScore     *int          `json:"creditScore,omitempty"`
-	CreditCount     *int          `json:"creditCount,omitempty"`
-	MyCreditScore   *int          `json:"myCreditScore,omitempty"`
-	HighCreditSince *time.Time    `json:"highCreditSince,omitempty"`
-	LowCreditSince  *time.Time    `json:"lowCreditSince,omitempty"`
+	RatingCount *int          `json:"ratingCount,omitempty"`
+	Status      *ArtistStatus `json:"status,omitempty"`
 }
 
 // ArtistGender 성별
 type ArtistGender string
 
-// ArtistStatus 아티스트 상태 (유저 등록 시 PENDING, 관리자 승인 시 APPROVED)
+// ArtistMyCreditScore 현재 로그인한 유저의 신용 점수 투표 (-1, 0, 1)
+type ArtistMyCreditScore int
+
+// ArtistStatus defines model for Artist.Status.
 type ArtistStatus string
 
 // ArtistInput defines model for ArtistInput.
@@ -428,8 +718,13 @@ type ArtistInputGender string
 
 // ArtistSummary defines model for ArtistSummary.
 type ArtistSummary struct {
+	AuthorId    *openapi_types.UUID `json:"authorId,omitempty"`
+	CreditCount *int                `json:"creditCount,omitempty"`
+	CreditScore *int                `json:"creditScore,omitempty"`
+
 	// Disambiguation 동명이인 구분을 위한 한 줄 식별 설명 (소속 그룹, 분야 등)
-	Disambiguation *string `json:"disambiguation,omitempty"`
+	Disambiguation  *string    `json:"disambiguation,omitempty"`
+	HighCreditSince *time.Time `json:"highCreditSince,omitempty"`
 
 	// Hiragana 히라가나
 	Hiragana *string `json:"hiragana,omitempty"`
@@ -437,18 +732,59 @@ type ArtistSummary struct {
 	// Id 아티스트 고유 식별자
 	Id *openapi_types.UUID `json:"id,omitempty"`
 
+	// LowCreditSince 아티스트 상태
+	LowCreditSince *time.Time `json:"lowCreditSince,omitempty"`
+
+	// MyCreditScore 현재 로그인한 유저의 신용 점수 투표 (-1, 0, 1)
+	MyCreditScore *ArtistSummaryMyCreditScore `json:"myCreditScore,omitempty"`
+
 	// OfficialName 공식 이름
 	OfficialName *string `json:"officialName,omitempty"`
 
 	// Rating 참가한 이벤트들의 평균 평점
-	Rating *float64 `json:"rating,omitempty"`
-
-	// Status 아티스트 상태
+	Rating *float64             `json:"rating,omitempty"`
 	Status *ArtistSummaryStatus `json:"status,omitempty"`
 }
 
-// ArtistSummaryStatus 아티스트 상태
+// ArtistSummaryMyCreditScore 현재 로그인한 유저의 신용 점수 투표 (-1, 0, 1)
+type ArtistSummaryMyCreditScore int
+
+// ArtistSummaryStatus defines model for ArtistSummary.Status.
 type ArtistSummaryStatus string
+
+// CreateModificationRequestInput defines model for CreateModificationRequestInput.
+type CreateModificationRequestInput struct {
+	EntityId     openapi_types.UUID     `json:"entityId"`
+	EntityType   ModificationEntityType `json:"entityType"`
+	ProposedData map[string]interface{} `json:"proposedData"`
+	Reason       *string                `json:"reason,omitempty"`
+}
+
+// CreditVoteInput defines model for CreditVoteInput.
+type CreditVoteInput struct {
+	// Score 1: 신뢰/추천, -1: 불신/비추천, 0: 투표 취소
+	Score CreditVoteInputScore `json:"score"`
+}
+
+// CreditVoteInputScore 1: 신뢰/추천, -1: 불신/비추천, 0: 투표 취소
+type CreditVoteInputScore int
+
+// CreditVoteResponse defines model for CreditVoteResponse.
+type CreditVoteResponse struct {
+	CreditCount     int                             `json:"creditCount"`
+	CreditScore     int                             `json:"creditScore"`
+	HighCreditSince *time.Time                      `json:"highCreditSince,omitempty"`
+	Id              openapi_types.UUID              `json:"id"`
+	LowCreditSince  *time.Time                      `json:"lowCreditSince,omitempty"`
+	MyCreditScore   CreditVoteResponseMyCreditScore `json:"myCreditScore"`
+	Status          CreditVoteResponseStatus        `json:"status"`
+}
+
+// CreditVoteResponseMyCreditScore defines model for CreditVoteResponse.MyCreditScore.
+type CreditVoteResponseMyCreditScore int
+
+// CreditVoteResponseStatus defines model for CreditVoteResponse.Status.
+type CreditVoteResponseStatus string
 
 // DeleteAccountRequest defines model for DeleteAccountRequest.
 type DeleteAccountRequest struct {
@@ -467,27 +803,32 @@ type Event struct {
 	Artists *[]ArtistSummary `json:"artists,omitempty"`
 
 	// AttendeeCount 이벤트 참가자 수 (status=2)
-	AttendeeCount *int                `json:"attendeeCount,omitempty"`
-	EndTime       *time.Time          `json:"endTime,omitempty"`
-	Id            *openapi_types.UUID `json:"id,omitempty"`
+	AttendeeCount   *int                `json:"attendeeCount,omitempty"`
+	AuthorId        *openapi_types.UUID `json:"authorId,omitempty"`
+	CreditCount     *int                `json:"creditCount,omitempty"`
+	CreditScore     *int                `json:"creditScore,omitempty"`
+	EndTime         *time.Time          `json:"endTime,omitempty"`
+	HighCreditSince *time.Time          `json:"highCreditSince,omitempty"`
+	Id              *openapi_types.UUID `json:"id,omitempty"`
+	LowCreditSince  *time.Time          `json:"lowCreditSince,omitempty"`
+
+	// MyCreditScore 현재 로그인한 유저의 신용 점수 투표 (-1, 0, 1)
+	MyCreditScore *EventMyCreditScore `json:"myCreditScore,omitempty"`
 
 	// MyRating 현재 로그인한 유저의 평점 (1~5점)
-	MyRating        *int                `json:"myRating,omitempty"`
-	OpeningTime     *time.Time          `json:"openingTime,omitempty"`
-	RatingCount     *int                `json:"ratingCount,omitempty"`
-	RatingSum       *float64            `json:"ratingSum,omitempty"`
-	RelatedLinks    *[]string           `json:"relatedLinks,omitempty"`
-	StartTime       *time.Time          `json:"startTime,omitempty"`
-	Status          *EventStatus        `json:"status,omitempty"`
-	AuthorId        *openapi_types.UUID `json:"authorId,omitempty"`
-	CreditScore     *int                `json:"creditScore,omitempty"`
-	CreditCount     *int                `json:"creditCount,omitempty"`
-	MyCreditScore   *int                `json:"myCreditScore,omitempty"`
-	HighCreditSince *time.Time          `json:"highCreditSince,omitempty"`
-	LowCreditSince  *time.Time          `json:"lowCreditSince,omitempty"`
-	Title           *string             `json:"title,omitempty"`
-	Venue           *VenueSummary       `json:"venue,omitempty"`
+	MyRating     *int          `json:"myRating,omitempty"`
+	OpeningTime  *time.Time    `json:"openingTime,omitempty"`
+	RatingCount  *int          `json:"ratingCount,omitempty"`
+	RatingSum    *float64      `json:"ratingSum,omitempty"`
+	RelatedLinks *[]string     `json:"relatedLinks,omitempty"`
+	StartTime    *time.Time    `json:"startTime,omitempty"`
+	Status       *EventStatus  `json:"status,omitempty"`
+	Title        *string       `json:"title,omitempty"`
+	Venue        *VenueSummary `json:"venue,omitempty"`
 }
+
+// EventMyCreditScore 현재 로그인한 유저의 신용 점수 투표 (-1, 0, 1)
+type EventMyCreditScore int
 
 // EventStatus defines model for Event.Status.
 type EventStatus string
@@ -512,19 +853,27 @@ type EventListResponse struct {
 // EventSummary defines model for EventSummary.
 type EventSummary struct {
 	// AttendeeCount 이벤트 참가자 수 (status=2)
-	AttendeeCount *int                `json:"attendeeCount,omitempty"`
-	EndTime       *time.Time          `json:"endTime,omitempty"`
-	Id            *openapi_types.UUID `json:"id,omitempty"`
+	AttendeeCount   *int                `json:"attendeeCount,omitempty"`
+	AuthorId        *openapi_types.UUID `json:"authorId,omitempty"`
+	CreditCount     *int                `json:"creditCount,omitempty"`
+	CreditScore     *int                `json:"creditScore,omitempty"`
+	EndTime         *time.Time          `json:"endTime,omitempty"`
+	HighCreditSince *time.Time          `json:"highCreditSince,omitempty"`
+	Id              *openapi_types.UUID `json:"id,omitempty"`
 
 	// Latitude 공연장 위도
 	Latitude *float64 `json:"latitude,omitempty"`
 
 	// Longitude 공연장 경도
-	Longitude *float64            `json:"longitude,omitempty"`
-	Rating    *float64            `json:"rating,omitempty"`
-	StartTime *time.Time          `json:"startTime,omitempty"`
-	Status    *EventSummaryStatus `json:"status,omitempty"`
-	Title     *string             `json:"title,omitempty"`
+	Longitude      *float64   `json:"longitude,omitempty"`
+	LowCreditSince *time.Time `json:"lowCreditSince,omitempty"`
+
+	// MyCreditScore 현재 로그인한 유저의 신용 점수 투표 (-1, 0, 1)
+	MyCreditScore *EventSummaryMyCreditScore `json:"myCreditScore,omitempty"`
+	Rating        *float64                   `json:"rating,omitempty"`
+	StartTime     *time.Time                 `json:"startTime,omitempty"`
+	Status        *EventSummaryStatus        `json:"status,omitempty"`
+	Title         *string                    `json:"title,omitempty"`
 
 	// TopArtistName 출연자 중 가장 평점이 높은 대표 출연자 공식 이름
 	TopArtistName *string `json:"topArtistName,omitempty"`
@@ -536,6 +885,9 @@ type EventSummary struct {
 	// VenueName 공연장 공식 이름
 	VenueName *string `json:"venueName,omitempty"`
 }
+
+// EventSummaryMyCreditScore 현재 로그인한 유저의 신용 점수 투표 (-1, 0, 1)
+type EventSummaryMyCreditScore int
 
 // EventSummaryStatus defines model for EventSummary.Status.
 type EventSummaryStatus string
@@ -579,25 +931,33 @@ type EventThreadListResponse struct {
 // FollowingArtistNotificationEvent defines model for FollowingArtistNotificationEvent.
 type FollowingArtistNotificationEvent struct {
 	// AttendeeCount 이벤트 참가자 수 (status=2)
-	AttendeeCount *int `json:"attendeeCount,omitempty"`
+	AttendeeCount *int                `json:"attendeeCount,omitempty"`
+	AuthorId      *openapi_types.UUID `json:"authorId,omitempty"`
 
 	// CreatedAt 이벤트 등록 시각
-	CreatedAt *time.Time          `json:"createdAt,omitempty"`
-	EndTime   *time.Time          `json:"endTime,omitempty"`
-	Id        *openapi_types.UUID `json:"id,omitempty"`
+	CreatedAt       *time.Time          `json:"createdAt,omitempty"`
+	CreditCount     *int                `json:"creditCount,omitempty"`
+	CreditScore     *int                `json:"creditScore,omitempty"`
+	EndTime         *time.Time          `json:"endTime,omitempty"`
+	HighCreditSince *time.Time          `json:"highCreditSince,omitempty"`
+	Id              *openapi_types.UUID `json:"id,omitempty"`
 
 	// Latitude 공연장 위도
 	Latitude *float64 `json:"latitude,omitempty"`
 
 	// Longitude 공연장 경도
-	Longitude *float64 `json:"longitude,omitempty"`
+	Longitude      *float64   `json:"longitude,omitempty"`
+	LowCreditSince *time.Time `json:"lowCreditSince,omitempty"`
 
 	// MatchedArtistNames 알림 대상이 된 팔로우 중인 출연자 이름 목록
-	MatchedArtistNames *[]string                               `json:"matchedArtistNames,omitempty"`
-	Rating             *float64                                `json:"rating,omitempty"`
-	StartTime          *time.Time                              `json:"startTime,omitempty"`
-	Status             *FollowingArtistNotificationEventStatus `json:"status,omitempty"`
-	Title              *string                                 `json:"title,omitempty"`
+	MatchedArtistNames *[]string `json:"matchedArtistNames,omitempty"`
+
+	// MyCreditScore 현재 로그인한 유저의 신용 점수 투표 (-1, 0, 1)
+	MyCreditScore *FollowingArtistNotificationEventMyCreditScore `json:"myCreditScore,omitempty"`
+	Rating        *float64                                       `json:"rating,omitempty"`
+	StartTime     *time.Time                                     `json:"startTime,omitempty"`
+	Status        *FollowingArtistNotificationEventStatus        `json:"status,omitempty"`
+	Title         *string                                        `json:"title,omitempty"`
 
 	// TopArtistName 출연자 중 가장 평점이 높은 대표 출연자 공식 이름
 	TopArtistName *string `json:"topArtistName,omitempty"`
@@ -609,6 +969,9 @@ type FollowingArtistNotificationEvent struct {
 	// VenueName 공연장 공식 이름
 	VenueName *string `json:"venueName,omitempty"`
 }
+
+// FollowingArtistNotificationEventMyCreditScore 현재 로그인한 유저의 신용 점수 투표 (-1, 0, 1)
+type FollowingArtistNotificationEventMyCreditScore int
 
 // FollowingArtistNotificationEventStatus defines model for FollowingArtistNotificationEvent.Status.
 type FollowingArtistNotificationEventStatus string
@@ -632,6 +995,40 @@ type LocalLoginRequest struct {
 
 	// Password 사용자의 비밀번호
 	Password string `json:"password"`
+}
+
+// ModificationEntityType defines model for ModificationEntityType.
+type ModificationEntityType string
+
+// ModificationRequest defines model for ModificationRequest.
+type ModificationRequest struct {
+	AuthorDisplayName *string                         `json:"authorDisplayName,omitempty"`
+	AuthorId          *openapi_types.UUID             `json:"authorId,omitempty"`
+	CreatedAt         time.Time                       `json:"createdAt"`
+	EntityId          openapi_types.UUID              `json:"entityId"`
+	EntityType        ModificationEntityType          `json:"entityType"`
+	HighTrustSince    *time.Time                      `json:"highTrustSince,omitempty"`
+	Id                openapi_types.UUID              `json:"id"`
+	LowTrustSince     *time.Time                      `json:"lowTrustSince,omitempty"`
+	MyTrustScore      ModificationRequestMyTrustScore `json:"myTrustScore"`
+	ProposedData      map[string]interface{}          `json:"proposedData"`
+	Reason            string                          `json:"reason"`
+	ResolvedAt        *time.Time                      `json:"resolvedAt,omitempty"`
+	Status            ModificationRequestStatus       `json:"status"`
+	TrustCount        int                             `json:"trustCount"`
+	TrustScore        int                             `json:"trustScore"`
+	UpdatedAt         time.Time                       `json:"updatedAt"`
+}
+
+// ModificationRequestMyTrustScore defines model for ModificationRequest.MyTrustScore.
+type ModificationRequestMyTrustScore int
+
+// ModificationRequestStatus defines model for ModificationRequest.Status.
+type ModificationRequestStatus string
+
+// ModificationRequestListResponse defines model for ModificationRequestListResponse.
+type ModificationRequestListResponse struct {
+	Requests []ModificationRequest `json:"requests"`
 }
 
 // RatingInput defines model for RatingInput.
@@ -733,26 +1130,31 @@ type UserProfileRole string
 
 // Venue defines model for Venue.
 type Venue struct {
-	Address  *string `json:"address,omitempty"`
-	Capacity *int    `json:"capacity,omitempty"`
+	Address     *string             `json:"address,omitempty"`
+	AuthorId    *openapi_types.UUID `json:"authorId,omitempty"`
+	Capacity    *int                `json:"capacity,omitempty"`
+	CreditCount *int                `json:"creditCount,omitempty"`
+	CreditScore *int                `json:"creditScore,omitempty"`
 
 	// GoogleMapId Google Maps Place ID
 	GoogleMapId     *string             `json:"googleMapId,omitempty"`
+	HighCreditSince *time.Time          `json:"highCreditSince,omitempty"`
 	Id              *openapi_types.UUID `json:"id,omitempty"`
 	Latitude        *float64            `json:"latitude,omitempty"`
 	Longitude       *float64            `json:"longitude,omitempty"`
-	OfficialName    *string             `json:"officialName,omitempty"`
-	Rating          *float64            `json:"rating,omitempty"`
-	RatingCount     *int                `json:"ratingCount,omitempty"`
-	RelatedLinks    *[]string           `json:"relatedLinks,omitempty"`
-	Status          *VenueStatus        `json:"status,omitempty"`
-	AuthorId        *openapi_types.UUID `json:"authorId,omitempty"`
-	CreditScore     *int                `json:"creditScore,omitempty"`
-	CreditCount     *int                `json:"creditCount,omitempty"`
-	MyCreditScore   *int                `json:"myCreditScore,omitempty"`
-	HighCreditSince *time.Time          `json:"highCreditSince,omitempty"`
 	LowCreditSince  *time.Time          `json:"lowCreditSince,omitempty"`
+
+	// MyCreditScore 현재 로그인한 유저의 신용 점수 투표 (-1, 0, 1)
+	MyCreditScore *VenueMyCreditScore `json:"myCreditScore,omitempty"`
+	OfficialName  *string             `json:"officialName,omitempty"`
+	Rating        *float64            `json:"rating,omitempty"`
+	RatingCount   *int                `json:"ratingCount,omitempty"`
+	RelatedLinks  *[]string           `json:"relatedLinks,omitempty"`
+	Status        *VenueStatus        `json:"status,omitempty"`
 }
+
+// VenueMyCreditScore 현재 로그인한 유저의 신용 점수 투표 (-1, 0, 1)
+type VenueMyCreditScore int
 
 // VenueStatus defines model for Venue.Status.
 type VenueStatus string
@@ -778,7 +1180,11 @@ type VenueListResponse struct {
 // VenueSummary defines model for VenueSummary.
 type VenueSummary struct {
 	// Address 주소
-	Address *string `json:"address,omitempty"`
+	Address         *string             `json:"address,omitempty"`
+	AuthorId        *openapi_types.UUID `json:"authorId,omitempty"`
+	CreditCount     *int                `json:"creditCount,omitempty"`
+	CreditScore     *int                `json:"creditScore,omitempty"`
+	HighCreditSince *time.Time          `json:"highCreditSince,omitempty"`
 
 	// Id 공연장 고유 식별자
 	Id *openapi_types.UUID `json:"id,omitempty"`
@@ -789,83 +1195,25 @@ type VenueSummary struct {
 	// Longitude 경도
 	Longitude *float64 `json:"longitude,omitempty"`
 
+	// LowCreditSince 공연장 승인 상태
+	LowCreditSince *time.Time `json:"lowCreditSince,omitempty"`
+
+	// MyCreditScore 현재 로그인한 유저의 신용 점수 투표 (-1, 0, 1)
+	MyCreditScore *VenueSummaryMyCreditScore `json:"myCreditScore,omitempty"`
+
 	// OfficialName 공식 이름
 	OfficialName *string `json:"officialName,omitempty"`
 
 	// Rating 런닝 토탈 방식의 평균 평점
-	Rating *float64 `json:"rating,omitempty"`
-
-	// Status 공연장 승인 상태
+	Rating *float64            `json:"rating,omitempty"`
 	Status *VenueSummaryStatus `json:"status,omitempty"`
 }
 
-// VenueSummaryStatus 공연장 승인 상태
+// VenueSummaryMyCreditScore 현재 로그인한 유저의 신용 점수 투표 (-1, 0, 1)
+type VenueSummaryMyCreditScore int
+
+// VenueSummaryStatus defines model for VenueSummary.Status.
 type VenueSummaryStatus string
-
-// CreditVoteInput defines model for CreditVoteInput.
-type CreditVoteInput struct {
-	Score int `json:"score"`
-}
-
-// CreditVoteResponse defines model for CreditVoteResponse.
-type CreditVoteResponse struct {
-	Id              openapi_types.UUID `json:"id"`
-	Status          string             `json:"status"`
-	CreditScore     int                `json:"creditScore"`
-	CreditCount     int                `json:"creditCount"`
-	MyCreditScore   int                `json:"myCreditScore"`
-	HighCreditSince *time.Time         `json:"highCreditSince,omitempty"`
-	LowCreditSince  *time.Time         `json:"lowCreditSince,omitempty"`
-}
-
-// ModificationEntityType defines model for ModificationEntityType.
-type ModificationEntityType string
-
-const (
-	ModificationEntityTypeEVENT  ModificationEntityType = "EVENT"
-	ModificationEntityTypeARTIST ModificationEntityType = "ARTIST"
-	ModificationEntityTypeVENUE  ModificationEntityType = "VENUE"
-)
-
-// ModificationRequest defines model for ModificationRequest.
-type ModificationRequest struct {
-	Id                openapi_types.UUID     `json:"id"`
-	EntityType        ModificationEntityType `json:"entityType"`
-	EntityId          openapi_types.UUID     `json:"entityId"`
-	AuthorId          *openapi_types.UUID    `json:"authorId,omitempty"`
-	AuthorDisplayName *string                `json:"authorDisplayName,omitempty"`
-	ProposedData      map[string]interface{} `json:"proposedData"`
-	Reason            string                 `json:"reason"`
-	Status            string                 `json:"status"`
-	TrustScore        int                    `json:"trustScore"`
-	TrustCount        int                    `json:"trustCount"`
-	MyTrustScore      int                    `json:"myTrustScore"`
-	HighTrustSince    *time.Time             `json:"highTrustSince,omitempty"`
-	LowTrustSince     *time.Time             `json:"lowTrustSince,omitempty"`
-	ResolvedAt        *time.Time             `json:"resolvedAt,omitempty"`
-	CreatedAt         time.Time              `json:"createdAt"`
-	UpdatedAt         time.Time              `json:"updatedAt"`
-}
-
-// ModificationRequestListResponse defines model for ModificationRequestListResponse.
-type ModificationRequestListResponse struct {
-	Requests []ModificationRequest `json:"requests"`
-}
-
-// CreateModificationRequestInput defines model for CreateModificationRequestInput.
-type CreateModificationRequestInput struct {
-	EntityType   ModificationEntityType `json:"entityType"`
-	EntityId     openapi_types.UUID     `json:"entityId"`
-	ProposedData map[string]interface{} `json:"proposedData"`
-	Reason       *string                `json:"reason,omitempty"`
-}
-
-// ListModificationRequestsParams defines parameters for ListModificationRequests.
-type ListModificationRequestsParams struct {
-	EntityType ModificationEntityType `form:"entityType" json:"entityType"`
-	EntityId   openapi_types.UUID     `form:"entityId" json:"entityId"`
-	Status     *string                `form:"status,omitempty" json:"status,omitempty"`
-}
 
 // VerifyEmailRequest defines model for VerifyEmailRequest.
 type VerifyEmailRequest struct {
@@ -998,6 +1346,16 @@ type ListEventThreadsParams struct {
 	Limit  *int    `form:"limit,omitempty" json:"limit,omitempty"`
 }
 
+// ListModificationRequestsParams defines parameters for ListModificationRequests.
+type ListModificationRequestsParams struct {
+	EntityType ModificationEntityType                `form:"entityType" json:"entityType"`
+	EntityId   openapi_types.UUID                    `form:"entityId" json:"entityId"`
+	Status     *ListModificationRequestsParamsStatus `form:"status,omitempty" json:"status,omitempty"`
+}
+
+// ListModificationRequestsParamsStatus defines parameters for ListModificationRequests.
+type ListModificationRequestsParamsStatus string
+
 // GetUsersMeFollowingParams defines parameters for GetUsersMeFollowing.
 type GetUsersMeFollowingParams struct {
 	Limit  *int `form:"limit,omitempty" json:"limit,omitempty"`
@@ -1075,6 +1433,9 @@ type PostArtistsMultipartRequestBody = ArtistInput
 // PutArtistsArtistIdMultipartRequestBody defines body for PutArtistsArtistId for multipart/form-data ContentType.
 type PutArtistsArtistIdMultipartRequestBody = ArtistInput
 
+// PutArtistsArtistIdCreditJSONRequestBody defines body for PutArtistsArtistIdCredit for application/json ContentType.
+type PutArtistsArtistIdCreditJSONRequestBody = CreditVoteInput
+
 // PostAuthGoogleJSONRequestBody defines body for PostAuthGoogle for application/json ContentType.
 type PostAuthGoogleJSONRequestBody = GoogleLoginRequest
 
@@ -1102,11 +1463,20 @@ type PutEventsEventIdMultipartRequestBody = EventInput
 // PutEventsEventIdActionJSONRequestBody defines body for PutEventsEventIdAction for application/json ContentType.
 type PutEventsEventIdActionJSONRequestBody PutEventsEventIdActionJSONBody
 
+// PutEventsEventIdCreditJSONRequestBody defines body for PutEventsEventIdCredit for application/json ContentType.
+type PutEventsEventIdCreditJSONRequestBody = CreditVoteInput
+
 // PostEventsEventIdRateJSONRequestBody defines body for PostEventsEventIdRate for application/json ContentType.
 type PostEventsEventIdRateJSONRequestBody = RatingInput
 
 // CreateEventThreadJSONRequestBody defines body for CreateEventThread for application/json ContentType.
 type CreateEventThreadJSONRequestBody = EventThreadInput
+
+// CreateModificationRequestJSONRequestBody defines body for CreateModificationRequest for application/json ContentType.
+type CreateModificationRequestJSONRequestBody = CreateModificationRequestInput
+
+// VoteModificationRequestTrustJSONRequestBody defines body for VoteModificationRequestTrust for application/json ContentType.
+type VoteModificationRequestTrustJSONRequestBody = CreditVoteInput
 
 // DeleteUsersMeJSONRequestBody defines body for DeleteUsersMe for application/json ContentType.
 type DeleteUsersMeJSONRequestBody = DeleteAccountRequest
@@ -1135,6 +1505,9 @@ type PostVenuesJSONRequestBody = VenueInput
 // PutVenuesVenueIdJSONRequestBody defines body for PutVenuesVenueId for application/json ContentType.
 type PutVenuesVenueIdJSONRequestBody = VenueInput
 
+// PutVenuesVenueIdCreditJSONRequestBody defines body for PutVenuesVenueIdCredit for application/json ContentType.
+type PutVenuesVenueIdCreditJSONRequestBody = CreditVoteInput
+
 // ServerInterface represents all server handlers.
 type ServerInterface interface {
 	// GetArtists 아티스트 목록 조회 (통합)
@@ -1155,36 +1528,9 @@ type ServerInterface interface {
 	// PostArtistsArtistIdApprove 아티스트 승인 (관리자 전용)
 	// (POST /artists/{artistId}/approve)
 	PostArtistsArtistIdApprove(w http.ResponseWriter, r *http.Request, artistId openapi_types.UUID)
-	// PutArtistsArtistIdCredit 아티스트 신용 점수 투표
+	// PutArtistsArtistIdCredit 아티스트 신용 점수 투표 (+1 / -1 / 0)
 	// (PUT /artists/{artistId}/credit)
 	PutArtistsArtistIdCredit(w http.ResponseWriter, r *http.Request, artistId openapi_types.UUID)
-	// PutVenuesVenueIdCredit 공연장 신용 점수 투표
-	// (PUT /venues/{venueId}/credit)
-	PutVenuesVenueIdCredit(w http.ResponseWriter, r *http.Request, venueId openapi_types.UUID)
-	// DeleteEventsEventId 이벤트 삭제
-	// (DELETE /events/{eventId})
-	DeleteEventsEventId(w http.ResponseWriter, r *http.Request, eventId openapi_types.UUID)
-	// PostEventsEventIdApprove 이벤트 승인 (관리자 전용)
-	// (POST /events/{eventId}/approve)
-	PostEventsEventIdApprove(w http.ResponseWriter, r *http.Request, eventId openapi_types.UUID)
-	// PutEventsEventIdCredit 이벤트 신용 점수 투표
-	// (PUT /events/{eventId}/credit)
-	PutEventsEventIdCredit(w http.ResponseWriter, r *http.Request, eventId openapi_types.UUID)
-	// ListModificationRequests 수정 요청 목록 조회
-	// (GET /modification-requests)
-	ListModificationRequests(w http.ResponseWriter, r *http.Request, params ListModificationRequestsParams)
-	// CreateModificationRequest 수정 요청 등록
-	// (POST /modification-requests)
-	CreateModificationRequest(w http.ResponseWriter, r *http.Request)
-	// DeleteModificationRequest 수정 요청 삭제
-	// (DELETE /modification-requests/{requestId})
-	DeleteModificationRequest(w http.ResponseWriter, r *http.Request, requestId openapi_types.UUID)
-	// VoteModificationRequestTrust 수정 요청 신뢰 점수 투표
-	// (PUT /modification-requests/{requestId}/trust)
-	VoteModificationRequestTrust(w http.ResponseWriter, r *http.Request, requestId openapi_types.UUID)
-	// ApplyModificationRequest 수정 요청 즉시 반영 (관리자 전용)
-	// (POST /modification-requests/{requestId}/apply)
-	ApplyModificationRequest(w http.ResponseWriter, r *http.Request, requestId openapi_types.UUID)
 	// DeleteArtistsArtistIdFollow 아티스트 언팔로우
 	// (DELETE /artists/{artistId}/follow)
 	DeleteArtistsArtistIdFollow(w http.ResponseWriter, r *http.Request, artistId openapi_types.UUID)
@@ -1236,18 +1582,27 @@ type ServerInterface interface {
 	// PostEvents 이벤트 등록 (위키 방식)
 	// (POST /events)
 	PostEvents(w http.ResponseWriter, r *http.Request)
+	// DeleteEventsEventId 이벤트 삭제
+	// (DELETE /events/{eventId})
+	DeleteEventsEventId(w http.ResponseWriter, r *http.Request, eventId openapi_types.UUID)
 	// GetEventsEventId 이벤트 상세 조회
 	// (GET /events/{eventId})
 	GetEventsEventId(w http.ResponseWriter, r *http.Request, eventId openapi_types.UUID)
-	// PutEventsEventId 이벤트 수정 (위키 방식)
+	// PutEventsEventId 이벤트 수정
 	// (PUT /events/{eventId})
 	PutEventsEventId(w http.ResponseWriter, r *http.Request, eventId openapi_types.UUID)
 	// PutEventsEventIdAction 이벤트 액션(상태) 변경
 	// (PUT /events/{eventId}/action)
 	PutEventsEventIdAction(w http.ResponseWriter, r *http.Request, eventId openapi_types.UUID)
+	// PostEventsEventIdApprove 이벤트 승인 (관리자 전용)
+	// (POST /events/{eventId}/approve)
+	PostEventsEventIdApprove(w http.ResponseWriter, r *http.Request, eventId openapi_types.UUID)
 	// GetEventsEventIdAttendees 이벤트 참가자 목록 조회
 	// (GET /events/{eventId}/attendees)
 	GetEventsEventIdAttendees(w http.ResponseWriter, r *http.Request, eventId openapi_types.UUID, params GetEventsEventIdAttendeesParams)
+	// PutEventsEventIdCredit 이벤트 신용 점수 투표 (+1 / -1 / 0)
+	// (PUT /events/{eventId}/credit)
+	PutEventsEventIdCredit(w http.ResponseWriter, r *http.Request, eventId openapi_types.UUID)
 	// PostEventsEventIdDeleteRequest 이벤트 삭제 요청
 	// (POST /events/{eventId}/delete-request)
 	PostEventsEventIdDeleteRequest(w http.ResponseWriter, r *http.Request, eventId openapi_types.UUID)
@@ -1263,6 +1618,21 @@ type ServerInterface interface {
 	// CreateEventThread 이벤트 스레드 작성
 	// (POST /events/{eventId}/threads)
 	CreateEventThread(w http.ResponseWriter, r *http.Request, eventId openapi_types.UUID)
+	// ListModificationRequests 공인 데이터 수정 요청 목록 조회
+	// (GET /modification-requests)
+	ListModificationRequests(w http.ResponseWriter, r *http.Request, params ListModificationRequestsParams)
+	// CreateModificationRequest 공인 데이터 수정 요청 등록
+	// (POST /modification-requests)
+	CreateModificationRequest(w http.ResponseWriter, r *http.Request)
+	// DeleteModificationRequest 수정 요청 삭제 (작성자 또는 관리자)
+	// (DELETE /modification-requests/{requestId})
+	DeleteModificationRequest(w http.ResponseWriter, r *http.Request, requestId openapi_types.UUID)
+	// ApplyModificationRequest 수정 요청 즉시 반영 (관리자 전용)
+	// (POST /modification-requests/{requestId}/apply)
+	ApplyModificationRequest(w http.ResponseWriter, r *http.Request, requestId openapi_types.UUID)
+	// VoteModificationRequestTrust 수정 요청 신뢰 점수 투표 (+1 / -1 / 0)
+	// (PUT /modification-requests/{requestId}/trust)
+	VoteModificationRequestTrust(w http.ResponseWriter, r *http.Request, requestId openapi_types.UUID)
 	// GetPing 서버 상태 확인
 	// (GET /ping)
 	GetPing(w http.ResponseWriter, r *http.Request)
@@ -1353,6 +1723,9 @@ type ServerInterface interface {
 	// PostVenuesVenueIdApprove 공연장 승인 (관리자 전용)
 	// (POST /venues/{venueId}/approve)
 	PostVenuesVenueIdApprove(w http.ResponseWriter, r *http.Request, venueId openapi_types.UUID)
+	// PutVenuesVenueIdCredit 공연장 신용 점수 투표 (+1 / -1 / 0)
+	// (PUT /venues/{venueId}/credit)
+	PutVenuesVenueIdCredit(w http.ResponseWriter, r *http.Request, venueId openapi_types.UUID)
 	// GetVisits 오늘 방문자 수 조회
 	// (GET /visits)
 	GetVisits(w http.ResponseWriter, r *http.Request)
@@ -1538,6 +1911,32 @@ func (siw *ServerInterfaceWrapper) PostArtistsArtistIdApprove(w http.ResponseWri
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.PostArtistsArtistIdApprove(w, r, artistId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// PutArtistsArtistIdCredit operation middleware
+func (siw *ServerInterfaceWrapper) PutArtistsArtistIdCredit(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "artistId" -------------
+	var artistId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "artistId", r.PathValue("artistId"), &artistId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "artistId", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.PutArtistsArtistIdCredit(w, r, artistId)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -2122,6 +2521,32 @@ func (siw *ServerInterfaceWrapper) PostEvents(w http.ResponseWriter, r *http.Req
 	handler.ServeHTTP(w, r)
 }
 
+// DeleteEventsEventId operation middleware
+func (siw *ServerInterfaceWrapper) DeleteEventsEventId(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "eventId" -------------
+	var eventId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "eventId", r.PathValue("eventId"), &eventId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "eventId", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.DeleteEventsEventId(w, r, eventId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
 // GetEventsEventId operation middleware
 func (siw *ServerInterfaceWrapper) GetEventsEventId(w http.ResponseWriter, r *http.Request) {
 
@@ -2200,6 +2625,32 @@ func (siw *ServerInterfaceWrapper) PutEventsEventIdAction(w http.ResponseWriter,
 	handler.ServeHTTP(w, r)
 }
 
+// PostEventsEventIdApprove operation middleware
+func (siw *ServerInterfaceWrapper) PostEventsEventIdApprove(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "eventId" -------------
+	var eventId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "eventId", r.PathValue("eventId"), &eventId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "eventId", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.PostEventsEventIdApprove(w, r, eventId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
 // GetEventsEventIdAttendees operation middleware
 func (siw *ServerInterfaceWrapper) GetEventsEventIdAttendees(w http.ResponseWriter, r *http.Request) {
 
@@ -2246,6 +2697,32 @@ func (siw *ServerInterfaceWrapper) GetEventsEventIdAttendees(w http.ResponseWrit
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.GetEventsEventIdAttendees(w, r, eventId, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// PutEventsEventIdCredit operation middleware
+func (siw *ServerInterfaceWrapper) PutEventsEventIdCredit(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "eventId" -------------
+	var eventId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "eventId", r.PathValue("eventId"), &eventId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "eventId", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.PutEventsEventIdCredit(w, r, eventId)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -2405,6 +2882,157 @@ func (siw *ServerInterfaceWrapper) CreateEventThread(w http.ResponseWriter, r *h
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.CreateEventThread(w, r, eventId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// ListModificationRequests operation middleware
+func (siw *ServerInterfaceWrapper) ListModificationRequests(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params ListModificationRequestsParams
+
+	// ------------- Required query parameter "entityType" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, true, "entityType", r.URL.Query(), &params.EntityType, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "entityType"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "entityType", Err: err})
+		}
+		return
+	}
+
+	// ------------- Required query parameter "entityId" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, true, "entityId", r.URL.Query(), &params.EntityId, runtime.BindQueryParameterOptions{Type: "string", Format: "uuid"})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "entityId"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "entityId", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "status" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "status", r.URL.Query(), &params.Status, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "status"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "status", Err: err})
+		}
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ListModificationRequests(w, r, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// CreateModificationRequest operation middleware
+func (siw *ServerInterfaceWrapper) CreateModificationRequest(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.CreateModificationRequest(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// DeleteModificationRequest operation middleware
+func (siw *ServerInterfaceWrapper) DeleteModificationRequest(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "requestId" -------------
+	var requestId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "requestId", r.PathValue("requestId"), &requestId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "requestId", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.DeleteModificationRequest(w, r, requestId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// ApplyModificationRequest operation middleware
+func (siw *ServerInterfaceWrapper) ApplyModificationRequest(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "requestId" -------------
+	var requestId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "requestId", r.PathValue("requestId"), &requestId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "requestId", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ApplyModificationRequest(w, r, requestId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// VoteModificationRequestTrust operation middleware
+func (siw *ServerInterfaceWrapper) VoteModificationRequestTrust(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "requestId" -------------
+	var requestId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "requestId", r.PathValue("requestId"), &requestId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "requestId", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.VoteModificationRequestTrust(w, r, requestId)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -3228,6 +3856,32 @@ func (siw *ServerInterfaceWrapper) PostVenuesVenueIdApprove(w http.ResponseWrite
 	handler.ServeHTTP(w, r)
 }
 
+// PutVenuesVenueIdCredit operation middleware
+func (siw *ServerInterfaceWrapper) PutVenuesVenueIdCredit(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "venueId" -------------
+	var venueId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "venueId", r.PathValue("venueId"), &venueId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "venueId", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.PutVenuesVenueIdCredit(w, r, venueId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
 // GetVisits operation middleware
 func (siw *ServerInterfaceWrapper) GetVisits(w http.ResponseWriter, r *http.Request) {
 
@@ -3430,9 +4084,9 @@ func HandlerWithOptions(si ServerInterface, options StdHTTPServerOptions) http.H
 	m.HandleFunc(http.MethodPut+" "+options.BaseURL+"/venues/{venueId}/credit", wrapper.PutVenuesVenueIdCredit)
 	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/events", wrapper.GetEvents)
 	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/events", wrapper.PostEvents)
+	m.HandleFunc(http.MethodDelete+" "+options.BaseURL+"/events/{eventId}", wrapper.DeleteEventsEventId)
 	m.HandleFunc(http.MethodGet+" "+options.BaseURL+"/events/{eventId}", wrapper.GetEventsEventId)
 	m.HandleFunc(http.MethodPut+" "+options.BaseURL+"/events/{eventId}", wrapper.PutEventsEventId)
-	m.HandleFunc(http.MethodDelete+" "+options.BaseURL+"/events/{eventId}", wrapper.DeleteEventsEventId)
 	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/events/{eventId}/approve", wrapper.PostEventsEventIdApprove)
 	m.HandleFunc(http.MethodPut+" "+options.BaseURL+"/events/{eventId}/credit", wrapper.PutEventsEventIdCredit)
 	m.HandleFunc(http.MethodPost+" "+options.BaseURL+"/events/{eventId}/delete-request", wrapper.PostEventsEventIdDeleteRequest)
@@ -3459,143 +4113,161 @@ func HandlerWithOptions(si ServerInterface, options StdHTTPServerOptions) http.H
 // const string: with thousands of chunks the chained `+` fold is several
 // times slower for the Go compiler than parsing a slice literal.
 var swaggerSpec = []string{
-	"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",
-	"NwAA//8=",
+	"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",
+	"UR/EIeLpN0Idco6k26udO9pd1+jevf8IAAD//w==",
 }
 
 // decodeSpec returns the embedded OpenAPI spec as raw JSON bytes,

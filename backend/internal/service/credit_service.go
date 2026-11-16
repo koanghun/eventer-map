@@ -110,7 +110,7 @@ func (s *CreditService) ProcessSustainedLifecycle(ctx context.Context) error {
 	if s == nil || s.repo == nil {
 		return nil
 	}
-	creditCutoff := time.Now().UTC().Add(-SustainedCreditDuration)
+	creditCutoff := sql.NullTime{Time: time.Now().UTC().Add(-SustainedCreditDuration), Valid: true}
 	_ = s.repo.PromoteSustainedEvents(ctx, creditCutoff)
 	_ = s.repo.DeleteSustainedLowCreditEvents(ctx, creditCutoff)
 	_ = s.repo.PromoteSustainedArtists(ctx, creditCutoff)
@@ -118,7 +118,7 @@ func (s *CreditService) ProcessSustainedLifecycle(ctx context.Context) error {
 	_ = s.repo.PromoteSustainedVenues(ctx, creditCutoff)
 	_ = s.repo.DeleteSustainedLowCreditVenues(ctx, creditCutoff)
 
-	trustCutoff := time.Now().UTC().Add(-SustainedTrustDuration)
+	trustCutoff := sql.NullTime{Time: time.Now().UTC().Add(-SustainedTrustDuration), Valid: true}
 	if highTrustReqs, err := s.repo.ListSustainedHighTrustModificationRequests(ctx, trustCutoff); err == nil {
 		for _, req := range highTrustReqs {
 			_ = s.applyModificationRequest(ctx, req)
@@ -177,12 +177,22 @@ func (s *CreditService) VoteEntityCredit(ctx context.Context, entityType string,
 
 	s.MaybeProcessSustainedLifecycle(ctx)
 
-	var state repository.CreditStateRow
-	params := repository.RecalculateCreditParams{
-		ID:               entityID,
-		MinVotes:         MinCreditVotes,
-		PromoteThreshold: PromoteScoreThreshold,
-		DeleteThreshold:  DeleteScoreThreshold,
+	res := &CreditVoteResult{
+		MyCreditScore: score,
+	}
+	setCreditState := func(id uuid.UUID, status string, creditScore, creditCount int32, highCreditSince, lowCreditSince sql.NullTime) {
+		res.ID = id
+		res.Status = status
+		res.CreditScore = creditScore
+		res.CreditCount = creditCount
+		if highCreditSince.Valid {
+			t := highCreditSince.Time
+			res.HighCreditSince = &t
+		}
+		if lowCreditSince.Valid {
+			t := lowCreditSince.Time
+			res.LowCreditSince = &t
+		}
 	}
 
 	runVote := func(q *repository.Queries) error {
@@ -190,36 +200,84 @@ func (s *CreditService) VoteEntityCredit(ctx context.Context, entityType string,
 		switch entityType {
 		case "EVENT":
 			if score == 0 {
-				err = q.DeleteEventCreditVote(ctx, userID, entityID)
+				err = q.DeleteEventCreditVote(ctx, repository.DeleteEventCreditVoteParams{
+					UserID:  userID,
+					EventID: entityID,
+				})
 			} else {
-				err = q.UpsertEventCreditVote(ctx, userID, entityID, score)
+				err = q.UpsertEventCreditVote(ctx, repository.UpsertEventCreditVoteParams{
+					UserID:  userID,
+					EventID: entityID,
+					Score:   score,
+				})
 			}
 			if err != nil {
 				return err
 			}
-			state, err = q.RecalculateEventCredit(ctx, params)
+			state, err := q.RecalculateEventCredit(ctx, repository.RecalculateEventCreditParams{
+				ID:               entityID,
+				MinVotes:         MinCreditVotes,
+				PromoteThreshold: PromoteScoreThreshold,
+				DeleteThreshold:  DeleteScoreThreshold,
+			})
+			if err != nil {
+				return err
+			}
+			setCreditState(state.ID, state.Status, state.CreditScore, state.CreditCount, state.HighCreditSince, state.LowCreditSince)
 		case "ARTIST":
 			if score == 0 {
-				err = q.DeleteArtistCreditVote(ctx, userID, entityID)
+				err = q.DeleteArtistCreditVote(ctx, repository.DeleteArtistCreditVoteParams{
+					UserID:   userID,
+					ArtistID: entityID,
+				})
 			} else {
-				err = q.UpsertArtistCreditVote(ctx, userID, entityID, score)
+				err = q.UpsertArtistCreditVote(ctx, repository.UpsertArtistCreditVoteParams{
+					UserID:   userID,
+					ArtistID: entityID,
+					Score:    score,
+				})
 			}
 			if err != nil {
 				return err
 			}
-			state, err = q.RecalculateArtistCredit(ctx, params)
+			state, err := q.RecalculateArtistCredit(ctx, repository.RecalculateArtistCreditParams{
+				ID:               entityID,
+				MinVotes:         MinCreditVotes,
+				PromoteThreshold: PromoteScoreThreshold,
+				DeleteThreshold:  DeleteScoreThreshold,
+			})
+			if err != nil {
+				return err
+			}
+			setCreditState(state.ID, state.Status, state.CreditScore, state.CreditCount, state.HighCreditSince, state.LowCreditSince)
 		case "VENUE":
 			if score == 0 {
-				err = q.DeleteVenueCreditVote(ctx, userID, entityID)
+				err = q.DeleteVenueCreditVote(ctx, repository.DeleteVenueCreditVoteParams{
+					UserID:  userID,
+					VenueID: entityID,
+				})
 			} else {
-				err = q.UpsertVenueCreditVote(ctx, userID, entityID, score)
+				err = q.UpsertVenueCreditVote(ctx, repository.UpsertVenueCreditVoteParams{
+					UserID:  userID,
+					VenueID: entityID,
+					Score:   score,
+				})
 			}
 			if err != nil {
 				return err
 			}
-			state, err = q.RecalculateVenueCredit(ctx, params)
+			state, err := q.RecalculateVenueCredit(ctx, repository.RecalculateVenueCreditParams{
+				ID:               entityID,
+				MinVotes:         MinCreditVotes,
+				PromoteThreshold: PromoteScoreThreshold,
+				DeleteThreshold:  DeleteScoreThreshold,
+			})
+			if err != nil {
+				return err
+			}
+			setCreditState(state.ID, state.Status, state.CreditScore, state.CreditCount, state.HighCreditSince, state.LowCreditSince)
 		}
-		return err
+		return nil
 	}
 
 	if s.db != nil {
@@ -238,21 +296,6 @@ func (s *CreditService) VoteEntityCredit(ctx context.Context, entityType string,
 		return nil, err
 	}
 
-	res := &CreditVoteResult{
-		ID:            state.ID,
-		Status:        state.Status,
-		CreditScore:   state.CreditScore,
-		CreditCount:   state.CreditCount,
-		MyCreditScore: score,
-	}
-	if state.HighCreditSince.Valid {
-		t := state.HighCreditSince.Time
-		res.HighCreditSince = &t
-	}
-	if state.LowCreditSince.Valid {
-		t := state.LowCreditSince.Time
-		res.LowCreditSince = &t
-	}
 	return res, nil
 }
 
@@ -266,11 +309,20 @@ func (s *CreditService) GetUserEntityCreditVote(ctx context.Context, entityType 
 	)
 	switch entityType {
 	case "EVENT":
-		score, err = s.repo.GetUserEventCreditVote(ctx, userID, entityID)
+		score, err = s.repo.GetUserEventCreditVote(ctx, repository.GetUserEventCreditVoteParams{
+			UserID:  userID,
+			EventID: entityID,
+		})
 	case "ARTIST":
-		score, err = s.repo.GetUserArtistCreditVote(ctx, userID, entityID)
+		score, err = s.repo.GetUserArtistCreditVote(ctx, repository.GetUserArtistCreditVoteParams{
+			UserID:   userID,
+			ArtistID: entityID,
+		})
 	case "VENUE":
-		score, err = s.repo.GetUserVenueCreditVote(ctx, userID, entityID)
+		score, err = s.repo.GetUserVenueCreditVote(ctx, repository.GetUserVenueCreditVoteParams{
+			UserID:  userID,
+			VenueID: entityID,
+		})
 	default:
 		return 0
 	}
@@ -337,7 +389,7 @@ func (s *CreditService) CreateModificationRequest(ctx context.Context, input Cre
 	if err != nil {
 		return mapModificationRequestToDetail(mr, nil, 0), nil
 	}
-	return mapModificationRequestRowToDetail(row), nil
+	return mapGetModificationRequestRowToDetail(row), nil
 }
 
 func (s *CreditService) ListModificationRequests(ctx context.Context, entityType string, entityID uuid.UUID, status string, viewerID uuid.UUID) ([]*ModificationRequestDetail, error) {
@@ -357,7 +409,7 @@ func (s *CreditService) ListModificationRequests(ctx context.Context, entityType
 	}
 	result := make([]*ModificationRequestDetail, 0, len(rows))
 	for _, row := range rows {
-		result = append(result, mapModificationRequestRowToDetail(row))
+		result = append(result, mapListModificationRequestRowToDetail(row))
 	}
 	return result, nil
 }
@@ -404,14 +456,21 @@ func (s *CreditService) VoteModificationRequestTrust(ctx context.Context, reques
 	runTrustVote := func(q *repository.Queries) error {
 		var err error
 		if score == 0 {
-			err = q.DeleteModificationRequestVote(ctx, userID, requestID)
+			err = q.DeleteModificationRequestVote(ctx, repository.DeleteModificationRequestVoteParams{
+				UserID:    userID,
+				RequestID: requestID,
+			})
 		} else {
-			err = q.UpsertModificationRequestVote(ctx, userID, requestID, score)
+			err = q.UpsertModificationRequestVote(ctx, repository.UpsertModificationRequestVoteParams{
+				UserID:    userID,
+				RequestID: requestID,
+				Score:     score,
+			})
 		}
 		if err != nil {
 			return err
 		}
-		updated, err = q.RecalculateModificationRequestTrust(ctx, repository.RecalculateTrustParams{
+		updated, err = q.RecalculateModificationRequestTrust(ctx, repository.RecalculateModificationRequestTrustParams{
 			ID:              requestID,
 			MinVotes:        MinTrustVotes,
 			ApplyThreshold:  ApplyTrustThreshold,
@@ -458,14 +517,14 @@ func (s *CreditService) ApplyModificationRequestByAdmin(ctx context.Context, req
 	if reqRow.Status != "PENDING" {
 		return nil, ErrModificationAlreadyResolved
 	}
-	if err := s.applyModificationRequest(ctx, reqRow.ModificationRequest); err != nil {
+	if err := s.applyModificationRequest(ctx, modificationRequestFromGetRow(reqRow)); err != nil {
 		return nil, err
 	}
 	updated, err := s.repo.GetModificationRequest(ctx, requestID)
 	if err != nil {
 		return nil, err
 	}
-	return mapModificationRequestRowToDetail(updated), nil
+	return mapGetModificationRequestRowToDetail(updated), nil
 }
 
 func (s *CreditService) applyModificationRequest(ctx context.Context, req repository.ModificationRequest) error {
@@ -614,12 +673,54 @@ func applyVenueModification(ctx context.Context, q *repository.Queries, venueID 
 	return err
 }
 
-func mapModificationRequestRowToDetail(row repository.ModificationRequestRow) *ModificationRequestDetail {
+func modificationRequestFromGetRow(row repository.GetModificationRequestRow) repository.ModificationRequest {
+	return repository.ModificationRequest{
+		ID:             row.ID,
+		EntityType:     row.EntityType,
+		EntityID:       row.EntityID,
+		AuthorID:       row.AuthorID,
+		ProposedData:   row.ProposedData,
+		Reason:         row.Reason,
+		Status:         row.Status,
+		TrustScore:     row.TrustScore,
+		TrustCount:     row.TrustCount,
+		HighTrustSince: row.HighTrustSince,
+		LowTrustSince:  row.LowTrustSince,
+		ResolvedAt:     row.ResolvedAt,
+		CreatedAt:      row.CreatedAt,
+		UpdatedAt:      row.UpdatedAt,
+	}
+}
+
+func mapGetModificationRequestRowToDetail(row repository.GetModificationRequestRow) *ModificationRequestDetail {
 	var authorName *string
 	if row.AuthorDisplayName.Valid {
 		authorName = &row.AuthorDisplayName.String
 	}
-	return mapModificationRequestToDetail(row.ModificationRequest, authorName, row.MyTrustScore)
+	return mapModificationRequestToDetail(modificationRequestFromGetRow(row), authorName, 0)
+}
+
+func mapListModificationRequestRowToDetail(row repository.ListModificationRequestsByEntityRow) *ModificationRequestDetail {
+	var authorName *string
+	if row.AuthorDisplayName.Valid {
+		authorName = &row.AuthorDisplayName.String
+	}
+	return mapModificationRequestToDetail(repository.ModificationRequest{
+		ID:             row.ID,
+		EntityType:     row.EntityType,
+		EntityID:       row.EntityID,
+		AuthorID:       row.AuthorID,
+		ProposedData:   row.ProposedData,
+		Reason:         row.Reason,
+		Status:         row.Status,
+		TrustScore:     row.TrustScore,
+		TrustCount:     row.TrustCount,
+		HighTrustSince: row.HighTrustSince,
+		LowTrustSince:  row.LowTrustSince,
+		ResolvedAt:     row.ResolvedAt,
+		CreatedAt:      row.CreatedAt,
+		UpdatedAt:      row.UpdatedAt,
+	}, authorName, row.MyTrustScore)
 }
 
 func mapModificationRequestToDetail(mr repository.ModificationRequest, authorName *string, myTrustScore int32) *ModificationRequestDetail {

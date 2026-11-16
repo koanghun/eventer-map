@@ -227,7 +227,7 @@ func (s *Server) GetVenuesVenueId(w http.ResponseWriter, r *http.Request, venueI
 
 	resp := mapRepositoryVenue(venue)
 	if userID, ok := r.Context().Value(middleware.UserIDKey).(uuid.UUID); ok && s.services.Credit != nil {
-		myCredit := int(s.services.Credit.GetUserEntityCreditVote(r.Context(), "VENUE", venueId, userID))
+		myCredit := VenueMyCreditScore(s.services.Credit.GetUserEntityCreditVote(r.Context(), "VENUE", venueId, userID))
 		resp.MyCreditScore = &myCredit
 	}
 

@@ -6,6 +6,7 @@ package repository
 
 import (
 	"database/sql"
+	"encoding/json"
 	"time"
 
 	"github.com/google/uuid"
@@ -28,6 +29,14 @@ type Artist struct {
 	CreditCount     int32
 	HighCreditSince sql.NullTime
 	LowCreditSince  sql.NullTime
+}
+
+type ArtistCreditVote struct {
+	UserID    uuid.UUID
+	ArtistID  uuid.UUID
+	Score     int32
+	CreatedAt time.Time
+	UpdatedAt time.Time
 }
 
 type DailyVisit struct {
@@ -60,6 +69,14 @@ type EventArtist struct {
 	ArtistID uuid.UUID
 }
 
+type EventCreditVote struct {
+	UserID    uuid.UUID
+	EventID   uuid.UUID
+	Score     int32
+	CreatedAt time.Time
+	UpdatedAt time.Time
+}
+
 type EventThread struct {
 	ID             uuid.UUID
 	EventID        uuid.UUID
@@ -74,6 +91,31 @@ type EventUserAction struct {
 	UserID  uuid.UUID
 	EventID uuid.UUID
 	Status  int32
+}
+
+type ModificationRequest struct {
+	ID             uuid.UUID
+	EntityType     string
+	EntityID       uuid.UUID
+	AuthorID       uuid.NullUUID
+	ProposedData   json.RawMessage
+	Reason         string
+	Status         string
+	TrustScore     int32
+	TrustCount     int32
+	HighTrustSince sql.NullTime
+	LowTrustSince  sql.NullTime
+	ResolvedAt     sql.NullTime
+	CreatedAt      time.Time
+	UpdatedAt      time.Time
+}
+
+type ModificationRequestVote struct {
+	UserID    uuid.UUID
+	RequestID uuid.UUID
+	Score     int32
+	CreatedAt time.Time
+	UpdatedAt time.Time
 }
 
 type ThreadRecommendation struct {
@@ -143,21 +185,12 @@ type Venue struct {
 	LowCreditSince  sql.NullTime
 }
 
-type ModificationRequest struct {
-	ID             uuid.UUID
-	EntityType     string
-	EntityID       uuid.UUID
-	AuthorID       uuid.NullUUID
-	ProposedData   []byte
-	Reason         string
-	Status         string
-	TrustScore     int32
-	TrustCount     int32
-	HighTrustSince sql.NullTime
-	LowTrustSince  sql.NullTime
-	ResolvedAt     sql.NullTime
-	CreatedAt      time.Time
-	UpdatedAt      time.Time
+type VenueCreditVote struct {
+	UserID    uuid.UUID
+	VenueID   uuid.UUID
+	Score     int32
+	CreatedAt time.Time
+	UpdatedAt time.Time
 }
 
 type VerificationToken struct {

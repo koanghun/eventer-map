@@ -16,24 +16,24 @@ WHERE user_id = $1 AND event_id = $2 LIMIT 1;
 -- name: RecalculateEventCredit :one
 UPDATE events
 SET
-    credit_score = COALESCE((SELECT SUM(score)::int FROM event_credit_votes WHERE event_id = $1), 0),
-    credit_count = COALESCE((SELECT COUNT(*)::int FROM event_credit_votes WHERE event_id = $1), 0),
+    credit_score = COALESCE((SELECT SUM(score)::int FROM event_credit_votes WHERE event_id = @id::uuid), 0),
+    credit_count = COALESCE((SELECT COUNT(*)::int FROM event_credit_votes WHERE event_id = @id::uuid), 0),
     high_credit_since = CASE
         WHEN status = 'PENDING'
-            AND COALESCE((SELECT COUNT(*)::int FROM event_credit_votes WHERE event_id = $1), 0) >= @min_votes::int
-            AND COALESCE((SELECT SUM(score)::int FROM event_credit_votes WHERE event_id = $1), 0) >= @promote_threshold::int
+            AND COALESCE((SELECT COUNT(*)::int FROM event_credit_votes WHERE event_id = @id::uuid), 0) >= @min_votes::int
+            AND COALESCE((SELECT SUM(score)::int FROM event_credit_votes WHERE event_id = @id::uuid), 0) >= @promote_threshold::int
         THEN COALESCE(high_credit_since, NOW())
         ELSE NULL
     END,
     low_credit_since = CASE
         WHEN status = 'PENDING'
-            AND COALESCE((SELECT COUNT(*)::int FROM event_credit_votes WHERE event_id = $1), 0) >= @min_votes::int
-            AND COALESCE((SELECT SUM(score)::int FROM event_credit_votes WHERE event_id = $1), 0) <= @delete_threshold::int
+            AND COALESCE((SELECT COUNT(*)::int FROM event_credit_votes WHERE event_id = @id::uuid), 0) >= @min_votes::int
+            AND COALESCE((SELECT SUM(score)::int FROM event_credit_votes WHERE event_id = @id::uuid), 0) <= @delete_threshold::int
         THEN COALESCE(low_credit_since, NOW())
         ELSE NULL
     END,
     updated_at = NOW()
-WHERE id = $1
+WHERE id = @id::uuid
 RETURNING id, status, credit_score, credit_count, high_credit_since, low_credit_since;
 
 -- Artist Credit Votes
@@ -54,24 +54,24 @@ WHERE user_id = $1 AND artist_id = $2 LIMIT 1;
 -- name: RecalculateArtistCredit :one
 UPDATE artists
 SET
-    credit_score = COALESCE((SELECT SUM(score)::int FROM artist_credit_votes WHERE artist_id = $1), 0),
-    credit_count = COALESCE((SELECT COUNT(*)::int FROM artist_credit_votes WHERE artist_id = $1), 0),
+    credit_score = COALESCE((SELECT SUM(score)::int FROM artist_credit_votes WHERE artist_id = @id::uuid), 0),
+    credit_count = COALESCE((SELECT COUNT(*)::int FROM artist_credit_votes WHERE artist_id = @id::uuid), 0),
     high_credit_since = CASE
         WHEN status = 'PENDING'
-            AND COALESCE((SELECT COUNT(*)::int FROM artist_credit_votes WHERE artist_id = $1), 0) >= @min_votes::int
-            AND COALESCE((SELECT SUM(score)::int FROM artist_credit_votes WHERE artist_id = $1), 0) >= @promote_threshold::int
+            AND COALESCE((SELECT COUNT(*)::int FROM artist_credit_votes WHERE artist_id = @id::uuid), 0) >= @min_votes::int
+            AND COALESCE((SELECT SUM(score)::int FROM artist_credit_votes WHERE artist_id = @id::uuid), 0) >= @promote_threshold::int
         THEN COALESCE(high_credit_since, NOW())
         ELSE NULL
     END,
     low_credit_since = CASE
         WHEN status = 'PENDING'
-            AND COALESCE((SELECT COUNT(*)::int FROM artist_credit_votes WHERE artist_id = $1), 0) >= @min_votes::int
-            AND COALESCE((SELECT SUM(score)::int FROM artist_credit_votes WHERE artist_id = $1), 0) <= @delete_threshold::int
+            AND COALESCE((SELECT COUNT(*)::int FROM artist_credit_votes WHERE artist_id = @id::uuid), 0) >= @min_votes::int
+            AND COALESCE((SELECT SUM(score)::int FROM artist_credit_votes WHERE artist_id = @id::uuid), 0) <= @delete_threshold::int
         THEN COALESCE(low_credit_since, NOW())
         ELSE NULL
     END,
     updated_at = NOW()
-WHERE id = $1
+WHERE id = @id::uuid
 RETURNING id, status, credit_score, credit_count, high_credit_since, low_credit_since;
 
 -- Venue Credit Votes
@@ -92,24 +92,24 @@ WHERE user_id = $1 AND venue_id = $2 LIMIT 1;
 -- name: RecalculateVenueCredit :one
 UPDATE venues
 SET
-    credit_score = COALESCE((SELECT SUM(score)::int FROM venue_credit_votes WHERE venue_id = $1), 0),
-    credit_count = COALESCE((SELECT COUNT(*)::int FROM venue_credit_votes WHERE venue_id = $1), 0),
+    credit_score = COALESCE((SELECT SUM(score)::int FROM venue_credit_votes WHERE venue_id = @id::uuid), 0),
+    credit_count = COALESCE((SELECT COUNT(*)::int FROM venue_credit_votes WHERE venue_id = @id::uuid), 0),
     high_credit_since = CASE
         WHEN status = 'PENDING'
-            AND COALESCE((SELECT COUNT(*)::int FROM venue_credit_votes WHERE venue_id = $1), 0) >= @min_votes::int
-            AND COALESCE((SELECT SUM(score)::int FROM venue_credit_votes WHERE venue_id = $1), 0) >= @promote_threshold::int
+            AND COALESCE((SELECT COUNT(*)::int FROM venue_credit_votes WHERE venue_id = @id::uuid), 0) >= @min_votes::int
+            AND COALESCE((SELECT SUM(score)::int FROM venue_credit_votes WHERE venue_id = @id::uuid), 0) >= @promote_threshold::int
         THEN COALESCE(high_credit_since, NOW())
         ELSE NULL
     END,
     low_credit_since = CASE
         WHEN status = 'PENDING'
-            AND COALESCE((SELECT COUNT(*)::int FROM venue_credit_votes WHERE venue_id = $1), 0) >= @min_votes::int
-            AND COALESCE((SELECT SUM(score)::int FROM venue_credit_votes WHERE venue_id = $1), 0) <= @delete_threshold::int
+            AND COALESCE((SELECT COUNT(*)::int FROM venue_credit_votes WHERE venue_id = @id::uuid), 0) >= @min_votes::int
+            AND COALESCE((SELECT SUM(score)::int FROM venue_credit_votes WHERE venue_id = @id::uuid), 0) <= @delete_threshold::int
         THEN COALESCE(low_credit_since, NOW())
         ELSE NULL
     END,
     updated_at = NOW()
-WHERE id = $1
+WHERE id = @id::uuid
 RETURNING id, status, credit_score, credit_count, high_credit_since, low_credit_since;
 
 -- Sustained Lifecycle Transitions (Promote / Delete after sustained duration)
