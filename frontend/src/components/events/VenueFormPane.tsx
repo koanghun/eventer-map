@@ -11,6 +11,7 @@ import { usePostVenues } from '../../api/generated/venues/venues';
 import { useEventStore } from '../../store/useEventStore';
 import { toast } from '../../store/useToastStore';
 import { cn } from '../../lib/utils';
+import { RelatedLinkInputBadge, parseRelatedLink } from '../common/RelatedLinkBadge';
 import type { Venue, VenueInput } from '../../api/generated/model';
 
 interface VenueFormPaneProps {
@@ -164,7 +165,7 @@ export default function VenueFormPane({ initialName, onBack, onCreated }: VenueF
     const [placeResults, setPlaceResults] = useState<PlaceSearchResult[]>([]);
     const [isSearchingPlaces, setIsSearchingPlaces] = useState(false);
     const [isPlaceSearchError, setIsPlaceSearchError] = useState(false);
-    const [isPlaceDropdownOpen, setIsPlaceDropdownOpen] = useState( Boolean(initialName.trim()) );
+    const [isPlaceDropdownOpen, setIsPlaceDropdownOpen] = useState(Boolean(initialName.trim()));
     const [isPlaceComposing, setIsPlaceComposing] = useState(false);
     const [placeHighlightedIndex, setPlaceHighlightedIndex] = useState(-1);
 
@@ -575,29 +576,43 @@ export default function VenueFormPane({ initialName, onBack, onCreated }: VenueF
                             <Label className="text-xs font-bold text-muted-foreground">
                                 {t('venueForm.fields.relatedLinks', '관련 링크 (선택)')}
                             </Label>
-                            {links.map((link, index) => (
-                                <div key={index} className="flex items-center gap-2">
-                                    <Input
-                                        placeholder="https://..."
-                                        value={link}
-                                        onChange={(e) => handleLinkChange(index, e.target.value)}
-                                        className="h-8 text-xs bg-background border-input flex-1"
-                                        disabled={isPending}
-                                    />
-                                    {links.length > 1 && (
-                                        <Button
-                                            type="button"
-                                            variant="ghost"
-                                            size="icon"
-                                            onClick={() => removeLink(index)}
-                                            className="shrink-0 w-7 h-7 text-muted-foreground hover:text-destructive"
-                                            disabled={isPending}
-                                        >
-                                            <Trash2 className="w-3.5 h-3.5" />
-                                        </Button>
-                                    )}
-                                </div>
-                            ))}
+                            {links.map((link, index) => {
+                                const hasKnownProvider = Boolean(parseRelatedLink(link)?.isKnownProvider);
+                                return (
+                                    <div key={index} className="flex items-center gap-2">
+                                        <div className="relative flex-1 flex items-center">
+                                            <Input
+                                                placeholder="https://..."
+                                                value={link}
+                                                onChange={(e) => handleLinkChange(index, e.target.value)}
+                                                className={cn(
+                                                    'h-8 text-xs bg-background border-input flex-1',
+                                                    hasKnownProvider && 'pr-28'
+                                                )}
+                                                disabled={isPending}
+                                            />
+                                            {hasKnownProvider && (
+                                                <RelatedLinkInputBadge
+                                                    url={link}
+                                                    className="absolute right-2"
+                                                />
+                                            )}
+                                        </div>
+                                        {links.length > 1 && (
+                                            <Button
+                                                type="button"
+                                                variant="ghost"
+                                                size="icon"
+                                                onClick={() => removeLink(index)}
+                                                className="shrink-0 w-7 h-7 text-muted-foreground hover:text-destructive"
+                                                disabled={isPending}
+                                            >
+                                                <Trash2 className="w-3.5 h-3.5" />
+                                            </Button>
+                                        )}
+                                    </div>
+                                );
+                            })}
                             <Button
                                 type="button"
                                 variant="outline"

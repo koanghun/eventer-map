@@ -1,15 +1,16 @@
 import { useState } from 'react';
-import { ArrowLeft, Calendar, Clock, MapPin, ExternalLink, Users, Mic2, Edit2, Trash2, Bookmark, UserCheck, RotateCcw, Loader2, Star } from 'lucide-react';
+import { ArrowLeft, Calendar, Clock, MapPin, Users, Mic2, Edit2, Trash2, Bookmark, UserCheck, RotateCcw, Loader2, Star } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '../../context/AuthContext';
 import { useEventStore } from '../../store/useEventStore';
 import { toast } from '../../store/useToastStore';
 import { Button } from '../ui/button';
-import { cn, formatLocalizedDate, formatLocalizedTime } from '../../lib/utils';
+import { cn, formatLocalizedDate, formatLocalizedTime, getSafeExternalUrl } from '../../lib/utils';
 import EventThreadSection from './EventThreadSection';
 import { CreditVoteSection } from '../common/CreditVoteSection';
 import { ModificationRequestsSection } from '../common/ModificationRequestsSection';
+import { RelatedLinkBadge } from '../common/RelatedLinkBadge';
 import {
     useGetEventsEventId,
     useDeleteEventsEventId,
@@ -454,6 +455,12 @@ export default function EventDetailPane({
     const openingTimeFormatted = formatLocalizedTime(displayEvent.openingTime, i18n.language);
     const startTimeFormatted = formatLocalizedTime(displayEvent.startTime, i18n.language);
     const endTimeFormatted = formatLocalizedTime(displayEvent.endTime, i18n.language);
+    const safeRelatedLinks =
+        'relatedLinks' in displayEvent && Array.isArray(displayEvent.relatedLinks)
+            ? displayEvent.relatedLinks
+                .map((raw) => getSafeExternalUrl(raw))
+                .filter((safe): safe is string => safe !== null)
+            : [];
 
     return (
         <div className="w-full flex-1 min-h-0 flex flex-col animate-in fade-in slide-in-from-left-4 duration-300 overflow-hidden">
@@ -472,36 +479,36 @@ export default function EventDetailPane({
                 <h2 className="text-sm font-bold text-foreground truncate flex-1">
                     {t('eventDetail.title', '이벤트 상세')}
                 </h2>
-                    { canEdit && onEdit && (
-                        <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={onEdit}
-                            disabled={isDeletePending}
-                            className="rounded-full w-7 h-7 hover:bg-muted text-muted-foreground hover:text-primary shrink-0"
-                            title={t('buttons.edit', '수정')}
-                            aria-label={t('buttons.edit', '수정')}
-                        >
-                            <Edit2 className="w-3.5 h-3.5" />
-                        </Button>
-                    )}
-                    { canDelete && (
-                        <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={handleDelete}
-                            disabled={isDeletePending}
-                            className="rounded-full w-7 h-7 hover:bg-destructive/10 text-muted-foreground hover:text-destructive shrink-0"
-                            title={t('buttons.delete', '삭제')}
-                            aria-label={t('buttons.delete', '삭제')}
-                        >
-                            {isDeletePending ? (
-                                <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                            ) : (
-                                <Trash2 className="w-3.5 h-3.5" />
-                            )}
-                        </Button>
-                    )}
+                {canEdit && onEdit && (
+                    <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={onEdit}
+                        disabled={isDeletePending}
+                        className="rounded-full w-7 h-7 hover:bg-muted text-muted-foreground hover:text-primary shrink-0"
+                        title={t('buttons.edit', '수정')}
+                        aria-label={t('buttons.edit', '수정')}
+                    >
+                        <Edit2 className="w-3.5 h-3.5" />
+                    </Button>
+                )}
+                {canDelete && (
+                    <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={handleDelete}
+                        disabled={isDeletePending}
+                        className="rounded-full w-7 h-7 hover:bg-destructive/10 text-muted-foreground hover:text-destructive shrink-0"
+                        title={t('buttons.delete', '삭제')}
+                        aria-label={t('buttons.delete', '삭제')}
+                    >
+                        {isDeletePending ? (
+                            <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                        ) : (
+                            <Trash2 className="w-3.5 h-3.5" />
+                        )}
+                    </Button>
+                )}
             </div>
 
             {/* Content Scrollable Area */}
@@ -626,163 +633,157 @@ export default function EventDetailPane({
                                 </div>
                             </div>
                         )}
-                        {('relatedLinks' in displayEvent) && displayEvent.relatedLinks && displayEvent.relatedLinks.length > 0 && (
-                            <div className="flex items-center gap-2 mt-2">
-                                <ExternalLink className="w-4 h-4 shrink-0 text-primary/70" />
-                                <a
-                                    href={displayEvent.relatedLinks[0]}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className="text-primary hover:underline hover:text-primary/80 transition-colors truncate"
-                                >
-                                    {t('eventDetail.relatedLink', 'Open Related Link')}
-                                </a>
-                            </div>
-                        )}
-                    </div>
-
-                    {/* 공인 데이터 수정 리퀘스트 (기본 접힘) */}
-                    {eventId && displayEvent.status === 'APPROVED' && (
-                        <div className="mt-2.5">
-                            <ModificationRequestsSection
-                                entityType="EVENT"
-                                entityId={eventId}
-                                initialValues={{ title: displayEvent.title }}
-                                onProposeEdit={canEdit && onEdit ? onEdit : undefined}
-                            />
-                        </div>
-                    )}
-
-                    {/* 체크 -> 참가 -> 해제 상태 순환 버튼 */}
-                    <div className="mt-2.5 pt-2.5 border-t border-border/50 flex flex-col gap-1.5">
-                        {currentStatus !== 0 && (
-                            <div className="flex items-center justify-between text-xs">
-                                <span
-                                    className={
-                                        currentStatus === 1
-                                            ? 'inline-flex items-center gap-1 font-semibold text-amber-600 dark:text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded-full text-[11px]'
-                                            : 'inline-flex items-center gap-1 font-semibold text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-full text-[11px]'
-                                    }
-                                >
-                                    {currentStatus === 1 ? (
-                                        <>
-                                            <Bookmark className="w-2.5 h-2.5 fill-current" />
-                                            {t('eventDetail.action.statusChecked', '체크됨')}
-                                        </>
-                                    ) : (
-                                        <>
-                                            <UserCheck className="w-2.5 h-2.5" />
-                                            {t('eventDetail.action.statusAttending', '참가중')}
-                                        </>
-                                    )}
-                                </span>
-                            </div>
-                        )}
-                        <Button
-                            type="button"
-                            size="sm"
-                            disabled={actionMutation.isPending}
-                            onClick={handleCycleAction}
-                            variant={currentStatus === 2 ? 'outline' : 'default'}
-                            className={
-                                currentStatus === 0
-                                    ? 'w-full h-8 text-xs font-semibold shadow-sm transition-all'
-                                    : currentStatus === 1
-                                        ? 'w-full h-8 text-xs font-semibold bg-gradient-to-r from-primary to-orange-500 hover:from-primary/90 hover:to-orange-500/90 text-white shadow-sm transition-all'
-                                        : 'w-full h-8 text-xs font-semibold border-border text-muted-foreground hover:text-destructive hover:border-destructive/50 hover:bg-destructive/5 transition-all'
-                            }
-                        >
-                            {actionMutation.isPending ? (
-                                <Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" />
-                            ) : currentStatus === 0 ? (
-                                <Bookmark className="w-3.5 h-3.5 mr-1.5" />
-                            ) : currentStatus === 1 ? (
-                                <UserCheck className="w-3.5 h-3.5 mr-1.5" />
-                            ) : (
-                                <RotateCcw className="w-3.5 h-3.5 mr-1.5" />
-                            )}
-                            {currentStatus === 0
-                                ? t('eventDetail.action.check', '체크')
-                                : currentStatus === 1
-                                    ? t('eventDetail.action.attend', '참가')
-                                    : t('eventDetail.action.release', '해제')}
-                        </Button>
-                    </div>
-
-                    {/* Rating Section (평점 등록 영역 — 참가중일 때만 노출) */}
-                    {isAttending && (
-                        <div className="mt-2 px-2.5 py-1.5 bg-muted/40 rounded-lg border border-border/50 flex items-center justify-between animate-in fade-in slide-in-from-top-1 duration-200">
-                            <div className="flex items-center gap-2">
-                                <span className="text-[11px] font-bold text-foreground flex items-center gap-1 shrink-0">
-                                    <Star className="w-3 h-3 fill-amber-400 text-amber-400" />
-                                    {t('eventDetail.rating.title', '평점')}
-                                </span>
-                                <div className="flex items-center gap-0.5">
-                                    {[1, 2, 3, 4, 5].map((star) => {
-                                        const isFilled = star <= activeScore;
-                                        return (
-                                            <button
-                                                key={star}
-                                                type="button"
-                                                disabled={isRatingPending}
-                                                onClick={() => handleRate(star)}
-                                                onMouseEnter={() => setHoverScore(star)}
-                                                onMouseLeave={() => setHoverScore(null)}
-                                                className="p-0.5 rounded transition-transform focus:outline-none focus-visible:ring-1 focus-visible:ring-primary cursor-pointer hover:scale-125 duration-150"
-                                                title={t('eventDetail.rating.score', { score: star, defaultValue: `${star}점` })}
-                                                aria-label={`${star} stars`}
-                                            >
-                                                <Star
-                                                    className={cn(
-                                                        "w-4 h-4 transition-colors",
-                                                        isFilled
-                                                            ? "fill-amber-400 text-amber-400 drop-shadow-sm"
-                                                            : "text-muted-foreground/30 hover:text-muted-foreground/60"
-                                                    )}
-                                                />
-                                            </button>
-                                        );
-                                    })}
-                                </div>
-                                {isRatingPending && (
-                                    <Loader2 className="w-3.5 h-3.5 animate-spin text-muted-foreground shrink-0" />
+                                {safeRelatedLinks.length > 0 && (
+                                    <div className="flex flex-wrap items-center gap-1.5 mt-2">
+                                        {safeRelatedLinks.map((linkUrl, idx) => (
+                                            <RelatedLinkBadge key={`${linkUrl}-${idx}`} url={linkUrl} />
+                                        ))}
+                                    </div>
                                 )}
                             </div>
 
-                            {currentRating !== undefined && (
-                                <button
-                                    type="button"
-                                    disabled={isRatingPending}
-                                    onClick={handleDeleteRating}
-                                    className="text-[10px] text-muted-foreground hover:text-destructive underline underline-offset-2 transition-colors cursor-pointer shrink-0"
-                                >
-                                    {t('eventDetail.rating.delete', '평점 삭제')}
-                                </button>
+                    {/* 공인 데이터 수정 리퀘스트 (기본 접힘) */}
+                        {eventId && displayEvent.status === 'APPROVED' && (
+                            <div className="mt-2.5">
+                                <ModificationRequestsSection
+                                    entityType="EVENT"
+                                    entityId={eventId}
+                                    initialValues={{ title: displayEvent.title }}
+                                    onProposeEdit={canEdit && onEdit ? onEdit : undefined}
+                                />
+                            </div>
+                        )}
+
+                        {/* 체크 -> 참가 -> 해제 상태 순환 버튼 */}
+                        <div className="mt-2.5 pt-2.5 border-t border-border/50 flex flex-col gap-1.5">
+                            {currentStatus !== 0 && (
+                                <div className="flex items-center justify-between text-xs">
+                                    <span
+                                        className={
+                                            currentStatus === 1
+                                                ? 'inline-flex items-center gap-1 font-semibold text-amber-600 dark:text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded-full text-[11px]'
+                                                : 'inline-flex items-center gap-1 font-semibold text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-full text-[11px]'
+                                        }
+                                    >
+                                        {currentStatus === 1 ? (
+                                            <>
+                                                <Bookmark className="w-2.5 h-2.5 fill-current" />
+                                                {t('eventDetail.action.statusChecked', '체크됨')}
+                                            </>
+                                        ) : (
+                                            <>
+                                                <UserCheck className="w-2.5 h-2.5" />
+                                                {t('eventDetail.action.statusAttending', '참가중')}
+                                            </>
+                                        )}
+                                    </span>
+                                </div>
                             )}
+                            <Button
+                                type="button"
+                                size="sm"
+                                disabled={actionMutation.isPending}
+                                onClick={handleCycleAction}
+                                variant={currentStatus === 2 ? 'outline' : 'default'}
+                                className={
+                                    currentStatus === 0
+                                        ? 'w-full h-8 text-xs font-semibold shadow-sm transition-all'
+                                        : currentStatus === 1
+                                            ? 'w-full h-8 text-xs font-semibold bg-gradient-to-r from-primary to-orange-500 hover:from-primary/90 hover:to-orange-500/90 text-white shadow-sm transition-all'
+                                            : 'w-full h-8 text-xs font-semibold border-border text-muted-foreground hover:text-destructive hover:border-destructive/50 hover:bg-destructive/5 transition-all'
+                                }
+                            >
+                                {actionMutation.isPending ? (
+                                    <Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" />
+                                ) : currentStatus === 0 ? (
+                                    <Bookmark className="w-3.5 h-3.5 mr-1.5" />
+                                ) : currentStatus === 1 ? (
+                                    <UserCheck className="w-3.5 h-3.5 mr-1.5" />
+                                ) : (
+                                    <RotateCcw className="w-3.5 h-3.5 mr-1.5" />
+                                )}
+                                {currentStatus === 0
+                                    ? t('eventDetail.action.check', '체크')
+                                    : currentStatus === 1
+                                        ? t('eventDetail.action.attend', '참가')
+                                        : t('eventDetail.action.release', '해제')}
+                            </Button>
                         </div>
+
+                        {/* Rating Section (평점 등록 영역 — 참가중일 때만 노출) */}
+                        {isAttending && (
+                            <div className="mt-2 px-2.5 py-1.5 bg-muted/40 rounded-lg border border-border/50 flex items-center justify-between animate-in fade-in slide-in-from-top-1 duration-200">
+                                <div className="flex items-center gap-2">
+                                    <span className="text-[11px] font-bold text-foreground flex items-center gap-1 shrink-0">
+                                        <Star className="w-3 h-3 fill-amber-400 text-amber-400" />
+                                        {t('eventDetail.rating.title', '평점')}
+                                    </span>
+                                    <div className="flex items-center gap-0.5">
+                                        {[1, 2, 3, 4, 5].map((star) => {
+                                            const isFilled = star <= activeScore;
+                                            return (
+                                                <button
+                                                    key={star}
+                                                    type="button"
+                                                    disabled={isRatingPending}
+                                                    onClick={() => handleRate(star)}
+                                                    onMouseEnter={() => setHoverScore(star)}
+                                                    onMouseLeave={() => setHoverScore(null)}
+                                                    className="p-0.5 rounded transition-transform focus:outline-none focus-visible:ring-1 focus-visible:ring-primary cursor-pointer hover:scale-125 duration-150"
+                                                    title={t('eventDetail.rating.score', { score: star, defaultValue: `${star}점` })}
+                                                    aria-label={`${star} stars`}
+                                                >
+                                                    <Star
+                                                        className={cn(
+                                                            "w-4 h-4 transition-colors",
+                                                            isFilled
+                                                                ? "fill-amber-400 text-amber-400 drop-shadow-sm"
+                                                                : "text-muted-foreground/30 hover:text-muted-foreground/60"
+                                                        )}
+                                                    />
+                                                </button>
+                                            );
+                                        })}
+                                    </div>
+                                    {isRatingPending && (
+                                        <Loader2 className="w-3.5 h-3.5 animate-spin text-muted-foreground shrink-0" />
+                                    )}
+                                </div>
+
+                                {currentRating !== undefined && (
+                                    <button
+                                        type="button"
+                                        disabled={isRatingPending}
+                                        onClick={handleDeleteRating}
+                                        className="text-[10px] text-muted-foreground hover:text-destructive underline underline-offset-2 transition-colors cursor-pointer shrink-0"
+                                    >
+                                        {t('eventDetail.rating.delete', '평점 삭제')}
+                                    </button>
+                                )}
+                            </div>
+                        )}
+                    </div>
+
+
+                    {/* Credit Section */}
+                    {eventId && (
+                        <CreditVoteSection
+                            entityType="EVENT"
+                            entityId={eventId}
+                            status={displayEvent.status}
+                            authorId={displayEvent.authorId}
+                            creditScore={displayEvent.creditScore}
+                            creditCount={displayEvent.creditCount}
+                            myCreditScore={displayEvent.myCreditScore}
+                            highCreditSince={displayEvent.highCreditSince}
+                            lowCreditSince={displayEvent.lowCreditSince}
+                        />
                     )}
+
+                    {/* Thread (커뮤니티) Section — 추천순 정렬 */}
+                    {eventId && <EventThreadSection eventId={eventId} />}
+
                 </div>
-
-
-                {/* Credit Section */}
-                {eventId && (
-                    <CreditVoteSection
-                        entityType="EVENT"
-                        entityId={eventId}
-                        status={displayEvent.status}
-                        authorId={displayEvent.authorId}
-                        creditScore={displayEvent.creditScore}
-                        creditCount={displayEvent.creditCount}
-                        myCreditScore={displayEvent.myCreditScore}
-                        highCreditSince={displayEvent.highCreditSince}
-                        lowCreditSince={displayEvent.lowCreditSince}
-                    />
-                )}
-
-                {/* Thread (커뮤니티) Section — 추천순 정렬 */}
-                {eventId && <EventThreadSection eventId={eventId} />}
-
             </div>
-        </div>
-    );
+            );
 }
