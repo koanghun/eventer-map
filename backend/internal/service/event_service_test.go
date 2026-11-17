@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"math"
 	"testing"
 	"time"
 
@@ -330,5 +331,64 @@ func TestListEventsFollowingArtistsCreatedAfterPassThrough(t *testing.T) {
 	call := repo.listFollowingArtistEventCalls[0]
 	if !call.CreatedAfter.Valid || !call.CreatedAfter.Time.Equal(createdAfter.UTC()) {
 		t.Fatalf("expected CreatedAfter=%v, got %+v", createdAfter.UTC(), call.CreatedAfter)
+	}
+}
+
+func TestListEventsClampsOversizedViewportBounds(t *testing.T) {
+	ctx := context.Background()
+	repo := &fakeEventListRepo{}
+	svc := newEventServiceWithListRepo(repo, nil)
+
+	minLat, maxLat := 10.0, 62.0  // span = 52 > MaxViewportLatSpan (28)
+	minLng, maxLng := 100.0, 176.0 // span = 76 > MaxViewportLngSpan (36)
+	if _, _, err := svc.ListEvents(ctx, ListEventsFilter{
+		MinLat: &minLat,
+		MaxLat: &maxLat,
+		MinLng: &minLng,
+		MaxLng: &maxLng,
+		Limit:  30,
+	}); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	if len(repo.listEventsCalls) != 1 {
+		t.Fatalf("expected 1 ListEvents call, got %d", len(repo.listEventsCalls))
+	}
+	call := repo.listEventsCalls[0]
+	if !call.MinLat.Valid || !call.MaxLat.Valid || !call.MinLng.Valid || !call.MaxLng.Valid {
+		t.Fatalf("expected valid clamped bounds, got %+v", call)
+	}
+	latSpan := call.MaxLat.Float64 - call.MinLat.Float64
+	lngSpan := call.MaxLng.Float64 - call.MinLng.Float64
+	if math.Abs(latSpan-MaxViewportLatSpan) > 1e-9 {
+		t.Fatalf("expected latSpan=%v, got %v (min=%v, max=%v)", MaxViewportLatSpan, latSpan, call.MinLat.Float64, call.MaxLat.Float64)
+	}
+	if math.Abs(lngSpan-MaxViewportLngSpan) > 1e-9 {
+		t.Fatalf("expected lngSpan=%v, got %v (min=%v, max=%v)", MaxViewportLngSpan, lngSpan, call.MinLng.Float64, call.MaxLng.Float64)
+	}
+	// Center should be preserved: (10+62)/2 = 36, (100+176)/2 = 138
+	if math.Abs((call.MinLat.Float64+call.MaxLat.Float64)/2-36.0) > 1e-9 {
+		t.Fatalf("expected centered lat 36.0, got [%v, %v]", call.MinLat.Float64, call.MaxLat.Float64)
+	}
+	if math.Abs((call.MinLng.Float64+call.MaxLng.Float64)/2-138.0) > 1e-9 {
+		t.Fatalf("expected centered lng 138.0, got [%v, %v]", call.MinLng.Float64, call.MaxLng.Float64)
+	}
+
+	// Normal Japan-wide bounds within span limits should pass through untouched
+	jpMinLat, jpMaxLat := 24.0, 46.0   // span = 22 <= 28
+	jpMinLng, jpMaxLng := 122.0, 154.0 // span = 32 <= 36
+	if _, _, err := svc.ListEvents(ctx, ListEventsFilter{
+		MinLat: &jpMinLat,
+		MaxLat: &jpMaxLat,
+		MinLng: &jpMinLng,
+		MaxLng: &jpMaxLng,
+		Limit:  30,
+	}); err != nil {
+		t.Fatalf("unexpected error on Japan bounds: %v", err)
+	}
+	jpCall := repo.listEventsCalls[1]
+	if jpCall.MinLat.Float64 != jpMinLat || jpCall.MaxLat.Float64 != jpMaxLat ||
+		jpCall.MinLng.Float64 != jpMinLng || jpCall.MaxLng.Float64 != jpMaxLng {
+		t.Fatalf("expected Japan-wide bounds preserved, got %+v", jpCall)
 	}
 }

@@ -17,12 +17,14 @@ flowchart LR
         SQLC{{"sqlc"}}
         DB[(PostgreSQL / NAS)]
         DDB[(DynamoDB<br/>OAuthStatesTable)]
+        S3[("AWS S3<br/>(MediaBucket)")]
     end
 
     subgraph Backend_Layer["백엔드 (Go net/http 4계층)"]
         Handler["Handler 계층<br/>(internal/handler)"]
         Service["Service 계층<br/>(internal/service)"]
         Repo["Repository 계층<br/>(internal/repository)"]
+        Support["인프라 지원 계층<br/>(auth / storage / mailer)"]
     end
 
     GoCodegen{{"oapi-codegen"}}
@@ -38,8 +40,10 @@ flowchart LR
     SQLFiles -->|"스키마/쿼리 파싱"| SQLC
     SQLC -->|"타입 안전 Go 코드 생성"| Repo
     Handler --> Service --> Repo
+    Service --> Support
     Repo <-->|"Prepared SQL 실행"| DB
-    Service <-->|"OAuth PKCE/State"| DDB
+    Support <-->|"OAuth PKCE/State"| DDB
+    Support <-->|"프로필 이미지 업로드"| S3
 
     OpenAPI -->|"명세 로드"| GoCodegen
     GoCodegen -->|"ServerInterface & 모델 생성"| Handler
@@ -67,9 +71,12 @@ flowchart LR
   - `auth.go`: `Authorization: Bearer <token>` 검증(`x_reauth`/`refresh` 토큰 오용 차단) 및 `context.WithValue`를 통한 `UserIDKey` 주입
   - `cors.go`: 브라우저 CORS 헤더 및 Preflight(`OPTIONS`) 처리
 
-### 3) `internal/auth/` (외부 OAuth & PKCE 저장소)
-- `x_oauth.go`: X OAuth 2.0 Confidential Client (Basic Auth + PKCE `S256` 코드 검증기/챌린지 생성, 토큰 교환, `/2/users/me` 프로필 조회)
-- `oauth_state_store.go`: `OAuthStateStore` 인터페이스 구현체 — 프로덕션용 `DynamoDBOAuthStateStore` (TTL + 조건부 `DeleteItem` 원자 1회 소비) 및 로컬(`ENV=local` / 비-Lambda) 전용 `InMemoryOAuthStateStore`
+### 3) 인프라 지원 계층 (`internal/auth/`, `internal/storage/`, `internal/mailer/`)
+- **`internal/auth/`**:
+  - `x_oauth.go`: X OAuth 2.0 Confidential Client (Basic Auth + PKCE `S256` 코드 검증기/챌린지 생성, 토큰 교환, `/2/users/me` 프로필 조회)
+  - `oauth_state_store.go`: `OAuthStateStore` 인터페이스 구현체 — 프로덕션용 `DynamoDBOAuthStateStore` (TTL + 조건부 `DeleteItem` 원자 1회 소비) 및 로컬(`ENV=local` / 비-Lambda) 전용 `InMemoryOAuthStateStore`
+- **`internal/storage/`**: AWS S3 (`MediaBucket`) 기반 출연자 프로필 이미지 업로드 (`Uploader`)
+- **`internal/mailer/`**: 다국어(`ko`, `ja`, `en`, `zh`) 이메일 인증 코드 발송 (`SMTPMailer` 및 로컬/미설정 시 콘솔 출력 `MockMailer`)
 
 ### 4) `internal/handler/` (표현 계층)
 - `oapi-codegen`이 생성한 `openapi.gen.go`의 `ServerInterface`를 도메인별 파일(`common_handler.go`, `event_handler.go`, `thread_handler.go`, `artist_handler.go`, `venue_handler.go`, `credit_handler.go`, `auth_handler.go`, `user_handler.go`)에서 구현합니다.

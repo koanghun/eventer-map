@@ -383,23 +383,54 @@ func (q *Queries) GetUserRatingForEvent(ctx context.Context, arg GetUserRatingFo
 }
 
 const listEvents = `-- name: ListEvents :many
+WITH ranked_events AS (
+    SELECT
+        e.id,
+        e.title,
+        e.venue_id,
+        COALESCE(v.official_name, '')::varchar AS venue_name,
+        COALESCE(v.latitude, 0)::double precision AS latitude,
+        COALESCE(v.longitude, 0)::double precision AS longitude,
+        e.start_time,
+        e.end_time,
+        e.rating_sum,
+        e.rating_count,
+        (SELECT COUNT(*)::int FROM event_user_actions eua WHERE eua.event_id = e.id AND eua.status = 2)::int AS attendee_count,
+        e.status
+    FROM events e
+    LEFT JOIN venues v ON e.venue_id = v.id
+    WHERE
+        ($1::double precision IS NULL OR v.latitude >= $1)
+        AND ($2::double precision IS NULL OR v.latitude <= $2)
+        AND ($3::double precision IS NULL OR v.longitude >= $3)
+        AND ($4::double precision IS NULL OR v.longitude <= $4)
+        AND ($5::timestamptz IS NULL OR e.end_time >= $5)
+        AND ($6::timestamptz IS NULL OR e.start_time <= $6)
+        AND ($7::uuid IS NULL OR e.venue_id = $7)
+        AND ($8::uuid IS NULL OR EXISTS (
+            SELECT 1 FROM event_artists ea
+            WHERE ea.event_id = e.id AND ea.artist_id = $8
+        ))
+        AND ($9::varchar IS NULL OR e.status = $9)
+    ORDER BY attendee_count DESC, e.start_time ASC, e.id ASC
+    LIMIT $10
+)
 SELECT
-    e.id,
-    e.title,
-    e.venue_id,
-    COALESCE(v.official_name, '')::varchar AS venue_name,
-    COALESCE(v.latitude, 0)::double precision AS latitude,
-    COALESCE(v.longitude, 0)::double precision AS longitude,
-    e.start_time,
-    e.end_time,
-    e.rating_sum,
-    e.rating_count,
-    (SELECT COUNT(*)::int FROM event_user_actions eua WHERE eua.event_id = e.id AND eua.status = 2) AS attendee_count,
-    e.status,
+    re.id,
+    re.title,
+    re.venue_id,
+    re.venue_name,
+    re.latitude,
+    re.longitude,
+    re.start_time,
+    re.end_time,
+    re.rating_sum,
+    re.rating_count,
+    re.attendee_count,
+    re.status,
     COALESCE(ta.official_name, '')::varchar AS top_artist_name,
     COALESCE(ta.profile_image_url, '')::varchar AS top_artist_profile_image_url
-FROM events e
-LEFT JOIN venues v ON e.venue_id = v.id
+FROM ranked_events re
 LEFT JOIN LATERAL (
     SELECT
         a.official_name,
@@ -407,28 +438,14 @@ LEFT JOIN LATERAL (
         CASE WHEN a.rating_count > 0 THEN a.rating_sum / a.rating_count ELSE 0 END AS artist_avg_rating
     FROM event_artists ea
     JOIN artists a ON ea.artist_id = a.id
-    WHERE ea.event_id = e.id
+    WHERE ea.event_id = re.id
     ORDER BY
         artist_avg_rating DESC,
         a.rating_count DESC,
         a.official_name ASC
     LIMIT 1
 ) ta ON true
-WHERE
-    ($1::double precision IS NULL OR v.latitude >= $1)
-    AND ($2::double precision IS NULL OR v.latitude <= $2)
-    AND ($3::double precision IS NULL OR v.longitude >= $3)
-    AND ($4::double precision IS NULL OR v.longitude <= $4)
-    AND ($5::timestamptz IS NULL OR e.end_time >= $5)
-    AND ($6::timestamptz IS NULL OR e.start_time <= $6)
-    AND ($7::uuid IS NULL OR e.venue_id = $7)
-    AND ($8::uuid IS NULL OR EXISTS (
-        SELECT 1 FROM event_artists ea
-        WHERE ea.event_id = e.id AND ea.artist_id = $8
-    ))
-    AND ($9::varchar IS NULL OR e.status = $9)
-ORDER BY attendee_count DESC, e.start_time ASC, e.id ASC
-LIMIT $10
+ORDER BY re.attendee_count DESC, re.start_time ASC, re.id ASC
 `
 
 type ListEventsParams struct {
@@ -516,35 +533,62 @@ WITH followed_event_ids AS (
     FROM user_artist_follows uaf
     JOIN event_artists ea ON ea.artist_id = uaf.artist_id
     JOIN events e_check ON e_check.id = ea.event_id
-    WHERE uaf.user_id = $10
+    WHERE uaf.user_id = $1
       AND e_check.status <> 'REJECTED'
       AND (
-          $11::timestamptz IS NULL
+          $2::timestamptz IS NULL
           OR (
-              e_check.created_at > GREATEST($11::timestamptz, uaf.created_at)
+              e_check.created_at > GREATEST($2::timestamptz, uaf.created_at)
               AND e_check.end_time >= NOW()
-              AND e_check.author_id IS DISTINCT FROM $10
+              AND e_check.author_id IS DISTINCT FROM $1
           )
       )
+),
+ranked_events AS (
+    SELECT
+        e.id,
+        e.title,
+        e.venue_id,
+        COALESCE(v.official_name, '')::varchar AS venue_name,
+        COALESCE(v.latitude, 0)::double precision AS latitude,
+        COALESCE(v.longitude, 0)::double precision AS longitude,
+        e.start_time,
+        e.end_time,
+        e.rating_sum,
+        e.rating_count,
+        (SELECT COUNT(*)::int FROM event_user_actions eua WHERE eua.event_id = e.id AND eua.status = 2)::int AS attendee_count,
+        e.status
+    FROM followed_event_ids fe
+    JOIN events e ON e.id = fe.event_id
+    LEFT JOIN venues v ON e.venue_id = v.id
+    WHERE
+        ($3::double precision IS NULL OR v.latitude >= $3)
+        AND ($4::double precision IS NULL OR v.latitude <= $4)
+        AND ($5::double precision IS NULL OR v.longitude >= $5)
+        AND ($6::double precision IS NULL OR v.longitude <= $6)
+        AND ($7::timestamptz IS NULL OR e.end_time >= $7)
+        AND ($8::timestamptz IS NULL OR e.start_time <= $8)
+        AND ($9::uuid IS NULL OR e.venue_id = $9)
+        AND ($10::varchar IS NULL OR e.status = $10)
+    ORDER BY e.start_time ASC, e.id ASC
+    LIMIT $11
 )
 SELECT
-    e.id,
-    e.title,
-    e.venue_id,
-    COALESCE(v.official_name, '')::varchar AS venue_name,
-    COALESCE(v.latitude, 0)::double precision AS latitude,
-    COALESCE(v.longitude, 0)::double precision AS longitude,
-    e.start_time,
-    e.end_time,
-    e.rating_sum,
-    e.rating_count,
-    (SELECT COUNT(*)::int FROM event_user_actions eua WHERE eua.event_id = e.id AND eua.status = 2) AS attendee_count,
-    e.status,
+    re.id,
+    re.title,
+    re.venue_id,
+    re.venue_name,
+    re.latitude,
+    re.longitude,
+    re.start_time,
+    re.end_time,
+    re.rating_sum,
+    re.rating_count,
+    re.attendee_count,
+    re.status,
     COALESCE(ta.official_name, '')::varchar AS top_artist_name,
     COALESCE(ta.profile_image_url, '')::varchar AS top_artist_profile_image_url
-FROM followed_event_ids fe
-JOIN events e ON e.id = fe.event_id
-LEFT JOIN venues v ON e.venue_id = v.id
+FROM ranked_events re
 LEFT JOIN LATERAL (
     SELECT
         a.official_name,
@@ -552,27 +596,19 @@ LEFT JOIN LATERAL (
         CASE WHEN a.rating_count > 0 THEN a.rating_sum / a.rating_count ELSE 0 END AS artist_avg_rating
     FROM event_artists ea
     JOIN artists a ON ea.artist_id = a.id
-    WHERE ea.event_id = e.id
+    WHERE ea.event_id = re.id
     ORDER BY
         artist_avg_rating DESC,
         a.rating_count DESC,
         a.official_name ASC
     LIMIT 1
 ) ta ON true
-WHERE
-    ($1::double precision IS NULL OR v.latitude >= $1)
-    AND ($2::double precision IS NULL OR v.latitude <= $2)
-    AND ($3::double precision IS NULL OR v.longitude >= $3)
-    AND ($4::double precision IS NULL OR v.longitude <= $4)
-    AND ($5::timestamptz IS NULL OR e.end_time >= $5)
-    AND ($6::timestamptz IS NULL OR e.start_time <= $6)
-    AND ($7::uuid IS NULL OR e.venue_id = $7)
-    AND ($8::varchar IS NULL OR e.status = $8)
-ORDER BY e.start_time ASC, e.id ASC
-LIMIT $9
+ORDER BY re.start_time ASC, re.id ASC
 `
 
 type ListFollowingArtistsEventsForMapParams struct {
+	UserID        uuid.UUID
+	CreatedAfter  sql.NullTime
 	MinLat        sql.NullFloat64
 	MaxLat        sql.NullFloat64
 	MinLng        sql.NullFloat64
@@ -582,8 +618,6 @@ type ListFollowingArtistsEventsForMapParams struct {
 	VenueID       uuid.NullUUID
 	Status        sql.NullString
 	Limit         int32
-	UserID        uuid.UUID
-	CreatedAfter  sql.NullTime
 }
 
 type ListFollowingArtistsEventsForMapRow struct {
@@ -605,6 +639,8 @@ type ListFollowingArtistsEventsForMapRow struct {
 
 func (q *Queries) ListFollowingArtistsEventsForMap(ctx context.Context, arg ListFollowingArtistsEventsForMapParams) ([]ListFollowingArtistsEventsForMapRow, error) {
 	rows, err := q.db.QueryContext(ctx, listFollowingArtistsEventsForMap,
+		arg.UserID,
+		arg.CreatedAfter,
 		arg.MinLat,
 		arg.MaxLat,
 		arg.MinLng,
@@ -614,8 +650,6 @@ func (q *Queries) ListFollowingArtistsEventsForMap(ctx context.Context, arg List
 		arg.VenueID,
 		arg.Status,
 		arg.Limit,
-		arg.UserID,
-		arg.CreatedAfter,
 	)
 	if err != nil {
 		return nil, err
@@ -654,24 +688,57 @@ func (q *Queries) ListFollowingArtistsEventsForMap(ctx context.Context, arg List
 }
 
 const listMyActionEvents = `-- name: ListMyActionEvents :many
+WITH ranked_events AS (
+    SELECT
+        e.id,
+        e.title,
+        e.venue_id,
+        COALESCE(v.official_name, '')::varchar AS venue_name,
+        COALESCE(v.latitude, 0)::double precision AS latitude,
+        COALESCE(v.longitude, 0)::double precision AS longitude,
+        e.start_time,
+        e.end_time,
+        e.rating_sum,
+        e.rating_count,
+        (SELECT COUNT(*)::int FROM event_user_actions eua2 WHERE eua2.event_id = e.id AND eua2.status = 2)::int AS attendee_count,
+        e.status
+    FROM event_user_actions eua
+    JOIN events e ON e.id = eua.event_id
+    LEFT JOIN venues v ON e.venue_id = v.id
+    WHERE
+        eua.user_id = $1
+        AND eua.status = $2
+        AND ($3::double precision IS NULL OR v.latitude >= $3)
+        AND ($4::double precision IS NULL OR v.latitude <= $4)
+        AND ($5::double precision IS NULL OR v.longitude >= $5)
+        AND ($6::double precision IS NULL OR v.longitude <= $6)
+        AND ($7::timestamptz IS NULL OR e.end_time >= $7)
+        AND ($8::timestamptz IS NULL OR e.start_time <= $8)
+        AND ($9::uuid IS NULL OR e.venue_id = $9)
+        AND ($10::uuid IS NULL OR EXISTS (
+            SELECT 1 FROM event_artists ea
+            WHERE ea.event_id = e.id AND ea.artist_id = $10
+        ))
+        AND ($11::varchar IS NULL OR e.status = $11)
+    ORDER BY e.start_time DESC, e.id ASC
+    LIMIT $12
+)
 SELECT
-    e.id,
-    e.title,
-    e.venue_id,
-    COALESCE(v.official_name, '')::varchar AS venue_name,
-    COALESCE(v.latitude, 0)::double precision AS latitude,
-    COALESCE(v.longitude, 0)::double precision AS longitude,
-    e.start_time,
-    e.end_time,
-    e.rating_sum,
-    e.rating_count,
-    (SELECT COUNT(*)::int FROM event_user_actions eua2 WHERE eua2.event_id = e.id AND eua2.status = 2) AS attendee_count,
-    e.status,
+    re.id,
+    re.title,
+    re.venue_id,
+    re.venue_name,
+    re.latitude,
+    re.longitude,
+    re.start_time,
+    re.end_time,
+    re.rating_sum,
+    re.rating_count,
+    re.attendee_count,
+    re.status,
     COALESCE(ta.official_name, '')::varchar AS top_artist_name,
     COALESCE(ta.profile_image_url, '')::varchar AS top_artist_profile_image_url
-FROM event_user_actions eua
-JOIN events e ON e.id = eua.event_id
-LEFT JOIN venues v ON e.venue_id = v.id
+FROM ranked_events re
 LEFT JOIN LATERAL (
     SELECT
         a.official_name,
@@ -679,30 +746,14 @@ LEFT JOIN LATERAL (
         CASE WHEN a.rating_count > 0 THEN a.rating_sum / a.rating_count ELSE 0 END AS artist_avg_rating
     FROM event_artists ea
     JOIN artists a ON ea.artist_id = a.id
-    WHERE ea.event_id = e.id
+    WHERE ea.event_id = re.id
     ORDER BY
         artist_avg_rating DESC,
         a.rating_count DESC,
         a.official_name ASC
     LIMIT 1
 ) ta ON true
-WHERE
-    eua.user_id = $1
-    AND eua.status = $2
-    AND ($3::double precision IS NULL OR v.latitude >= $3)
-    AND ($4::double precision IS NULL OR v.latitude <= $4)
-    AND ($5::double precision IS NULL OR v.longitude >= $5)
-    AND ($6::double precision IS NULL OR v.longitude <= $6)
-    AND ($7::timestamptz IS NULL OR e.end_time >= $7)
-    AND ($8::timestamptz IS NULL OR e.start_time <= $8)
-    AND ($9::uuid IS NULL OR e.venue_id = $9)
-    AND ($10::uuid IS NULL OR EXISTS (
-        SELECT 1 FROM event_artists ea
-        WHERE ea.event_id = e.id AND ea.artist_id = $10
-    ))
-    AND ($11::varchar IS NULL OR e.status = $11)
-ORDER BY e.start_time DESC, e.id ASC
-LIMIT $12
+ORDER BY re.start_time DESC, re.id ASC
 `
 
 type ListMyActionEventsParams struct {

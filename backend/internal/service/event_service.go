@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"math"
 	"strings"
 	"time"
 
@@ -24,8 +25,10 @@ var (
 )
 
 const (
-	DefaultEventLimit int32 = 50
-	MaxEventLimit     int32 = 100
+	DefaultEventLimit  int32   = 50
+	MaxEventLimit      int32   = 100
+	MaxViewportLatSpan float64 = 28.0
+	MaxViewportLngSpan float64 = 36.0
 )
 
 type ListEventsFilter struct {
@@ -101,21 +104,57 @@ type commonEventListFilter struct {
 	QueryLimit    int32
 }
 
+func clampAxisValue(v, domainMin, domainMax float64) float64 {
+	if v < domainMin {
+		return domainMin
+	}
+	if v > domainMax {
+		return domainMax
+	}
+	return v
+}
+
+func clampAxisBounds(minPtr, maxPtr *float64, domainMin, domainMax, maxSpan float64) (sql.NullFloat64, sql.NullFloat64) {
+	var minOut, maxOut sql.NullFloat64
+	hasMin := minPtr != nil && !math.IsNaN(*minPtr) && !math.IsInf(*minPtr, 0)
+	hasMax := maxPtr != nil && !math.IsNaN(*maxPtr) && !math.IsInf(*maxPtr, 0)
+
+	if hasMin && hasMax {
+		minV := clampAxisValue(*minPtr, domainMin, domainMax)
+		maxV := clampAxisValue(*maxPtr, domainMin, domainMax)
+		if minV > maxV {
+			minV, maxV = maxV, minV
+		}
+		if maxV-minV > maxSpan {
+			mid := (minV + maxV) / 2
+			half := maxSpan / 2
+			minV = mid - half
+			maxV = mid + half
+		}
+		minOut = sql.NullFloat64{Float64: minV, Valid: true}
+		maxOut = sql.NullFloat64{Float64: maxV, Valid: true}
+		return minOut, maxOut
+	}
+
+	if hasMin {
+		minOut = sql.NullFloat64{Float64: clampAxisValue(*minPtr, domainMin, domainMax), Valid: true}
+	}
+	if hasMax {
+		maxOut = sql.NullFloat64{Float64: clampAxisValue(*maxPtr, domainMin, domainMax), Valid: true}
+	}
+	return minOut, maxOut
+}
+
 func buildCommonEventListFilter(filter ListEventsFilter, queryLimit int32) commonEventListFilter {
+	minLat, maxLat := clampAxisBounds(filter.MinLat, filter.MaxLat, -90.0, 90.0, MaxViewportLatSpan)
+	minLng, maxLng := clampAxisBounds(filter.MinLng, filter.MaxLng, -180.0, 180.0, MaxViewportLngSpan)
+
 	out := commonEventListFilter{
+		MinLat:     minLat,
+		MaxLat:     maxLat,
+		MinLng:     minLng,
+		MaxLng:     maxLng,
 		QueryLimit: queryLimit,
-	}
-	if filter.MinLat != nil {
-		out.MinLat = sql.NullFloat64{Float64: *filter.MinLat, Valid: true}
-	}
-	if filter.MaxLat != nil {
-		out.MaxLat = sql.NullFloat64{Float64: *filter.MaxLat, Valid: true}
-	}
-	if filter.MinLng != nil {
-		out.MinLng = sql.NullFloat64{Float64: *filter.MinLng, Valid: true}
-	}
-	if filter.MaxLng != nil {
-		out.MaxLng = sql.NullFloat64{Float64: *filter.MaxLng, Valid: true}
 	}
 	if filter.StartTimeFrom != nil {
 		out.StartTimeFrom = sql.NullTime{Time: *filter.StartTimeFrom, Valid: true}

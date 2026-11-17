@@ -678,6 +678,7 @@ export default function EventFormPane({ editingEvent, initialDate, onCreated, on
                 const lat = updated?.venue?.latitude ?? selectedVenue?.latitude;
                 const lng = updated?.venue?.longitude ?? selectedVenue?.longitude;
                 toast.success(t('event.updateSuccess', '이벤트가 성공적으로 수정되었습니다.'));
+                useEventStore.getState().clearViewportSuperset();
                 onCreated?.({ date, lat, lng });
                 await Promise.all([
                     queryClient.invalidateQueries({ queryKey: getGetEventsQueryKey() }),
@@ -691,6 +692,7 @@ export default function EventFormPane({ editingEvent, initialDate, onCreated, on
                 const lng = created?.venue?.longitude ?? selectedVenue?.longitude;
                 clearEventFormDraft();
                 toast.success(t('event.createSuccess', '이벤트가 성공적으로 등록되었습니다.'));
+                useEventStore.getState().clearViewportSuperset();
                 onCreated?.({ date, lat, lng });
                 await Promise.all([
                     queryClient.invalidateQueries({ queryKey: getGetEventsQueryKey() }),

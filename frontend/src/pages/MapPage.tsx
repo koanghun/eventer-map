@@ -79,9 +79,19 @@ export default function MapPage() {
     const [editingEvent, setEditingEvent] = useState<EventSummary | null>(null);
 
     const mapBounds = useEventStore((state) => state.mapBounds);
+    const viewportBounds = useEventStore((state) => state.viewportBounds);
+    const queryLimit = useEventStore((state) => state.queryLimit);
+    const syncViewportFilterKey = useEventStore((state) => state.syncViewportFilterKey);
+    const recordViewportQueryOutcome = useEventStore((state) => state.recordViewportQueryOutcome);
+    const clearViewportSuperset = useEventStore((state) => state.clearViewportSuperset);
     const setMapCenterTarget = useEventStore((state) => state.setMapCenterTarget);
     const clearSelection = useEventStore((state) => state.clearSelection);
     const selectedEvent = useEventStore((state) => state.selectedEvent);
+
+    const viewportFilterKey = `${startDate ?? ''}|${endDate ?? ''}`;
+    useEffect(() => {
+        syncViewportFilterKey(viewportFilterKey);
+    }, [viewportFilterKey, syncViewportFilterKey]);
 
     // 비로그인, 잘못된 값 또는 상호 충돌하는 개인화 필터 쿼리 파라미터 정리
     useEffect(() => {
@@ -146,7 +156,7 @@ export default function MapPage() {
             myAction: myActionEnabled ? myAction : undefined,
             followingArtists: followingArtistsEnabled ? true : undefined,
             createdAfter: newEventsSince,
-            limit: isPersonalFilterMode ? 100 : 50,
+            limit: isPersonalFilterMode || isFilteredByEntity ? 100 : queryLimit,
         },
         {
             query: {
@@ -159,7 +169,41 @@ export default function MapPage() {
         }
     );
 
-    const filteredEvents: EventSummary[] = eventsData?.events || [];
+    useEffect(() => {
+        if (!shouldBypassBounds && !isEventsLoading && !isEventsPlaceholderData && eventsData && mapBounds) {
+            recordViewportQueryOutcome(
+                viewportFilterKey,
+                mapBounds,
+                queryLimit,
+                Boolean(eventsData.hasMore)
+            );
+        }
+    }, [
+        shouldBypassBounds,
+        isEventsLoading,
+        isEventsPlaceholderData,
+        eventsData,
+        mapBounds,
+        queryLimit,
+        viewportFilterKey,
+        recordViewportQueryOutcome,
+    ]);
+
+    const rawEvents: EventSummary[] = eventsData?.events || [];
+    const filteredEvents: EventSummary[] =
+        !shouldBypassBounds && viewportBounds
+            ? rawEvents.filter((ev) => {
+                const lat = ev.latitude;
+                const lng = ev.longitude;
+                if (typeof lat !== 'number' || typeof lng !== 'number') return false;
+                return (
+                    lat >= viewportBounds.minLat &&
+                    lat <= viewportBounds.maxLat &&
+                    lng >= viewportBounds.minLng &&
+                    lng <= viewportBounds.maxLng
+                );
+            })
+            : rawEvents;
 
     const {
         data: selectedArtistDetail,
@@ -219,6 +263,7 @@ export default function MapPage() {
                 if (editingEvent?.id === targetEventId) {
                     handleCloseForm();
                 }
+                clearViewportSuperset();
                 queryClient.removeQueries({ queryKey: getGetEventsEventIdQueryKey(targetEventId) });
                 queryClient.invalidateQueries({ queryKey: getGetEventsQueryKey() });
                 queryClient.invalidateQueries({ queryKey: getGetUsersMeEventsQueryKey() });
